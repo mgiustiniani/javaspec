@@ -1,0 +1,461 @@
+package org.javaspec.cli;
+
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+public class MainTest {
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    @Test
+    public void describeCreatesPhpspecStyleSpecSkeletonOnly() throws Exception {
+        File specRoot = temporaryFolder.newFolder("spec-root");
+        File specFile = new File(specRoot, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "CalculatorSpec.java");
+
+        CommandResult result = run("describe", "com.example.Calculator", "--spec-dir", specRoot.getAbsolutePath());
+
+        assertEquals(0, result.exitCode);
+        assertTrue(result.out.contains("Generated specification: " + specFile.getPath()));
+        assertTrue(result.out.contains("Specification class: spec.com.example.CalculatorSpec"));
+        assertTrue(result.out.contains("Described class: com.example.Calculator"));
+        assertTrue(result.out.contains("No production class was generated"));
+        assertEquals("", result.err);
+        assertTrue(specFile.isFile());
+        assertEquals("package spec.com.example;\n\n" +
+                "import com.example.Calculator;\n" +
+                "import org.javaspec.api.ObjectBehavior;\n\n" +
+                "public class CalculatorSpec extends ObjectBehavior<Calculator> {\n" +
+                "    public void it_is_initializable() {\n" +
+                "        shouldHaveType(Calculator.class);\n" +
+                "    }\n" +
+                "}\n", readFile(specFile));
+        assertEquals(1, countFiles(specRoot));
+    }
+
+    @Test
+    public void describeExistingSpecDoesNotOverwrite() throws Exception {
+        File specRoot = temporaryFolder.newFolder("existing-spec-root");
+        File specFile = new File(specRoot, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "ExistingSpec.java");
+        assertTrue(specFile.getParentFile().mkdirs());
+        Files.write(specFile.toPath(), "existing spec\n".getBytes(StandardCharsets.UTF_8));
+
+        CommandResult result = run("describe", "com.example.Existing", "--spec-dir", specRoot.getAbsolutePath());
+
+        assertEquals(0, result.exitCode);
+        assertTrue(result.out.contains("Specification spec.com.example.ExistingSpec exists"));
+        assertTrue(result.out.contains("No production class was generated"));
+        assertEquals("", result.err);
+        assertEquals("existing spec\n", readFile(specFile));
+        assertEquals(1, countFiles(specRoot));
+    }
+
+    @Test
+    public void describeRejectsGenerateBecauseRunOwnsProductionGeneration() throws Exception {
+        File specRoot = temporaryFolder.newFolder("reject-generate-spec-root");
+
+        CommandResult result = run("describe", "com.example.Calculator", "--spec-dir", specRoot.getAbsolutePath(), "--generate");
+
+        assertEquals(64, result.exitCode);
+        assertEquals("", result.out);
+        assertTrue(result.err.contains("describe creates only a specification skeleton"));
+        assertTrue(result.err.contains("javaspec run"));
+        assertEquals(0, countFiles(specRoot));
+    }
+
+    @Test
+    public void runMissingClassAsksAndDoesNotWriteWhenUserDeclines() throws Exception {
+        File specRoot = temporaryFolder.newFolder("missing-spec-root");
+        File sourceRoot = temporaryFolder.newFolder("missing-source-root");
+        File specFile = writeSpec(specRoot, "spec.com.example.MissingSpec");
+        File targetFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "Missing.java");
+
+        CommandResult result = runWithInput("n\n", "run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath());
+
+        assertEquals(1, result.exitCode);
+        assertTrue(result.out.contains("Found 1 specification(s)"));
+        assertTrue(result.out.contains("spec.com.example.MissingSpec describes missing class com.example.Missing."));
+        assertTrue(result.out.contains("Spec file: " + specFile.getPath()));
+        assertTrue(result.out.contains("Target path: " + targetFile.getPath()));
+        assertTrue(result.out.contains("Do you want me to create com.example.Missing for you? [Y/n]"));
+        assertTrue(result.out.contains("No production files were written."));
+        assertEquals("", result.err);
+        assertFalse(targetFile.exists());
+        assertEquals(0, countFiles(sourceRoot));
+    }
+
+    @Test
+    public void runMissingClassGeneratesWhenUserAcceptsPrompt() throws Exception {
+        File specRoot = temporaryFolder.newFolder("accept-spec-root");
+        File sourceRoot = temporaryFolder.newFolder("accept-source-root");
+        writeSpec(specRoot, "spec.com.example.AcceptedSpec");
+        File targetFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "Accepted.java");
+
+        CommandResult result = runWithInput("y\n", "run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath());
+
+        assertEquals(0, result.exitCode);
+        assertTrue(result.out.contains("spec.com.example.AcceptedSpec describes missing class com.example.Accepted."));
+        assertTrue(result.out.contains("Do you want me to create com.example.Accepted for you? [Y/n]"));
+        assertTrue(result.out.contains("Generated class skeleton: " + targetFile.getPath()));
+        assertEquals("", result.err);
+        assertTrue(targetFile.isFile());
+        assertEquals("package com.example;\n\npublic class Accepted { }\n", readFile(targetFile));
+        assertEquals(1, countFiles(sourceRoot));
+    }
+
+    @Test
+    public void runMissingClassGeneratesWhenUserAcceptsDefaultPrompt() throws Exception {
+        File specRoot = temporaryFolder.newFolder("default-accept-spec-root");
+        File sourceRoot = temporaryFolder.newFolder("default-accept-source-root");
+        writeSpec(specRoot, "spec.com.example.DefaultAcceptedSpec");
+        File targetFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "DefaultAccepted.java");
+
+        CommandResult result = runWithInput("\n", "run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath());
+
+        assertEquals(0, result.exitCode);
+        assertTrue(result.out.contains("Generated class skeleton: " + targetFile.getPath()));
+        assertEquals("", result.err);
+        assertTrue(targetFile.isFile());
+    }
+
+    @Test
+    public void runWithGenerateWritesClassSkeletonInferredFromSpecWithoutPrompting() throws Exception {
+        File specRoot = temporaryFolder.newFolder("generate-spec-root");
+        File sourceRoot = temporaryFolder.newFolder("generate-source-root");
+        writeSpec(specRoot, "spec.com.example.GeneratedSpec");
+        File targetFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "Generated.java");
+
+        CommandResult result = run("run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath(), "--generate");
+
+        assertEquals(0, result.exitCode);
+        assertTrue(result.out.contains("spec.com.example.GeneratedSpec describes missing class com.example.Generated."));
+        assertFalse(result.out.contains("Do you want me to create"));
+        assertTrue(result.out.contains("Generated class skeleton: " + targetFile.getPath()));
+        assertEquals("", result.err);
+        assertTrue(targetFile.isFile());
+        assertEquals("package com.example;\n\npublic class Generated { }\n", readFile(targetFile));
+        assertEquals(1, countFiles(sourceRoot));
+    }
+
+    @Test
+    public void runWithGenerateWritesInterfaceSkeletonInferredFromSpecMarker() throws Exception {
+        File specRoot = temporaryFolder.newFolder("generate-interface-spec-root");
+        File sourceRoot = temporaryFolder.newFolder("generate-interface-source-root");
+        writeSpec(specRoot, "spec.com.example.PaymentGatewaySpec", "shouldBeAnInterface();\n");
+        File targetFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "PaymentGateway.java");
+
+        CommandResult result = run("run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath(), "--generate");
+
+        assertEquals(0, result.exitCode);
+        assertTrue(result.out.contains("spec.com.example.PaymentGatewaySpec describes missing interface com.example.PaymentGateway."));
+        assertTrue(result.out.contains("Generated interface skeleton: " + targetFile.getPath()));
+        assertEquals("", result.err);
+        assertTrue(targetFile.isFile());
+        assertEquals("package com.example;\n\npublic interface PaymentGateway { }\n", readFile(targetFile));
+    }
+
+    @Test
+    public void runWithGenerateWritesEnumAndAnnotationSkeletonsInferredFromSpecMarkers() throws Exception {
+        File specRoot = temporaryFolder.newFolder("generate-kind-spec-root");
+        File sourceRoot = temporaryFolder.newFolder("generate-kind-source-root");
+        writeSpec(specRoot, "spec.com.example.OrderStatusSpec", "shouldBeAnEnum();\n");
+        writeSpec(specRoot, "spec.com.example.ExperimentalSpec", "shouldBeAnAnnotation();\n");
+        File enumFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "OrderStatus.java");
+        File annotationFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "Experimental.java");
+
+        CommandResult result = run("run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath(), "--generate");
+
+        assertEquals(0, result.exitCode);
+        assertTrue(result.out.contains("spec.com.example.OrderStatusSpec describes missing enum com.example.OrderStatus."));
+        assertTrue(result.out.contains("Generated enum skeleton: " + enumFile.getPath()));
+        assertTrue(result.out.contains("spec.com.example.ExperimentalSpec describes missing annotation com.example.Experimental."));
+        assertTrue(result.out.contains("Generated annotation skeleton: " + annotationFile.getPath()));
+        assertEquals("", result.err);
+        assertEquals("package com.example;\n\npublic enum OrderStatus { }\n", readFile(enumFile));
+        assertEquals("package com.example;\n\npublic @interface Experimental { }\n", readFile(annotationFile));
+    }
+
+    @Test
+    public void runWithGenerateWritesPostJava8TypeSkeletonsInferredFromSpecMarkers() throws Exception {
+        File specRoot = temporaryFolder.newFolder("generate-post-java8-spec-root");
+        File sourceRoot = temporaryFolder.newFolder("generate-post-java8-source-root");
+        writeSpec(specRoot, "spec.com.example.UserSpec", "shouldBeARecord();\n");
+        writeSpec(specRoot, "spec.com.example.ShapeSpec", "shouldBeASealedClass();\n");
+        writeSpec(specRoot, "spec.com.example.MessageSpec", "shouldBeASealedInterface();\n");
+        File recordFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "User.java");
+        File sealedClassFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "Shape.java");
+        File sealedInterfaceFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "Message.java");
+
+        CommandResult result = run("run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath(), "--generate");
+
+        assertEquals(0, result.exitCode);
+        assertTrue(result.out.contains("spec.com.example.UserSpec describes missing record com.example.User."));
+        assertTrue(result.out.contains("Generated record skeleton: " + recordFile.getPath()));
+        assertTrue(result.out.contains("spec.com.example.ShapeSpec describes missing sealed class com.example.Shape."));
+        assertTrue(result.out.contains("Generated sealed class skeleton: " + sealedClassFile.getPath()));
+        assertTrue(result.out.contains("spec.com.example.MessageSpec describes missing sealed interface com.example.Message."));
+        assertTrue(result.out.contains("Generated sealed interface skeleton: " + sealedInterfaceFile.getPath()));
+        assertEquals("package com.example;\n\npublic record User() { }\n", readFile(recordFile));
+        assertEquals("package com.example;\n\n" +
+                "public sealed class Shape permits Shape.Permitted {\n" +
+                "    static final class Permitted extends Shape { }\n" +
+                "}\n", readFile(sealedClassFile));
+        assertEquals("package com.example;\n\n" +
+                "public sealed interface Message permits Message.Permitted {\n" +
+                "    final class Permitted implements Message { }\n" +
+                "}\n", readFile(sealedInterfaceFile));
+    }
+
+    @Test
+    public void runWithGenerateWritesSealedClassWithExplicitPermitsInferredFromSpec() throws Exception {
+        File specRoot = temporaryFolder.newFolder("generate-sealed-permits-spec-root");
+        File sourceRoot = temporaryFolder.newFolder("generate-sealed-permits-source-root");
+        writeSpec(
+                specRoot,
+                "spec.com.example.ShapeSpec",
+                "import com.example.Circle;\n" +
+                        "import com.example.Rectangle;\n" +
+                        "shouldBeASealedClass();\n" +
+                        "shouldPermit(Circle.class, Rectangle.class);\n"
+        );
+        File sealedClassFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "Shape.java");
+
+        CommandResult result = run("run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath(), "--generate");
+
+        assertEquals(0, result.exitCode);
+        assertTrue(result.out.contains("spec.com.example.ShapeSpec describes missing sealed class com.example.Shape."));
+        assertTrue(result.out.contains("Generated sealed class skeleton: " + sealedClassFile.getPath()));
+        assertEquals("package com.example;\n\npublic sealed class Shape permits Circle, Rectangle { }\n", readFile(sealedClassFile));
+    }
+
+    @Test
+    public void runWithGenerateCreatesSpecsForMissingExtendsAndImplementsTypesBeforeClasses() throws Exception {
+        File specRoot = temporaryFolder.newFolder("generate-relationships-spec-root");
+        File sourceRoot = temporaryFolder.newFolder("generate-relationships-source-root");
+        writeSpec(
+                specRoot,
+                "spec.com.example.ServiceSpec",
+                "import com.example.BaseService;\n" +
+                        "import com.example.PaymentGateway;\n" +
+                        "shouldExtend(BaseService.class);\n" +
+                        "shouldImplement(PaymentGateway.class);\n"
+        );
+        File serviceFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "Service.java");
+        File baseServiceFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "BaseService.java");
+        File paymentGatewayFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "PaymentGateway.java");
+        File baseServiceSpec = new File(specRoot, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "BaseServiceSpec.java");
+        File paymentGatewaySpec = new File(specRoot, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "PaymentGatewaySpec.java");
+
+        CommandResult result = run("run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath(), "--generate");
+
+        assertEquals(0, result.exitCode);
+        assertTrue(result.out.contains("Related class com.example.BaseService is missing."));
+        assertTrue(result.out.contains("Generated related specification: " + baseServiceSpec.getPath()));
+        assertTrue(result.out.contains("Related interface com.example.PaymentGateway is missing."));
+        assertTrue(result.out.contains("Generated related specification: " + paymentGatewaySpec.getPath()));
+        assertEquals("package com.example;\n\npublic class Service extends BaseService implements PaymentGateway { }\n", readFile(serviceFile));
+        assertEquals("package com.example;\n\npublic class BaseService { }\n", readFile(baseServiceFile));
+        assertEquals("package com.example;\n\npublic interface PaymentGateway { }\n", readFile(paymentGatewayFile));
+        assertTrue(readFile(paymentGatewaySpec).contains("shouldBeAnInterface();"));
+    }
+
+    @Test
+    public void runWithGenerateCreatesSpecsForPermittedTypesThatExtendSealedRoot() throws Exception {
+        File specRoot = temporaryFolder.newFolder("generate-permitted-spec-root");
+        File sourceRoot = temporaryFolder.newFolder("generate-permitted-source-root");
+        writeSpec(
+                specRoot,
+                "spec.com.example.ShapeSpec",
+                "import com.example.Circle;\n" +
+                        "shouldBeASealedClass();\n" +
+                        "shouldPermit(Circle.class);\n"
+        );
+        File circleSpec = new File(specRoot, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "CircleSpec.java");
+        File circleFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "Circle.java");
+
+        CommandResult result = run("run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath(), "--generate");
+
+        assertEquals(0, result.exitCode);
+        assertTrue(result.out.contains("Generated related specification: " + circleSpec.getPath()));
+        assertTrue(readFile(circleSpec).contains("shouldBeAFinalClass();"));
+        assertTrue(readFile(circleSpec).contains("shouldExtend(Shape.class);"));
+        assertEquals("package com.example;\n\npublic final class Circle extends Shape { }\n", readFile(circleFile));
+    }
+
+    @Test
+    public void runWithGenerateKeepsSealedInterfacePermittedTypesInSameFile() throws Exception {
+        File specRoot = temporaryFolder.newFolder("generate-sealed-interface-local-spec-root");
+        File sourceRoot = temporaryFolder.newFolder("generate-sealed-interface-local-source-root");
+        writeSpec(
+                specRoot,
+                "spec.com.example.MessageSpec",
+                "import com.example.EmailMessage;\n" +
+                        "import com.example.SmsMessage;\n" +
+                        "shouldBeASealedInterface();\n" +
+                        "shouldPermit(EmailMessage.class, SmsMessage.class);\n"
+        );
+        File messageFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "Message.java");
+        File emailMessageFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "EmailMessage.java");
+        File emailMessageSpec = new File(specRoot, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "EmailMessageSpec.java");
+
+        CommandResult result = run("run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath(), "--generate");
+
+        assertEquals(0, result.exitCode);
+        assertTrue(result.out.contains("spec.com.example.MessageSpec describes missing sealed interface com.example.Message."));
+        assertFalse(result.out.contains("Related final class com.example.EmailMessage is missing."));
+        assertFalse(emailMessageFile.exists());
+        assertFalse(emailMessageSpec.exists());
+        assertEquals("package com.example;\n\n" +
+                "public sealed interface Message permits Message.EmailMessage, Message.SmsMessage {\n" +
+                "    final class EmailMessage implements Message { }\n" +
+                "    final class SmsMessage implements Message { }\n" +
+                "}\n", readFile(messageFile));
+    }
+
+    @Test
+    public void runExistingSourceClassReportsItAndGeneratesNothing() throws Exception {
+        File specRoot = temporaryFolder.newFolder("existing-run-spec-root");
+        File sourceRoot = temporaryFolder.newFolder("existing-run-source-root");
+        writeSpec(specRoot, "spec.com.example.ExistingSpec");
+        File sourceFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "Existing.java");
+        assertTrue(sourceFile.getParentFile().mkdirs());
+        Files.write(sourceFile.toPath(), "package com.example; public class Existing { }\n".getBytes(StandardCharsets.UTF_8));
+
+        CommandResult result = run("run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath(), "--generate");
+
+        assertEquals(0, result.exitCode);
+        assertTrue(result.out.contains("spec.com.example.ExistingSpec describes com.example.Existing; class exists."));
+        assertTrue(result.out.contains("Source file: " + sourceFile.getPath()));
+        assertEquals("", result.err);
+        assertEquals(1, countFiles(sourceRoot));
+    }
+
+    @Test
+    public void runWithoutSpecsExitsOk() throws Exception {
+        File specRoot = temporaryFolder.newFolder("empty-spec-root");
+        File sourceRoot = temporaryFolder.newFolder("empty-source-root");
+
+        CommandResult result = run("run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath());
+
+        assertEquals(0, result.exitCode);
+        assertTrue(result.out.contains("No specifications found"));
+        assertEquals("", result.err);
+        assertEquals(0, countFiles(sourceRoot));
+    }
+
+    @Test
+    public void invalidArgumentsExitUsageAndPrintError() {
+        assertUsageError(run());
+        assertUsageError(run("describe"));
+        assertUsageError(run("run", "unexpected"));
+        assertUsageError(run("describe", "com.example.Valid", "--unknown"));
+    }
+
+    @Test
+    public void invalidClassNameExitsUsageAndPrintsError() {
+        CommandResult result = run("describe", "class");
+
+        assertEquals(64, result.exitCode);
+        assertEquals("", result.out);
+        assertTrue(result.err.contains("Error: Invalid class name"));
+        assertTrue(result.err.contains("Usage:"));
+    }
+
+    private static void assertUsageError(CommandResult result) {
+        assertEquals(64, result.exitCode);
+        assertEquals("", result.out);
+        assertTrue(result.err.contains("Error:"));
+        assertTrue(result.err.contains("Usage:"));
+    }
+
+    private static File writeSpec(File specRoot, String specQualifiedName) throws Exception {
+        return writeSpec(specRoot, specQualifiedName, "");
+    }
+
+    private static File writeSpec(File specRoot, String specQualifiedName, String body) throws Exception {
+        int lastDot = specQualifiedName.lastIndexOf('.');
+        String packageName = lastDot < 0 ? "" : specQualifiedName.substring(0, lastDot);
+        String simpleName = lastDot < 0 ? specQualifiedName : specQualifiedName.substring(lastDot + 1);
+        String relativePath;
+        if (packageName.length() == 0) {
+            relativePath = simpleName + ".java";
+        } else {
+            relativePath = packageName.replace('.', File.separatorChar) + File.separator + simpleName + ".java";
+        }
+        File specFile = new File(specRoot, relativePath);
+        File parent = specFile.getParentFile();
+        assertTrue(parent == null || parent.isDirectory() || parent.mkdirs());
+        String content;
+        if (packageName.length() == 0) {
+            content = "public class " + simpleName + " {\n" + body + "}\n";
+        } else {
+            content = "package " + packageName + "; public class " + simpleName + " {\n" + body + "}\n";
+        }
+        Files.write(specFile.toPath(), content.getBytes(StandardCharsets.UTF_8));
+        return specFile;
+    }
+
+    private static CommandResult run(String... args) {
+        return runWithInput("", args);
+    }
+
+    private static CommandResult runWithInput(String input, String... args) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ByteArrayOutputStream err = new ByteArrayOutputStream();
+        int exitCode = Main.run(
+                args,
+                new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)),
+                new PrintStream(out),
+                new PrintStream(err)
+        );
+        return new CommandResult(
+                exitCode,
+                new String(out.toByteArray(), StandardCharsets.UTF_8),
+                new String(err.toByteArray(), StandardCharsets.UTF_8)
+        );
+    }
+
+    private static String readFile(File file) throws Exception {
+        return new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+    }
+
+    private static int countFiles(File root) {
+        File[] files = root.listFiles();
+        if (files == null) {
+            return 0;
+        }
+        int count = 0;
+        for (int i = 0; i < files.length; i++) {
+            File file = files[i];
+            if (file.isDirectory()) {
+                count += countFiles(file);
+            } else {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static final class CommandResult {
+        private final int exitCode;
+        private final String out;
+        private final String err;
+
+        private CommandResult(int exitCode, String out, String err) {
+            this.exitCode = exitCode;
+            this.out = out;
+            this.err = err;
+        }
+    }
+}
