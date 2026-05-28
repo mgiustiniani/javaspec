@@ -3,6 +3,7 @@ package org.javaspec.discovery;
 import org.javaspec.model.DescribedClass;
 import org.javaspec.model.DescribedType;
 import org.javaspec.model.JavaTypeKind;
+import org.javaspec.model.MethodDescriptor;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -131,6 +132,47 @@ public class SpecDiscoveryTest {
                 Arrays.<String>asList(),
                 Arrays.asList("com.example.Circle", "com.example.Rectangle")
         ), specs.get(0).describedType());
+    }
+
+    @Test
+    public void discoversTypedProxyCallsAsProductionMethodsButIgnoresDuringInstantiation() throws Exception {
+        File specRoot = temporaryFolder.newFolder("typed-proxy-discovery-root");
+        writeFile(
+                specRoot,
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator + "BookSpec.java",
+                "package spec.com.example;\n\n" +
+                        "public class BookSpec extends BookSpecSupport {\n" +
+                        "    public void it_has_rating() {\n" +
+                        "        getRating().shouldReturn(5);\n" +
+                        "    }\n" +
+                        "\n" +
+                        "    public void it_has_title() {\n" +
+                        "        getTitle().shouldContain(\"Wizard\");\n" +
+                        "    }\n" +
+                        "\n" +
+                        "    public void it_is_enabled() {\n" +
+                        "        isEnabled().shouldReturn(true);\n" +
+                        "    }\n" +
+                        "\n" +
+                        "    public void it_rejects_negative_rating() {\n" +
+                        "        shouldThrow(IllegalArgumentException.class).duringSetRating(-3);\n" +
+                        "    }\n" +
+                        "\n" +
+                        "    public void it_rejects_invalid_construction() {\n" +
+                        "        shouldThrow(IllegalArgumentException.class).duringInstantiation();\n" +
+                        "    }\n" +
+                        "}\n"
+        );
+
+        List<DiscoveredSpec> specs = SpecDiscovery.discover(specRoot);
+
+        assertEquals(1, specs.size());
+        assertEquals(Arrays.asList(
+                MethodDescriptor.of("getRating", "int"),
+                MethodDescriptor.of("getTitle", "String"),
+                MethodDescriptor.of("isEnabled", "boolean"),
+                MethodDescriptor.voidMethod("setRating", Arrays.asList("int"), Arrays.asList("rating"))
+        ), specs.get(0).describedType().methods());
     }
 
     @Test

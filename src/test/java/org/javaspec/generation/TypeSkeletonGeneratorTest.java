@@ -2,12 +2,14 @@ package org.javaspec.generation;
 
 import org.javaspec.model.DescribedType;
 import org.javaspec.model.JavaTypeKind;
+import org.javaspec.model.MethodDescriptor;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
 
@@ -134,6 +136,64 @@ public class TypeSkeletonGeneratorTest {
         ));
 
         assertEquals("package com.example;\n\npublic interface PaymentGateway extends Port, Gateway { }\n", source);
+    }
+
+    @Test
+    public void rendersClassWithMethodsUsingJava8CompatibleDefaultReturns() {
+        DescribedType type = DescribedType.of(
+                "com.example.Book",
+                JavaTypeKind.CLASS,
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<org.javaspec.model.ConstructorDescriptor>emptyList(),
+                Arrays.asList(
+                        MethodDescriptor.of("getRating", "int"),
+                        MethodDescriptor.of("isEnabled", "boolean"),
+                        MethodDescriptor.of("getCount", "long"),
+                        MethodDescriptor.of("getRatio", "float"),
+                        MethodDescriptor.of("getScore", "double"),
+                        MethodDescriptor.of("getInitial", "char"),
+                        MethodDescriptor.of("getTitle", "String"),
+                        MethodDescriptor.voidMethod("setRating", Arrays.asList("int"), Arrays.asList("rating"))
+                )
+        );
+
+        String source = TypeSkeletonGenerator.render(type);
+
+        assertEquals("package com.example;\n\n" +
+                "public class Book {\n" +
+                "    public int getRating() {\n" +
+                "        return 0;\n" +
+                "    }\n" +
+                "\n" +
+                "    public boolean isEnabled() {\n" +
+                "        return false;\n" +
+                "    }\n" +
+                "\n" +
+                "    public long getCount() {\n" +
+                "        return 0L;\n" +
+                "    }\n" +
+                "\n" +
+                "    public float getRatio() {\n" +
+                "        return 0.0f;\n" +
+                "    }\n" +
+                "\n" +
+                "    public double getScore() {\n" +
+                "        return 0.0d;\n" +
+                "    }\n" +
+                "\n" +
+                "    public char getInitial() {\n" +
+                "        return '\\0';\n" +
+                "    }\n" +
+                "\n" +
+                "    public String getTitle() {\n" +
+                "        return null;\n" +
+                "    }\n" +
+                "\n" +
+                "    public void setRating(int rating) {\n" +
+                "    }\n" +
+                "}\n", source);
     }
 
     @Test

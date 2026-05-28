@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Immutable description of a Java class-like type by qualified name, kind, and type relationships.
+ * Immutable description of a Java class-like type by qualified name, kind, relationships, constructors, and methods.
  */
 public final class DescribedType {
     private final DescribedClass describedClass;
@@ -14,19 +14,25 @@ public final class DescribedType {
     private final List<String> extendedTypeNames;
     private final List<String> implementedTypeNames;
     private final List<String> permittedTypeNames;
+    private final List<ConstructorDescriptor> constructors;
+    private final List<MethodDescriptor> methods;
 
     private DescribedType(
             DescribedClass describedClass,
             JavaTypeKind kind,
             List<String> extendedTypeNames,
             List<String> implementedTypeNames,
-            List<String> permittedTypeNames
+            List<String> permittedTypeNames,
+            List<ConstructorDescriptor> constructors,
+            List<MethodDescriptor> methods
     ) {
         this.describedClass = describedClass;
         this.kind = kind;
         this.extendedTypeNames = extendedTypeNames;
         this.implementedTypeNames = implementedTypeNames;
         this.permittedTypeNames = permittedTypeNames;
+        this.constructors = constructors;
+        this.methods = methods;
     }
 
     public static DescribedType classNamed(String typeName) {
@@ -38,11 +44,11 @@ public final class DescribedType {
     }
 
     public static DescribedType of(String typeName, JavaTypeKind kind) {
-        return of(typeName, kind, empty(), empty(), empty());
+        return of(typeName, kind, empty(), empty(), empty(), constructorsEmpty(), methodsEmpty());
     }
 
     public static DescribedType of(String typeName, JavaTypeKind kind, List<String> permittedTypeNames) {
-        return of(typeName, kind, empty(), empty(), permittedTypeNames);
+        return of(typeName, kind, empty(), empty(), permittedTypeNames, constructorsEmpty(), methodsEmpty());
     }
 
     public static DescribedType of(
@@ -52,12 +58,37 @@ public final class DescribedType {
             List<String> implementedTypeNames,
             List<String> permittedTypeNames
     ) {
+        return of(typeName, kind, extendedTypeNames, implementedTypeNames, permittedTypeNames, constructorsEmpty(), methodsEmpty());
+    }
+
+    public static DescribedType of(
+            String typeName,
+            JavaTypeKind kind,
+            List<String> extendedTypeNames,
+            List<String> implementedTypeNames,
+            List<String> permittedTypeNames,
+            List<ConstructorDescriptor> constructors
+    ) {
+        return of(typeName, kind, extendedTypeNames, implementedTypeNames, permittedTypeNames, constructors, methodsEmpty());
+    }
+
+    public static DescribedType of(
+            String typeName,
+            JavaTypeKind kind,
+            List<String> extendedTypeNames,
+            List<String> implementedTypeNames,
+            List<String> permittedTypeNames,
+            List<ConstructorDescriptor> constructors,
+            List<MethodDescriptor> methods
+    ) {
         return new DescribedType(
                 DescribedClass.of(typeName),
                 Objects.requireNonNull(kind, "kind must not be null"),
                 validatedTypeNames(extendedTypeNames, "extendedTypeNames"),
                 validatedTypeNames(implementedTypeNames, "implementedTypeNames"),
-                validatedTypeNames(permittedTypeNames, "permittedTypeNames")
+                validatedTypeNames(permittedTypeNames, "permittedTypeNames"),
+                validatedConstructors(constructors),
+                validatedMethods(methods)
         );
     }
 
@@ -66,11 +97,11 @@ public final class DescribedType {
     }
 
     public static DescribedType of(DescribedClass describedClass, JavaTypeKind kind) {
-        return of(describedClass, kind, empty(), empty(), empty());
+        return of(describedClass, kind, empty(), empty(), empty(), constructorsEmpty(), methodsEmpty());
     }
 
     public static DescribedType of(DescribedClass describedClass, JavaTypeKind kind, List<String> permittedTypeNames) {
-        return of(describedClass, kind, empty(), empty(), permittedTypeNames);
+        return of(describedClass, kind, empty(), empty(), permittedTypeNames, constructorsEmpty(), methodsEmpty());
     }
 
     public static DescribedType of(
@@ -80,13 +111,46 @@ public final class DescribedType {
             List<String> implementedTypeNames,
             List<String> permittedTypeNames
     ) {
+        return of(describedClass, kind, extendedTypeNames, implementedTypeNames, permittedTypeNames, constructorsEmpty(), methodsEmpty());
+    }
+
+    public static DescribedType of(
+            DescribedClass describedClass,
+            JavaTypeKind kind,
+            List<String> extendedTypeNames,
+            List<String> implementedTypeNames,
+            List<String> permittedTypeNames,
+            List<ConstructorDescriptor> constructors
+    ) {
+        return of(describedClass, kind, extendedTypeNames, implementedTypeNames, permittedTypeNames, constructors, methodsEmpty());
+    }
+
+    public static DescribedType of(
+            DescribedClass describedClass,
+            JavaTypeKind kind,
+            List<String> extendedTypeNames,
+            List<String> implementedTypeNames,
+            List<String> permittedTypeNames,
+            List<ConstructorDescriptor> constructors,
+            List<MethodDescriptor> methods
+    ) {
         return new DescribedType(
                 Objects.requireNonNull(describedClass, "describedClass must not be null"),
                 Objects.requireNonNull(kind, "kind must not be null"),
                 validatedTypeNames(extendedTypeNames, "extendedTypeNames"),
                 validatedTypeNames(implementedTypeNames, "implementedTypeNames"),
-                validatedTypeNames(permittedTypeNames, "permittedTypeNames")
+                validatedTypeNames(permittedTypeNames, "permittedTypeNames"),
+                validatedConstructors(constructors),
+                validatedMethods(methods)
         );
+    }
+
+    public DescribedType withMethods(List<MethodDescriptor> methods) {
+        return of(describedClass, kind, extendedTypeNames, implementedTypeNames, permittedTypeNames, constructors, methods);
+    }
+
+    public DescribedType withConstructors(List<ConstructorDescriptor> constructors) {
+        return of(describedClass, kind, extendedTypeNames, implementedTypeNames, permittedTypeNames, constructors, methods);
     }
 
     public DescribedClass describedClass() {
@@ -141,6 +205,22 @@ public final class DescribedType {
         return describedClass.sourceRelativePath();
     }
 
+    public List<ConstructorDescriptor> constructors() {
+        return constructors;
+    }
+
+    public boolean hasConstructors() {
+        return !constructors.isEmpty();
+    }
+
+    public List<MethodDescriptor> methods() {
+        return methods;
+    }
+
+    public boolean hasMethods() {
+        return !methods.isEmpty();
+    }
+
     public boolean isClass() {
         return JavaTypeKind.CLASS.equals(kind);
     }
@@ -186,7 +266,9 @@ public final class DescribedType {
                 && kind == that.kind
                 && extendedTypeNames.equals(that.extendedTypeNames)
                 && implementedTypeNames.equals(that.implementedTypeNames)
-                && permittedTypeNames.equals(that.permittedTypeNames);
+                && permittedTypeNames.equals(that.permittedTypeNames)
+                && constructors.equals(that.constructors)
+                && methods.equals(that.methods);
     }
 
     @Override
@@ -196,6 +278,8 @@ public final class DescribedType {
         result = 31 * result + extendedTypeNames.hashCode();
         result = 31 * result + implementedTypeNames.hashCode();
         result = 31 * result + permittedTypeNames.hashCode();
+        result = 31 * result + constructors.hashCode();
+        result = 31 * result + methods.hashCode();
         return result;
     }
 
@@ -208,12 +292,38 @@ public final class DescribedType {
         return Collections.emptyList();
     }
 
+    private static List<ConstructorDescriptor> constructorsEmpty() {
+        return Collections.emptyList();
+    }
+
+    private static List<MethodDescriptor> methodsEmpty() {
+        return Collections.emptyList();
+    }
+
     private static List<String> validatedTypeNames(List<String> typeNames, String parameterName) {
         Objects.requireNonNull(typeNames, parameterName + " must not be null");
         List<String> copy = new ArrayList<String>();
         for (int i = 0; i < typeNames.size(); i++) {
             String typeName = typeNames.get(i);
             copy.add(DescribedClass.of(typeName).qualifiedName());
+        }
+        return Collections.unmodifiableList(copy);
+    }
+
+    private static List<ConstructorDescriptor> validatedConstructors(List<ConstructorDescriptor> constructors) {
+        Objects.requireNonNull(constructors, "constructors must not be null");
+        List<ConstructorDescriptor> copy = new ArrayList<ConstructorDescriptor>(constructors);
+        for (int i = 0; i < copy.size(); i++) {
+            Objects.requireNonNull(copy.get(i), "constructors[" + i + "] must not be null");
+        }
+        return Collections.unmodifiableList(copy);
+    }
+
+    private static List<MethodDescriptor> validatedMethods(List<MethodDescriptor> methods) {
+        Objects.requireNonNull(methods, "methods must not be null");
+        List<MethodDescriptor> copy = new ArrayList<MethodDescriptor>(methods);
+        for (int i = 0; i < copy.size(); i++) {
+            Objects.requireNonNull(copy.get(i), "methods[" + i + "] must not be null");
         }
         return Collections.unmodifiableList(copy);
     }

@@ -2,14 +2,9 @@
 
 Wiki home for the current javaspec MVP.
 
-javaspec is a Java 8-compatible, zero-runtime-dependency specification tool inspired by PHPSpec. The current MVP focuses on the first BDD loop:
+javaspec is a Java 8-compatible, zero-runtime-dependency specification tool inspired by PHPSpec. The current MVP supports the first spec-first loop plus the ADR 0004 correction work and follow-up factory construction generation: specification/support generation, production type discovery and generation, constructor and static factory construction generation, typed proxy matcher support, and method skeleton generation.
 
-1. describe a type;
-2. generate a specification skeleton only;
-3. run specs discovery;
-4. when a described production type is missing, ask whether to generate it.
-
-> Current status: this MVP does not execute examples yet. `run` discovers spec files, infers the described production type, and handles missing production type generation.
+> Current status: `javaspec run` still performs discovery, generation, and source updates. It does **not** execute full examples or a complete runner lifecycle yet.
 
 ## Quick start
 
@@ -37,16 +32,20 @@ javaspec='java -jar target/javaspec-0.1.0-SNAPSHOT.jar'
 ```sh
 $javaspec describe <ClassName> [--spec-dir <dir>]
 $javaspec desc <ClassName> [--spec-root <dir>]
-$javaspec run [--spec-dir <dir>] [--source-dir <dir>] [--generate]
+$javaspec run [--spec-dir <dir>] [--source-dir <dir>] [--generate] [--constructor-policy <delete|preserve|comment>]
 ```
 
-Aliases:
+Aliases and defaults:
 
-| Long | Alias | Default |
-|---|---|---|
-| `describe` | `desc` | n/a |
-| `--spec-dir` | `--spec-root` | `src/test/java` |
-| `--source-dir` | `--source-root` | `src/main/java` |
+| Long | Alias | Default | Command |
+|---|---|---|---|
+| `describe` | `desc` | n/a | n/a |
+| `--spec-dir` | `--spec-root` | `src/test/java` | `describe`, `run` |
+| `--source-dir` | `--source-root` | `src/main/java` | `run` |
+| `--generate` | n/a | `false` | `run` |
+| `--constructor-policy <delete\|preserve\|comment>` | n/a | `comment` | `run` |
+
+`describe` writes specification files only. Production source generation and updates belong to `run`.
 
 ## BDD workflow
 
@@ -62,26 +61,42 @@ or:
 $javaspec desc org.example.Calculator
 ```
 
-This creates only the spec skeleton:
+This creates two test-source files:
 
 ```text
 src/test/java/spec/org/example/CalculatorSpec.java
+src/test/java/spec/org/example/CalculatorSpecSupport.java
 ```
 
-Generated spec:
+Generated concrete spec:
 
 ```java
 package spec.org.example;
 
 import org.example.Calculator;
-import org.javaspec.api.ObjectBehavior;
 
-public class CalculatorSpec extends ObjectBehavior<Calculator> {
+public class CalculatorSpec extends CalculatorSpecSupport {
     public void it_is_initializable() {
         shouldHaveType(Calculator.class);
     }
 }
 ```
+
+Generated support class:
+
+```java
+package spec.org.example;
+
+import org.example.Calculator;
+
+public class CalculatorSpecSupport extends org.javaspec.api.ObjectBehavior<Calculator> {
+    public CalculatorSpecSupport() {
+        super(Calculator.class);
+    }
+}
+```
+
+The concrete spec extends the generated support class. The support class extends `ObjectBehavior<Calculator>` and passes `Calculator.class` to enable lazy subject construction.
 
 The import of `org.example.Calculator` is intentional. In a BDD/spec-first flow the production class may not exist yet, so the project can be red until `run` generates or the user writes the class.
 
@@ -141,11 +156,263 @@ For CI or scripted usage, use `--generate` to answer yes without prompting:
 $javaspec run --generate
 ```
 
-This writes missing production type skeletons inferred from specs.
+This writes missing production type skeletons, generated specification support updates, constructor updates, static factory construction method skeletons, and missing instance method skeletons inferred from specs without interactive confirmation.
+
+## Construction semantics
+
+Generated support classes configure `ObjectBehavior<Subject>` with `Subject.class`, so the subject is constructed lazily on first access. Construction can be configured before that first access.
+
+Constructor arguments use `beConstructedWith(...)`. For generation, this remains constructor descriptor generation: `run` can create or update matching constructor skeletons, not factory methods.
+
+```java
+public class BookSpec extends BookSpecSupport {
+    public void it_can_be_constructed_with_values() {
+        beConstructedWith("Wizard", 5);
+
+        getTitle().shouldReturn("Wizard");
+        getRating().shouldReturn(5);
+    }
+}
+```
+
+Static factory construction uses `beConstructedThrough("create", args...)`. For generation, the factory marker now discovers/generates a static factory method skeleton returning the described type instead of an empty constructor marker.
+
+```java
+public void it_can_be_constructed_through_a_factory() {
+    beConstructedThrough("create", "Wizard");
+
+    getTitle().shouldReturn("Wizard");
+}
+```
+
+For a described `Book`, that construction marker can generate a factory skeleton such as:
+
+```java
+public class Book {
+    public static Book create(String arg0) {
+        return new Book();
+    }
+}
+```
+
+Named factory forms behave the same way:
+
+```java
+beConstructedNamed("named");
+beConstructedNamed("named", "Wizard");
+beConstructedThroughNamed("createNamed", "Wizard");
+```
+
+For a described `Book`, these correspond to static factory skeletons such as `named()`, `named(String arg0)`, and `createNamed(String arg0)`, all returning `Book`.
+
+Factory marker names must be string literals and valid Java identifiers to generate methods. Calls with non-string-literal names, such as `beConstructedThrough(factoryName, "Wizard")`, are ignored by generation because the method name is not statically known; they do not create empty constructor markers.
+
+Construction can be overridden before instantiation. The last construction rule before the first subject access wins:
+
+```java
+public void it_overrides_construction_before_instantiation() {
+    beConstructedWith("first");
+    beConstructedWith("second");
+
+    getTitle().shouldReturn("second");
+}
+```
+
+After the subject has been instantiated, changing construction is an error:
+
+```java
+public void it_rejects_late_construction_changes() {
+    getTitle().shouldReturn("Wizard"); // instantiates the subject
+
+    beConstructedWith("late"); // throws IllegalStateException
+}
+```
+
+Constructor or factory failures can be specified with `duringInstantiation()`:
+
+```java
+public void it_rejects_invalid_constructor_arguments() {
+    beConstructedWith(-1);
+
+    shouldThrow(IllegalArgumentException.class).duringInstantiation();
+}
+```
+
+## Typed proxy matcher syntax
+
+Generated support classes can expose subject-specific typed proxy methods. This allows PHPSpec-like Java syntax in the concrete spec:
+
+```java
+public class BookSpec extends BookSpecSupport {
+    public void it_has_a_rating() {
+        getRating().shouldReturn(5);
+    }
+
+    public void it_has_a_title() {
+        getTitle().shouldContain("Wizard");
+    }
+
+    public void it_rejects_negative_ratings() {
+        shouldThrow(IllegalArgumentException.class).duringSetRating(-3);
+    }
+}
+```
+
+For discovered methods, the support class contains methods similar to:
+
+```java
+protected org.javaspec.matcher.Matchable<Integer> getRating() {
+    return match(subject().getRating());
+}
+
+protected org.javaspec.matcher.Matchable<String> getTitle() {
+    return match(subject().getTitle());
+}
+
+protected void setRating(int rating) {
+    subject().setRating(rating);
+}
+```
+
+It also generates typed throw proxies such as `duringSetRating(...)`.
+
+Generated typed spec support intentionally skips static factory descriptors discovered from construction markers such as `beConstructedThrough("create", ...)`. Static factories are construction methods on the described type, not instance subject proxies, so support classes do not generate `create().should...`, `duringCreate(...)`, or `subject().create(...)` wrappers for them.
+
+The existing explicit wrapper style remains available:
+
+```java
+match(subject().getRating()).shouldReturn(5);
+```
+
+## Method generation
+
+`run` discovers typed proxy calls and construction factory markers, then can generate missing subject method skeletons. Discovery currently covers the supported matcher calls, typed throw calls such as `shouldThrow(...).duringSetRating(-3)`, direct `subject().method(...)` calls, simple setter-style calls, and static factory construction markers.
+
+`beConstructedWith(...)` remains constructor descriptor generation. The factory construction forms `beConstructedThrough("create", args...)`, `beConstructedNamed("named", args...)`, and `beConstructedThroughNamed("createNamed", args...)` are method-generation inputs when the factory name is a string literal and a valid Java identifier; they generate static factory methods returning the described type instead of empty constructor markers.
+
+Example spec:
+
+```java
+public class BookSpec extends BookSpecSupport {
+    public void it_has_a_rating() {
+        getRating().shouldReturn(5);
+    }
+
+    public void it_has_a_title() {
+        getTitle().shouldContain("Wizard");
+    }
+
+    public void it_rejects_negative_ratings() {
+        shouldThrow(IllegalArgumentException.class).duringSetRating(-3);
+    }
+}
+```
+
+With `--generate`, javaspec writes updates non-interactively:
+
+```sh
+$javaspec run --generate
+```
+
+Possible generated production class:
+
+```java
+package org.example;
+
+public class Book {
+    public int getRating() {
+        return 0;
+    }
+
+    public String getTitle() {
+        return null;
+    }
+
+    public void setRating(int rating) {
+    }
+}
+```
+
+Factory construction markers add static factory skeletons returning the described type. For example, `beConstructedThrough("create", "Wizard")` can add:
+
+```java
+public static Book create(String arg0) {
+    return new Book();
+}
+```
+
+Static factory descriptors are skipped when generated typed support is updated, because they are construction methods rather than instance subject proxy methods.
+
+When the production source file already exists and `--generate` is not used, javaspec prompts before adding missing method skeletons:
+
+```text
+Do you want me to add missing method skeletons to org.example.Book in src/main/java/org/example/Book.java? [Y/n]
+```
+
+Default returns are Java 8-compatible: `false` for `boolean`, zero values for numeric primitives, `'\0'` for `char`, and `null` for reference types.
+
+## Constructor policy
+
+`run` accepts constructor handling policy explicitly:
+
+```sh
+$javaspec run --constructor-policy comment
+$javaspec run --constructor-policy preserve
+$javaspec run --constructor-policy delete
+```
+
+| Policy | Meaning |
+|---|---|
+| `comment` | Default. Non-empty unmatched constructors are commented out. |
+| `preserve` | Non-empty unmatched constructors are kept. |
+| `delete` | Non-empty unmatched constructors are deleted. This is the explicit destructive opt-in. |
+
+Empty generated/no-op unmatched constructors may be removed when safe, regardless of policy. Constructor policy applies to `run`; `describe` never updates production source.
+
+## Matchers
+
+Typed proxy methods return `Matchable<T>` for non-void subject methods. The documented matcher set includes:
+
+- `shouldReturn`
+- `shouldNotReturn`
+- `shouldEqual`
+- `shouldBeLike`
+- `shouldContain`
+- `shouldNotContain`
+- `shouldStartWith`
+- `shouldEndWith`
+- `shouldMatchPattern`
+
+Examples:
+
+```java
+getRating().shouldReturn(5);
+getRating().shouldNotReturn(0);
+getTitle().shouldContain("Wizard");
+getTitle().shouldStartWith("The");
+getTitle().shouldEndWith("Oz");
+getTitle().shouldMatchPattern("Wiz.*");
+```
+
+Custom matchers can be registered in the matcher registry and may evaluate null subjects; javaspec passes the actual subject value, including `null`, to the matcher predicate.
+
+```java
+matcherRegistry().register("beAbsent", new org.javaspec.matcher.CustomMatcher<Object>(
+    "beAbsent",
+    new org.javaspec.matcher.CustomMatcher.MatchPredicate<Object>() {
+        @Override
+        public boolean test(Object subject, Object... expected) {
+            return subject == null;
+        }
+    }
+));
+
+match(null).shouldMatch("beAbsent");
+```
 
 ## Class-like type generation
 
-javaspec currently supports these class-like production types. The javaspec binary remains Java 8-compatible; post-Java 8 forms are generated as source text and represented as metadata/strings.
+javaspec supports these class-like production types. The javaspec binary remains Java 8-compatible; post-Java-8 forms are generated as source text and represented as metadata/strings.
 
 | Production kind | Spec marker | Generated skeleton | Minimum Java source |
 |---|---|---|---:|
@@ -165,18 +432,7 @@ The command stays PHPSpec-like: `describe` does not take a type flag. To describ
 Use spec markers to describe inheritance and implemented interfaces:
 
 ```java
-package spec.org.example;
-
-import org.example.BaseService;
-import org.example.PaymentGateway;
-import org.example.Service;
-import org.javaspec.api.ObjectBehavior;
-
-public class ServiceSpec extends ObjectBehavior<Service> {
-    public void it_is_initializable() {
-        shouldHaveType(Service.class);
-    }
-
+public class ServiceSpec extends ServiceSpecSupport {
     public void it_extends_base_service() {
         shouldExtend(BaseService.class);
     }
@@ -187,238 +443,7 @@ public class ServiceSpec extends ObjectBehavior<Service> {
 }
 ```
 
-When `BaseService` and `PaymentGateway` do not exist, `run` handles them first:
-
-1. suggest/create `BaseServiceSpec` and `PaymentGatewaySpec`;
-2. then suggest/create the production skeletons;
-3. finally generate `Service` with the declared relationships.
-
-With `--generate`, the flow is non-interactive:
-
-```sh
-$javaspec run --generate
-```
-
-Possible generated files:
-
-```java
-package org.example;
-
-public class BaseService { }
-```
-
-```java
-package org.example;
-
-public interface PaymentGateway { }
-```
-
-```java
-package org.example;
-
-public class Service extends BaseService implements PaymentGateway { }
-```
-
-`shouldExtend(...)` may contain multiple interfaces when the described type is an interface. For classes, only the first extended type is used because Java classes support a single superclass.
-
-### Interface example
-
-Start with the same command:
-
-```sh
-$javaspec desc org.example.PaymentGateway
-```
-
-Then edit the spec:
-
-```java
-package spec.org.example;
-
-import org.example.PaymentGateway;
-import org.javaspec.api.ObjectBehavior;
-
-public class PaymentGatewaySpec extends ObjectBehavior<PaymentGateway> {
-    public void it_is_initializable() {
-        shouldHaveType(PaymentGateway.class);
-    }
-
-    public void it_is_an_interface() {
-        shouldBeAnInterface();
-    }
-}
-```
-
-Run generation:
-
-```sh
-$javaspec run --generate
-```
-
-Output includes:
-
-```text
-spec.org.example.PaymentGatewaySpec describes missing interface org.example.PaymentGateway.
-Generated interface skeleton: src/main/java/org/example/PaymentGateway.java
-```
-
-Generated production type:
-
-```java
-package org.example;
-
-public interface PaymentGateway { }
-```
-
-### Enum example
-
-Spec marker:
-
-```java
-public void it_is_an_enum() {
-    shouldBeAnEnum();
-}
-```
-
-Generated production type:
-
-```java
-package org.example;
-
-public enum OrderStatus { }
-```
-
-### Annotation example
-
-Spec marker:
-
-```java
-public void it_is_an_annotation() {
-    shouldBeAnAnnotation();
-}
-```
-
-Generated production type:
-
-```java
-package org.example;
-
-public @interface Experimental { }
-```
-
-### Record example
-
-Spec marker:
-
-```java
-public void it_is_a_record() {
-    shouldBeARecord();
-}
-```
-
-Generated production type:
-
-```java
-package org.example;
-
-public record User() { }
-```
-
-This source requires a Java version that supports records.
-
-### Sealed class example
-
-Sealed types require a `permits` list. Prefer making the permitted subtypes explicit in the spec. Missing permitted subtypes get their own specs first and are then generated as `final` classes extending or implementing the sealed root:
-
-```java
-package spec.org.example;
-
-import org.example.Circle;
-import org.example.Rectangle;
-import org.example.Shape;
-import org.javaspec.api.ObjectBehavior;
-
-public class ShapeSpec extends ObjectBehavior<Shape> {
-    public void it_is_initializable() {
-        shouldHaveType(Shape.class);
-    }
-
-    public void it_is_sealed() {
-        shouldBeASealedClass();
-        shouldPermit(Circle.class, Rectangle.class);
-    }
-}
-```
-
-Generated production type:
-
-```java
-package org.example;
-
-public sealed class Shape permits Circle, Rectangle { }
-```
-
-If `Circle` or `Rectangle` are missing, `run` suggests/creates their specs before generating production classes. For a sealed class, generated permitted subtype specs include:
-
-```java
-shouldBeAFinalClass();
-shouldExtend(Shape.class);
-```
-
-and the generated subtype is valid as a direct sealed subclass:
-
-```java
-package org.example;
-
-public final class Circle extends Shape { }
-```
-
-If `shouldPermit(...)` is omitted, javaspec creates a nested `Permitted` placeholder so the generated sealed root has a syntactically valid permits clause:
-
-```java
-package org.example;
-
-public sealed class Shape permits Shape.Permitted {
-    static final class Permitted extends Shape { }
-}
-```
-
-This source requires a Java version that supports sealed classes. Permitted subclasses must still be implemented as `final`, `sealed`, or `non-sealed` types.
-
-### Sealed interface example
-
-For sealed interfaces, javaspec keeps permitted implementations in the same production file. This is the only sealed case where javaspec intentionally keeps the permitted types local to the root type.
-
-Spec marker with explicit permits:
-
-```java
-public void it_is_a_sealed_interface() {
-    shouldBeASealedInterface();
-    shouldPermit(EmailMessage.class, SmsMessage.class);
-}
-```
-
-Generated production type:
-
-```java
-package org.example;
-
-public sealed interface Message permits Message.EmailMessage, Message.SmsMessage {
-    final class EmailMessage implements Message { }
-    final class SmsMessage implements Message { }
-}
-```
-
-If `shouldPermit(...)` is omitted, javaspec creates a nested `Permitted` placeholder:
-
-```java
-package org.example;
-
-public sealed interface Message permits Message.Permitted {
-    final class Permitted implements Message { }
-}
-```
-
-This source requires a Java version that supports sealed interfaces. javaspec does not create separate specs or separate production files for the permitted implementations of a sealed interface in this MVP.
+When related types are missing, `run` handles them before generating the owner type: it suggests or creates their specs, then writes their production skeletons. For sealed classes, `shouldPermit(...)` can create final permitted subtype specs that extend the sealed root. For sealed interfaces, permitted implementations remain nested in the sealed interface source file in this MVP.
 
 ## Custom directories
 
@@ -432,6 +457,7 @@ Creates:
 
 ```text
 /tmp/demo/src/test/java/spec/org/example/CalculatorSpec.java
+/tmp/demo/src/test/java/spec/org/example/CalculatorSpecSupport.java
 ```
 
 Equivalent alias:
@@ -473,7 +499,7 @@ If the spec already exists:
 $javaspec describe org.example.Calculator
 ```
 
-javaspec reports it and does not overwrite it:
+javaspec reports it and does not overwrite the spec:
 
 ```text
 Specification spec.org.example.CalculatorSpec exists; no generation needed.
@@ -481,12 +507,15 @@ Spec file: src/test/java/spec/org/example/CalculatorSpec.java
 No production class was generated.
 ```
 
+If the support file is missing, `describe` creates `CalculatorSpecSupport.java`.
+
 ## Existing production class
 
 If a spec exists and the production class already exists in the source tree:
 
 ```text
 src/test/java/spec/org/example/CalculatorSpec.java
+src/test/java/spec/org/example/CalculatorSpecSupport.java
 src/main/java/org/example/Calculator.java
 ```
 
@@ -503,7 +532,7 @@ spec.org.example.CalculatorSpec describes org.example.Calculator; class exists.
 Source file: src/main/java/org/example/Calculator.java
 ```
 
-No production files are generated.
+No production type skeleton is generated. If the spec describes constructors, static factories, or missing instance methods, `run` may update the existing source according to the constructor policy and method-generation confirmation rules.
 
 If the class is available on the classpath instead of the source tree, javaspec reports:
 
@@ -529,19 +558,21 @@ Exit code: `0`.
 
 javaspec follows a PHPSpec-inspired namespace convention.
 
-| Spec file | Spec class | Described production type |
-|---|---|---|
-| `src/test/java/spec/org/example/CalculatorSpec.java` | `spec.org.example.CalculatorSpec` | `org.example.Calculator` |
-| `src/test/java/spec/com/acme/UserSpec.java` | `spec.com.acme.UserSpec` | `com.acme.User` |
+| Spec file | Spec class | Support class | Described production type |
+|---|---|---|---|
+| `src/test/java/spec/org/example/CalculatorSpec.java` | `spec.org.example.CalculatorSpec` | `spec.org.example.CalculatorSpecSupport` | `org.example.Calculator` |
+| `src/test/java/spec/com/acme/UserSpec.java` | `spec.com.acme.UserSpec` | `spec.com.acme.UserSpecSupport` | `com.acme.User` |
 
 Rules:
 
 1. The spec class name ends with `Spec`.
-2. The spec package starts with `spec.`.
-3. The described production package is the spec package without the leading `spec.`.
-4. The described production type name is the spec class name without the trailing `Spec`.
-5. The described production kind defaults to class unless the spec contains a marker such as `shouldBeAFinalClass();`, `shouldBeAnInterface();`, `shouldBeAnEnum();`, `shouldBeAnAnnotation();`, `shouldBeARecord();`, `shouldBeASealedClass();`, or `shouldBeASealedInterface();`.
-6. `shouldExtend(...)`, `shouldImplement(...)`, and `shouldPermit(...)` class literals are resolved through imports or the described production package.
+2. The generated support class name ends with `SpecSupport`.
+3. The spec package starts with `spec.`.
+4. The described production package is the spec package without the leading `spec.`.
+5. The described production type name is the spec class name without the trailing `Spec`.
+6. The described production kind defaults to class unless the spec contains a marker such as `shouldBeAFinalClass();`, `shouldBeAnInterface();`, `shouldBeAnEnum();`, `shouldBeAnAnnotation();`, `shouldBeARecord();`, `shouldBeASealedClass();`, or `shouldBeASealedInterface();`.
+7. `shouldExtend(...)`, `shouldImplement(...)`, and `shouldPermit(...)` class literals are resolved through imports or the described production package.
+8. Constructor and method descriptors are discovered heuristically from supported construction and typed proxy syntax: `beConstructedWith(...)` describes constructors; factory construction markers with string-literal Java-identifier names describe static factory methods; typed proxy, throw-proxy, direct `subject().method(...)`, and simple setter calls describe instance methods.
 
 Legacy same-package specs are also discovered by convention, but new specs generated by `describe` use the `spec.` package prefix.
 
@@ -569,6 +600,18 @@ Result:
 
 ```text
 Error: The source directory is used by run; describe writes only to the spec directory.
+```
+
+### Unknown constructor policy
+
+```sh
+$javaspec run --constructor-policy keep
+```
+
+Result:
+
+```text
+Error: Invalid constructor policy: keep. Valid values: delete, preserve, comment.
 ```
 
 ### Unknown command
@@ -599,8 +642,8 @@ Error: Invalid class name: Class name segment is a reserved Java word: class
 
 | Code | Meaning |
 |---:|---|
-| `0` | success, help, no specs found, existing targets, or generated targets |
-| `1` | missing production type was not generated because the prompt was declined or input was unavailable |
+| `0` | success, help, no specs found, existing targets, or generated/updated targets |
+| `1` | missing production type or missing method update was not generated because the prompt was declined or input was unavailable |
 | `64` | invalid command line usage |
 | `70` | I/O or security error while checking or writing files |
 
@@ -620,11 +663,17 @@ Expected output contains only the project artifact:
 org.javaspec:javaspec:jar:0.1.0-SNAPSHOT
 ```
 
+## Verification
+
+Current tester-reported verification after the factory construction generation follow-up:
+
+- `mvn test` passed with 174 tests.
+- `mvn dependency:tree -Dscope=runtime` passed with only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT` in runtime scope.
+
 ## Current MVP limitations
 
-- `run` does not execute example methods yet.
-- No full matcher engine yet; generic `ObjectBehavior<T>`, `shouldHaveType(Class<?>)`, and the class-like type/relationship marker methods are placeholders for generated specs and discovery.
-- No doubles/collaborators yet.
-- No method or constructor generation yet.
-- Record and sealed skeletons are generated as source text for newer Java targets; javaspec itself still compiles and runs as a Java 8-compatible binary.
-- Production generation is limited to minimal class, interface, enum, annotation, record, sealed class, and sealed interface skeletons.
+- The example runner lifecycle is still incomplete; `run` performs discovery, generation, and update work rather than executing full examples.
+- Source parsing and generation use Java 8-compatible heuristics, not a full Java parser.
+- Generated post-Java-8 source forms, such as records and sealed types, require an appropriate JDK to compile.
+- Method generation covers the supported typed proxy, throw-proxy, direct subject/setter, and static factory construction marker syntax; it is not a general Java source synthesis engine.
+- Doubles/collaborators are not implemented yet.

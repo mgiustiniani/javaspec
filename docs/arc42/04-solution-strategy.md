@@ -11,6 +11,7 @@ javaspec should be built as a small Java 8-compatible core with clear extension 
 | Java 8 baseline with metadata-driven Java LTS target profiles | [ADR 0001](../adr/0001-java-8-baseline-with-lts-target-profiles.md) |
 | Zero runtime dependency policy | [ADR 0002](../adr/0002-zero-runtime-dependency-policy.md) |
 | First-MVP PHPSpec-style describe/run generator flow | [ADR 0003](../adr/0003-course-correction-move-class-creation-suggestion-into-first-mvp.md) |
+| Construction defaults, typed matcher proxies, and method generators course correction | [ADR 0004](../adr/0004-course-correction-construction-defaults-typed-matcher-proxies-and-method-generators.md) |
 
 ## 4.3 Core Strategy
 

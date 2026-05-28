@@ -7,6 +7,10 @@ import org.javaspec.discovery.TypeExistenceChecker;
 import org.javaspec.generation.SpecFileGenerator;
 import org.javaspec.generation.SpecGenerationPlan;
 import org.javaspec.generation.SpecSkeletonGenerator;
+import org.javaspec.generation.SpecSupportFileGenerator;
+import org.javaspec.generation.ClassConstructorUpdater;
+import org.javaspec.generation.ClassMethodUpdater;
+import org.javaspec.generation.ConstructorPolicy;
 import org.javaspec.generation.TypeFileGenerator;
 import org.javaspec.generation.TypeGenerationPlan;
 import org.javaspec.generation.TypeSkeletonGenerator;
@@ -22,6 +26,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -71,6 +76,21 @@ public final class Main {
         return describeClass(parsed, out, err);
     }
 
+    private static ConstructorPolicy resolveConstructorPolicy(ParsedArguments parsed) {
+        if (parsed.constructorPolicy != null) {
+            if ("preserve".equals(parsed.constructorPolicy)) {
+                return ConstructorPolicy.PRESERVE;
+            }
+            if ("delete".equals(parsed.constructorPolicy)) {
+                return ConstructorPolicy.DELETE;
+            }
+            if ("comment".equals(parsed.constructorPolicy)) {
+                return ConstructorPolicy.COMMENT;
+            }
+        }
+        return ConstructorPolicy.defaultPolicy();
+    }
+
     private static int describeClass(ParsedArguments parsed, PrintStream out, PrintStream err) {
         DescribedClass describedClass;
         try {
@@ -81,16 +101,34 @@ public final class Main {
         }
 
         File specRoot = new File(parsed.specRoot);
-        SpecGenerationPlan plan = SpecSkeletonGenerator.plan(describedClass, specRoot);
+        DescribedType describedType = DescribedType.of(describedClass);
+        SpecGenerationPlan plan = SpecSkeletonGenerator.plan(describedType, specRoot);
+        SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(describedType, specRoot);
         if (plan.targetFile().exists()) {
             out.println("Specification " + plan.specQualifiedName() + " exists; no generation needed.");
             out.println("Spec file: " + plan.targetFile().getPath());
+            try {
+                if (!supportPlan.targetFile().exists()) {
+                    File generatedSupport = SpecSupportFileGenerator.writeOrUpdate(supportPlan);
+                    out.println("Generated specification support: " + generatedSupport.getPath());
+                }
+            } catch (IOException ex) {
+                err.println("I/O error while generating specification support: " + messageOf(ex));
+                err.println("Target path: " + supportPlan.targetFile().getPath());
+                return EXIT_IO_ERROR;
+            } catch (SecurityException ex) {
+                err.println("I/O error while generating specification support: " + messageOf(ex));
+                err.println("Target path: " + supportPlan.targetFile().getPath());
+                return EXIT_IO_ERROR;
+            }
             out.println("No production class was generated.");
             return EXIT_OK;
         }
 
         try {
+            File generatedSupport = SpecSupportFileGenerator.writeOrUpdate(supportPlan);
             File generatedFile = SpecFileGenerator.write(plan);
+            out.println("Generated specification support: " + generatedSupport.getPath());
             out.println("Generated specification: " + generatedFile.getPath());
             out.println("Specification class: " + plan.specQualifiedName());
             out.println("Described class: " + describedClass.qualifiedName());
@@ -143,6 +181,22 @@ public final class Main {
                 return EXIT_IO_ERROR;
             }
 
+            if (parsed.generate && describedType.hasMethods()) {
+                SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(describedType, specRoot);
+                try {
+                    File supportFile = SpecSupportFileGenerator.writeOrUpdate(supportPlan);
+                    out.println("Updated specification support: " + supportFile.getPath());
+                } catch (IOException ex) {
+                    err.println("I/O error while updating specification support: " + messageOf(ex));
+                    err.println("Target path: " + supportPlan.targetFile().getPath());
+                    return EXIT_IO_ERROR;
+                } catch (SecurityException ex) {
+                    err.println("I/O error while updating specification support: " + messageOf(ex));
+                    err.println("Target path: " + supportPlan.targetFile().getPath());
+                    return EXIT_IO_ERROR;
+                }
+            }
+
             TypeCheckResult checkResult;
             try {
                 checkResult = TypeExistenceChecker.check(describedType, sourceRoot, effectiveClassLoader());
@@ -162,6 +216,40 @@ public final class Main {
                     if (checkResult.classpathKind() != null && !checkResult.classpathKindMatches()) {
                         out.println("Classpath type kind: " + checkResult.classpathKind().displayName()
                                 + " (expected " + describedType.kind().displayName() + ")");
+                    }
+                }
+                // If the spec declares constructors, update the existing class.
+                if (describedType.hasConstructors() && checkResult.sourceFilePresent()) {
+                    ConstructorPolicy policy = resolveConstructorPolicy(parsed);
+                    File sourceFile = checkResult.sourceFile();
+                    try {
+                        ClassConstructorUpdater.updateFile(sourceFile, describedType, policy);
+                        out.println("Updated constructors in " + sourceFile.getPath()
+                                + " (policy: " + policy.name().toLowerCase().replace('_', '-') + ")");
+                    } catch (IOException ex) {
+                        err.println("I/O error while updating constructors: " + messageOf(ex));
+                        err.println("Target path: " + sourceFile.getPath());
+                        return EXIT_IO_ERROR;
+                    }
+                }
+                if (describedType.hasMethods() && checkResult.sourceFilePresent()) {
+                    File sourceFile = checkResult.sourceFile();
+                    try {
+                        String existingSource = new String(Files.readAllBytes(sourceFile.toPath()), StandardCharsets.UTF_8);
+                        String updatedSource = ClassMethodUpdater.updateSource(existingSource, describedType);
+                        if (!existingSource.equals(updatedSource)) {
+                            boolean accepted = parsed.generate || askToUpdateMethods(input, out, sourceFile, describedType);
+                            if (!accepted) {
+                                missingWithoutGeneration = true;
+                                continue;
+                            }
+                            Files.write(sourceFile.toPath(), updatedSource.getBytes(StandardCharsets.UTF_8));
+                            out.println("Updated methods in " + sourceFile.getPath());
+                        }
+                    } catch (IOException ex) {
+                        err.println("I/O error while updating methods: " + messageOf(ex));
+                        err.println("Target path: " + sourceFile.getPath());
+                        return EXIT_IO_ERROR;
                     }
                 }
                 continue;
@@ -238,7 +326,10 @@ public final class Main {
                 continue;
             }
 
+            SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(relatedType, specRoot);
+            File generatedSupport = SpecSupportFileGenerator.writeOrUpdate(supportPlan);
             File generatedSpec = SpecFileGenerator.write(specPlan);
+            out.println("Generated related specification support: " + generatedSupport.getPath());
             out.println("Generated related specification: " + generatedSpec.getPath());
             specs.add(DiscoveredSpec.of(generatedSpec, specPlan.specQualifiedName(), relatedType));
         }
@@ -367,6 +458,31 @@ public final class Main {
         }
     }
 
+    private static boolean askToUpdateMethods(
+            BufferedReader input,
+            PrintStream out,
+            File sourceFile,
+            DescribedType describedType
+    ) throws IOException {
+        while (true) {
+            out.println("Do you want me to add missing method skeletons to "
+                    + promptTarget(describedType) + " in " + sourceFile.getPath() + "? [Y/n]");
+            String answer = input.readLine();
+            if (answer == null) {
+                return false;
+            }
+
+            String normalized = answer.trim();
+            if (normalized.length() == 0 || "y".equalsIgnoreCase(normalized) || "yes".equalsIgnoreCase(normalized)) {
+                return true;
+            }
+            if ("n".equalsIgnoreCase(normalized) || "no".equalsIgnoreCase(normalized)) {
+                return false;
+            }
+            out.println("Please answer y or n.");
+        }
+    }
+
     private static ParsedArguments parse(String[] args) {
         ParsedArguments parsed = new ParsedArguments();
         parsed.sourceRoot = DEFAULT_SOURCE_ROOT;
@@ -402,6 +518,18 @@ public final class Main {
                 parsed.specRoot = args[index + 1];
                 if (parsed.specRoot.length() == 0) {
                     parsed.errorMessage = "Spec directory must not be empty.";
+                    return parsed;
+                }
+                index += 2;
+            } else if ("--constructor-policy".equals(arg)) {
+                if (index + 1 >= args.length) {
+                    parsed.errorMessage = "Missing value for " + arg + ".";
+                    return parsed;
+                }
+                parsed.constructorPolicy = args[index + 1];
+                if (!"delete".equals(parsed.constructorPolicy) && !"preserve".equals(parsed.constructorPolicy) && !"comment".equals(parsed.constructorPolicy)) {
+                    parsed.errorMessage = "Invalid constructor policy: " + parsed.constructorPolicy
+                            + ". Valid values: delete, preserve, comment.";
                     return parsed;
                 }
                 index += 2;
@@ -470,7 +598,7 @@ public final class Main {
         stream.println("Usage:");
         stream.println("  javaspec describe <ClassName> [--spec-dir <dir>]");
         stream.println("  javaspec desc <ClassName> [--spec-root <dir>]");
-        stream.println("  javaspec run [--spec-dir <dir>] [--source-dir <dir>] [--generate]");
+        stream.println("  javaspec run [--spec-dir <dir>] [--source-dir <dir>] [--generate] [--constructor-policy <delete|preserve|comment>]");
         stream.println();
         stream.println("Commands:");
         stream.println("  describe <ClassName>  Create a PHPSpec-style specification skeleton; never creates production code.");
@@ -483,6 +611,7 @@ public final class Main {
         stream.println("  --source-dir <dir>    Source root used by run (default: " + DEFAULT_SOURCE_ROOT + ").");
         stream.println("  --source-root <dir>   Alias for --source-dir.");
         stream.println("  --generate            With run, answer yes to missing production type generation prompts.");
+        stream.println("  --constructor-policy  Constructor handling policy. Valid values: delete, preserve, comment (default: comment).");
         stream.println("  --help, -h            Show this help.");
     }
 
@@ -503,5 +632,6 @@ public final class Main {
         private boolean generate;
         private boolean helpRequested;
         private String errorMessage;
+        private String constructorPolicy;
     }
 }

@@ -23,31 +23,41 @@ public class MainTest {
     public void describeCreatesPhpspecStyleSpecSkeletonOnly() throws Exception {
         File specRoot = temporaryFolder.newFolder("spec-root");
         File specFile = new File(specRoot, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "CalculatorSpec.java");
+        File supportFile = new File(specRoot, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "CalculatorSpecSupport.java");
 
         CommandResult result = run("describe", "com.example.Calculator", "--spec-dir", specRoot.getAbsolutePath());
 
         assertEquals(0, result.exitCode);
+        assertTrue(result.out.contains("Generated specification support: " + supportFile.getPath()));
         assertTrue(result.out.contains("Generated specification: " + specFile.getPath()));
         assertTrue(result.out.contains("Specification class: spec.com.example.CalculatorSpec"));
         assertTrue(result.out.contains("Described class: com.example.Calculator"));
         assertTrue(result.out.contains("No production class was generated"));
         assertEquals("", result.err);
         assertTrue(specFile.isFile());
+        assertTrue(supportFile.isFile());
         assertEquals("package spec.com.example;\n\n" +
-                "import com.example.Calculator;\n" +
-                "import org.javaspec.api.ObjectBehavior;\n\n" +
-                "public class CalculatorSpec extends ObjectBehavior<Calculator> {\n" +
+                "import com.example.Calculator;\n\n" +
+                "public class CalculatorSpec extends CalculatorSpecSupport {\n" +
                 "    public void it_is_initializable() {\n" +
                 "        shouldHaveType(Calculator.class);\n" +
                 "    }\n" +
                 "}\n", readFile(specFile));
-        assertEquals(1, countFiles(specRoot));
+        assertEquals("package spec.com.example;\n\n" +
+                "import com.example.Calculator;\n\n" +
+                "public class CalculatorSpecSupport extends org.javaspec.api.ObjectBehavior<Calculator> {\n" +
+                "    public CalculatorSpecSupport() {\n" +
+                "        super(Calculator.class);\n" +
+                "    }\n" +
+                "}\n", readFile(supportFile));
+        assertEquals(2, countFiles(specRoot));
     }
 
     @Test
     public void describeExistingSpecDoesNotOverwrite() throws Exception {
         File specRoot = temporaryFolder.newFolder("existing-spec-root");
         File specFile = new File(specRoot, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "ExistingSpec.java");
+        File supportFile = new File(specRoot, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "ExistingSpecSupport.java");
         assertTrue(specFile.getParentFile().mkdirs());
         Files.write(specFile.toPath(), "existing spec\n".getBytes(StandardCharsets.UTF_8));
 
@@ -55,10 +65,12 @@ public class MainTest {
 
         assertEquals(0, result.exitCode);
         assertTrue(result.out.contains("Specification spec.com.example.ExistingSpec exists"));
+        assertTrue(result.out.contains("Generated specification support: " + supportFile.getPath()));
         assertTrue(result.out.contains("No production class was generated"));
         assertEquals("", result.err);
         assertEquals("existing spec\n", readFile(specFile));
-        assertEquals(1, countFiles(specRoot));
+        assertTrue(supportFile.isFile());
+        assertEquals(2, countFiles(specRoot));
     }
 
     @Test
@@ -342,6 +354,96 @@ public class MainTest {
     }
 
     @Test
+    public void runWithGenerateWritesMethodSkeletonsAndSpecificationSupportForTypedProxySpec() throws Exception {
+        File specRoot = temporaryFolder.newFolder("typed-proxy-spec-root");
+        File sourceRoot = temporaryFolder.newFolder("typed-proxy-source-root");
+        writeSpec(specRoot, "spec.com.example.BookSpec",
+                "    public void it_has_rating() {\n" +
+                "        getRating().shouldReturn(5);\n" +
+                "    }\n" +
+                "\n" +
+                "    public void it_has_title() {\n" +
+                "        getTitle().shouldContain(\"Wizard\");\n" +
+                "    }\n" +
+                "\n" +
+                "    public void it_is_enabled() {\n" +
+                "        isEnabled().shouldReturn(true);\n" +
+                "    }\n" +
+                "\n" +
+                "    public void it_rejects_negative_rating() {\n" +
+                "        shouldThrow(IllegalArgumentException.class).duringSetRating(-3);\n" +
+                "    }\n");
+        File sourceFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "Book.java");
+        File supportFile = new File(specRoot, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "BookSpecSupport.java");
+
+        CommandResult result = run("run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath(), "--generate");
+
+        assertEquals(0, result.exitCode);
+        assertTrue(result.out.contains("Updated specification support: " + supportFile.getPath()));
+        assertTrue(result.out.contains("Generated class skeleton: " + sourceFile.getPath()));
+        assertEquals("", result.err);
+        assertTrue(sourceFile.isFile());
+        assertTrue(supportFile.isFile());
+        assertEquals("package com.example;\n\n" +
+                "public class Book {\n" +
+                "    public int getRating() {\n" +
+                "        return 0;\n" +
+                "    }\n" +
+                "\n" +
+                "    public String getTitle() {\n" +
+                "        return null;\n" +
+                "    }\n" +
+                "\n" +
+                "    public boolean isEnabled() {\n" +
+                "        return false;\n" +
+                "    }\n" +
+                "\n" +
+                "    public void setRating(int rating) {\n" +
+                "    }\n" +
+                "}\n", readFile(sourceFile));
+        String supportSource = readFile(supportFile);
+        assertTrue(supportSource.contains("protected org.javaspec.matcher.Matchable<Integer> getRating()"));
+        assertTrue(supportSource.contains("return match(subject().getRating());"));
+        assertTrue(supportSource.contains("protected org.javaspec.matcher.Matchable<String> getTitle()"));
+        assertTrue(supportSource.contains("protected org.javaspec.matcher.Matchable<Boolean> isEnabled()"));
+        assertTrue(supportSource.contains("protected void setRating(int rating)"));
+        assertTrue(supportSource.contains("public void duringSetRating(final int rating)"));
+    }
+
+    @Test
+    public void runWithoutGeneratePromptsBeforeUpdatingMissingMethodsInExistingSource() throws Exception {
+        File specRoot = temporaryFolder.newFolder("prompt-method-spec-root");
+        File sourceRoot = temporaryFolder.newFolder("prompt-method-source-root");
+        writeSpec(specRoot, "spec.com.example.BookSpec",
+                "    public void it_has_rating() {\n" +
+                "        getRating().shouldReturn(5);\n" +
+                "    }\n" +
+                "\n" +
+                "    public void it_has_title() {\n" +
+                "        getTitle().shouldReturn(\"Wizard\");\n" +
+                "    }\n");
+        File sourceFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "Book.java");
+        assertTrue(sourceFile.getParentFile().mkdirs());
+        Files.write(sourceFile.toPath(), ("package com.example;\n\n" +
+                "public class Book {\n" +
+                "    public int getRating() {\n" +
+                "        return 5;\n" +
+                "    }\n" +
+                "}\n").getBytes(StandardCharsets.UTF_8));
+
+        CommandResult result = runWithInput("y\n", "run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath());
+
+        assertEquals(0, result.exitCode);
+        assertTrue(result.out.contains("Do you want me to add missing method skeletons to com.example.Book in " + sourceFile.getPath() + "? [Y/n]"));
+        assertTrue(result.out.contains("Updated methods in " + sourceFile.getPath()));
+        assertEquals("", result.err);
+        String updatedSource = readFile(sourceFile);
+        assertEquals(1, countOccurrences(updatedSource, "public int getRating()"));
+        assertTrue(updatedSource.contains("public String getTitle()"));
+        assertTrue(updatedSource.contains("return null;"));
+    }
+
+    @Test
     public void runWithoutSpecsExitsOk() throws Exception {
         File specRoot = temporaryFolder.newFolder("empty-spec-root");
         File sourceRoot = temporaryFolder.newFolder("empty-source-root");
@@ -360,6 +462,30 @@ public class MainTest {
         assertUsageError(run("describe"));
         assertUsageError(run("run", "unexpected"));
         assertUsageError(run("describe", "com.example.Valid", "--unknown"));
+    }
+
+    @Test
+    public void helpListsConstructorPolicyValuesAndCommentDefault() {
+        CommandResult result = run("--help");
+
+        assertEquals(0, result.exitCode);
+        assertTrue(result.out.contains("[--constructor-policy <delete|preserve|comment>]"));
+        assertTrue(result.out.contains("Valid values: delete, preserve, comment (default: comment)."));
+        assertEquals("", result.err);
+    }
+
+    @Test
+    public void invalidConstructorPolicyDiagnosticListsExactValues() {
+        File specRoot = new File("unused-spec-root");
+        File sourceRoot = new File("unused-source-root");
+
+        CommandResult result = run("run", "--spec-dir", specRoot.getPath(), "--source-dir", sourceRoot.getPath(), "--constructor-policy", "keep");
+
+        assertEquals(64, result.exitCode);
+        assertEquals("", result.out);
+        assertTrue(result.err.startsWith("Error: Invalid constructor policy: keep. Valid values: delete, preserve, comment.\n"));
+        assertTrue(result.err.contains("[--constructor-policy <delete|preserve|comment>]"));
+        assertTrue(result.err.contains("Valid values: delete, preserve, comment (default: comment)."));
     }
 
     @Test
@@ -445,6 +571,19 @@ public class MainTest {
             }
         }
         return count;
+    }
+
+    private static int countOccurrences(String text, String fragment) {
+        int count = 0;
+        int index = 0;
+        while (true) {
+            int found = text.indexOf(fragment, index);
+            if (found < 0) {
+                return count;
+            }
+            count++;
+            index = found + fragment.length();
+        }
     }
 
     private static final class CommandResult {
