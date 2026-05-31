@@ -2,6 +2,15 @@
 
 This plan defines the initial delivery path for javaspec, a Java 8-compatible, zero-runtime-dependency Java port inspired by phpspec.
 
+## Phase 3 and 4 Stabilization Status — Implemented and Verified
+
+Phases 3 and 4 are complete after code/test stabilization.
+
+- Phase 3 implemented Java LTS target profiles `java8`, `java11`, `java17`, `java21`, and `java25`, the profile catalog, API-symbol metadata, target-profile compatibility checks, and reflection-only API availability probes.
+- Phase 4 implemented the zero-runtime-dependency line-based configuration format, `--config <file>` and `--suite <name>` integration, suite-level spec/source directories, suite package prefixes, naming convention integration, and suite/class/example discovery filters.
+- Verification completed on 2026-06-01: `mvn verify` passed with 301 tests, 0 failures, 0 errors, and 0 skipped.
+- Runtime dependency verification completed on 2026-06-01: `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+
 ## ADR 0004 Correction Status — Implemented and Verified
 
 ADR 0004 was recorded before correction planning, as required by the course-correction protocol. The blocking correction track has now been implemented and the user manual has been updated to describe the actual behavior.
@@ -76,6 +85,50 @@ Verification summary:
 - `mvn test` passed with 174 tests.
 - `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`, confirming no runtime third-party dependency leakage.
 
+## Phase 3 Status
+
+Phase 3 is completed and implemented as the core domain model and LTS profile catalog.
+
+Implementation summary:
+
+1. Added Java 8-compatible profile/catalog domain classes under `org.javaspec.profile`: `TargetProfile`, `FeatureFlag`, `ApiSymbol`, `ApiSymbolKey`, `ApiSymbolKind`, `ApiSymbolCategory`, `ProfileCatalog`, and `DefaultProfileCatalogSymbols`.
+2. Added Java 8-compatible compatibility boundary classes under `org.javaspec.compatibility`: `CompatibilityCheck`, `ProfileCompatibilityCheck`, `CompatibilityResult`, and `ApiAvailabilityProbe`.
+3. Encoded target profiles `java8`, `java11`, `java17`, `java21`, and `java25` with deterministic ordering, parsing, lookup, and feature-support behavior.
+4. Implemented immutable API-symbol metadata and catalog lookup by introduced profile, availability profile, owner, and owner/member key.
+5. Populated representative data-structure and modeling metadata from `docs/research/java-lts-data-structures.md`, including Java 8 collection/container/array/stream symbols, Java 11 collection factories and related stream/optional additions, Java 17 stream/record/sealed metadata, Java 21 sequenced collections, and Java 25 stream gatherer metadata.
+6. Preserved the Java 8 binary strategy: Java 11+ APIs remain metadata strings or reflection-only probes; production source has no direct post-Java-8 imports.
+7. Added tests for the profile domain objects, catalog behavior, compatibility checks, and reflective API availability probing.
+
+Verification summary:
+
+- Initial Phase 3 tester verification reported `mvn test` BUILD SUCCESS with 212 tests run, 0 failures, 0 errors, and 0 skipped.
+- Stabilization verification after Phase 4 reported `mvn verify` BUILD SUCCESS with 301 tests run, 0 failures, 0 errors, and 0 skipped.
+- `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+- Full multi-JDK runtime compatibility and bytecode/constant-pool audits remain Phase 12 quality-matrix work.
+
+## Phase 4 Status
+
+Phase 4 is completed and implemented as the configuration, naming, and discovery-filter integration. ADR 0005 records the restricted line-based configuration format decision.
+
+Implementation summary:
+
+1. Added the zero-dependency `org.javaspec.config` production package: `ConfigurationException`, `ConstructorPolicyParser`, `JavaspecSuiteConfiguration`, `JavaspecConfiguration`, and `JavaspecConfigurationParser`.
+2. Added a restricted line-based config parser with no YAML/TOML/JSON runtime dependency. Blank lines and lines beginning with `#` are ignored; keys use `=` or `:` separators; duplicate, unknown, malformed, blank-required, invalid-profile, and invalid-constructor-policy input produces clear diagnostics.
+3. Implemented inferred defaults through `JavaspecConfiguration.defaults()`: suite `default`, spec root `src/test/java`, source root `src/main/java`, spec package prefix `spec`, production package prefix empty, profile `java8`, formatter `progress`, constructor policy `comment`, and empty bootstrap hooks.
+4. Modeled top-level config keys `profile`, `formatter`, `constructorPolicy`/`constructor-policy`, `defaultSuite`/`default-suite`, and `bootstrap`, plus suite keys for `specDir`/`spec-dir`, `sourceDir`/`source-dir`, `specPackagePrefix`/`spec-package-prefix`, `packagePrefix`/`package-prefix`, and `bootstrap`.
+5. Integrated `--config <file>` and `--suite <name>` into `org.javaspec.cli.Main` for `describe` and `run`. The selected suite's paths and package prefixes drive naming unless paths are overridden by `--spec-dir`/`--spec-root` or `--source-dir`/`--source-root`.
+6. Preserved `describe` as spec-only behavior: it still rejects command-line `--source-dir`, but a `sourceDir` in config is accepted because `describe` ignores source roots.
+7. Integrated configuration with constructor handling: `run` uses the configured constructor policy unless command-line `--constructor-policy` overrides it; valid values remain `delete`, `preserve`, and `comment`.
+8. Integrated suite package prefixes with `SpecNamingConvention`, `SpecDiscoveryRequest`, spec/support skeleton planning, and CLI describe/run flows so configured `specPackagePrefix` and `packagePrefix` map production classes to spec/support classes.
+9. Added suite selection and run filters: `--suite <name>` selects the configured suite and spec root, repeatable `--class <name>` filters by described qualified/simple name or spec qualified/simple name, and repeatable `--example <name>` filters by example method name, display name, or source-order index.
+10. Bootstrap values are comma-separated metadata only and are not executed yet. Profile and formatter values are parsed/validated metadata until the corresponding runner and formatter features are implemented.
+11. Added tests: `src/test/java/org/javaspec/config/JavaspecConfigurationTest.java`, `src/test/java/org/javaspec/config/JavaspecConfigurationParserTest.java`, `src/test/java/org/javaspec/cli/MainConfigurationIntegrationTest.java`, `src/test/java/org/javaspec/discovery/SpecNamingConventionTest.java`, `src/test/java/org/javaspec/discovery/SpecDiscoveryNamingTest.java`, and `src/test/java/org/javaspec/generation/SpecSkeletonGeneratorNamingTest.java`.
+
+Verification summary:
+
+- `mvn verify` passed with 301 tests run, 0 failures, 0 errors, and 0 skipped.
+- `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+
 ## Delegation Rule for Later Work
 
 Further implementation work must be delegated to the appropriate workflow agents. The documenter must not create application source code, Maven build files, scaffolding, or tests. Future work should be delegated as follows by the parent workflow:
@@ -97,12 +150,19 @@ Further implementation work must be delegated to the appropriate workflow agents
 | PHPSpec construction semantics | ADR 0004, verified PHPSpec construction docs/source, this plan, user manual | Runtime implemented in `ObjectBehavior`: lazy subject construction, `beConstructedWith`, factory/named construction forms, override-before-instantiation semantics, failure on change after instantiation, and `duringInstantiation()`. Generation implemented: `beConstructedWith(...)` remains constructor descriptor generation; factory/named forms with string-literal Java-identifier names generate static factory method skeletons returning the described type; non-string-literal factory names are ignored for generation. Full CLI example lifecycle remains future work. |
 | Typed proxy matcher syntax | ADR 0004, verified PHPSpec matcher docs/source, this plan, user manual | Implemented: generated subject-specific support classes expose typed proxy methods and throw proxies while existing `match(value).should...` usage remains available. |
 | Method generation | ADR 0004, this plan, user manual | Implemented and verified: discovery from typed proxy/throw calls, direct subject/setter calls, and static factory construction markers; Java 8-compatible instance method and static factory skeleton generation; static factory descriptors are skipped by generated support proxies; `--generate` writes non-interactively and interactive `run` prompts before updating existing source files. |
+| Configuration model and inferred defaults | README, user manual, ARC42 section 5, ADR 0005, this plan | Implemented in Phase 4: `JavaspecConfiguration.defaults()` provides the default suite `default`, Maven-style spec/source roots, `spec` package prefix, empty production package prefix, `java8` profile, `progress` formatter, `comment` constructor policy, and empty bootstrap hooks when no config file is supplied. |
+| Constructor-policy config default | ADR 0004, ADR 0005, user manual, this plan | Implemented in Phase 4: config key `constructorPolicy`/`constructor-policy` accepts only `delete`, `preserve`, and `comment`; `comment` remains the inferred and config default, and `run --constructor-policy` overrides config explicitly. |
+| Explicit suites, paths, profile, and formatter config | README, user manual, ARC42 section 5, ADR 0005, this plan | Implemented in Phase 4: `--config <file>` and `--suite <name>` select suite configuration; selected-suite `specDir`/`sourceDir` drive `describe`/`run` unless CLI path options override them; selected-suite `specPackagePrefix`/`packagePrefix` drive naming; `profile` and `formatter` are parsed/validated metadata until profile-aware runner and formatter behavior is implemented. |
+| Naming convention integration | README, user manual, ARC42 section 5, ADR 0005, this plan | Implemented in Phase 4: `SpecNamingConvention` maps production names to spec/support packages using configured suite package prefixes, validates naming metadata, and is used by describe, discovery, and support generation. |
+| Suite, class, and example filters | README, user manual, ARC42 section 5, this plan | Implemented in Phase 4: `--suite` selects the configured suite; repeatable `--class` filters by described or spec class names; repeatable `--example` filters by example method name, display name, or source-order index. |
+| Missing-class flow with config | User manual, this plan | Implemented in Phase 4: `run` uses inferred defaults without a config file and selected-suite paths/naming with explicit config, preserving the existing missing-production prompt and `--generate` non-interactive generation behavior. |
 | Maven implementation | This plan | Implemented in Phase 2. |
 | Package base `org.javaspec` | README, this plan | Implemented in Phase 2 and retained for future work. |
-| Target Java LTS profiles 8, 11, 17, 21, 25 | ADR 0001, Java LTS research | Future work in Phases 3 and 12. |
-| Post-Java 8 APIs as metadata/reflection | ADR 0001, Java LTS research | Future work in Phases 3 and 12. |
-| Java 8 data-structure list | Java LTS research | Future Phase 3 validation. |
-| Later LTS data-structure additions | Java LTS research | Future Phase 3 validation. |
+| Target Java LTS profiles 8, 11, 17, 21, 25 | README, ARC42 section 5, ADR 0001, Java LTS research, this plan | Implemented in Phase 3: `TargetProfile` and `ProfileCatalog` encode `java8`, `java11`, `java17`, `java21`, and `java25`; full multi-JDK runtime matrix remains Phase 12. |
+| Post-Java 8 APIs as metadata/reflection | README, ARC42 section 5, ADR 0001, Java LTS research, this plan | Implemented in Phase 3: Java 11+ API symbols are stored as metadata strings and probed only through `ApiAvailabilityProbe`; no post-Java-8 direct production imports are required. Constant-pool audit remains Phase 12. |
+| Java 8 data-structure list | README, ARC42 section 5, Java LTS research, this plan | Implemented in Phase 3: representative Java 8 collection, container, array, optional, atomic/reference, and stream symbols are cataloged and tested. |
+| Later LTS data-structure additions | README, ARC42 section 5, Java LTS research, this plan | Implemented in Phase 3: representative Java 11 collection factories/collectors/optional/stream additions, Java 17 stream/record/sealed metadata, Java 21 sequenced collections, and Java 25 stream-support metadata are cataloged. Ongoing synchronization with JDK docs remains future quality work. |
+| Java 25 stream-support metadata | README, ARC42 section 5, Java LTS research, this plan | Implemented in Phase 3: `STREAM_GATHERERS` and metadata for `java.util.stream.Gatherer`, nested gatherer types, and `java.util.stream.Gatherers` are present; runtime availability must still be probed reflectively. |
 | Complete phpspec feature inventory | phpspec research and ADR 0004 follow-up verification | Phase 1 research completed; construction and matcher details were re-verified for ADR 0004; the ADR 0004 correction track is implemented, while broader PHPSpec feature parity remains future phased work. |
 
 ## Implementation Principles
@@ -119,6 +179,9 @@ Further implementation work must be delegated to the appropriate workflow agents
 - Do not write generated source files unless the user explicitly confirms the action or a documented non-interactive policy allows it.
 - Treat ADR 0004 as implemented correction behavior that must be preserved before expanding unrelated functionality.
 - Keep constructor policy states limited to `delete`, `preserve`, and `comment`; use `comment` as the default and require explicit opt-in for destructive deletion.
+- Keep configuration parsing restricted, line-based, and zero-dependency; do not add YAML/TOML/JSON parser dependencies to runtime.
+- Treat missing config as `JavaspecConfiguration.defaults()` and apply command-line path/constructor-policy overrides over selected-suite values while keeping selected-suite package prefixes in the active naming convention.
+- Treat bootstrap hooks and profile/formatter settings as parsed metadata until the corresponding runner and formatter features are implemented; suite package prefixes are active naming-convention inputs for describe/run discovery and generation.
 - Prefer generated subject-specific typed support/proxy classes while keeping explicit `match(value)` style APIs available.
 - Insert generated methods source-preservingly, with confirmation or documented non-interactive behavior, and with Java 8-compatible default returns.
 - Keep construction and matcher behavior aligned with the verified PHPSpec semantics for lazy construction, overrides before instantiation, negation, and exception matching.
@@ -179,62 +242,120 @@ Still out of scope after the ADR 0004 correction:
 - Full PHPSpec matcher parity beyond the documented matcher subset.
 - Broader Prophecy-inspired or double functionality.
 
-### Phase 3 — Core Domain Model and LTS Profile Catalog
+### Phase 3 — Core Domain Model and LTS Profile Catalog (Completed)
 
-**Owner later:** Java implementation agent.
+**Status:** Completed and implemented.
 
-Tasks:
+**Implemented by:** Java implementation agent.
 
-1. Extend the first-MVP domain model into immutable domain objects for target profiles, API symbols, feature flags, and compatibility checks using Java 8 constructs.
-2. Encode profiles `java8`, `java11`, `java17`, `java21`, and `java25`.
-3. Add metadata for collection/data-structure APIs from `docs/research/java-lts-data-structures.md`.
-4. Add reflection helpers that safely probe optional APIs by class and method name.
-5. Include the source-verified Java 25 stream-support metadata while keeping all Java 9+ APIs metadata/reflection-only.
+Implemented scope:
 
-Acceptance criteria:
+1. Extended the first-MVP domain model with immutable Java 8-compatible objects for target profiles, API symbols, feature flags, and compatibility checks.
+2. Encoded profiles `java8`, `java11`, `java17`, `java21`, and `java25` in `TargetProfile` and exposed them through `ProfileCatalog`.
+3. Added metadata for representative collection/data-structure APIs from `docs/research/java-lts-data-structures.md`.
+4. Added reflection helpers that safely probe optional APIs by class, method, or field name without requiring those APIs on Java 8.
+5. Included Java 25 stream gatherer metadata while keeping all Java 9+ APIs metadata/reflection-only.
+6. Added deterministic catalog lookup by profile, owner, owner/member key, and feature flag.
 
-- The profile catalog is usable on Java 8.
+Implemented files/classes at a high level:
+
+- `src/main/java/org/javaspec/profile/TargetProfile.java` — ordered LTS profile keys, labels, major versions, parsing, and comparison helpers.
+- `src/main/java/org/javaspec/profile/FeatureFlag.java` — profile-gated feature flags for Java type kinds, collection factories, streams, sequenced collections, and stream gatherers.
+- `src/main/java/org/javaspec/profile/ApiSymbol.java`, `ApiSymbolKey.java`, `ApiSymbolKind.java`, and `ApiSymbolCategory.java` — immutable API-symbol metadata and lookup keys.
+- `src/main/java/org/javaspec/profile/ProfileCatalog.java` and `DefaultProfileCatalogSymbols.java` — deterministic default catalog for Java 8, 11, 17, 21, and 25 metadata.
+- `src/main/java/org/javaspec/compatibility/CompatibilityCheck.java`, `ProfileCompatibilityCheck.java`, and `CompatibilityResult.java` — target-profile compatibility checks for type kinds, feature flags, and API symbols.
+- `src/main/java/org/javaspec/compatibility/ApiAvailabilityProbe.java` — reflection-only availability probe for optional APIs.
+- `src/test/java/org/javaspec/profile/**` and `src/test/java/org/javaspec/compatibility/**` — tests for profiles, feature flags, symbols, catalog behavior, compatibility checks, and API probing.
+
+Verification:
+
+- Initial Phase 3 tester verification reported `mvn test` BUILD SUCCESS with 212 tests run, 0 failures, 0 errors, and 0 skipped.
+- Stabilization verification after Phase 4 reported `mvn verify` BUILD SUCCESS with 301 tests run, 0 failures, 0 errors, and 0 skipped.
+- `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+
+Acceptance criteria status:
+
+- The profile catalog is usable on Java 8 by design and by Java 8-compatible production source.
 - Java 11+ APIs are represented by metadata strings or reflective probes only.
-- Profile behavior is deterministic and testable.
+- Profile behavior is deterministic and covered by tests.
 - The first-MVP described-class model remains compatible with the expanded domain model.
 
-### Phase 4 — Configuration Model
+### Phase 4 — Configuration, Naming, and Discovery Filters (Completed)
 
-**Owner later:** Java implementation agent.
+**Status:** Completed and implemented.
 
-Tasks:
+**Relevant ADRs:** ADR 0002, ADR 0005.
 
-1. Design a zero-dependency configuration format or a restricted parser for a phpspec-inspired file.
-2. Model suites, source/spec paths, namespace/package mapping, bootstrap hooks, profile selection, formatter selection, and constructor policy.
-3. Support sensible defaults for Maven-style layouts, the first-MVP describe flow, and ADR 0004's `comment` constructor-policy default.
-4. Keep constructor policy states limited to `delete`, `preserve`, and `comment` in defaults, parsed configuration, and diagnostics.
-5. Keep optional YAML/TOML/JSON support out of core unless implemented without dependencies.
+**Implemented by:** Java implementation agent.
 
-Acceptance criteria:
+Implemented scope:
+
+1. Added the `org.javaspec.config` package with immutable top-level and suite configuration objects, configuration exceptions, a constructor-policy parser, and a restricted config parser.
+2. Implemented `JavaspecConfiguration.defaults()` for the inferred no-config case: default suite `default`, spec root `src/test/java`, source root `src/main/java`, spec package prefix `spec`, empty production package prefix, profile `java8`, formatter `progress`, constructor policy `comment`, and no bootstrap hooks.
+3. Implemented a zero-runtime-dependency line-based config format: blank lines and `#` comments are ignored, `=` and `:` are accepted separators, duplicate/unknown/malformed keys are rejected, and no YAML/TOML/JSON runtime parser is required.
+4. Implemented top-level keys for `profile`, `formatter`, constructor policy, default suite, and bootstrap metadata; implemented suite keys for spec/source roots, `specPackagePrefix`/`spec-package-prefix`, `packagePrefix`/`package-prefix`, and bootstrap metadata.
+5. Integrated `--config <file>` and `--suite <name>` with `describe` and `run` in `org.javaspec.cli.Main`.
+6. Applied selected-suite paths unless overridden by command-line spec/source path options. `describe` still rejects command-line source-root options but accepts and ignores `sourceDir` loaded from config.
+7. Applied configured package prefixes through `SpecNamingConvention` so `describe`, `run`, discovery, and spec/support generation map between production packages and spec packages consistently.
+8. Added naming/discovery metadata for example methods: public `void` methods named `it_*` or `its_*` are extracted with source-order indexes and display names derived from underscores.
+9. Added suite selection and run filters: repeatable `--class <name>` filters by described qualified name, described simple name, spec qualified name, or spec simple name; repeatable `--example <name>` filters by example method name, display name, or source-order index. Suite selection through `--suite <name>` selects the configured suite, spec root, source root, and naming convention.
+10. Applied the configured constructor policy to `run` unless command-line `--constructor-policy` overrides it.
+11. Preserved the missing-production prompt and `--generate` flow for inferred defaults and explicit config.
+12. Kept bootstrap values as comma-separated metadata only. Profile and formatter values are parsed/validated metadata until the corresponding runner and formatter features are implemented.
+
+Implemented files/classes at a high level:
+
+- `src/main/java/org/javaspec/config/ConfigurationException.java`
+- `src/main/java/org/javaspec/config/ConstructorPolicyParser.java`
+- `src/main/java/org/javaspec/config/JavaspecSuiteConfiguration.java`
+- `src/main/java/org/javaspec/config/JavaspecConfiguration.java`
+- `src/main/java/org/javaspec/config/JavaspecConfigurationParser.java`
+- `src/main/java/org/javaspec/discovery/SpecNamingConvention.java` and `src/main/java/org/javaspec/naming/SpecNamingConvention.java`
+- `src/main/java/org/javaspec/discovery/SpecDiscoveryRequest.java`
+- `src/main/java/org/javaspec/discovery/SpecExample.java`
+- `src/main/java/org/javaspec/discovery/SpecDiscovery.java` updates for configured naming, class filters, example extraction, and example filters.
+- `src/main/java/org/javaspec/generation/SpecSkeletonGenerator.java` updates for configured spec/support naming.
+- `src/main/java/org/javaspec/cli/Main.java` updates for config loading, suite selection, path precedence, naming metadata, constructor-policy precedence, and `--class`/`--example` filters.
+- `src/test/java/org/javaspec/config/JavaspecConfigurationTest.java`
+- `src/test/java/org/javaspec/config/JavaspecConfigurationParserTest.java`
+- `src/test/java/org/javaspec/cli/MainConfigurationIntegrationTest.java`
+- `src/test/java/org/javaspec/discovery/SpecNamingConventionTest.java`
+- `src/test/java/org/javaspec/discovery/SpecDiscoveryNamingTest.java`
+- `src/test/java/org/javaspec/generation/SpecSkeletonGeneratorNamingTest.java`
+
+Verification:
+
+- `mvn verify` BUILD SUCCESS with 301 tests run, 0 failures, 0 errors, and 0 skipped.
+- `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+
+Acceptance criteria status:
 
 - A default configuration can be inferred with no config file.
-- Explicit config can select suite, paths, target profile, formatter, and constructor policy.
-- Invalid config, including an unknown constructor policy, produces clear diagnostics.
+- Explicit config can select suite, paths, target profile, formatter, constructor policy, spec package prefix, and production package prefix. Current `describe`/`run` behavior uses selected suite paths, package prefixes, and constructor policy; profile, formatter, and bootstrap remain parsed/validated metadata until later runner features.
+- Naming convention mapping works for default and configured package prefixes, including spec/support skeleton paths and discovery mapping back to described production classes.
+- Suite selection, class filters, and example filters are implemented for the current discovery/generation flow.
+- Invalid config, including an unknown constructor policy or invalid naming metadata, produces clear diagnostics.
 - The missing-class suggestion flow works with both inferred defaults and explicit config.
 
-### Phase 5 — Spec Discovery and Naming Conventions
+### Phase 5 — Full Runner Discovery Expansion
 
 **Owner later:** Java implementation agent.
 
-Tasks:
+**Status note:** The naming-convention and discovery-filter subset originally planned here was implemented during Phase 4 stabilization. Default/configured package-prefix mapping, configured spec roots, described/spec class mapping, example metadata extraction, suite selection, class filters, and example filters are complete for the current discovery/generation flow.
 
-1. Define Java naming conventions inspired by phpspec, adapted to packages and class names.
-2. Discover spec classes under configured spec roots.
-3. Map described Java classes to spec classes and back.
-4. Define example method naming conventions and ordering.
-5. Support suite filters and class/example filters.
+Remaining tasks:
+
+1. Integrate the implemented discovery request and example metadata with the full runner lifecycle when examples are actually executed.
+2. Avoid loading unrelated examples where possible during full runner execution, beyond the current source-discovery filtering.
+3. Extend discovery diagnostics and source locations as needed by the runner and formatter layers.
+4. Keep existing first-MVP described-class checks stable under the full spec execution model.
 
 Acceptance criteria:
 
-- Spec discovery is deterministic.
-- A described class can be mapped to its spec class.
-- Filters work without loading unrelated examples where possible.
-- Existing first-MVP described-class checks remain stable under full spec discovery.
+- The current deterministic discovery and configured naming behavior remains stable.
+- A described class can be mapped to its spec class with default or configured package prefixes.
+- Suite, class, and example filters continue to work when execution is added.
+- Existing first-MVP described-class checks remain stable under full spec execution.
 
 ### Phase 6 — Runner and Example Lifecycle
 
@@ -304,14 +425,14 @@ Acceptance criteria:
 
 **Owner later:** Java implementation agent.
 
-**Status note:** ADR 0004 implemented constructor-policy help, parsing, defaults, and diagnostics. Broader CLI expansion remains future work.
+**Status note:** ADR 0004 implemented constructor-policy help, parsing, defaults, and diagnostics. Phase 4 implemented `--config`/`--suite`, selected-suite path and package-prefix precedence, config-backed constructor-policy defaults, and repeatable `--class`/`--example` filters for `run`. Broader CLI expansion remains future work.
 
 Tasks:
 
 1. Expand beyond the first-MVP `describe` or minimal `run`/`describe` flow into the full phpspec-inspired CLI.
 2. Support commands such as `run`, `describe`, and `desc`.
 3. Maintain `--constructor-policy <delete|preserve|comment>` in help text, parsing, defaults, and diagnostics, with `comment` as the default and destructive deletion available only through `delete`.
-4. Support config selection, formatter selection, bootstrap, suite filters, stop-on-failure, profile selection, dry-run/confirmation behavior for generation, and verbosity.
+4. Extend Phase 4 config selection into active formatter behavior, bootstrap execution, stop-on-failure, profile-aware execution, dry-run/confirmation behavior for generation, and verbosity.
 5. Avoid external CLI parsing dependencies.
 6. Define stable exit codes.
 
@@ -380,9 +501,10 @@ Tasks:
 2. Run runtime compatibility tests on Java 8, 11, 17, 21, and 25 where available.
 3. Verify no runtime dependencies are packaged.
 4. Verify no Java 9+ symbols appear in Java 8 production bytecode constant-pool references except as intentional metadata strings.
-5. Re-validate Java 25 metadata against the target JDK 25 API documentation during implementation, including stream gatherer support, before relying on environment-specific behavior.
+5. Re-validate Java 25 stream gatherer metadata against the target JDK 25 API documentation during quality-matrix work before relying on environment-specific behavior.
 6. Include first-MVP tests for existing type detection, missing type detection, prompt output for a missing type, class-like kind generation, and write gating.
 7. Maintain and expand ADR 0004 correction tests for constructor default/comment policy, CLI help/parser behavior, class update safety, PHPSpec construction override/lazy semantics, factory construction skeleton generation, generated typed proxy compilation, matcher semantics and negation, throw/during/duringInstantiation behavior, method generation for missing methods and default returns, and user-manual examples when those examples become testable.
+8. Maintain and expand Phase 4 configuration, naming, and filter tests for defaults, parser diagnostics, suite/path/package-prefix precedence, constructor-policy config defaults and overrides, class/example filters, and missing-class flow with inferred and explicit config.
 
 Acceptance criteria:
 
@@ -403,7 +525,7 @@ Tasks:
 3. Integrate test and quality reports produced by tester agents.
 4. Keep `docs/usermanual/Home.md` and `docs/usermanual/_Sidebar.md` synchronized after implementation begins.
 5. Add user guide and migration notes from PHPSpec concepts to Java concepts.
-6. Document construction, constructor policy, typed matcher syntax, method generation, limitations, commands, examples, the first-MVP generator flow, and later advanced generator behavior according to what is implemented.
+6. Document configuration files, construction, constructor policy, typed matcher syntax, method generation, limitations, commands, examples, the first-MVP generator flow, and later advanced generator behavior according to what is implemented.
 
 Acceptance criteria:
 

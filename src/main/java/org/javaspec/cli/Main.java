@@ -1,7 +1,12 @@
 package org.javaspec.cli;
 
+import org.javaspec.config.ConfigurationException;
+import org.javaspec.config.JavaspecConfiguration;
+import org.javaspec.config.JavaspecSuiteConfiguration;
 import org.javaspec.discovery.DiscoveredSpec;
 import org.javaspec.discovery.SpecDiscovery;
+import org.javaspec.discovery.SpecDiscoveryRequest;
+import org.javaspec.discovery.SpecNamingConvention;
 import org.javaspec.discovery.TypeCheckResult;
 import org.javaspec.discovery.TypeExistenceChecker;
 import org.javaspec.generation.SpecFileGenerator;
@@ -70,23 +75,74 @@ public final class Main {
             return EXIT_USAGE;
         }
 
+        int configurationExitCode = applyConfiguration(parsed, err);
+        if (configurationExitCode != EXIT_OK) {
+            return configurationExitCode;
+        }
+
         if ("run".equals(parsed.command)) {
             return runSpecifications(parsed, in, out, err);
         }
         return describeClass(parsed, out, err);
     }
 
+    private static int applyConfiguration(ParsedArguments parsed, PrintStream err) {
+        JavaspecConfiguration configuration;
+        if (parsed.configPath == null) {
+            configuration = JavaspecConfiguration.defaults();
+        } else {
+            File configFile = new File(parsed.configPath);
+            try {
+                configuration = JavaspecConfiguration.load(configFile);
+            } catch (ConfigurationException ex) {
+                err.println("Error: Invalid configuration: " + messageOf(ex));
+                return EXIT_USAGE;
+            } catch (IOException ex) {
+                err.println("Error: I/O error while reading configuration: " + messageOf(ex));
+                err.println("Config path: " + configFile.getPath());
+                return EXIT_IO_ERROR;
+            } catch (SecurityException ex) {
+                err.println("Error: I/O error while reading configuration: " + messageOf(ex));
+                err.println("Config path: " + configFile.getPath());
+                return EXIT_IO_ERROR;
+            }
+        }
+
+        String selectedSuiteName = parsed.suiteName == null ? configuration.defaultSuiteName() : parsed.suiteName;
+        JavaspecSuiteConfiguration selectedSuite;
+        try {
+            selectedSuite = configuration.suite(selectedSuiteName);
+        } catch (ConfigurationException ex) {
+            err.println("Error: Invalid configuration: " + messageOf(ex));
+            return EXIT_USAGE;
+        }
+
+        parsed.configuration = configuration;
+        parsed.selectedSuite = selectedSuite;
+        if (!parsed.specRootSpecified) {
+            parsed.specRoot = selectedSuite.specDirectory();
+        }
+        if (!parsed.sourceRootSpecified) {
+            parsed.sourceRoot = selectedSuite.sourceDirectory();
+        }
+        parsed.effectiveConstructorPolicy = parsed.constructorPolicyOverride == null
+                ? configuration.constructorPolicy()
+                : parsed.constructorPolicyOverride;
+        try {
+            parsed.namingConvention = SpecNamingConvention.from(selectedSuite);
+        } catch (IllegalArgumentException ex) {
+            err.println("Error: Invalid naming metadata: " + messageOf(ex));
+            return EXIT_USAGE;
+        } catch (RuntimeException ex) {
+            err.println("Error: Invalid naming metadata: " + messageOf(ex));
+            return EXIT_USAGE;
+        }
+        return EXIT_OK;
+    }
+
     private static ConstructorPolicy resolveConstructorPolicy(ParsedArguments parsed) {
-        if (parsed.constructorPolicy != null) {
-            if ("preserve".equals(parsed.constructorPolicy)) {
-                return ConstructorPolicy.PRESERVE;
-            }
-            if ("delete".equals(parsed.constructorPolicy)) {
-                return ConstructorPolicy.DELETE;
-            }
-            if ("comment".equals(parsed.constructorPolicy)) {
-                return ConstructorPolicy.COMMENT;
-            }
+        if (parsed.effectiveConstructorPolicy != null) {
+            return parsed.effectiveConstructorPolicy;
         }
         return ConstructorPolicy.defaultPolicy();
     }
@@ -100,10 +156,18 @@ public final class Main {
             return EXIT_USAGE;
         }
 
+        SpecNamingConvention namingConvention = parsed.namingConvention;
         File specRoot = new File(parsed.specRoot);
         DescribedType describedType = DescribedType.of(describedClass);
-        SpecGenerationPlan plan = SpecSkeletonGenerator.plan(describedType, specRoot);
-        SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(describedType, specRoot);
+        SpecGenerationPlan plan;
+        SpecGenerationPlan supportPlan;
+        try {
+            plan = SpecSkeletonGenerator.plan(describedType, specRoot, namingConvention);
+            supportPlan = SpecSkeletonGenerator.supportPlan(describedType, specRoot, namingConvention);
+        } catch (IllegalArgumentException ex) {
+            printUsageError(err, "Naming error: " + messageOf(ex));
+            return EXIT_USAGE;
+        }
         if (plan.targetFile().exists()) {
             out.println("Specification " + plan.specQualifiedName() + " exists; no generation needed.");
             out.println("Spec file: " + plan.targetFile().getPath());
@@ -150,9 +214,21 @@ public final class Main {
         File sourceRoot = new File(parsed.sourceRoot);
         BufferedReader input = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
 
+        SpecDiscoveryRequest discoveryRequest = SpecDiscoveryRequest.of(specRoot, parsed.namingConvention);
+        if (parsed.classFilters != null) {
+            for (int fi = 0; fi < parsed.classFilters.size(); fi++) {
+                discoveryRequest = discoveryRequest.withClassFilter(parsed.classFilters.get(fi));
+            }
+        }
+        if (parsed.exampleFilters != null) {
+            for (int fi = 0; fi < parsed.exampleFilters.size(); fi++) {
+                discoveryRequest = discoveryRequest.withExampleFilter(parsed.exampleFilters.get(fi));
+            }
+        }
+
         List<DiscoveredSpec> specs;
         try {
-            specs = SpecDiscovery.discover(specRoot);
+            specs = SpecDiscovery.discover(discoveryRequest);
         } catch (SecurityException ex) {
             err.println("I/O error while discovering specifications: " + messageOf(ex));
             err.println("Spec root: " + specRoot.getPath());
@@ -170,7 +246,7 @@ public final class Main {
             DiscoveredSpec spec = specs.get(i);
             DescribedType describedType = spec.describedType();
             try {
-                if (!ensureRelatedSpecs(describedType, specs, specRoot, sourceRoot, input, out, parsed.generate)) {
+                if (!ensureRelatedSpecs(describedType, specs, specRoot, sourceRoot, input, out, parsed.generate, parsed.namingConvention)) {
                     missingWithoutGeneration = true;
                 }
             } catch (IOException ex) {
@@ -182,7 +258,7 @@ public final class Main {
             }
 
             if (parsed.generate && describedType.hasMethods()) {
-                SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(describedType, specRoot);
+                SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(describedType, specRoot, parsed.namingConvention);
                 try {
                     File supportFile = SpecSupportFileGenerator.writeOrUpdate(supportPlan);
                     out.println("Updated specification support: " + supportFile.getPath());
@@ -302,7 +378,8 @@ public final class Main {
             File sourceRoot,
             BufferedReader input,
             PrintStream out,
-            boolean generate
+            boolean generate,
+            SpecNamingConvention namingConvention
     ) throws IOException {
         boolean allAccepted = true;
         List<DescribedType> relatedTypes = relatedTypesOf(owner);
@@ -313,7 +390,7 @@ public final class Main {
                 continue;
             }
 
-            SpecGenerationPlan specPlan = SpecSkeletonGenerator.plan(relatedType, specRoot);
+            SpecGenerationPlan specPlan = SpecSkeletonGenerator.plan(relatedType, specRoot, namingConvention);
             if (specPlan.targetFile().exists() || isSpecKnown(specs, specPlan.specQualifiedName())) {
                 continue;
             }
@@ -326,7 +403,7 @@ public final class Main {
                 continue;
             }
 
-            SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(relatedType, specRoot);
+            SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(relatedType, specRoot, namingConvention);
             File generatedSupport = SpecSupportFileGenerator.writeOrUpdate(supportPlan);
             File generatedSpec = SpecFileGenerator.write(specPlan);
             out.println("Generated related specification support: " + generatedSupport.getPath());
@@ -498,6 +575,28 @@ public final class Main {
             } else if ("--generate".equals(arg)) {
                 parsed.generate = true;
                 index++;
+            } else if ("--config".equals(arg)) {
+                if (index + 1 >= args.length) {
+                    parsed.errorMessage = "Missing value for " + arg + ".";
+                    return parsed;
+                }
+                parsed.configPath = args[index + 1];
+                if (parsed.configPath.length() == 0) {
+                    parsed.errorMessage = "Configuration file must not be empty.";
+                    return parsed;
+                }
+                index += 2;
+            } else if ("--suite".equals(arg)) {
+                if (index + 1 >= args.length) {
+                    parsed.errorMessage = "Missing value for " + arg + ".";
+                    return parsed;
+                }
+                parsed.suiteName = args[index + 1].trim();
+                if (parsed.suiteName.length() == 0) {
+                    parsed.errorMessage = "Suite name must not be empty.";
+                    return parsed;
+                }
+                index += 2;
             } else if ("--source-dir".equals(arg) || "--source-root".equals(arg)) {
                 if (index + 1 >= args.length) {
                     parsed.errorMessage = "Missing value for " + arg + ".";
@@ -516,10 +615,41 @@ public final class Main {
                     return parsed;
                 }
                 parsed.specRoot = args[index + 1];
+                parsed.specRootSpecified = true;
                 if (parsed.specRoot.length() == 0) {
                     parsed.errorMessage = "Spec directory must not be empty.";
                     return parsed;
                 }
+                index += 2;
+            } else if ("--class".equals(arg)) {
+                if (index + 1 >= args.length) {
+                    parsed.errorMessage = "Missing value for " + arg + ".";
+                    return parsed;
+                }
+                if (parsed.classFilters == null) {
+                    parsed.classFilters = new ArrayList<String>();
+                }
+                String filterValue = args[index + 1].trim();
+                if (filterValue.length() == 0) {
+                    parsed.errorMessage = "Class filter must not be empty.";
+                    return parsed;
+                }
+                parsed.classFilters.add(filterValue);
+                index += 2;
+            } else if ("--example".equals(arg)) {
+                if (index + 1 >= args.length) {
+                    parsed.errorMessage = "Missing value for " + arg + ".";
+                    return parsed;
+                }
+                if (parsed.exampleFilters == null) {
+                    parsed.exampleFilters = new ArrayList<String>();
+                }
+                String filterValue = args[index + 1].trim();
+                if (filterValue.length() == 0) {
+                    parsed.errorMessage = "Example filter must not be empty.";
+                    return parsed;
+                }
+                parsed.exampleFilters.add(filterValue);
                 index += 2;
             } else if ("--constructor-policy".equals(arg)) {
                 if (index + 1 >= args.length) {
@@ -527,7 +657,13 @@ public final class Main {
                     return parsed;
                 }
                 parsed.constructorPolicy = args[index + 1];
-                if (!"delete".equals(parsed.constructorPolicy) && !"preserve".equals(parsed.constructorPolicy) && !"comment".equals(parsed.constructorPolicy)) {
+                if ("delete".equals(parsed.constructorPolicy)) {
+                    parsed.constructorPolicyOverride = ConstructorPolicy.DELETE;
+                } else if ("preserve".equals(parsed.constructorPolicy)) {
+                    parsed.constructorPolicyOverride = ConstructorPolicy.PRESERVE;
+                } else if ("comment".equals(parsed.constructorPolicy)) {
+                    parsed.constructorPolicyOverride = ConstructorPolicy.COMMENT;
+                } else {
                     parsed.errorMessage = "Invalid constructor policy: " + parsed.constructorPolicy
                             + ". Valid values: delete, preserve, comment.";
                     return parsed;
@@ -565,6 +701,14 @@ public final class Main {
                 parsed.errorMessage = "The source directory is used by run; describe writes only to the spec directory.";
                 return parsed;
             }
+            if (parsed.classFilters != null) {
+                parsed.errorMessage = "The --class option belongs to run; describe does not support class filters.";
+                return parsed;
+            }
+            if (parsed.exampleFilters != null) {
+                parsed.errorMessage = "The --example option belongs to run; describe does not support example filters.";
+                return parsed;
+            }
             parsed.className = operands.get(1);
             return parsed;
         }
@@ -596,9 +740,9 @@ public final class Main {
 
     private static void printUsage(PrintStream stream) {
         stream.println("Usage:");
-        stream.println("  javaspec describe <ClassName> [--spec-dir <dir>]");
-        stream.println("  javaspec desc <ClassName> [--spec-root <dir>]");
-        stream.println("  javaspec run [--spec-dir <dir>] [--source-dir <dir>] [--generate] [--constructor-policy <delete|preserve|comment>]");
+        stream.println("  javaspec describe <ClassName> [--config <file>] [--suite <name>] [--spec-dir <dir>]");
+        stream.println("  javaspec desc <ClassName> [--config <file>] [--suite <name>] [--spec-root <dir>]");
+        stream.println("  javaspec run [--config <file>] [--suite <name>] [--spec-dir <dir>] [--source-dir <dir>] [--generate] [--constructor-policy <delete|preserve|comment>] [--class <name>] [--example <name>]");
         stream.println();
         stream.println("Commands:");
         stream.println("  describe <ClassName>  Create a PHPSpec-style specification skeleton; never creates production code.");
@@ -606,12 +750,16 @@ public final class Main {
         stream.println("  run                   Discover specs and check whether their described production types exist.");
         stream.println();
         stream.println("Options:");
+        stream.println("  --config <file>       Load javaspec configuration from file.");
+        stream.println("  --suite <name>        Select a configured suite (default: configuration default suite).");
         stream.println("  --spec-dir <dir>      Spec root to inspect and write to (default: " + DEFAULT_SPEC_ROOT + ").");
         stream.println("  --spec-root <dir>     Alias for --spec-dir.");
         stream.println("  --source-dir <dir>    Source root used by run (default: " + DEFAULT_SOURCE_ROOT + ").");
         stream.println("  --source-root <dir>   Alias for --source-dir.");
         stream.println("  --generate            With run, answer yes to missing production type generation prompts.");
         stream.println("  --constructor-policy  Constructor handling policy. Valid values: delete, preserve, comment (default: comment).");
+        stream.println("  --class <name>        With run, filter specs by described class name (exact match, repeatable).");
+        stream.println("  --example <name>      With run, filter examples by method name, display name, or order index (repeatable).");
         stream.println("  --help, -h            Show this help.");
     }
 
@@ -629,9 +777,19 @@ public final class Main {
         private String sourceRoot;
         private String specRoot;
         private boolean sourceRootSpecified;
+        private boolean specRootSpecified;
         private boolean generate;
         private boolean helpRequested;
         private String errorMessage;
+        private String configPath;
+        private String suiteName;
         private String constructorPolicy;
+        private ConstructorPolicy constructorPolicyOverride;
+        private ConstructorPolicy effectiveConstructorPolicy;
+        private JavaspecConfiguration configuration;
+        private JavaspecSuiteConfiguration selectedSuite;
+        private SpecNamingConvention namingConvention;
+        private List<String> classFilters;
+        private List<String> exampleFilters;
     }
 }

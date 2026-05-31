@@ -34,10 +34,11 @@ public class SpecSkeletonGeneratorTest {
     }
 
     @Test
-    public void rendersDefaultPackageSpecSkeleton() {
+    public void rendersSpecPackageSkeletonForDefaultPackageType() {
         String source = SpecSkeletonGenerator.render(DescribedClass.of("Calculator"));
 
-        assertEquals("public class CalculatorSpec extends CalculatorSpecSupport {\n" +
+        assertEquals("package spec;\n\n" +
+                "public class CalculatorSpec extends CalculatorSpecSupport {\n" +
                 "    public void it_is_initializable() {\n" +
                 "        shouldHaveType(Calculator.class);\n" +
                 "    }\n" +

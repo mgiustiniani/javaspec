@@ -1,5 +1,6 @@
 package org.javaspec.generation;
 
+import org.javaspec.discovery.SpecNamingConvention;
 import org.javaspec.model.DescribedClass;
 import org.javaspec.model.DescribedType;
 import org.javaspec.model.JavaTypeKind;
@@ -14,60 +15,83 @@ import java.util.Objects;
  * Builds Java 8-compatible, PHPSpec-inspired specification and support skeleton generation plans.
  */
 public final class SpecSkeletonGenerator {
-    private static final String SPEC_PACKAGE_PREFIX = "spec";
-    private static final String SPEC_SUFFIX = "Spec";
-    private static final String SUPPORT_SUFFIX = "SpecSupport";
-
     private SpecSkeletonGenerator() {
     }
 
     public static SpecGenerationPlan plan(DescribedClass describedClass, File specRoot) {
-        return plan(DescribedType.of(describedClass), specRoot);
+        return plan(describedClass, specRoot, SpecNamingConvention.defaults());
+    }
+
+    public static SpecGenerationPlan plan(DescribedClass describedClass, File specRoot, SpecNamingConvention namingConvention) {
+        return plan(DescribedType.of(describedClass), specRoot, namingConvention);
     }
 
     public static SpecGenerationPlan plan(DescribedType describedType, File specRoot) {
+        return plan(describedType, specRoot, SpecNamingConvention.defaults());
+    }
+
+    public static SpecGenerationPlan plan(DescribedType describedType, File specRoot, SpecNamingConvention namingConvention) {
         Objects.requireNonNull(describedType, "describedType must not be null");
         Objects.requireNonNull(specRoot, "specRoot must not be null");
+        Objects.requireNonNull(namingConvention, "namingConvention must not be null");
 
-        File targetFile = new File(specRoot, sourceRelativePath(describedType.describedClass()));
+        File targetFile = new File(specRoot, namingConvention.specSourceRelativePath(describedType.describedClass()));
         return SpecGenerationPlan.of(
                 describedType,
-                specQualifiedName(describedType.describedClass()),
-                specSimpleName(describedType.describedClass()),
+                namingConvention.specQualifiedName(describedType.describedClass()),
+                namingConvention.specSimpleName(describedType.describedClass()),
                 specRoot,
                 targetFile,
-                render(describedType)
+                render(describedType, namingConvention)
         );
     }
 
     public static SpecGenerationPlan supportPlan(DescribedClass describedClass, File specRoot) {
-        return supportPlan(DescribedType.of(describedClass), specRoot);
+        return supportPlan(describedClass, specRoot, SpecNamingConvention.defaults());
+    }
+
+    public static SpecGenerationPlan supportPlan(DescribedClass describedClass, File specRoot, SpecNamingConvention namingConvention) {
+        return supportPlan(DescribedType.of(describedClass), specRoot, namingConvention);
     }
 
     public static SpecGenerationPlan supportPlan(DescribedType describedType, File specRoot) {
+        return supportPlan(describedType, specRoot, SpecNamingConvention.defaults());
+    }
+
+    public static SpecGenerationPlan supportPlan(DescribedType describedType, File specRoot, SpecNamingConvention namingConvention) {
         Objects.requireNonNull(describedType, "describedType must not be null");
         Objects.requireNonNull(specRoot, "specRoot must not be null");
+        Objects.requireNonNull(namingConvention, "namingConvention must not be null");
 
-        File targetFile = new File(specRoot, supportSourceRelativePath(describedType.describedClass()));
+        File targetFile = new File(specRoot, namingConvention.supportSourceRelativePath(describedType.describedClass()));
         return SpecGenerationPlan.of(
                 describedType,
-                supportQualifiedName(describedType.describedClass()),
-                supportSimpleName(describedType.describedClass()),
+                namingConvention.supportQualifiedName(describedType.describedClass()),
+                namingConvention.supportSimpleName(describedType.describedClass()),
                 specRoot,
                 targetFile,
-                renderSupport(describedType)
+                renderSupport(describedType, namingConvention)
         );
     }
 
     public static String render(DescribedClass describedClass) {
-        return render(DescribedType.of(describedClass));
+        return render(describedClass, SpecNamingConvention.defaults());
+    }
+
+    public static String render(DescribedClass describedClass, SpecNamingConvention namingConvention) {
+        return render(DescribedType.of(describedClass), namingConvention);
     }
 
     public static String render(DescribedType describedType) {
+        return render(describedType, SpecNamingConvention.defaults());
+    }
+
+    public static String render(DescribedType describedType, SpecNamingConvention namingConvention) {
         Objects.requireNonNull(describedType, "describedType must not be null");
+        Objects.requireNonNull(namingConvention, "namingConvention must not be null");
 
         StringBuilder builder = new StringBuilder();
-        String specPackageName = specPackageName(describedType.describedClass());
+        String specPackageName = namingConvention.specPackageName(describedType.describedClass());
         if (specPackageName.length() > 0) {
             builder.append("package ").append(specPackageName).append(";\n\n");
         }
@@ -75,8 +99,8 @@ public final class SpecSkeletonGenerator {
         if (hasImports(describedType)) {
             builder.append("\n");
         }
-        builder.append("public class ").append(specSimpleName(describedType.describedClass()))
-                .append(" extends ").append(supportSimpleName(describedType.describedClass())).append(" {\n");
+        builder.append("public class ").append(namingConvention.specSimpleName(describedType.describedClass()))
+                .append(" extends ").append(namingConvention.supportSimpleName(describedType.describedClass())).append(" {\n");
         builder.append("    public void it_is_initializable() {\n");
         builder.append("        shouldHaveType(").append(describedType.simpleName()).append(".class);\n");
         builder.append("    }\n");
@@ -89,10 +113,15 @@ public final class SpecSkeletonGenerator {
     }
 
     public static String renderSupport(DescribedType describedType) {
+        return renderSupport(describedType, SpecNamingConvention.defaults());
+    }
+
+    public static String renderSupport(DescribedType describedType, SpecNamingConvention namingConvention) {
         Objects.requireNonNull(describedType, "describedType must not be null");
+        Objects.requireNonNull(namingConvention, "namingConvention must not be null");
 
         StringBuilder builder = new StringBuilder();
-        String specPackageName = specPackageName(describedType.describedClass());
+        String specPackageName = namingConvention.specPackageName(describedType.describedClass());
         if (specPackageName.length() > 0) {
             builder.append("package ").append(specPackageName).append(";\n\n");
         }
@@ -100,17 +129,17 @@ public final class SpecSkeletonGenerator {
         if (describedType.hasPackage()) {
             builder.append("\n");
         }
-        builder.append("public class ").append(supportSimpleName(describedType.describedClass()))
+        builder.append("public class ").append(namingConvention.supportSimpleName(describedType.describedClass()))
                 .append(" extends org.javaspec.api.ObjectBehavior<")
                 .append(describedType.simpleName()).append("> {\n");
-        builder.append("    public ").append(supportSimpleName(describedType.describedClass())).append("() {\n");
+        builder.append("    public ").append(namingConvention.supportSimpleName(describedType.describedClass())).append("() {\n");
         builder.append("        super(").append(describedType.simpleName()).append(".class);\n");
         builder.append("    }\n");
         if (hasInstanceSubjectMethods(describedType)) {
             builder.append("\n");
             appendSupportProxyMethods(builder, describedType);
             builder.append("\n");
-            appendThrowProxy(builder, describedType);
+            appendThrowProxy(builder, describedType, namingConvention);
         }
         builder.append("}\n");
         return builder.toString();
@@ -260,6 +289,11 @@ public final class SpecSkeletonGenerator {
     }
 
     static void appendThrowProxy(StringBuilder builder, DescribedType describedType) {
+        appendThrowProxy(builder, describedType, SpecNamingConvention.defaults());
+    }
+
+    static void appendThrowProxy(StringBuilder builder, DescribedType describedType, SpecNamingConvention namingConvention) {
+        Objects.requireNonNull(namingConvention, "namingConvention must not be null");
         String throwType = describedType.simpleName() + "ThrowExpectation";
         builder.append("    @Override\n");
         builder.append("    public ").append(throwType).append(" shouldThrow(Class<? extends Throwable> expectedType) {\n");
@@ -268,7 +302,7 @@ public final class SpecSkeletonGenerator {
         builder.append("    protected class ").append(throwType)
                 .append(" extends org.javaspec.api.ObjectBehavior.ThrowExpectation {\n");
         builder.append("        protected ").append(throwType).append("(Class<? extends Throwable> expectedType) {\n");
-        builder.append("            super(").append(supportSimpleName(describedType.describedClass())).append(".this, expectedType);\n");
+        builder.append("            super(").append(namingConvention.supportSimpleName(describedType.describedClass())).append(".this, expectedType);\n");
         builder.append("        }\n");
         List<MethodDescriptor> methods = describedType.methods();
         for (int i = 0; i < methods.size(); i++) {
@@ -349,62 +383,65 @@ public final class SpecSkeletonGenerator {
     }
 
     public static String specSimpleName(DescribedClass describedClass) {
-        Objects.requireNonNull(describedClass, "describedClass must not be null");
-        return describedClass.simpleName() + SPEC_SUFFIX;
+        return specSimpleName(describedClass, SpecNamingConvention.defaults());
+    }
+
+    public static String specSimpleName(DescribedClass describedClass, SpecNamingConvention namingConvention) {
+        Objects.requireNonNull(namingConvention, "namingConvention must not be null");
+        return namingConvention.specSimpleName(describedClass);
     }
 
     public static String supportSimpleName(DescribedClass describedClass) {
-        Objects.requireNonNull(describedClass, "describedClass must not be null");
-        return describedClass.simpleName() + SUPPORT_SUFFIX;
+        return supportSimpleName(describedClass, SpecNamingConvention.defaults());
+    }
+
+    public static String supportSimpleName(DescribedClass describedClass, SpecNamingConvention namingConvention) {
+        Objects.requireNonNull(namingConvention, "namingConvention must not be null");
+        return namingConvention.supportSimpleName(describedClass);
     }
 
     public static String specQualifiedName(DescribedClass describedClass) {
-        Objects.requireNonNull(describedClass, "describedClass must not be null");
-        String specPackageName = specPackageName(describedClass);
-        if (specPackageName.length() == 0) {
-            return specSimpleName(describedClass);
-        }
-        return specPackageName + "." + specSimpleName(describedClass);
+        return specQualifiedName(describedClass, SpecNamingConvention.defaults());
+    }
+
+    public static String specQualifiedName(DescribedClass describedClass, SpecNamingConvention namingConvention) {
+        Objects.requireNonNull(namingConvention, "namingConvention must not be null");
+        return namingConvention.specQualifiedName(describedClass);
     }
 
     public static String supportQualifiedName(DescribedClass describedClass) {
-        Objects.requireNonNull(describedClass, "describedClass must not be null");
-        String specPackageName = specPackageName(describedClass);
-        if (specPackageName.length() == 0) {
-            return supportSimpleName(describedClass);
-        }
-        return specPackageName + "." + supportSimpleName(describedClass);
+        return supportQualifiedName(describedClass, SpecNamingConvention.defaults());
+    }
+
+    public static String supportQualifiedName(DescribedClass describedClass, SpecNamingConvention namingConvention) {
+        Objects.requireNonNull(namingConvention, "namingConvention must not be null");
+        return namingConvention.supportQualifiedName(describedClass);
     }
 
     public static String sourceRelativePath(DescribedClass describedClass) {
-        Objects.requireNonNull(describedClass, "describedClass must not be null");
-        String specPackageName = specPackageName(describedClass);
-        if (specPackageName.length() == 0) {
-            return specSimpleName(describedClass) + ".java";
-        }
-        return specPackageName.replace('.', File.separatorChar)
-                + File.separator
-                + specSimpleName(describedClass)
-                + ".java";
+        return sourceRelativePath(describedClass, SpecNamingConvention.defaults());
+    }
+
+    public static String sourceRelativePath(DescribedClass describedClass, SpecNamingConvention namingConvention) {
+        Objects.requireNonNull(namingConvention, "namingConvention must not be null");
+        return namingConvention.specSourceRelativePath(describedClass);
     }
 
     public static String supportSourceRelativePath(DescribedClass describedClass) {
-        Objects.requireNonNull(describedClass, "describedClass must not be null");
-        String specPackageName = specPackageName(describedClass);
-        if (specPackageName.length() == 0) {
-            return supportSimpleName(describedClass) + ".java";
-        }
-        return specPackageName.replace('.', File.separatorChar)
-                + File.separator
-                + supportSimpleName(describedClass)
-                + ".java";
+        return supportSourceRelativePath(describedClass, SpecNamingConvention.defaults());
+    }
+
+    public static String supportSourceRelativePath(DescribedClass describedClass, SpecNamingConvention namingConvention) {
+        Objects.requireNonNull(namingConvention, "namingConvention must not be null");
+        return namingConvention.supportSourceRelativePath(describedClass);
     }
 
     public static String specPackageName(DescribedClass describedClass) {
-        Objects.requireNonNull(describedClass, "describedClass must not be null");
-        if (!describedClass.hasPackage()) {
-            return "";
-        }
-        return SPEC_PACKAGE_PREFIX + "." + describedClass.packageName();
+        return specPackageName(describedClass, SpecNamingConvention.defaults());
+    }
+
+    public static String specPackageName(DescribedClass describedClass, SpecNamingConvention namingConvention) {
+        Objects.requireNonNull(namingConvention, "namingConvention must not be null");
+        return namingConvention.specPackageName(describedClass);
     }
 }

@@ -2,7 +2,7 @@
 
 javaspec is a Java 8-compatible, zero-runtime-dependency specification framework inspired by phpspec. Its goal is to bring a specification-first workflow to Java while preserving a small runtime footprint and a conservative compatibility baseline.
 
-The Phase 2 first MVP is implemented. It provides a Maven-based CLI entry point, `org.javaspec.cli.Main`, with a PHPSpec-style split: `describe` creates only a generic `ObjectBehavior<T>` specification skeleton, while `run` discovers specs and can generate missing class-like production type skeletons after confirmation or `--generate`. The binary remains Java 8-compatible; post-Java 8 forms such as records and sealed types are generated as source text only. Specs can declare `shouldExtend(...)`, `shouldImplement(...)`, and sealed `shouldPermit(...)`; missing related types get specs before production skeletons, except permitted implementations of sealed interfaces, which stay in the same production file.
+Phases 2, 3, and 4 are implemented. Phase 2 provides a Maven-based CLI entry point, `org.javaspec.cli.Main`, with a PHPSpec-style split: `describe` creates specification/support skeletons, while `run` discovers specs and can generate missing class-like production type skeletons after confirmation or `--generate`. Phase 3 adds Java LTS target profiles `java8`, `java11`, `java17`, `java21`, and `java25`, the profile catalog, API-symbol metadata, compatibility checks, and reflective API availability probes. Phase 4 adds the zero-runtime-dependency line-based configuration model, `--config <file>` and `--suite <name>` integration, suite-level spec/source directories, package-prefix-driven naming conventions, suite selection for `describe` and `run`, and class/example filters for `run`. The binary remains Java 8-compatible; post-Java 8 forms such as records, sealed types, sequenced collections, and stream gatherers are modeled as source text or metadata/reflection only. Specs can declare `shouldExtend(...)`, `shouldImplement(...)`, and sealed `shouldPermit(...)`; missing related types get specs before production skeletons, except permitted implementations of sealed interfaces, which stay in the same production file.
 
 ## Project Goals
 
@@ -41,15 +41,22 @@ The runtime artifact must not require libraries such as YAML parsers, bytecode m
 
 Project tests may use external test dependencies, but those dependencies must not leak into runtime packaging. The current MVP uses JUnit in test scope only; the runtime dependency tree contains only the project artifact, aside from the JDK platform.
 
+## Profile Catalog and Java 8 Compatibility Strategy
+
+The implemented profile/catalog model lives in `org.javaspec.profile`. `TargetProfile`, `FeatureFlag`, `ApiSymbol`, `ApiSymbolKey`, `ApiSymbolKind`, `ApiSymbolCategory`, and `ProfileCatalog` provide deterministic metadata for Java 8, 11, 17, 21, and 25. The default catalog covers representative data-structure APIs from [`docs/research/java-lts-data-structures.md`](docs/research/java-lts-data-structures.md), including Java 11 collection factories, Java 17 stream/record/sealed metadata, Java 21 sequenced collections, and Java 25 stream gatherers.
+
+Compatibility checks live behind `org.javaspec.compatibility`. `ProfileCompatibilityCheck` evaluates whether type kinds, feature flags, or API symbols fit a target profile, while `ApiAvailabilityProbe` uses class, method, and field names to probe optional APIs reflectively. Production code does not import Java 9+ APIs directly, so the runtime artifact can remain Java 8-compatible while understanding newer LTS capabilities.
+
 ## First MVP: Build, Test, and CLI Usage
 
 Build and test from the repository root:
 
 ```sh
-mvn test
-mvn package
+mvn verify
 mvn dependency:tree -Dscope=runtime
 ```
+
+Latest stabilization verification for Phases 3 and 4: `mvn verify` passed with 301 tests, and `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
 
 The Maven compiler configuration targets Java 8 (`source`/`target` 1.8). The packaged runtime has no third-party dependencies.
 
@@ -57,12 +64,12 @@ After packaging, run the CLI with the jar, or substitute an installed `javaspec`
 
 ```sh
 java -jar target/javaspec-0.1.0-SNAPSHOT.jar --help
-java -jar target/javaspec-0.1.0-SNAPSHOT.jar describe <ClassName> [--spec-dir <dir>]
-java -jar target/javaspec-0.1.0-SNAPSHOT.jar desc <ClassName> [--spec-root <dir>]
-java -jar target/javaspec-0.1.0-SNAPSHOT.jar run [--spec-dir <dir>] [--source-dir <dir>] [--generate]
+java -jar target/javaspec-0.1.0-SNAPSHOT.jar describe <ClassName> [--config <file>] [--suite <name>] [--spec-dir <dir>]
+java -jar target/javaspec-0.1.0-SNAPSHOT.jar desc <ClassName> [--config <file>] [--suite <name>] [--spec-root <dir>]
+java -jar target/javaspec-0.1.0-SNAPSHOT.jar run [--config <file>] [--suite <name>] [--spec-dir <dir>] [--source-dir <dir>] [--generate] [--constructor-policy <delete|preserve|comment>] [--class <name>] [--example <name>]
 ```
 
-`--spec-dir`/`--spec-root` default to `src/test/java`. `--source-dir`/`--source-root` default to `src/main/java` and are used by `run`.
+Without `--config`, javaspec infers defaults: suite `default`, spec root `src/test/java`, source root `src/main/java`, spec package prefix `spec`, production package prefix empty, profile `java8`, formatter `progress`, constructor policy `comment`, and empty bootstrap hooks. `--config <file>` loads a restricted line-based configuration file, and `--suite <name>` selects a configured suite. Selected-suite paths and package prefixes drive spec/source naming unless overridden by `--spec-dir`/`--spec-root` or `--source-dir`/`--source-root`. `run` uses the configured constructor policy unless overridden by `--constructor-policy`; repeatable `--class <name>` and `--example <name>` filters limit discovery by described/spec class and example method/display name/order index.
 
 Examples:
 
@@ -77,27 +84,31 @@ java -jar target/javaspec-0.1.0-SNAPSHOT.jar run --spec-dir /tmp/javaspec-demo/s
 
 # Explicit generation belongs to run and answers yes non-interactively.
 java -jar target/javaspec-0.1.0-SNAPSHOT.jar run --spec-dir /tmp/javaspec-demo/src/test/java --source-dir /tmp/javaspec-demo/src/main/java --generate
+
+# Configured suite paths can be selected with --config and --suite.
+java -jar target/javaspec-0.1.0-SNAPSHOT.jar describe org.example.Calculator --config javaspec.conf --suite domain
+java -jar target/javaspec-0.1.0-SNAPSHOT.jar run --config javaspec.conf --suite domain --generate
 ```
 
 Exit codes: `0` for success/help/generated-or-existing targets, `1` when missing production types are not generated after a prompt is declined or unavailable, `64` for invalid arguments, and `70` for I/O errors.
 
 ## Java LTS Targeting Concept
 
-javaspec will run as a Java 8-compatible binary while understanding target profiles:
+javaspec runs as a Java 8-compatible binary while understanding target profiles:
 
 | LTS version | Profile key | Runtime strategy |
 |---|---|---|
-| Java 8 | `java8` | Direct use of Java 8 public APIs is allowed. |
+| Java 8 | `java8` | Direct use of Java 8 public APIs is allowed and representative data-structure symbols are cataloged. |
 | Java 11 | `java11` | APIs introduced in 9-11 are stored as metadata and reflected only when running on a compatible JDK. |
-| Java 17 | `java17` | APIs introduced in 12-17 are metadata-driven; records and sealed types are modeled without compile-time linkage. |
-| Java 21 | `java21` | sequenced collection APIs are modeled by names and reflected conditionally. |
-| Java 25 | `java25` | inherits known profiles; additional public data-structure APIs are not assumed until verified against JDK 25 API docs. |
+| Java 17 | `java17` | APIs introduced in 12-17 are metadata-driven; stream additions, records, and sealed types are modeled without compile-time linkage. |
+| Java 21 | `java21` | Sequenced collection APIs are modeled by names and reflected conditionally. |
+| Java 25 | `java25` | Stream gatherer metadata is implemented for `java.util.stream.Gatherer`, nested gatherer types, and `java.util.stream.Gatherers`; runtime availability is still probed reflectively. |
 
-The initial Java data-structure catalog is documented in [`docs/research/java-lts-data-structures.md`](docs/research/java-lts-data-structures.md).
+The implemented catalog is based on the Java data-structure research in [`docs/research/java-lts-data-structures.md`](docs/research/java-lts-data-structures.md).
 
 ## Future Usage Vision
 
-The implemented first MVP covers `describe`/`desc` for PHPSpec-style spec skeleton generation and a minimal `run` that maps discovered `spec.*.*Spec.java` files to described production classes, interfaces, enums, annotations, records, sealed classes, and sealed interfaces. Later phases are planned to add the full phpspec-inspired workflow, including examples, expectations, doubles, suites, formatters, and profile-aware runs. Planned command shapes include:
+The implemented MVP covers `describe`/`desc` for PHPSpec-style spec/support skeleton generation, a minimal `run` that maps discovered `*Spec.java` files under the active naming convention to described production classes, interfaces, enums, annotations, records, sealed classes, and sealed interfaces, and Phase 4 configuration files for defaults, suite path selection, package-prefix naming, class/example filters, profile/formatter metadata, bootstrap metadata, and constructor-policy defaults. Later phases are planned to add the full phpspec-inspired workflow, including executed examples, expectations, doubles, active formatter behavior, bootstrap execution, and profile-aware runs. Planned future command shapes include:
 
 ```text
 javaspec run
@@ -106,7 +117,7 @@ javaspec run --format pretty
 javaspec run --suite core --stop-on-failure
 ```
 
-The broader intended workflow remains:
+The stabilized Phase 4 discovery flow now also honors configured suite package prefixes through `SpecNamingConvention`, maps described classes to generated specs/support files with those prefixes, selects suites with `--suite`, filters classes with repeatable `--class <qualified-or-simple-name>`, and filters examples with repeatable `--example <method-name|display-name|order-index>`. The broader intended workflow remains:
 
 1. Describe a Java type, generating or locating a matching specification class.
 2. Run specs.
@@ -123,7 +134,10 @@ The broader intended workflow remains:
 - [`docs/arc42/02-constraints.md`](docs/arc42/02-constraints.md) — technical and organizational constraints.
 - [`docs/arc42/03-context-and-scope.md`](docs/arc42/03-context-and-scope.md) — system context and boundaries.
 - [`docs/arc42/04-solution-strategy.md`](docs/arc42/04-solution-strategy.md) — initial architecture strategy.
+- [`docs/arc42/05-building-block-view.md`](docs/arc42/05-building-block-view.md) — building-block notes, including the configuration model, profile catalog, and compatibility boundary.
 - [`docs/adr/0001-java-8-baseline-with-lts-target-profiles.md`](docs/adr/0001-java-8-baseline-with-lts-target-profiles.md) — Java compatibility decision.
 - [`docs/adr/0002-zero-runtime-dependency-policy.md`](docs/adr/0002-zero-runtime-dependency-policy.md) — dependency policy decision.
 - [`docs/adr/0003-course-correction-move-class-creation-suggestion-into-first-mvp.md`](docs/adr/0003-course-correction-move-class-creation-suggestion-into-first-mvp.md) — first-MVP PHPSpec-style describe/run generator split.
+- [`docs/adr/0004-course-correction-construction-defaults-typed-matcher-proxies-and-method-generators.md`](docs/adr/0004-course-correction-construction-defaults-typed-matcher-proxies-and-method-generators.md) — implemented construction, typed matcher proxy, and method-generator correction.
+- [`docs/adr/0005-restricted-line-based-configuration-format.md`](docs/adr/0005-restricted-line-based-configuration-format.md) — restricted zero-dependency configuration format decision.
 - [`docs/research/phpspec-feature-inventory.md`](docs/research/phpspec-feature-inventory.md) — phpspec feature inventory for the Java port.

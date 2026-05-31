@@ -2,17 +2,17 @@
 
 Wiki home for the current javaspec MVP.
 
-javaspec is a Java 8-compatible, zero-runtime-dependency specification tool inspired by PHPSpec. The current MVP supports the first spec-first loop plus the ADR 0004 correction work and follow-up factory construction generation: specification/support generation, production type discovery and generation, constructor and static factory construction generation, typed proxy matcher support, and method skeleton generation.
+javaspec is a Java 8-compatible, zero-runtime-dependency specification tool inspired by PHPSpec. The current MVP supports the first spec-first loop plus the ADR 0004 correction work and follow-up factory construction generation: specification/support generation, production type discovery and generation, constructor and static factory construction generation, typed proxy matcher support, method skeleton generation, Phase 3 Java LTS profiles/catalog/API-symbol metadata/compatibility probes, and Phase 4 configuration, naming, suite selection, and discovery filters.
 
-> Current status: `javaspec run` still performs discovery, generation, and source updates. It does **not** execute full examples or a complete runner lifecycle yet.
+> Current status: Phase 4 support is implemented for `describe` and `run`: restricted line-based config files, inferred defaults, configured suites, suite-level spec/source directories, package-prefix naming conventions, constructor-policy defaults, selected-suite behavior, and `run` class/example filters. `javaspec run` still performs discovery, generation, and source updates; it does **not** execute full examples or a complete runner lifecycle yet. Configured bootstrap hooks, profile, and formatter values are parsed/validated metadata for later runner features.
 
 ## Quick start
 
 From the repository root:
 
 ```sh
-mvn test
-mvn package
+mvn verify
+mvn dependency:tree -Dscope=runtime
 ```
 
 Run the CLI:
@@ -30,9 +30,9 @@ javaspec='java -jar target/javaspec-0.1.0-SNAPSHOT.jar'
 ## Commands
 
 ```sh
-$javaspec describe <ClassName> [--spec-dir <dir>]
-$javaspec desc <ClassName> [--spec-root <dir>]
-$javaspec run [--spec-dir <dir>] [--source-dir <dir>] [--generate] [--constructor-policy <delete|preserve|comment>]
+$javaspec describe <ClassName> [--config <file>] [--suite <name>] [--spec-dir <dir>]
+$javaspec desc <ClassName> [--config <file>] [--suite <name>] [--spec-root <dir>]
+$javaspec run [--config <file>] [--suite <name>] [--spec-dir <dir>] [--source-dir <dir>] [--generate] [--constructor-policy <delete|preserve|comment>] [--class <name>] [--example <name>]
 ```
 
 Aliases and defaults:
@@ -40,12 +40,156 @@ Aliases and defaults:
 | Long | Alias | Default | Command |
 |---|---|---|---|
 | `describe` | `desc` | n/a | n/a |
-| `--spec-dir` | `--spec-root` | `src/test/java` | `describe`, `run` |
-| `--source-dir` | `--source-root` | `src/main/java` | `run` |
+| `--config <file>` | n/a | inferred defaults | `describe`, `run` |
+| `--suite <name>` | n/a | configuration default suite (`default` with inferred defaults) | `describe`, `run` |
+| `--spec-dir` | `--spec-root` | selected suite `specDir` (`src/test/java` with inferred defaults) | `describe`, `run` |
+| `--source-dir` | `--source-root` | selected suite `sourceDir` (`src/main/java` with inferred defaults) | `run` |
 | `--generate` | n/a | `false` | `run` |
-| `--constructor-policy <delete\|preserve\|comment>` | n/a | `comment` | `run` |
+| `--constructor-policy <delete\|preserve\|comment>` | n/a | configuration `constructorPolicy` (`comment` with inferred defaults) | `run` |
+| `--class <name>` | n/a | no class filter | `run` |
+| `--example <name>` | n/a | no example filter | `run` |
 
-`describe` writes specification files only. Production source generation and updates belong to `run`.
+`describe` writes specification files only. Production source generation and updates belong to `run`. `describe` rejects command-line `--source-dir`/`--source-root`; a `sourceDir` present in a selected config suite is accepted because `describe` ignores source roots.
+
+## Configuration files
+
+`describe` and `run` accept `--config <file>` and `--suite <name>`. When no config file is supplied, javaspec uses `JavaspecConfiguration.defaults()`.
+
+### Syntax
+
+The configuration format is intentionally restricted and line-based so the runtime stays dependency-free:
+
+- Blank lines and lines whose first non-whitespace character is `#` are ignored.
+- Key/value separator is either `=` or `:`.
+- There is no YAML, TOML, or JSON parser dependency.
+- Top-level keys are `profile`, `formatter`, `constructorPolicy`/`constructor-policy`, `defaultSuite`/`default-suite`, and `bootstrap`.
+- Valid `profile` values are `java8`, `java11`, `java17`, `java21`, and `java25`; valid constructor policies are `delete`, `preserve`, and `comment`.
+- Suite keys use `suite.<name>.<property>` with properties `specDir`/`spec-dir`, `sourceDir`/`source-dir`, `specPackagePrefix`/`spec-package-prefix`, `packagePrefix`/`package-prefix`, and `bootstrap`.
+- `bootstrap` values are comma-separated strings. They are metadata only in the current MVP and are not executed.
+- `specPackagePrefix` and `packagePrefix` drive naming conventions for `describe`, `run`, discovery, and spec/support generation. `packagePrefix` may be empty. Other configured values, including bootstrap entries when the key is present, must not be blank.
+
+### Defaults
+
+| Setting | Default |
+|---|---|
+| Default suite name | `default` |
+| Spec root | `src/test/java` |
+| Source root | `src/main/java` |
+| Spec package prefix | `spec` |
+| Production package prefix | empty |
+| Profile | `java8` |
+| Formatter | `progress` |
+| Constructor policy | `comment` |
+| Bootstrap hooks | empty |
+
+### Example config
+
+```properties
+# javaspec.conf
+profile = java17
+formatter = progress
+constructorPolicy = preserve
+defaultSuite = domain
+bootstrap = org.example.SpecBootstrap
+
+suite.domain.specDir = src/test/java
+suite.domain.sourceDir = src/main/java
+suite.domain.specPackagePrefix = spec
+suite.domain.packagePrefix = org.example
+suite.domain.bootstrap = org.example.DomainBootstrap, org.example.TestDataBootstrap
+
+suite.integration.spec-dir: src/integrationSpec/java
+suite.integration.source-dir: src/main/java
+suite.integration.spec-package-prefix: spec
+suite.integration.package-prefix:
+```
+
+### CLI precedence and examples
+
+1. `--config <file>` loads explicit configuration; without it, defaults are inferred.
+2. `--suite <name>` selects a configured suite; without it, `defaultSuite` is used.
+3. The selected suite's `specDir`, `sourceDir`, `specPackagePrefix`, and `packagePrefix` are used. Command-line `--spec-dir`/`--spec-root` or `--source-dir`/`--source-root` override paths only; naming still comes from the selected suite.
+4. `run` uses the configured `constructorPolicy` unless overridden by command-line `--constructor-policy`.
+5. `run` applies repeatable `--class <name>` and `--example <name>` filters after suite selection.
+6. `describe` accepts `--config` and `--suite` for spec-root and naming selection, rejects command-line `--source-dir`, and ignores any `sourceDir` value loaded from config.
+
+Describe using a configured suite:
+
+```sh
+$javaspec describe org.example.Calculator --config javaspec.conf --suite domain
+```
+
+Run using a configured suite and generate non-interactively:
+
+```sh
+$javaspec run --config javaspec.conf --suite domain --generate
+```
+
+Override a selected-suite path from the command line:
+
+```sh
+$javaspec run --config javaspec.conf --suite domain --source-dir /tmp/demo/src/main/java --generate
+```
+
+### Diagnostics
+
+Invalid configuration exits as command-line usage error (`64`) and starts with `Error: Invalid configuration:`. Diagnostics include line numbers for parser errors where available. Examples include duplicate keys, unknown keys, malformed lines without `=` or `:`, blank required values, invalid profiles, invalid constructor policies, and selecting an unconfigured suite.
+
+Examples:
+
+```text
+Error: Invalid configuration: Line 3: Invalid constructor policy: keep. Valid values: delete, preserve, comment.
+Error: Invalid configuration: Suite 'api' is not configured. Available suites: default, domain.
+```
+
+A missing or unreadable config file exits with I/O error (`70`) and prints the config path.
+
+### Current configuration limitations
+
+- Bootstrap hooks are parsed as strings but are not executed yet.
+- `profile` and `formatter` are parsed and validated but the full profile-aware runner and formatter layer are not implemented yet.
+- Package-prefix naming is implemented for describe/run discovery and generation, but full runner package-mapping behavior will expand when actual example execution is added.
+- The full runner lifecycle is not implemented; `run` still performs discovery, generation, and source updates.
+
+## Suite naming and filters
+
+Suite package prefixes configure how production classes map to spec/support classes.
+
+With inferred defaults, `org.example.Calculator` maps to:
+
+```text
+src/test/java/spec/org/example/CalculatorSpec.java
+src/test/java/spec/org/example/CalculatorSpecSupport.java
+```
+
+With this suite configuration:
+
+```properties
+suite.domain.specDir = src/test/java
+suite.domain.sourceDir = src/main/java
+suite.domain.specPackagePrefix = spec.domain
+suite.domain.packagePrefix = org.example
+```
+
+`org.example.Calculator` maps to:
+
+```text
+src/test/java/spec/domain/CalculatorSpec.java
+src/test/java/spec/domain/CalculatorSpecSupport.java
+```
+
+`run` supports repeatable filters:
+
+```sh
+$javaspec run --config javaspec.conf --suite domain --class Calculator
+$javaspec run --config javaspec.conf --suite domain --class org.example.Calculator
+$javaspec run --config javaspec.conf --suite domain --class spec.domain.CalculatorSpec
+$javaspec run --config javaspec.conf --suite domain --example it_is_initializable
+$javaspec run --config javaspec.conf --suite domain --example "it is initializable"
+$javaspec run --config javaspec.conf --suite domain --example 0
+```
+
+Class filters match described qualified names, described simple names, spec qualified names, or spec simple names exactly. Example filters match public `void` example methods named `it_*` or `its_*` by method name, display name (underscores replaced by spaces), or source-order index. Filters affect discovery/generation selection now; actual example execution remains future runner work.
 
 ## BDD workflow
 
@@ -367,7 +511,7 @@ $javaspec run --constructor-policy delete
 | `preserve` | Non-empty unmatched constructors are kept. |
 | `delete` | Non-empty unmatched constructors are deleted. This is the explicit destructive opt-in. |
 
-Empty generated/no-op unmatched constructors may be removed when safe, regardless of policy. Constructor policy applies to `run`; `describe` never updates production source.
+Empty generated/no-op unmatched constructors may be removed when safe, regardless of policy. Constructor policy applies to `run`; `describe` never updates production source. A config file can set `constructorPolicy`/`constructor-policy`; command-line `--constructor-policy` overrides the configured value.
 
 ## Matchers
 
@@ -556,25 +700,26 @@ Exit code: `0`.
 
 ## Spec-to-class mapping
 
-javaspec follows a PHPSpec-inspired namespace convention.
+javaspec follows a PHPSpec-inspired namespace convention. The default convention uses spec package prefix `spec` and an empty production package prefix; configured suites can replace both prefixes.
 
 | Spec file | Spec class | Support class | Described production type |
 |---|---|---|---|
 | `src/test/java/spec/org/example/CalculatorSpec.java` | `spec.org.example.CalculatorSpec` | `spec.org.example.CalculatorSpecSupport` | `org.example.Calculator` |
 | `src/test/java/spec/com/acme/UserSpec.java` | `spec.com.acme.UserSpec` | `spec.com.acme.UserSpecSupport` | `com.acme.User` |
+| `src/test/java/spec/domain/CalculatorSpec.java` with `specPackagePrefix=spec.domain`, `packagePrefix=org.example` | `spec.domain.CalculatorSpec` | `spec.domain.CalculatorSpecSupport` | `org.example.Calculator` |
 
 Rules:
 
 1. The spec class name ends with `Spec`.
 2. The generated support class name ends with `SpecSupport`.
-3. The spec package starts with `spec.`.
-4. The described production package is the spec package without the leading `spec.`.
+3. The spec package starts with the active `specPackagePrefix`.
+4. The described production package is the active `packagePrefix` plus the spec package suffix after `specPackagePrefix`. With the default empty production package prefix this is the spec package without the leading `spec.`.
 5. The described production type name is the spec class name without the trailing `Spec`.
 6. The described production kind defaults to class unless the spec contains a marker such as `shouldBeAFinalClass();`, `shouldBeAnInterface();`, `shouldBeAnEnum();`, `shouldBeAnAnnotation();`, `shouldBeARecord();`, `shouldBeASealedClass();`, or `shouldBeASealedInterface();`.
 7. `shouldExtend(...)`, `shouldImplement(...)`, and `shouldPermit(...)` class literals are resolved through imports or the described production package.
 8. Constructor and method descriptors are discovered heuristically from supported construction and typed proxy syntax: `beConstructedWith(...)` describes constructors; factory construction markers with string-literal Java-identifier names describe static factory methods; typed proxy, throw-proxy, direct `subject().method(...)`, and simple setter calls describe instance methods.
 
-Legacy same-package specs are also discovered by convention, but new specs generated by `describe` use the `spec.` package prefix.
+Legacy same-package specs are also discovered by convention when the default production package prefix is empty, but new specs generated by `describe` use the active suite naming convention.
 
 ## Invalid usage examples
 
@@ -645,7 +790,7 @@ Error: Invalid class name: Class name segment is a reserved Java word: class
 | `0` | success, help, no specs found, existing targets, or generated/updated targets |
 | `1` | missing production type or missing method update was not generated because the prompt was declined or input was unavailable |
 | `64` | invalid command line usage |
-| `70` | I/O or security error while checking or writing files |
+| `70` | I/O or security error while reading config, checking, or writing files |
 
 ## Dependency policy
 
@@ -665,14 +810,15 @@ org.javaspec:javaspec:jar:0.1.0-SNAPSHOT
 
 ## Verification
 
-Current tester-reported verification after the factory construction generation follow-up:
+Current stabilization verification after completing Phases 3 and 4:
 
-- `mvn test` passed with 174 tests.
-- `mvn dependency:tree -Dscope=runtime` passed with only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT` in runtime scope.
+- `mvn verify` BUILD SUCCESS with 301 tests run, 0 failures, 0 errors, and 0 skipped.
+- `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
 
 ## Current MVP limitations
 
 - The example runner lifecycle is still incomplete; `run` performs discovery, generation, and update work rather than executing full examples.
+- Configuration files currently drive selected suite paths, package-prefix naming, constructor-policy defaults, and run class/example filters; bootstrap hooks and profile/formatter behavior remain metadata until later runner and formatter features are implemented.
 - Source parsing and generation use Java 8-compatible heuristics, not a full Java parser.
 - Generated post-Java-8 source forms, such as records and sealed types, require an appropriate JDK to compile.
 - Method generation covers the supported typed proxy, throw-proxy, direct subject/setter, and static factory construction marker syntax; it is not a general Java source synthesis engine.

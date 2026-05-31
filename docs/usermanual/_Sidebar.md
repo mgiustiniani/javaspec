@@ -3,6 +3,8 @@
 - [Home](Home.md)
 - [Quick start](Home.md#quick-start)
 - [Commands](Home.md#commands)
+- [Configuration files](Home.md#configuration-files)
+- [Suite naming and filters](Home.md#suite-naming-and-filters)
 - [BDD workflow](Home.md#bdd-workflow)
 - [Construction semantics](Home.md#construction-semantics)
 - [Typed proxy matcher syntax](Home.md#typed-proxy-matcher-syntax)

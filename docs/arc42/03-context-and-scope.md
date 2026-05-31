@@ -2,7 +2,7 @@
 
 ## 3.1 System Context
 
-javaspec is a developer tool used from local development environments and CI pipelines. It discovers and executes Java specification examples, reports results, and may generate spec or source skeletons in future phases.
+javaspec is a developer tool used from local development environments and CI pipelines. The implemented first-MVP slice discovers specifications with configured suite paths/package prefixes and class/example filters, and can generate gated spec or source skeletons; later phases will add complete example execution and reporting.
 
 External actors and systems:
 
@@ -11,7 +11,7 @@ External actors and systems:
 | Spec author | Writes specs, runs the CLI, reviews generated snippets, and configures suites. |
 | Java project under test | Provides production classes described by javaspec specifications. |
 | JVM/JDK | Executes javaspec and supplies Java 8+ runtime APIs. |
-| Maven | Future build lifecycle and dependency-scope enforcement. |
+| Maven | Build lifecycle and dependency-scope enforcement. |
 | CI system | Runs specs, consumes exit codes, and may collect reports. |
 | Optional extensions | May provide custom matchers, formatters, generators, or integrations without being part of the core runtime. |
 | Test dependencies | Used only by the javaspec project test suite and never required by runtime users. |
@@ -22,7 +22,8 @@ In scope for the planned product:
 
 - CLI command model inspired by phpspec.
 - Configuration and suite selection.
-- Spec discovery and described-class mapping.
+- Suite-level spec/source directories and package-prefix naming.
+- Spec discovery, described-class mapping, and class/example filters.
 - Example lifecycle and subject construction.
 - Expectations and matchers.
 - Zero-dependency object doubles where feasible.
@@ -44,6 +45,6 @@ javaspec should help Java teams practice specification-first design with a low-f
 
 ## 3.4 Technical Context
 
-The initial implementation should be a Java 8-compatible Maven project. All JDK-version-specific knowledge above Java 8 should be stored as profile metadata and resolved through reflection only when the runtime JDK supports it.
+The implementation is a Java 8-compatible Maven project. JDK-version-specific knowledge above Java 8 is stored as profile metadata under `org.javaspec.profile` and resolved through the `org.javaspec.compatibility` boundary using reflection only when the runtime JDK supports it.
 
-No C4 diagrams are generated in Phase 1. If diagrams are requested later, the documenter should delegate diagram generation to the `c4model` child agent and integrate the resulting diagrams into ARC42 section 3 or section 5 as appropriate.
+No C4 diagrams are currently generated. If diagrams are requested later, the documenter should delegate diagram generation to the `c4model` child agent and integrate the resulting diagrams into ARC42 section 3 or section 5 as appropriate.

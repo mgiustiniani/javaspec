@@ -1,6 +1,7 @@
 package org.javaspec.discovery;
 
 import org.javaspec.model.ConstructorDescriptor;
+import org.javaspec.model.DescribedClass;
 import org.javaspec.model.DescribedType;
 import org.javaspec.model.JavaTypeKind;
 import org.javaspec.model.MethodDescriptor;
@@ -23,11 +24,7 @@ import java.util.regex.Pattern;
  * Discovers Java specification skeletons using the PHPSpec-inspired *Spec naming convention.
  */
 public final class SpecDiscovery {
-    private static final String JAVA_SUFFIX = ".java";
-    private static final String SPEC_PACKAGE_PREFIX = "spec";
-    private static final String SPEC_PACKAGE_PREFIX_WITH_DOT = SPEC_PACKAGE_PREFIX + ".";
-    private static final String SPEC_SUFFIX = "Spec";
-    private static final String SPEC_JAVA_SUFFIX = SPEC_SUFFIX + JAVA_SUFFIX;
+    private static final String JAVA_SUFFIX = SpecNamingConvention.JAVA_SUFFIX;
     private static final Pattern IMPORT_PATTERN = Pattern.compile("(?m)^\\s*import\\s+([A-Za-z_$][A-Za-z0-9_$.]*)\\s*;");
     private static final Pattern SHOULD_EXTEND_PATTERN = Pattern.compile("shouldExtend\\s*\\(([^)]*)\\)", Pattern.DOTALL);
     private static final Pattern SHOULD_IMPLEMENT_PATTERN = Pattern.compile("shouldImplement\\s*\\(([^)]*)\\)", Pattern.DOTALL);
@@ -35,7 +32,7 @@ public final class SpecDiscovery {
     private static final Pattern CLASS_LITERAL_PATTERN = Pattern.compile("([A-Za-z_$][A-Za-z0-9_$.]*)\\s*\\.\\s*class");
     private static final Pattern BE_CONSTRUCTED_WITH_PATTERN = Pattern.compile("beConstructedWith\\s*\\(([^)]*)\\)", Pattern.DOTALL);
     private static final Pattern FACTORY_CONSTRUCTION_PATTERN = Pattern.compile("beConstructed(?:ThroughNamed|Through|Named)\\s*\\(([^)]*)\\)", Pattern.DOTALL);
-    private static final Pattern METHOD_PATTERN = Pattern.compile("public\\s+void\\s+([A-Za-z_$][A-Za-z0-9_$]*)\\s*\\(([^)]*)\\)\\s*\\{", Pattern.DOTALL);
+    private static final Pattern METHOD_PATTERN = Pattern.compile("public\\s+void\\s+([A-Za-z_$][A-Za-z0-9_$]*)\\s*\\(([^)]*)\\)\\s*(?:throws\\s+[^\\{]+)?\\{", Pattern.DOTALL);
     private static final Pattern PROXY_EXPECTATION_PATTERN = Pattern.compile(
             "\\b([a-z][A-Za-z0-9_$]*)\\s*\\(([^;{}]*)\\)\\s*\\.\\s*"
                     + "(shouldReturn|shouldNotReturn|shouldBe|shouldNotBe|shouldEqual|shouldNotEqual|shouldBeLike|shouldBeEqualTo|shouldContain|shouldNotContain|shouldStartWith|shouldEndWith|shouldMatchPattern)"
@@ -58,18 +55,26 @@ public final class SpecDiscovery {
     }
 
     public static List<DiscoveredSpec> discover(File specRoot) {
-        Objects.requireNonNull(specRoot, "specRoot must not be null");
+        return discover(SpecDiscoveryRequest.of(specRoot));
+    }
+
+    public static List<DiscoveredSpec> discover(File specRoot, SpecNamingConvention namingConvention) {
+        return discover(SpecDiscoveryRequest.of(specRoot, namingConvention));
+    }
+
+    public static List<DiscoveredSpec> discover(SpecDiscoveryRequest request) {
+        Objects.requireNonNull(request, "request must not be null");
 
         List<DiscoveredSpec> specs = new ArrayList<DiscoveredSpec>();
-        if (!specRoot.isDirectory()) {
+        if (!request.matchesSuite() || !request.specRoot().isDirectory()) {
             return specs;
         }
 
-        collect(specRoot, "", specs);
+        collect(request.specRoot(), "", specs, request);
         return specs;
     }
 
-    private static void collect(File directory, String packagePrefix, List<DiscoveredSpec> specs) {
+    private static void collect(File directory, String packagePrefix, List<DiscoveredSpec> specs, SpecDiscoveryRequest request) {
         File[] children = directory.listFiles();
         if (children == null) {
             return;
@@ -84,9 +89,9 @@ public final class SpecDiscovery {
         for (int i = 0; i < children.length; i++) {
             File child = children[i];
             if (child.isDirectory()) {
-                collect(child, childPackagePrefix(packagePrefix, child.getName()), specs);
-            } else if (child.isFile() && child.getName().endsWith(SPEC_JAVA_SUFFIX)) {
-                addSpec(child, packagePrefix, specs);
+                collect(child, childPackagePrefix(packagePrefix, child.getName()), specs, request);
+            } else if (child.isFile() && request.namingConvention().isSpecSourceFileName(child.getName())) {
+                addSpec(child, packagePrefix, specs, request);
             }
         }
     }
@@ -98,22 +103,10 @@ public final class SpecDiscovery {
         return packagePrefix + "." + childName;
     }
 
-    private static void addSpec(File specFile, String packageName, List<DiscoveredSpec> specs) {
+    private static void addSpec(File specFile, String packageName, List<DiscoveredSpec> specs, SpecDiscoveryRequest request) {
         String fileName = specFile.getName();
         String specSimpleName = fileName.substring(0, fileName.length() - JAVA_SUFFIX.length());
-        String describedSimpleName = specSimpleName.substring(0, specSimpleName.length() - SPEC_SUFFIX.length());
-        if (describedSimpleName.length() == 0) {
-            return;
-        }
-
-        String describedPackageName = describedPackageName(packageName);
-        String describedQualifiedName;
         String specQualifiedName;
-        if (describedPackageName.length() == 0) {
-            describedQualifiedName = describedSimpleName;
-        } else {
-            describedQualifiedName = describedPackageName + "." + describedSimpleName;
-        }
         if (packageName.length() == 0) {
             specQualifiedName = specSimpleName;
         } else {
@@ -121,7 +114,18 @@ public final class SpecDiscovery {
         }
 
         try {
+            DescribedClass describedClass = request.namingConvention().describedClassForSpec(specQualifiedName);
+            if (!request.matchesClass(describedClass, specQualifiedName)) {
+                return;
+            }
+
+            String describedPackageName = describedClass.packageName();
+            String describedQualifiedName = describedClass.qualifiedName();
             String source = sourceOf(specFile);
+            List<SpecExample> examples = request.filterExamples(extractExamples(source));
+            if (request.hasExampleFilters() && examples.isEmpty()) {
+                return;
+            }
             List<ConstructorDescriptor> constructors = extractConstructors(source, describedPackageName);
             List<MethodDescriptor> methods = extractMethods(source, describedPackageName, describedQualifiedName);
             specs.add(DiscoveredSpec.of(
@@ -135,7 +139,8 @@ public final class SpecDiscovery {
                             typeNames(source, describedPackageName, SHOULD_PERMIT_PATTERN),
                             constructors,
                             methods
-                    )
+                    ),
+                    examples
             ));
         } catch (IllegalArgumentException ignored) {
             // Ignore files that match the suffix convention but cannot be mapped to a valid Java type name.
@@ -493,6 +498,21 @@ public final class SpecDiscovery {
         return result;
     }
 
+    private static List<SpecExample> extractExamples(String source) {
+        List<SpecExample> examples = new ArrayList<SpecExample>();
+        Matcher methodMatcher = METHOD_PATTERN.matcher(source);
+        int orderIndex = 0;
+        while (methodMatcher.find()) {
+            String methodName = methodMatcher.group(1);
+            String paramsGroup = methodMatcher.group(2).trim();
+            if (paramsGroup.length() == 0 && SpecExample.isExampleMethodName(methodName)) {
+                examples.add(SpecExample.of(methodName, orderIndex));
+                orderIndex++;
+            }
+        }
+        return examples;
+    }
+
     private static Map<String, MethodParameterInfo> parseMethods(String source, Map<String, String> imports, String describedPackageName) {
         Map<String, MethodParameterInfo> methods = new LinkedHashMap<String, MethodParameterInfo>();
         Matcher methodMatcher = METHOD_PATTERN.matcher(source);
@@ -523,8 +543,7 @@ public final class SpecDiscovery {
     }
 
     private static String findEnclosingMethod(String source, int position, Map<String, MethodParameterInfo> methods) {
-        Pattern methodDeclPattern = Pattern.compile("public\\s+void\\s+([A-Za-z_$][A-Za-z0-9_$]*)\\s*\\(([^)]*)\\)\\s*\\{");
-        Matcher matcher = methodDeclPattern.matcher(source);
+        Matcher matcher = METHOD_PATTERN.matcher(source);
         String lastMethod = null;
         while (matcher.find() && matcher.start() < position) {
             lastMethod = matcher.group(1);
@@ -694,13 +713,4 @@ public final class SpecDiscovery {
         }
     }
 
-    private static String describedPackageName(String specPackageName) {
-        if (SPEC_PACKAGE_PREFIX.equals(specPackageName)) {
-            return "";
-        }
-        if (specPackageName.startsWith(SPEC_PACKAGE_PREFIX_WITH_DOT)) {
-            return specPackageName.substring(SPEC_PACKAGE_PREFIX_WITH_DOT.length());
-        }
-        return specPackageName;
-    }
 }
