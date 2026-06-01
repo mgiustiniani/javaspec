@@ -2,7 +2,7 @@
 
 javaspec is a Java 8-compatible, zero-runtime-dependency specification framework inspired by phpspec. Its goal is to bring a specification-first workflow to Java while preserving a small runtime footprint and a conservative compatibility baseline.
 
-Phases 2, 3, and 4 are implemented. Phase 2 provides a Maven-based CLI entry point, `org.javaspec.cli.Main`, with a PHPSpec-style split: `describe` creates specification/support skeletons, while `run` discovers specs and can generate missing class-like production type skeletons after confirmation or `--generate`. Phase 3 adds Java LTS target profiles `java8`, `java11`, `java17`, `java21`, and `java25`, the profile catalog, API-symbol metadata, compatibility checks, and reflective API availability probes. Phase 4 adds the zero-runtime-dependency line-based configuration model, `--config <file>` and `--suite <name>` integration, suite-level spec/source directories, package-prefix-driven naming conventions, suite selection for `describe` and `run`, and class/example filters for `run`. The binary remains Java 8-compatible; post-Java 8 forms such as records, sealed types, sequenced collections, and stream gatherers are modeled as source text or metadata/reflection only. Specs can declare `shouldExtend(...)`, `shouldImplement(...)`, and sealed `shouldPermit(...)`; missing related types get specs before production skeletons, except permitted implementations of sealed interfaces, which stay in the same production file.
+Phases 2, 3, and 4 are implemented, and the Phase 5/6 MVP reflection runner is implemented. Phase 2 provides a Maven-based CLI entry point, `org.javaspec.cli.Main`, with a PHPSpec-style split: `describe` creates specification/support skeletons, while `run` discovers specs and can generate missing class-like production type skeletons after confirmation or `--generate`. Phase 3 adds Java LTS target profiles `java8`, `java11`, `java17`, `java21`, and `java25`, the profile catalog, API-symbol metadata, compatibility checks, and reflective API availability probes. Phase 4 adds the zero-runtime-dependency line-based configuration model, `--config <file>` and `--suite <name>` integration, suite-level spec/source directories, package-prefix-driven naming conventions, suite selection for `describe` and `run`, and class/example filters for `run`. The Phase 5/6 MVP keeps the existing `run` discovery/generation/update behavior and then executes discovered examples when the compiled spec classes are available on the effective classloader. It reuses `DiscoveredSpec`/`SpecExample` metadata, so suite, class, and example filters remain effective. Each executable example runs on a fresh spec instance with optional public no-arg `let()` before the example and `letGo()` after it. The binary remains Java 8-compatible; post-Java 8 forms such as records, sealed types, sequenced collections, and stream gatherers are modeled as source text or metadata/reflection only. Specs can declare `shouldExtend(...)`, `shouldImplement(...)`, and sealed `shouldPermit(...)`; missing related types get specs before production skeletons, except permitted implementations of sealed interfaces, which stay in the same production file.
 
 ## Project Goals
 
@@ -56,7 +56,7 @@ mvn verify
 mvn dependency:tree -Dscope=runtime
 ```
 
-Latest stabilization verification for Phases 3 and 4: `mvn verify` passed with 301 tests, and `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+Latest verification after the Phase 5/6 MVP reflection runner: `mvn verify` passed with 307 tests, and `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
 
 The Maven compiler configuration targets Java 8 (`source`/`target` 1.8). The packaged runtime has no third-party dependencies.
 
@@ -69,7 +69,9 @@ java -jar target/javaspec-0.1.0-SNAPSHOT.jar desc <ClassName> [--config <file>] 
 java -jar target/javaspec-0.1.0-SNAPSHOT.jar run [--config <file>] [--suite <name>] [--spec-dir <dir>] [--source-dir <dir>] [--generate] [--constructor-policy <delete|preserve|comment>] [--class <name>] [--example <name>]
 ```
 
-Without `--config`, javaspec infers defaults: suite `default`, spec root `src/test/java`, source root `src/main/java`, spec package prefix `spec`, production package prefix empty, profile `java8`, formatter `progress`, constructor policy `comment`, and empty bootstrap hooks. `--config <file>` loads a restricted line-based configuration file, and `--suite <name>` selects a configured suite. Selected-suite paths and package prefixes drive spec/source naming unless overridden by `--spec-dir`/`--spec-root` or `--source-dir`/`--source-root`. `run` uses the configured constructor policy unless overridden by `--constructor-policy`; repeatable `--class <name>` and `--example <name>` filters limit discovery by described/spec class and example method/display name/order index.
+Without `--config`, javaspec infers defaults: suite `default`, spec root `src/test/java`, source root `src/main/java`, spec package prefix `spec`, production package prefix empty, profile `java8`, formatter `progress`, constructor policy `comment`, and empty bootstrap hooks. `--config <file>` loads a restricted line-based configuration file, and `--suite <name>` selects a configured suite. Selected-suite paths and package prefixes drive spec/source naming unless overridden by `--spec-dir`/`--spec-root` or `--source-dir`/`--source-root`. `run` uses the configured constructor policy unless overridden by `--constructor-policy`; repeatable `--class <name>` and `--example <name>` filters limit discovery and execution by described/spec class and example method/display name/order index.
+
+After discovery, generation, and source updates complete without declined prompts, `run` invokes the reflection runner for discovered examples. PASSED examples complete normally; AssertionError is FAILED; non-assertion throwables, lifecycle errors, instantiation errors, and reflection errors are BROKEN; non-loadable spec classes and missing reflected example methods are SKIPPED. The CLI prints an example summary and returns exit code `1` when executable examples fail or break. The CLI runner does not compile source or spec files itself, so source-only or otherwise unavailable spec classes are discovered but skipped rather than executed.
 
 Examples:
 
@@ -90,7 +92,7 @@ java -jar target/javaspec-0.1.0-SNAPSHOT.jar describe org.example.Calculator --c
 java -jar target/javaspec-0.1.0-SNAPSHOT.jar run --config javaspec.conf --suite domain --generate
 ```
 
-Exit codes: `0` for success/help/generated-or-existing targets, `1` when missing production types are not generated after a prompt is declined or unavailable, `64` for invalid arguments, and `70` for I/O errors.
+Exit codes: `0` for success/help/generated-or-existing targets and successful or skipped-only executable runs, `1` when missing production types or method updates are not generated after a prompt is declined or unavailable, or when executable examples fail or break, `64` for invalid arguments, and `70` for I/O errors.
 
 ## Java LTS Targeting Concept
 
@@ -108,7 +110,7 @@ The implemented catalog is based on the Java data-structure research in [`docs/r
 
 ## Future Usage Vision
 
-The implemented MVP covers `describe`/`desc` for PHPSpec-style spec/support skeleton generation, a minimal `run` that maps discovered `*Spec.java` files under the active naming convention to described production classes, interfaces, enums, annotations, records, sealed classes, and sealed interfaces, and Phase 4 configuration files for defaults, suite path selection, package-prefix naming, class/example filters, profile/formatter metadata, bootstrap metadata, and constructor-policy defaults. Later phases are planned to add the full phpspec-inspired workflow, including executed examples, expectations, doubles, active formatter behavior, bootstrap execution, and profile-aware runs. Planned future command shapes include:
+The implemented MVP covers `describe`/`desc` for PHPSpec-style spec/support skeleton generation, a `run` command that maps discovered `*Spec.java` files under the active naming convention to described production classes, interfaces, enums, annotations, records, sealed classes, and sealed interfaces, Phase 4 configuration files for defaults, suite path selection, package-prefix naming, class/example filters, profile/formatter metadata, bootstrap metadata, and constructor-policy defaults, and the Phase 5/6 reflection runner for executable examples that are already compiled and available on the effective classloader. Later phases are planned to expand the phpspec-inspired workflow with richer runner controls, doubles, active formatter behavior, bootstrap execution, profile-aware runs, and broader matcher/extension behavior. Planned future command shapes include:
 
 ```text
 javaspec run
@@ -117,7 +119,7 @@ javaspec run --format pretty
 javaspec run --suite core --stop-on-failure
 ```
 
-The stabilized Phase 4 discovery flow now also honors configured suite package prefixes through `SpecNamingConvention`, maps described classes to generated specs/support files with those prefixes, selects suites with `--suite`, filters classes with repeatable `--class <qualified-or-simple-name>`, and filters examples with repeatable `--example <method-name|display-name|order-index>`. The broader intended workflow remains:
+The stabilized discovery and execution flow honors configured suite package prefixes through `SpecNamingConvention`, maps described classes to generated specs/support files with those prefixes, selects suites with `--suite`, filters classes with repeatable `--class <qualified-or-simple-name>`, and filters examples with repeatable `--example <method-name|display-name|order-index>` before generation and reflection execution. The broader intended workflow remains:
 
 1. Describe a Java type, generating or locating a matching specification class.
 2. Run specs.
@@ -140,4 +142,5 @@ The stabilized Phase 4 discovery flow now also honors configured suite package p
 - [`docs/adr/0003-course-correction-move-class-creation-suggestion-into-first-mvp.md`](docs/adr/0003-course-correction-move-class-creation-suggestion-into-first-mvp.md) — first-MVP PHPSpec-style describe/run generator split.
 - [`docs/adr/0004-course-correction-construction-defaults-typed-matcher-proxies-and-method-generators.md`](docs/adr/0004-course-correction-construction-defaults-typed-matcher-proxies-and-method-generators.md) — implemented construction, typed matcher proxy, and method-generator correction.
 - [`docs/adr/0005-restricted-line-based-configuration-format.md`](docs/adr/0005-restricted-line-based-configuration-format.md) — restricted zero-dependency configuration format decision.
+- [`docs/adr/0006-classpath-reflection-runner.md`](docs/adr/0006-classpath-reflection-runner.md) — classpath reflection runner decision for the Phase 5/6 MVP.
 - [`docs/research/phpspec-feature-inventory.md`](docs/research/phpspec-feature-inventory.md) — phpspec feature inventory for the Java port.

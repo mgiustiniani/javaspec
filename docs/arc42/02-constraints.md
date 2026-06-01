@@ -26,7 +26,8 @@
 - The core runtime cannot depend on external assertion libraries, mocking libraries, YAML parsers, logging frameworks, dependency injection containers, or bytecode-generation libraries.
 - Advanced features that normally require third-party dependencies must be implemented using JDK APIs, exposed as optional extensions, or deferred.
 - Reflection must be isolated behind compatibility boundaries to avoid accidental linkage to newer JDK APIs.
-- Configuration bootstrap hooks and profile/formatter settings remain metadata until the corresponding runner and formatter features are implemented; suite package prefixes are active naming-convention inputs for `describe`, `run`, discovery, and spec/support generation.
+- Configuration bootstrap hooks and profile/formatter settings remain metadata until the corresponding runner and formatter features are implemented; suite package prefixes are active naming-convention inputs for `describe`, `run`, discovery, spec/support generation, and MVP reflection execution.
+- The MVP CLI runner does not compile source or specification files itself; executable examples require compiled spec classes on the effective classloader, while source-only or unavailable spec classes are skipped.
 - User-facing diagnostics should explain zero-dependency limitations clearly.
 
 ## 2.4 Compatibility Constraints

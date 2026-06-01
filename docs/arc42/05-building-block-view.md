@@ -2,13 +2,14 @@
 
 ## 5.1 Current Runtime Building Blocks
 
-The implemented architecture now includes the Phase 2 first-MVP CLI/generation slice, the Phase 3 target-profile catalog and compatibility boundary, and the Phase 4 configuration, naming, and discovery-filter model.
+The implemented architecture now includes the Phase 2 first-MVP CLI/generation slice, the Phase 3 target-profile catalog and compatibility boundary, the Phase 4 configuration, naming, and discovery-filter model, and the Phase 5/6 MVP reflection runner.
 
 | Building block | Package | Responsibility |
 |---|---|---|
-| CLI adapter | `org.javaspec.cli` | Parses first-MVP `describe`/`desc` and `run` commands, `--config`, `--suite`, path overrides, constructor-policy overrides, run `--class`/`--example` filters, diagnostics, and exit codes. |
+| CLI adapter | `org.javaspec.cli` | Parses first-MVP `describe`/`desc` and `run` commands, `--config`, `--suite`, path overrides, constructor-policy overrides, run `--class`/`--example` filters, diagnostics, and exit codes; invokes the runner after discovery/generation/update and prints example summaries. |
 | Configuration model | `org.javaspec.config` | Provides immutable default/configured suite settings and a restricted zero-runtime-dependency config parser. |
-| Spec discovery, naming, and generation | `org.javaspec.discovery`, `org.javaspec.naming`, `org.javaspec.generation` | Applies default/configured naming conventions, discovers `*Spec.java` files, extracts example metadata, applies suite selection and class/example filters, and plans/writes gated spec, support, production type, constructor, factory, and method skeletons. |
+| Spec discovery, naming, and generation | `org.javaspec.discovery`, `org.javaspec.naming`, `org.javaspec.generation` | Applies default/configured naming conventions, discovers `*Spec.java` files, extracts example metadata, applies suite selection and class/example filters, feeds runner metadata, and plans/writes gated spec, support, production type, constructor, factory, and method skeletons. |
+| Reflection runner | `org.javaspec.runner` | Executes filtered discovered examples reflectively when compiled spec classes are available on the effective classloader, records PASSED/FAILED/BROKEN/SKIPPED outcomes, and aggregates run/spec/example results. |
 | Object behavior and matchers | `org.javaspec.api`, `org.javaspec.matcher` | Provides the Java-facing specification base class, lazy construction support, expectation wrappers, and matcher contracts. |
 | Profile catalog | `org.javaspec.profile` | Stores deterministic Java LTS profile, feature-flag, and API-symbol metadata for Java 8, 11, 17, 21, and 25. |
 | Compatibility boundary | `org.javaspec.compatibility` | Checks profile compatibility and reflectively probes optional APIs without direct post-Java-8 linkage. |
@@ -51,4 +52,19 @@ The naming/discovery boundary is implemented by `SpecNamingConvention`, `SpecDis
 - `SpecDiscoveryRequest` carries the spec root, suite name, naming convention, class filters, and example filters.
 - `SpecExample` records public `void` `it_*`/`its_*` example methods with display names and source-order indexes.
 
-The CLI adapter applies the selected suite's spec/source paths and package prefixes unless command-line path options override paths. `run` uses the configured constructor policy unless command-line `--constructor-policy` overrides it, filters classes with repeatable `--class <name>`, and filters examples with repeatable `--example <name>`. Bootstrap hooks and profile/formatter behavior are currently metadata for later runner and formatter features.
+The CLI adapter applies the selected suite's spec/source paths and package prefixes unless command-line path options override paths. `run` uses the configured constructor policy unless command-line `--constructor-policy` overrides it, filters classes with repeatable `--class <name>`, and filters examples with repeatable `--example <name>`. The same filtered `DiscoveredSpec`/`SpecExample` metadata is passed to the reflection runner, so filters affect both generation/update work and executable example selection. Bootstrap hooks and profile/formatter behavior are currently metadata for later runner and formatter features.
+
+## 5.5 Reflection Runner
+
+`org.javaspec.runner` contains the Phase 5/6 MVP execution model:
+
+- `SpecRunner` accepts discovered specs and an effective classloader. It loads compiled spec classes reflectively and does not compile source or spec files itself.
+- `DiscoveredSpec` and `SpecExample` remain the metadata source for which classes and examples may execute; source-discovery suite, class, and example filters therefore remain effective at execution time.
+- Each example receives a fresh spec instance from the spec class no-argument constructor.
+- Optional public no-argument `let()` is invoked before each example; optional public no-argument `letGo()` is invoked after each example, including after failures.
+- `ExampleStatus` defines `PASSED`, `FAILED`, `BROKEN`, and `SKIPPED`.
+- `AssertionError` from the example body is `FAILED`; non-assertion throwables from examples, lifecycle methods, instantiation, or reflection inspection are `BROKEN`.
+- Non-loadable spec classes and missing or non-public/no-arg reflected example methods are `SKIPPED`.
+- `ExampleResult`, `SpecResult`, `RunResult`, and `FailureDetail` provide immutable result aggregation for the CLI summary and future formatters.
+
+The current limitation is deliberate: source-only or otherwise unavailable spec classes are skipped/not executable until an external build, IDE, or launcher puts compiled classes on the effective classloader.

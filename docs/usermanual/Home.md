@@ -2,9 +2,9 @@
 
 Wiki home for the current javaspec MVP.
 
-javaspec is a Java 8-compatible, zero-runtime-dependency specification tool inspired by PHPSpec. The current MVP supports the first spec-first loop plus the ADR 0004 correction work and follow-up factory construction generation: specification/support generation, production type discovery and generation, constructor and static factory construction generation, typed proxy matcher support, method skeleton generation, Phase 3 Java LTS profiles/catalog/API-symbol metadata/compatibility probes, and Phase 4 configuration, naming, suite selection, and discovery filters.
+javaspec is a Java 8-compatible, zero-runtime-dependency specification tool inspired by PHPSpec. The current MVP supports the first spec-first loop plus the ADR 0004 correction work and follow-up factory construction generation: specification/support generation, production type discovery and generation, constructor and static factory construction generation, typed proxy matcher support, method skeleton generation, Phase 3 Java LTS profiles/catalog/API-symbol metadata/compatibility probes, Phase 4 configuration, naming, suite selection, discovery filters, and the Phase 5/6 MVP reflection runner.
 
-> Current status: Phase 4 support is implemented for `describe` and `run`: restricted line-based config files, inferred defaults, configured suites, suite-level spec/source directories, package-prefix naming conventions, constructor-policy defaults, selected-suite behavior, and `run` class/example filters. `javaspec run` still performs discovery, generation, and source updates; it does **not** execute full examples or a complete runner lifecycle yet. Configured bootstrap hooks, profile, and formatter values are parsed/validated metadata for later runner features.
+> Current status: `describe` writes specification/support files only. `javaspec run` keeps discovery, generation, and source updates, then executes discovered examples when the compiled spec classes are available on the effective classloader. It reuses `DiscoveredSpec`/`SpecExample` metadata, so suite, class, and example filters remain effective. Configured bootstrap hooks, profile, and formatter values are parsed/validated metadata for later runner and formatter features.
 
 ## Quick start
 
@@ -49,7 +49,7 @@ Aliases and defaults:
 | `--class <name>` | n/a | no class filter | `run` |
 | `--example <name>` | n/a | no example filter | `run` |
 
-`describe` writes specification files only. Production source generation and updates belong to `run`. `describe` rejects command-line `--source-dir`/`--source-root`; a `sourceDir` present in a selected config suite is accepted because `describe` ignores source roots.
+`describe` writes specification files only. Production source generation and updates belong to `run`. After discovery/generation/update completes without declined prompts, `run` invokes the MVP reflection runner for discovered examples whose compiled spec classes are available on the effective classloader. `describe` rejects command-line `--source-dir`/`--source-root`; a `sourceDir` present in a selected config suite is accepted because `describe` ignores source roots.
 
 ## Configuration files
 
@@ -147,9 +147,9 @@ A missing or unreadable config file exits with I/O error (`70`) and prints the c
 ### Current configuration limitations
 
 - Bootstrap hooks are parsed as strings but are not executed yet.
-- `profile` and `formatter` are parsed and validated but the full profile-aware runner and formatter layer are not implemented yet.
-- Package-prefix naming is implemented for describe/run discovery and generation, but full runner package-mapping behavior will expand when actual example execution is added.
-- The full runner lifecycle is not implemented; `run` still performs discovery, generation, and source updates.
+- `profile` and `formatter` are parsed and validated but active profile-aware execution and formatter selection are not implemented yet.
+- Package-prefix naming is implemented for describe/run discovery, generation, and MVP reflection execution; future runner/reporting layers may add richer diagnostics and source locations.
+- The runner lifecycle is intentionally minimal in the MVP: fresh spec instance per example plus optional public no-arg `let()` and `letGo()`. Pending examples, stop-on-failure, bootstrap execution, and active formatter behavior remain future work.
 
 ## Suite naming and filters
 
@@ -189,7 +189,49 @@ $javaspec run --config javaspec.conf --suite domain --example "it is initializab
 $javaspec run --config javaspec.conf --suite domain --example 0
 ```
 
-Class filters match described qualified names, described simple names, spec qualified names, or spec simple names exactly. Example filters match public `void` example methods named `it_*` or `its_*` by method name, display name (underscores replaced by spaces), or source-order index. Filters affect discovery/generation selection now; actual example execution remains future runner work.
+Class filters match described qualified names, described simple names, spec qualified names, or spec simple names exactly. Example filters match public `void` example methods named `it_*` or `its_*` by method name, display name (underscores replaced by spaces), or source-order index. Filters affect discovery/generation selection and MVP reflection execution because the runner uses the same `DiscoveredSpec`/`SpecExample` metadata.
+
+## Example execution MVP
+
+`javaspec run` has two stages:
+
+1. Preserve the existing discovery, related-spec handling, support updates, production type generation, constructor updates, and method updates.
+2. If no prompt was declined and no I/O/usage error occurred, execute the discovered examples whose compiled spec classes are available on the effective classloader.
+
+The runner is reflection-based and dependency-free. It does not compile source or spec files. If a spec exists only as source, or if the compiled spec class is otherwise unavailable to the CLI process, the discovered examples are marked `SKIPPED` rather than executed. Compile or otherwise put spec classes on the classpath before expecting execution.
+
+Execution uses the existing discovery metadata:
+
+- `DiscoveredSpec` selects the spec class and described type.
+- `SpecExample` selects public `void` `it_*`/`its_*` examples, display names, and source-order indexes.
+- Suite, class, and example filters affect execution because they filter that metadata before the runner sees it.
+
+Lifecycle behavior:
+
+- A fresh spec instance is created for each example.
+- Optional public no-argument `let()` runs before each example.
+- Optional public no-argument `letGo()` runs after each example, including after failures.
+
+Result states:
+
+| State | Meaning |
+|---|---|
+| `PASSED` | The example completed normally. |
+| `FAILED` | The example threw `AssertionError`. |
+| `BROKEN` | A non-assertion throwable occurred in the example, `let()`, `letGo()`, spec instantiation, or reflection inspection. |
+| `SKIPPED` | The spec class was not loadable, or the reflected example method was missing or not public no-arg. |
+
+CLI summary example:
+
+```text
+Examples: 3 total, 1 passed, 1 failed, 0 broken, 1 skipped.
+Failed examples:
+  FAILED spec.org.example.CalculatorSpec#it_adds_numbers (it adds numbers): Assertion failed - java.lang.AssertionError: expected 4
+Skipped examples:
+  SKIPPED spec.org.example.CalculatorSpec#it_subtracts_numbers (it subtracts numbers): Example method not found or not public no-arg: it_subtracts_numbers
+```
+
+Exit code `1` is returned when executable examples fail or break. Skipped-only runs remain successful. Missing production generation or method-update prompts that are declined or unavailable also return exit code `1` before execution.
 
 ## BDD workflow
 
@@ -244,11 +286,13 @@ The concrete spec extends the generated support class. The support class extends
 
 The import of `org.example.Calculator` is intentional. In a BDD/spec-first flow the production class may not exist yet, so the project can be red until `run` generates or the user writes the class.
 
-### 2. Run discovery
+### 2. Run discovery, generation, and execution
 
 ```sh
 $javaspec run
 ```
+
+`run` first performs discovery and any gated generation/update work. If execution can proceed, it then runs discovered examples whose compiled spec classes are available on the effective classloader.
 
 If `org.example.Calculator` is missing, javaspec asks:
 
@@ -300,7 +344,7 @@ For CI or scripted usage, use `--generate` to answer yes without prompting:
 $javaspec run --generate
 ```
 
-This writes missing production type skeletons, generated specification support updates, constructor updates, static factory construction method skeletons, and missing instance method skeletons inferred from specs without interactive confirmation.
+This writes missing production type skeletons, generated specification support updates, constructor updates, static factory construction method skeletons, and missing instance method skeletons inferred from specs without interactive confirmation. After those updates, executable examples run only if the corresponding compiled spec classes are already on the effective classloader; otherwise they are reported as skipped.
 
 ## Construction semantics
 
@@ -684,6 +728,8 @@ If the class is available on the classpath instead of the source tree, javaspec 
 Classpath: present
 ```
 
+After these existence and update checks, `run` executes the filtered examples when the compiled spec class itself is also available on the effective classloader. If only the source file is present, the examples are listed as `SKIPPED` because the CLI does not compile them.
+
 ## No specs found
 
 ```sh
@@ -787,8 +833,8 @@ Error: Invalid class name: Class name segment is a reserved Java word: class
 
 | Code | Meaning |
 |---:|---|
-| `0` | success, help, no specs found, existing targets, or generated/updated targets |
-| `1` | missing production type or missing method update was not generated because the prompt was declined or input was unavailable |
+| `0` | success, help, no specs found, existing/generated/updated targets, passed examples, or skipped-only example runs |
+| `1` | missing production type or missing method update was not generated because the prompt was declined or input was unavailable; or executable examples failed/broke |
 | `64` | invalid command line usage |
 | `70` | I/O or security error while reading config, checking, or writing files |
 
@@ -810,14 +856,15 @@ org.javaspec:javaspec:jar:0.1.0-SNAPSHOT
 
 ## Verification
 
-Current stabilization verification after completing Phases 3 and 4:
+Current verification after completing the Phase 5/6 MVP reflection runner:
 
-- `mvn verify` BUILD SUCCESS with 301 tests run, 0 failures, 0 errors, and 0 skipped.
+- `mvn verify` BUILD SUCCESS with 307 tests run, 0 failures, 0 errors, and 0 skipped.
 - `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
 
 ## Current MVP limitations
 
-- The example runner lifecycle is still incomplete; `run` performs discovery, generation, and update work rather than executing full examples.
+- The CLI runner does not compile source or spec files itself; source-only or otherwise unavailable spec classes are skipped/not executable until compiled classes are present on the effective classloader.
+- The runner lifecycle is an MVP: fresh spec instance per example plus optional public no-arg `let()` and `letGo()`. Pending examples, stop-on-failure, active formatters, bootstrap execution, profile-aware execution, and richer reporting remain future work.
 - Configuration files currently drive selected suite paths, package-prefix naming, constructor-policy defaults, and run class/example filters; bootstrap hooks and profile/formatter behavior remain metadata until later runner and formatter features are implemented.
 - Source parsing and generation use Java 8-compatible heuristics, not a full Java parser.
 - Generated post-Java-8 source forms, such as records and sealed types, require an appropriate JDK to compile.

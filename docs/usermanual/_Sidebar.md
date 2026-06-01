@@ -5,6 +5,7 @@
 - [Commands](Home.md#commands)
 - [Configuration files](Home.md#configuration-files)
 - [Suite naming and filters](Home.md#suite-naming-and-filters)
+- [Example execution MVP](Home.md#example-execution-mvp)
 - [BDD workflow](Home.md#bdd-workflow)
 - [Construction semantics](Home.md#construction-semantics)
 - [Typed proxy matcher syntax](Home.md#typed-proxy-matcher-syntax)
