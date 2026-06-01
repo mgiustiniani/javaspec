@@ -2,14 +2,14 @@
 
 ## 5.1 Current Runtime Building Blocks
 
-The implemented architecture now includes the Phase 2 first-MVP CLI/generation slice, the Phase 3 target-profile catalog and compatibility boundary, the Phase 4 configuration, naming, and discovery-filter model, the Phase 5/6 MVP reflection runner, the Phase 7 matcher/expectation expansion, and the Phase 8 MVP collaborators/doubles slice.
+The implemented architecture now includes the Phase 2 first-MVP CLI/generation slice, the Phase 3 target-profile catalog and compatibility boundary, the Phase 4 configuration, naming, and discovery-filter model, the Phase 5/6 MVP reflection runner, the Phase 7 matcher/expectation expansion, the Phase 8 MVP collaborators/doubles slice, and the Phase 9 CLI expansion.
 
 | Building block | Package | Responsibility |
 |---|---|---|
-| CLI adapter | `org.javaspec.cli` | Parses first-MVP `describe`/`desc` and `run` commands, `--config`, `--suite`, path overrides, constructor-policy overrides, run `--class`/`--example` filters, diagnostics, and exit codes; invokes the runner after discovery/generation/update and prints example summaries. |
+| CLI adapter | `org.javaspec.cli` | Parses first-MVP `describe`/`desc` and `run` commands, `--config`, `--suite`, path overrides, constructor-policy overrides, run `--class`/`--example` filters, Phase 9 run controls (`--dry-run`, `--stop-on-failure`, `--formatter`, `--profile`, `--verbose`), diagnostics, and exit codes; invokes the runner after discovery/generation/update and prints progress or pretty output. |
 | Configuration model | `org.javaspec.config` | Provides immutable default/configured suite settings and a restricted zero-runtime-dependency config parser. |
-| Spec discovery, naming, and generation | `org.javaspec.discovery`, `org.javaspec.naming`, `org.javaspec.generation` | Applies default/configured naming conventions, discovers `*Spec.java` files, extracts example metadata, recognizes expanded chained matcher names for method-discovery/default-return inference where applicable, applies suite selection and class/example filters, feeds runner metadata, and plans/writes gated spec, support, production type, constructor, factory, and method skeletons. |
-| Reflection runner | `org.javaspec.runner` | Executes filtered discovered examples reflectively when compiled spec classes are available on the effective classloader, records PASSED/FAILED/BROKEN/SKIPPED outcomes, and aggregates run/spec/example results. |
+| Spec discovery, naming, and generation | `org.javaspec.discovery`, `org.javaspec.naming`, `org.javaspec.generation` | Applies default/configured naming conventions, discovers `*Spec.java` files, extracts example metadata, recognizes expanded chained matcher names for method-discovery/default-return inference where applicable, applies suite selection and class/example filters, feeds runner metadata, and plans/writes or dry-run reports gated spec, support, production type, constructor, factory, and method skeletons. |
+| Reflection runner | `org.javaspec.runner` | Executes filtered discovered examples reflectively when compiled spec classes are available on the effective classloader, records PASSED/FAILED/BROKEN/SKIPPED outcomes, supports stop-on-failure, and aggregates run/spec/example results. |
 | Object behavior and matchers | `org.javaspec.api`, `org.javaspec.matcher` | Provides the Java-facing specification base class, lazy construction support, expectation wrappers, expanded matcher helpers, direct convenience assertions that delegate through `match(actual)`, double convenience APIs, matcher contracts, and custom matcher registration without runtime dependencies. |
 | Doubles engine | `org.javaspec.doubles` | Provides zero-runtime-dependency interface doubles using JDK dynamic proxies, return-value stubbing, call history, and called/not-called/exact-count verification. |
 | Profile catalog | `org.javaspec.profile` | Stores deterministic Java LTS profile, feature-flag, and API-symbol metadata for Java 8, 11, 17, 21, and 25. |
@@ -41,7 +41,7 @@ This boundary preserves the ADR 0001 rule that Java 11+ capabilities are metadat
 
 `org.javaspec.config` contains the Phase 4 configuration boundary:
 
-- `JavaspecConfiguration` represents top-level settings: target profile, formatter, constructor policy, default suite, bootstrap metadata, and configured suites.
+- `JavaspecConfiguration` represents top-level settings: target profile, formatter, constructor policy, default suite, bootstrap metadata, and configured suites. Phase 9 consumes profile and formatter as run selections; bootstrap remains metadata.
 - `JavaspecSuiteConfiguration` represents one suite: suite name, spec root, source root, spec package prefix, production package prefix, and suite bootstrap metadata.
 - `JavaspecConfigurationParser` reads a restricted line-based format with `=` or `:` separators, comment lines beginning with `#`, duplicate-key detection, unknown-key detection, required-value validation, and profile/constructor-policy validation.
 - `ConstructorPolicyParser` keeps configuration-facing constructor-policy values limited to `delete`, `preserve`, and `comment`.
@@ -53,7 +53,7 @@ The naming/discovery boundary is implemented by `SpecNamingConvention`, `SpecDis
 - `SpecDiscoveryRequest` carries the spec root, suite name, naming convention, class filters, and example filters.
 - `SpecExample` records public `void` `it_*`/`its_*` example methods with display names and source-order indexes.
 
-The CLI adapter applies the selected suite's spec/source paths and package prefixes unless command-line path options override paths. `run` uses the configured constructor policy unless command-line `--constructor-policy` overrides it, filters classes with repeatable `--class <name>`, and filters examples with repeatable `--example <name>`. The same filtered `DiscoveredSpec`/`SpecExample` metadata is passed to the reflection runner, so filters affect both generation/update work and executable example selection. Bootstrap hooks and profile/formatter behavior are currently metadata for later runner and formatter features.
+The CLI adapter applies the selected suite's spec/source paths and package prefixes unless command-line path options override paths. `run` uses the configured constructor policy, profile, and formatter unless command-line `--constructor-policy`, `--profile`, or `--formatter` overrides them, filters classes with repeatable `--class <name>`, and filters examples with repeatable `--example <name>`. The same filtered `DiscoveredSpec`/`SpecExample` metadata is passed to the reflection runner, so filters affect both generation/update work and executable example selection. Bootstrap hooks are currently metadata for later runner features; selected profiles are validated and reported but not deeply enforced yet.
 
 ## 5.5 Reflection Runner
 
@@ -61,12 +61,13 @@ The CLI adapter applies the selected suite's spec/source paths and package prefi
 
 - `SpecRunner` accepts discovered specs and an effective classloader. It loads compiled spec classes reflectively and does not compile source or spec files itself.
 - `DiscoveredSpec` and `SpecExample` remain the metadata source for which classes and examples may execute; source-discovery suite, class, and example filters therefore remain effective at execution time.
+- By default the runner processes all discovered example metadata; with `--stop-on-failure`, execution stops after the first FAILED or BROKEN executable example.
 - Each example receives a fresh spec instance from the spec class no-argument constructor.
 - Optional public no-argument `let()` is invoked before each example; optional public no-argument `letGo()` is invoked after each example, including after failures.
 - `ExampleStatus` defines `PASSED`, `FAILED`, `BROKEN`, and `SKIPPED`.
 - `AssertionError` from the example body is `FAILED`; non-assertion throwables from examples, lifecycle methods, instantiation, or reflection inspection are `BROKEN`.
 - Non-loadable spec classes and missing or non-public/no-arg reflected example methods are `SKIPPED`.
-- `ExampleResult`, `SpecResult`, `RunResult`, and `FailureDetail` provide immutable result aggregation for the CLI summary and future formatters.
+- `ExampleResult`, `SpecResult`, `RunResult`, and `FailureDetail` provide immutable result aggregation for the CLI progress/pretty output and future formatters.
 
 The current limitation is deliberate: source-only or otherwise unavailable spec classes are skipped/not executable until an external build, IDE, or launcher puts compiled classes on the effective classloader.
 

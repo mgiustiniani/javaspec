@@ -28,8 +28,9 @@
 - Advanced features that normally require third-party dependencies must be implemented using JDK APIs, exposed as optional extensions, or deferred.
 - Core doubles are ordinary interface-only JDK dynamic proxies; concrete/final class doubles, static doubles, constructor doubles, wildcard matchers, exception/callback stubbing, and default-interface-method invocation are outside the Phase 8 core MVP.
 - Reflection must be isolated behind compatibility boundaries to avoid accidental linkage to newer JDK APIs.
-- Configuration bootstrap hooks and profile/formatter settings remain metadata until the corresponding runner and formatter features are implemented; suite package prefixes are active naming-convention inputs for `describe`, `run`, discovery, spec/support generation, and MVP reflection execution.
+- Configuration bootstrap hooks remain metadata until bootstrap execution is implemented; profile and formatter settings are active `run` selections with CLI overrides, while selected profiles are not deeply enforced during execution yet. Suite package prefixes are active naming-convention inputs for `describe`, `run`, discovery, spec/support generation, and MVP reflection execution.
 - The MVP CLI runner does not compile source or specification files itself; executable examples require compiled spec classes on the effective classloader, while source-only or unavailable spec classes are skipped.
+- Dry-run mode must not write files or prompt, and run-only controls must be rejected by `describe`/`desc`.
 - User-facing diagnostics should explain zero-dependency limitations clearly.
 
 ## 2.4 Compatibility Constraints

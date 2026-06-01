@@ -4,20 +4,21 @@ This plan defines the initial delivery path for javaspec, a Java 8-compatible, z
 
 ## Current Implementation Status — Implemented and Verified
 
-Phases 2, 3, and 4 are complete, the Phase 5/6 MVP reflection runner is implemented, the Phase 7 matcher/expectation expansion is implemented, and the Phase 8 MVP collaborators/doubles implementation is complete.
+Phases 2 through 9 are complete and verified.
 
 - Phase 2 implemented the Java 8 Maven project, zero-runtime-dependency guard, PHPSpec-style `describe`/`run` split, specification/support skeletons, and gated production type/method generation.
 - Phase 3 implemented Java LTS target profiles `java8`, `java11`, `java17`, `java21`, and `java25`, the profile catalog, API-symbol metadata, target-profile compatibility checks, and reflection-only API availability probes.
 - Phase 4 implemented the zero-runtime-dependency line-based configuration format, `--config <file>` and `--suite <name>` integration, suite-level spec/source directories, suite package prefixes, naming convention integration, and suite/class/example discovery filters.
 - The Phase 5/6 MVP implemented `org.javaspec.runner`, keeps `javaspec run` discovery/generation/update behavior, and executes filtered discovered examples when compiled spec classes are available on the effective classloader.
 - Runner behavior: existing `DiscoveredSpec`/`SpecExample` metadata remains the execution source, so suite/class/example filters remain effective; each example gets a fresh spec instance; optional public no-arg `let()` runs before each example and optional public no-arg `letGo()` runs after each example.
-- Result states are `PASSED`, `FAILED` for `AssertionError`, `BROKEN` for non-assertion throwables/lifecycle/reflection errors, and `SKIPPED` for non-loadable spec classes or missing reflected example methods. The CLI prints a summary and exits `1` for failed or broken executable examples.
+- Result states are `PASSED`, `FAILED` for `AssertionError`, `BROKEN` for non-assertion throwables/lifecycle/reflection errors, and `SKIPPED` for non-loadable spec classes or missing reflected example methods. The CLI exits `1` for failed or broken executable examples.
 - Phase 7 expanded `Matchable` with negated equality aliases, type/instance aliases, `shouldImplement`, string negations, count/empty helpers for arrays/collections/maps/character sequences/iterables, and map key/value helpers.
 - Phase 7 expanded `ObjectBehavior` direct convenience assertion methods that delegate through `match(actual)`, kept `MatcherRegistry` zero-dependency with a default negated-equality matcher, and updated `SpecDiscovery` so expanded chained matcher names participate in method-discovery/default-return inference where applicable.
 - Phase 8 added zero-runtime-dependency interface doubles under `org.javaspec.doubles` using JDK dynamic proxies. The MVP supports ordinary interface doubles, return-value stubbing by method name or exact arguments, null and array-content argument matching, call history, called/not-called/exact-count verification, deterministic `toString`/`equals`/`hashCode`, Java default returns for unstubbed methods, and `ObjectBehavior` double convenience APIs.
-- Known limitations: the CLI runner does not compile source/spec files itself; source-only or otherwise unavailable spec classes are skipped/not executable. Count and emptiness checks on a generic `Iterable` consume the iterable and can hang on infinite iterables. Phase 8 doubles do not support concrete class/static/constructor/final-class doubles, primitives, arrays, annotations, enums, wildcard argument matchers, exception/callback stubbing, bytecode libraries, or default-interface-method invocation.
-- Verification completed on 2026-06-01 after the Phase 8 MVP collaborators/doubles implementation: `mvn verify` passed with 328 tests.
-- Runtime dependency verification completed on 2026-06-01 after the Phase 8 MVP collaborators/doubles implementation: `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+- Phase 9 expanded `javaspec run` with run-only controls: `--dry-run`, `--stop-on-failure`, `--formatter <progress|pretty>`, `--profile <java8|java11|java17|java21|java25>`, and `--verbose`. Dry-run never writes or prompts and reports pending would-generate/would-update actions; stop-on-failure stops after the first FAILED or BROKEN executable example; progress output is concise and summary-oriented; pretty output prints per-example status lines plus details; CLI formatter/profile options override valid config/default selections; verbose output prints selected run settings.
+- Known limitations: the CLI runner does not compile source/spec files itself; source-only or otherwise unavailable spec classes are skipped/not executable. Selected profiles are validated and reported but not deeply enforced during execution yet. Count and emptiness checks on a generic `Iterable` consume the iterable and can hang on infinite iterables. Phase 8 doubles do not support concrete class/static/constructor/final-class doubles, primitives, arrays, annotations, enums, wildcard argument matchers, exception/callback stubbing, bytecode libraries, or default-interface-method invocation.
+- Verification completed on 2026-06-01 after the Phase 9 CLI expansion: `mvn verify` passed with 338 tests.
+- Runtime dependency verification completed on 2026-06-01 after the Phase 9 CLI expansion: `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
 
 ## ADR 0004 Correction Status — Implemented and Verified
 
@@ -129,7 +130,7 @@ Implementation summary:
 7. Integrated configuration with constructor handling: `run` uses the configured constructor policy unless command-line `--constructor-policy` overrides it; valid values remain `delete`, `preserve`, and `comment`.
 8. Integrated suite package prefixes with `SpecNamingConvention`, `SpecDiscoveryRequest`, spec/support skeleton planning, and CLI describe/run flows so configured `specPackagePrefix` and `packagePrefix` map production classes to spec/support classes.
 9. Added suite selection and run filters: `--suite <name>` selects the configured suite and spec root, repeatable `--class <name>` filters by described qualified/simple name or spec qualified/simple name, and repeatable `--example <name>` filters by example method name, display name, or source-order index.
-10. Bootstrap values are comma-separated metadata only and are not executed yet. Profile and formatter values are parsed/validated metadata until the corresponding runner and formatter features are implemented.
+10. Bootstrap values are comma-separated metadata only and are not executed yet. Profile and formatter values were introduced as validated configuration values in Phase 4; Phase 9 now selects active profiles and built-in formatter output, while deep profile enforcement remains future work.
 11. Added tests: `src/test/java/org/javaspec/config/JavaspecConfigurationTest.java`, `src/test/java/org/javaspec/config/JavaspecConfigurationParserTest.java`, `src/test/java/org/javaspec/cli/MainConfigurationIntegrationTest.java`, `src/test/java/org/javaspec/discovery/SpecNamingConventionTest.java`, `src/test/java/org/javaspec/discovery/SpecDiscoveryNamingTest.java`, and `src/test/java/org/javaspec/generation/SpecSkeletonGeneratorNamingTest.java`.
 
 Verification summary:
@@ -162,7 +163,7 @@ Known limitations:
 
 - The CLI runner does not compile source/spec files itself. Source-only or otherwise unavailable spec classes are skipped/not executable until an external build, IDE, or launcher puts compiled classes on the effective classloader.
 - Lifecycle support is intentionally minimal: public no-argument `let()` and `letGo()` only.
-- Pending examples, stop-on-failure, active formatter behavior, bootstrap execution, profile-aware execution, and richer reporting remain later work.
+- Pending examples, bootstrap execution, deep profile-aware execution, and richer reporting remain later work. Stop-on-failure and built-in progress/pretty formatter behavior are implemented in Phase 9.
 
 ## Phase 7 Matcher/Expectation Expansion Status — Implemented and Verified
 
@@ -212,10 +213,11 @@ Further implementation work must be delegated to the appropriate workflow agents
 | Method generation | ADR 0004, this plan, user manual | Implemented and verified: discovery from typed proxy/throw calls, direct subject/setter calls, static factory construction markers, and the expanded chained matcher names where applicable; Java 8-compatible instance method and static factory skeleton generation; static factory descriptors are skipped by generated support proxies; `--generate` writes non-interactively and interactive `run` prompts before updating existing source files. |
 | Configuration model and inferred defaults | README, user manual, ARC42 section 5, ADR 0005, this plan | Implemented in Phase 4: `JavaspecConfiguration.defaults()` provides the default suite `default`, Maven-style spec/source roots, `spec` package prefix, empty production package prefix, `java8` profile, `progress` formatter, `comment` constructor policy, and empty bootstrap hooks when no config file is supplied. |
 | Constructor-policy config default | ADR 0004, ADR 0005, user manual, this plan | Implemented in Phase 4: config key `constructorPolicy`/`constructor-policy` accepts only `delete`, `preserve`, and `comment`; `comment` remains the inferred and config default, and `run --constructor-policy` overrides config explicitly. |
-| Explicit suites, paths, profile, and formatter config | README, user manual, ARC42 section 5, ADR 0005, this plan | Implemented in Phase 4: `--config <file>` and `--suite <name>` select suite configuration; selected-suite `specDir`/`sourceDir` drive `describe`/`run` unless CLI path options override them; selected-suite `specPackagePrefix`/`packagePrefix` drive naming; `profile` and `formatter` are parsed/validated metadata until profile-aware runner and formatter behavior is implemented. |
+| Explicit suites, paths, profile, and formatter config | README, user manual, ARC42 section 5, ADR 0005, this plan | Implemented in Phase 4 and expanded in Phase 9: `--config <file>` and `--suite <name>` select suite configuration; selected-suite `specDir`/`sourceDir` drive `describe`/`run` unless CLI path options override them; selected-suite `specPackagePrefix`/`packagePrefix` drive naming; config `profile` and `formatter` provide run defaults that valid CLI `--profile` and `--formatter` override. Profile selection is validated but not deeply enforced yet. |
 | Naming convention integration | README, user manual, ARC42 section 5, ADR 0005, this plan | Implemented in Phase 4: `SpecNamingConvention` maps production names to spec/support packages using configured suite package prefixes, validates naming metadata, and is used by describe, discovery, and support generation. |
 | Suite, class, and example filters | README, user manual, ARC42 section 5, this plan | Implemented in Phase 4 and reused by the Phase 5/6 MVP runner: `--suite` selects the configured suite; repeatable `--class` filters by described or spec class names; repeatable `--example` filters by example method name, display name, or source-order index; filtered `DiscoveredSpec`/`SpecExample` metadata controls both generation/update and reflection execution. |
-| Phase 5/6 MVP reflection runner | README, user manual, ARC42 section 5, ADR 0006, this plan | Implemented and verified: after discovery/generation/update, `javaspec run` executes examples when compiled spec classes are available on the effective classloader; each example uses a fresh spec instance with optional public no-arg `let()` and `letGo()`; results are `PASSED`, `FAILED`, `BROKEN`, or `SKIPPED`; CLI summary exits `1` for failed/broken executable examples; source-only/unavailable spec classes are skipped because the CLI does not compile them. |
+| Phase 5/6 MVP reflection runner | README, user manual, ARC42 section 5, ADR 0006, this plan | Implemented and verified: after discovery/generation/update, `javaspec run` executes examples when compiled spec classes are available on the effective classloader; each example uses a fresh spec instance with optional public no-arg `let()` and `letGo()`; results are `PASSED`, `FAILED`, `BROKEN`, or `SKIPPED`; CLI summary exits `1` for failed/broken executable examples; source-only/unavailable spec classes are skipped because the CLI does not compile them. Phase 9 adds `--stop-on-failure` to stop after the first FAILED or BROKEN executable example while the default remains executing all discovered metadata. |
+| Phase 9 CLI expansion | README, user manual, ARC42 section 5, this plan | Implemented and verified: `run --dry-run` performs no writes and no prompts, reports would-generate/would-update actions for related specs/support, support updates, constructors, methods, and missing production type generation, exits `1` when pending work exists, and exits `0` when no pending changes exist and examples pass or skip; `run --stop-on-failure` stops after the first FAILED or BROKEN executable example; `run --formatter <progress|pretty>` selects concise or per-example output and overrides config/default; `run --profile <java8|java11|java17|java21|java25>` validates/selects the profile and overrides config without deep enforcement yet; `run --verbose` prints selected run settings; all Phase 9 controls are rejected for `describe`. |
 | Missing-class flow with config | User manual, this plan | Implemented in Phase 4: `run` uses inferred defaults without a config file and selected-suite paths/naming with explicit config, preserving the existing missing-production prompt and `--generate` non-interactive generation behavior. |
 | Maven implementation | This plan | Implemented in Phase 2. |
 | Package base `org.javaspec` | README, this plan | Implemented in Phase 2 and retained for future work. |
@@ -242,7 +244,7 @@ Further implementation work must be delegated to the appropriate workflow agents
 - Keep constructor policy states limited to `delete`, `preserve`, and `comment`; use `comment` as the default and require explicit opt-in for destructive deletion.
 - Keep configuration parsing restricted, line-based, and zero-dependency; do not add YAML/TOML/JSON parser dependencies to runtime.
 - Treat missing config as `JavaspecConfiguration.defaults()` and apply command-line path/constructor-policy overrides over selected-suite values while keeping selected-suite package prefixes in the active naming convention.
-- Treat bootstrap hooks and profile/formatter settings as parsed metadata until the corresponding runner and formatter features are implemented; suite package prefixes are active naming-convention inputs for describe/run discovery, generation, and MVP reflection execution.
+- Treat bootstrap hooks as parsed metadata until bootstrap execution is implemented; treat profile and formatter settings as active run selections, with CLI overrides over config/default values, while profile selection remains validation/reporting only until deep enforcement is implemented.
 - Use `DiscoveredSpec` and `SpecExample` as the execution selection source so suite, class, and example filters remain effective for the runner.
 - Treat the CLI runner as a classpath reflection executor, not an in-process compiler; source-only or unavailable spec classes are skipped/not executable until compiled classes are present on the effective classloader.
 - Prefer generated subject-specific typed support/proxy classes while keeping explicit `match(value)` style APIs available.
@@ -301,7 +303,7 @@ Verification:
 
 Still out of scope after the ADR 0004 correction:
 
-- Complete PHPSpec-style runner lifecycle beyond the Phase 5/6 MVP reflection runner, including pending examples, stop-on-failure, active formatters, bootstrap execution, and profile-aware execution.
+- Complete PHPSpec-style runner lifecycle beyond the Phase 5/6 MVP reflection runner, including pending examples, bootstrap execution, deep profile-aware execution, and richer reporting. Stop-on-failure and built-in progress/pretty formatters are implemented in Phase 9.
 - Interface generation beyond minimal skeletons.
 - Private constructor source generation and broader named-constructor customization beyond the current static factory skeleton support.
 - Template systems beyond the minimal class-like/spec/support skeleton need.
@@ -368,7 +370,7 @@ Implemented scope:
 9. Added suite selection and run filters: repeatable `--class <name>` filters by described qualified name, described simple name, spec qualified name, or spec simple name; repeatable `--example <name>` filters by example method name, display name, or source-order index. Suite selection through `--suite <name>` selects the configured suite, spec root, source root, and naming convention.
 10. Applied the configured constructor policy to `run` unless command-line `--constructor-policy` overrides it.
 11. Preserved the missing-production prompt and `--generate` flow for inferred defaults and explicit config.
-12. Kept bootstrap values as comma-separated metadata only. Profile and formatter values are parsed/validated metadata until the corresponding runner and formatter features are implemented.
+12. Kept bootstrap values as comma-separated metadata only. Profile and formatter values were parsed/validated configuration values in Phase 4 and are now consumed by Phase 9 run profile/formatter selection.
 
 Implemented files/classes at a high level:
 
@@ -398,7 +400,7 @@ Verification:
 Acceptance criteria status:
 
 - A default configuration can be inferred with no config file.
-- Explicit config can select suite, paths, target profile, formatter, constructor policy, spec package prefix, and production package prefix. Current `describe`/`run` behavior uses selected suite paths, package prefixes, and constructor policy; profile, formatter, and bootstrap remain parsed/validated metadata until later runner features.
+- Explicit config can select suite, paths, target profile, formatter, constructor policy, spec package prefix, and production package prefix. Current `describe`/`run` behavior uses selected suite paths, package prefixes, and constructor policy; Phase 9 `run` also consumes configured profile and formatter defaults, while bootstrap remains parsed metadata until later runner features.
 - Naming convention mapping works for default and configured package prefixes, including spec/support skeleton paths and discovery mapping back to described production classes.
 - Suite selection, class filters, and example filters are implemented for the current discovery/generation flow and are reused by the MVP reflection runner.
 - Invalid config, including an unknown constructor policy or invalid naming metadata, produces clear diagnostics.
@@ -419,9 +421,9 @@ Implemented scope:
 
 Remaining tasks:
 
-1. Extend discovery diagnostics and source locations as needed by future formatter and reporting layers.
-2. Add richer runner controls such as stop-on-failure only after the MVP reflection runner remains stable.
-3. Preserve the source-discovery metadata contract when future bootstrap/profile/formatter behavior is added.
+1. Extend discovery diagnostics and source locations as needed by future reporting layers.
+2. Preserve the source-discovery metadata contract when future bootstrap and deeper profile behavior is added.
+3. Keep Phase 9 stop-on-failure and formatter behavior aligned with the existing discovery metadata contract.
 
 Acceptance criteria status:
 
@@ -448,7 +450,7 @@ Implemented scope:
 
 Remaining tasks:
 
-1. Add pending examples, stop-on-failure, verbosity, active formatter behavior, bootstrap execution, profile-aware execution, and richer reporting.
+1. Add pending examples, bootstrap execution, deep profile-aware execution, and richer reporting; stop-on-failure, verbosity, and built-in progress/pretty formatter behavior are implemented in Phase 9.
 2. Expand source-location diagnostics for failed/broken examples where available.
 3. Continue to refine typed proxy matcher diagnostics and method-generation reporting without forcing eager subject construction.
 4. Keep ADR 0004 construction semantics stable as the runner grows beyond the MVP lifecycle.
@@ -530,28 +532,34 @@ Acceptance criteria status:
 - Limitations are explicit and tested.
 - The API does not require non-JDK runtime artifacts.
 
-### Phase 9 — CLI Expansion
+### Phase 9 — CLI Expansion (Completed)
 
-**Owner later:** Java implementation agent.
+**Status:** Implemented and verified for the current run-control increment.
 
-**Status note:** ADR 0004 implemented constructor-policy help, parsing, defaults, and diagnostics. Phase 4 implemented `--config`/`--suite`, selected-suite path and package-prefix precedence, config-backed constructor-policy defaults, and repeatable `--class`/`--example` filters for `run`. Broader CLI expansion remains future work.
+Implementation summary:
 
-Tasks:
+1. Preserved the existing `describe`/`desc` spec-only behavior and the `run` discovery/generation/update/execution flow.
+2. Added `javaspec run --dry-run`: no files are written, no prompts are shown, and the CLI reports would-generate/would-update actions for related specs/support, support updates, constructor changes, method skeletons, and missing production type generation.
+3. Defined dry-run exits: `1` when pending generation/update work exists; `0` when no pending changes exist and executable examples pass or are skipped-only; failed or broken executable examples still produce exit `1`.
+4. Added `javaspec run --stop-on-failure`: the runner stops after the first FAILED or BROKEN executable example. Without this flag, the default remains to process all discovered example metadata.
+5. Added `javaspec run --formatter <progress|pretty>`: `progress` is concise and summary-oriented; `pretty` prints per-example status lines plus failed/broken/skipped details. A valid CLI formatter overrides config; otherwise the configured formatter or default `progress` is used.
+6. Added `javaspec run --profile <java8|java11|java17|java21|java25>`: the profile is validated and selected, and a valid CLI profile overrides config. Deep profile enforcement is not implemented yet.
+7. Added `javaspec run --verbose`: prints selected suite, spec root, source root, spec package prefix, production package prefix, constructor policy, profile, formatter, dry-run, and stop-on-failure.
+8. Rejected the new run-only flags for `describe`/`desc`, along with existing run-only controls such as `--generate`, `--constructor-policy`, `--class`, and `--example`.
+9. Preserved zero-runtime-dependency CLI parsing; no external CLI/formatter dependency was added.
 
-1. Expand beyond the first-MVP `describe` or minimal `run`/`describe` flow into the full phpspec-inspired CLI.
-2. Support commands such as `run`, `describe`, and `desc`.
-3. Maintain `--constructor-policy <delete|preserve|comment>` in help text, parsing, defaults, and diagnostics, with `comment` as the default and destructive deletion available only through `delete`.
-4. Extend Phase 4 config selection into active formatter behavior, bootstrap execution, stop-on-failure, profile-aware execution, dry-run/confirmation behavior for generation, and verbosity.
-5. Avoid external CLI parsing dependencies.
-6. Define stable exit codes.
+Verification:
 
-Acceptance criteria:
+- `mvn verify` passed with 338 tests.
+- `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
 
-- CLI works on Java 8.
+Acceptance criteria status:
+
+- CLI works on Java 8-compatible production code.
 - Unknown commands and invalid options produce clear diagnostics.
-- CLI help documents the exact constructor policy states and the `comment` default.
-- `describe` preserves the first-MVP spec-only behavior, while `run` preserves missing-production-class and missing-method suggestion behavior.
-- CLI generation-related actions remain gated by explicit confirmation, dry-run, or documented non-interactive policy.
+- CLI help documents constructor policy, dry-run, stop-on-failure, formatter, profile, verbose, filters, and run/describe ownership.
+- `describe` preserves first-MVP spec-only behavior, while `run` preserves missing-production-class and missing-method suggestion behavior.
+- CLI generation-related actions remain gated by explicit confirmation, dry-run reporting, or documented non-interactive `--generate` behavior.
 
 ### Phase 10 — Advanced Code Generation
 
@@ -589,14 +597,14 @@ Acceptance criteria:
 
 Tasks:
 
-1. Implement progress and pretty formatters.
+1. Keep the Phase 9 built-in `progress` and `pretty` output stable while richer reporting is designed.
 2. Define formatter extension contracts.
 3. Add machine-readable reports only if they can be produced without runtime dependencies.
 4. Define extension registration and lifecycle hooks.
 
 Acceptance criteria:
 
-- Human-readable output is clear for local use.
+- Human-readable output remains clear for local use.
 - CI receives stable exit codes and optional machine-readable output.
 - Extensions can add matchers, formatters, generators, or lifecycle behavior without modifying core internals.
 
@@ -615,6 +623,7 @@ Tasks:
 7. Maintain and expand ADR 0004 correction tests for constructor default/comment policy, CLI help/parser behavior, class update safety, PHPSpec construction override/lazy semantics, factory construction skeleton generation, generated typed proxy compilation, matcher semantics and negation, throw/during/duringInstantiation behavior, method generation for missing methods and default returns, and user-manual examples when those examples become testable.
 8. Maintain and expand Phase 4 configuration, naming, and filter tests for defaults, parser diagnostics, suite/path/package-prefix precedence, constructor-policy config defaults and overrides, class/example filters, and missing-class flow with inferred and explicit config.
 9. Maintain and expand Phase 8 doubles tests for supported interface doubles, unsupported target diagnostics, method-name and exact-argument stubbing, null and array argument matching, call history, verification helpers, default returns, object methods, and `ObjectBehavior` convenience APIs.
+10. Maintain and expand Phase 9 CLI tests for dry-run no-write/no-prompt behavior and exit codes, stop-on-failure, progress/pretty formatter selection, CLI-over-config profile/formatter precedence, verbose output, and rejection of run-only flags by `describe`.
 
 Acceptance criteria:
 
@@ -635,7 +644,7 @@ Tasks:
 3. Integrate test and quality reports produced by tester agents.
 4. Keep `docs/usermanual/Home.md` and `docs/usermanual/_Sidebar.md` synchronized after implementation begins.
 5. Add user guide and migration notes from PHPSpec concepts to Java concepts.
-6. Document configuration files, construction, constructor policy, typed matcher syntax, method generation, interface doubles, limitations, commands, examples, the first-MVP generator flow, and later advanced generator behavior according to what is implemented.
+6. Document configuration files, construction, constructor policy, typed matcher syntax, method generation, interface doubles, Phase 9 run controls, limitations, commands, examples, the first-MVP generator flow, and later advanced generator behavior according to what is implemented.
 
 Acceptance criteria:
 

@@ -2,7 +2,7 @@
 
 ## 4.1 Strategy Overview
 
-javaspec is being built as a small Java 8-compatible core with clear extension boundaries. The implemented core already contains the first-MVP CLI/generation slice, profile metadata, compatibility checks/probes, Phase 4 configuration, naming, and discovery-filter integration, the Phase 5/6 MVP reflection runner, the Phase 7 matcher/expectation expansion, and Phase 8 JDK-proxy interface doubles; later phases will add richer execution controls, active formatter/bootstrap behavior, optional advanced doubles, and extension behavior needed for a fuller phpspec-inspired workflow.
+javaspec is being built as a small Java 8-compatible core with clear extension boundaries. The implemented core already contains the first-MVP CLI/generation slice, profile metadata, compatibility checks/probes, Phase 4 configuration, naming, and discovery-filter integration, the Phase 5/6 MVP reflection runner, the Phase 7 matcher/expectation expansion, Phase 8 JDK-proxy interface doubles, and Phase 9 run controls; later phases will add bootstrap execution, deeper profile enforcement, pending examples, optional reports, optional advanced doubles, and extension behavior needed for a fuller phpspec-inspired workflow.
 
 ## 4.2 Key Architectural Decisions
 
@@ -25,10 +25,10 @@ javaspec is being built as a small Java 8-compatible core with clear extension b
    The implemented metadata catalog describes Java LTS profiles (`java8`, `java11`, `java17`, `java21`, `java25`), feature flags, and public API symbols relevant to javaspec.
 
 3. **Restricted configuration and naming model**
-   The implemented `org.javaspec.config` package loads inferred defaults and explicit line-based configuration without external parser dependencies. The CLI applies selected-suite spec/source paths, package-prefix naming, and configured constructor-policy defaults while keeping bootstrap hooks and profile/formatter behavior as metadata for later runner features.
+   The implemented `org.javaspec.config` package loads inferred defaults and explicit line-based configuration without external parser dependencies. The CLI applies selected-suite spec/source paths, package-prefix naming, configured constructor-policy defaults, and configured profile/formatter defaults. Bootstrap hooks remain metadata; selected profiles are validated/reported but not deeply enforced yet.
 
 4. **Classpath reflection runner**
-   The implemented `org.javaspec.runner` package executes discovered examples only when compiled specification classes are available on the effective classloader. It reuses `DiscoveredSpec` and `SpecExample` metadata so suite, class, and example filters remain effective. The runner creates a fresh spec instance per example and supports optional public no-arg `let()`/`letGo()` hooks.
+   The implemented `org.javaspec.runner` package executes discovered examples only when compiled specification classes are available on the effective classloader. It reuses `DiscoveredSpec` and `SpecExample` metadata so suite, class, and example filters remain effective. The runner creates a fresh spec instance per example, supports optional public no-arg `let()`/`letGo()` hooks, and can stop after the first FAILED or BROKEN executable example when `run --stop-on-failure` is selected.
 
 5. **Reflective compatibility boundary**
    Runtime probing of optional newer APIs is isolated in the implemented compatibility layer, which accepts class, method, and field names as strings.
@@ -47,30 +47,30 @@ javaspec is being built as a small Java 8-compatible core with clear extension b
 
 ## 4.4 Building Blocks
 
-The implemented architecture includes the Phase 2 first-MVP slice, the Phase 3 profile/catalog slice, the Phase 4 configuration slice, the Phase 5/6 MVP reflection-runner slice, the Phase 7 matcher/expectation expansion, and the Phase 8 interface-doubles slice. See [ARC42 section 5](05-building-block-view.md) for concise building-block notes.
+The implemented architecture includes the Phase 2 first-MVP slice, the Phase 3 profile/catalog slice, the Phase 4 configuration slice, the Phase 5/6 MVP reflection-runner slice, the Phase 7 matcher/expectation expansion, the Phase 8 interface-doubles slice, and the Phase 9 CLI expansion. See [ARC42 section 5](05-building-block-view.md) for concise building-block notes.
 
 Implemented building blocks:
 
-- **CLI adapter**: parses `describe`/`desc`, `run`, `--config`, `--suite`, source/spec-root aliases, `--generate`, constructor policy, help, and first-MVP exit codes without external libraries; after discovery/generation/update it prints runner summaries and exits `1` for failed or broken executable examples.
+- **CLI adapter**: parses `describe`/`desc`, `run`, `--config`, `--suite`, source/spec-root aliases, `--generate`, `--dry-run`, `--stop-on-failure`, `--formatter <progress|pretty>`, `--profile <java8|java11|java17|java21|java25>`, `--verbose`, constructor policy, filters, help, and exit codes without external libraries; after discovery/generation/update it prints selected progress/pretty output and exits `1` for failed or broken executable examples or pending dry-run work.
 - **Described-class model**: validates Java class names and maps them to source-relative paths.
 - **Spec discovery model**: maps default or configured spec-package-prefix `*Spec.java` files to described production class-like types deterministically, recognizes kind markers such as `shouldBeAnInterface()`, parses relationship markers such as `shouldExtend(...)` and `shouldImplement(...)`, parses construction markers, expanded chained typed proxy matcher calls for method-discovery/default-return inference where applicable, throw proxy calls, sealed permitted subtype markers such as `shouldPermit(Circle.class)`, public `it_`/`its_` example metadata, and class/example filters.
 - **Discovery check**: detects source-root and classpath presence for a described class.
 - **Object behavior base and matcher engine**: provide the generic `ObjectBehavior<T>` type used by generated specs, lazy construction configuration, throw expectations, expanded `Matchable` expectation methods, direct convenience assertions that delegate through `match(actual)`, custom matcher registration, `ObjectBehavior` double conveniences, and a zero-dependency default matcher registry including negated equality.
-- **Reflection runner**: uses the discovered spec/example metadata to load compiled spec classes from the effective classloader, execute filtered examples with fresh instances and optional `let()`/`letGo()`, and produce PASSED/FAILED/BROKEN/SKIPPED results.
+- **Reflection runner**: uses the discovered spec/example metadata to load compiled spec classes from the effective classloader, execute filtered examples with fresh instances and optional `let()`/`letGo()`, produce PASSED/FAILED/BROKEN/SKIPPED results, and stop after the first failed/broken executable example when requested.
 - **Spec/support skeleton generator**: plans and writes Java 8-compatible PHPSpec-style spec and typed support skeletons from `describe` and `run` support updates.
 - **Type/method skeleton generator**: plans and writes minimal production class/interface/enum/annotation/record/sealed skeletons, constructor/static-factory changes, and Java 8-compatible method skeletons after an interactive `run` confirmation or non-interactive `run --generate`; post-Java-8 forms are emitted only as source text.
 - **Profile catalog**: `org.javaspec.profile` stores deterministic target profiles, feature flags, API symbols, symbol categories/kinds, and representative Java LTS data-structure metadata including Java 25 stream gatherers.
-- **Configuration and naming model**: `org.javaspec.config` loads inferred defaults and explicit suite/profile/formatter/path/package-prefix/constructor-policy settings with a restricted line-based parser; `SpecNamingConvention` applies suite package prefixes to describe, discovery, and support generation.
+- **Configuration and naming model**: `org.javaspec.config` loads inferred defaults and explicit suite/profile/formatter/path/package-prefix/constructor-policy settings with a restricted line-based parser; `SpecNamingConvention` applies suite package prefixes to describe, discovery, and support generation; run CLI options override valid configured profile/formatter/constructor-policy selections where applicable.
 - **Compatibility boundary**: `org.javaspec.compatibility` checks profile compatibility and probes optional APIs reflectively by string name, without direct Java 9+ production imports.
 - **Doubles engine**: `org.javaspec.doubles` creates ordinary-interface doubles through JDK dynamic proxies, configures return-value stubs by method name or exact arguments, records immutable call snapshots, verifies simple call expectations, and returns Java defaults for unstubbed methods.
 
 Later building blocks remain planned:
 
-- **Runner expansion**: adds richer suite execution controls, stop-on-failure, pending examples, source locations, bootstrap execution, profile-aware behavior, and formatter integration beyond the MVP reflection runner.
+- **Runner expansion**: adds pending examples, source locations, bootstrap execution, deeper profile-aware behavior, richer reporting, and formatter extension contracts beyond the current Phase 9 built-in controls.
 - **Expectation and matcher engine follow-up**: expands beyond the Phase 7 subset with additional PHPSpec parity, diagnostics, approximate equality, richer object-state matchers, and iteration/yield variants where Java-compatible.
 - **Advanced doubles extensions**: may add richer argument matching, exception/callback stubbing, or concrete-class/final-class/static/constructor doubles outside the zero-dependency core if a future ADR permits optional integrations.
 - **Advanced generator**: creates richer spec/source skeletons and missing-method snippets beyond the current generator subset.
-- **Formatter/reporting layer**: emits progress, pretty, and optional machine-readable reports.
+- **Formatter/reporting layer**: extends the built-in progress/pretty output with optional machine-readable reports and extension contracts.
 - **Extension API**: registers custom matchers, formatters, generators, and lifecycle hooks.
 
 ## 4.5 Risk Reduction Strategy

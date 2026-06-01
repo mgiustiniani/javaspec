@@ -2,7 +2,7 @@
 
 ## 1.1 Requirements Overview
 
-javaspec is a Java 8-compatible, zero-runtime-dependency specification framework inspired by phpspec. It supports an implemented first-MVP specification/generation slice, reflection runner, matcher expansion, and MVP interface doubles, and is planned to grow into a complete specification-first workflow for Java projects while keeping a conservative runtime baseline.
+javaspec is a Java 8-compatible, zero-runtime-dependency specification framework inspired by phpspec. It supports an implemented first-MVP specification/generation slice, reflection runner, matcher expansion, MVP interface doubles, and Phase 9 run controls, and is planned to grow into a complete specification-first workflow for Java projects while keeping a conservative runtime baseline.
 
 Core requirements:
 
@@ -13,8 +13,9 @@ Core requirements:
 - Model Java LTS target profiles for Java 8, 11, 17, 21, and 25 through a profile catalog, API-symbol metadata, compatibility checks, and reflection-only probes.
 - Avoid direct production-code references to APIs unavailable on Java 8.
 - Support zero-runtime-dependency line-based configuration with suite-level spec/source directories, package-prefix naming, and selected-suite discovery.
-- Execute discovered examples through a Java 8-compatible reflection runner when compiled spec classes are available on the effective classloader.
+- Execute discovered examples through a Java 8-compatible reflection runner when compiled spec classes are available on the effective classloader, with optional stop-on-failure.
 - Support zero-runtime-dependency interface doubles using JDK dynamic proxies, with explicit limitations for unsupported concrete/static/constructor scenarios.
+- Support run-only CLI controls for dry-run planning, progress/pretty output, profile selection, and verbose diagnostics.
 - Use phpspec as the functional inspiration for CLI, discovery, lifecycle, expectations, doubles, generation, reporting, and extension concepts.
 
 ## 1.2 Quality Goals

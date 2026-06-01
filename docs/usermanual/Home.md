@@ -2,9 +2,9 @@
 
 Wiki home for the current javaspec MVP.
 
-javaspec is a Java 8-compatible, zero-runtime-dependency specification tool inspired by PHPSpec. The current MVP supports the first spec-first loop plus the ADR 0004 correction work, follow-up factory construction generation, the Phase 7 matcher/expectation expansion, and Phase 8 MVP collaborators/doubles: specification/support generation, production type discovery and generation, constructor and static factory construction generation, typed proxy matcher support, direct `ObjectBehavior` convenience assertions, method skeleton generation, Phase 3 Java LTS profiles/catalog/API-symbol metadata/compatibility probes, Phase 4 configuration, naming, suite selection, discovery filters, the Phase 5/6 MVP reflection runner, and JDK-proxy interface doubles.
+javaspec is a Java 8-compatible, zero-runtime-dependency specification tool inspired by PHPSpec. The current MVP supports the first spec-first loop plus the ADR 0004 correction work, follow-up factory construction generation, the Phase 7 matcher/expectation expansion, Phase 8 MVP collaborators/doubles, and the completed Phase 9 CLI expansion: specification/support generation, production type discovery and generation, constructor and static factory construction generation, typed proxy matcher support, direct `ObjectBehavior` convenience assertions, method skeleton generation, Phase 3 Java LTS profiles/catalog/API-symbol metadata/compatibility probes, Phase 4 configuration, naming, suite selection, discovery filters, the Phase 5/6 MVP reflection runner, JDK-proxy interface doubles, and run-only controls for dry-run planning, stop-on-failure, progress/pretty formatting, profile selection, and verbose diagnostics.
 
-> Current status: `describe` writes specification/support files only. `javaspec run` keeps discovery, generation, and source updates, then executes discovered examples when the compiled spec classes are available on the effective classloader. It reuses `DiscoveredSpec`/`SpecExample` metadata, so suite, class, and example filters remain effective. The matcher set includes expanded negation, type/instance, count/empty, string, and map key/value helpers while preserving zero runtime dependencies. Interface doubles are available for ordinary interfaces through JDK dynamic proxies, with method-name/exact-argument stubbing, call history, and verification helpers. Configured bootstrap hooks, profile, and formatter values are parsed/validated metadata for later runner and formatter features.
+> Current status: `describe` writes specification/support files only. `javaspec run` keeps discovery, generation, and source updates, then executes discovered examples when the compiled spec classes are available on the effective classloader. It reuses `DiscoveredSpec`/`SpecExample` metadata, so suite, class, and example filters remain effective. The matcher set includes expanded negation, type/instance, count/empty, string, and map key/value helpers while preserving zero runtime dependencies. Interface doubles are available for ordinary interfaces through JDK dynamic proxies, with method-name/exact-argument stubbing, call history, and verification helpers. Phase 9 run controls are active: `--dry-run` reports pending work without writes or prompts, `--stop-on-failure` stops after the first FAILED or BROKEN executable example, `--formatter` selects `progress` or `pretty`, `--profile` validates/selects an LTS profile without deep enforcement yet, and `--verbose` prints the selected run settings. Bootstrap hooks remain parsed metadata and are not executed yet.
 
 ## Quick start
 
@@ -32,7 +32,7 @@ javaspec='java -jar target/javaspec-0.1.0-SNAPSHOT.jar'
 ```sh
 $javaspec describe <ClassName> [--config <file>] [--suite <name>] [--spec-dir <dir>]
 $javaspec desc <ClassName> [--config <file>] [--suite <name>] [--spec-root <dir>]
-$javaspec run [--config <file>] [--suite <name>] [--spec-dir <dir>] [--source-dir <dir>] [--generate] [--constructor-policy <delete|preserve|comment>] [--class <name>] [--example <name>]
+$javaspec run [--config <file>] [--suite <name>] [--spec-dir <dir>] [--source-dir <dir>] [--generate] [--dry-run] [--stop-on-failure] [--formatter <progress|pretty>] [--profile <java8|java11|java17|java21|java25>] [--verbose] [--constructor-policy <delete|preserve|comment>] [--class <name>] [--example <name>]
 ```
 
 Aliases and defaults:
@@ -45,11 +45,16 @@ Aliases and defaults:
 | `--spec-dir` | `--spec-root` | selected suite `specDir` (`src/test/java` with inferred defaults) | `describe`, `run` |
 | `--source-dir` | `--source-root` | selected suite `sourceDir` (`src/main/java` with inferred defaults) | `run` |
 | `--generate` | n/a | `false` | `run` |
+| `--dry-run` | n/a | `false` | `run` |
+| `--stop-on-failure` | n/a | `false` | `run` |
+| `--formatter <progress\|pretty>` | n/a | configuration `formatter` (`progress` with inferred defaults) | `run` |
+| `--profile <java8\|java11\|java17\|java21\|java25>` | n/a | configuration `profile` (`java8` with inferred defaults) | `run` |
+| `--verbose` | n/a | `false` | `run` |
 | `--constructor-policy <delete\|preserve\|comment>` | n/a | configuration `constructorPolicy` (`comment` with inferred defaults) | `run` |
 | `--class <name>` | n/a | no class filter | `run` |
 | `--example <name>` | n/a | no example filter | `run` |
 
-`describe` writes specification files only. Production source generation and updates belong to `run`. After discovery/generation/update completes without declined prompts, `run` invokes the MVP reflection runner for discovered examples whose compiled spec classes are available on the effective classloader. `describe` rejects command-line `--source-dir`/`--source-root`; a `sourceDir` present in a selected config suite is accepted because `describe` ignores source roots.
+`describe` writes specification files only. Production source generation and updates belong to `run`. After discovery/generation/update completes without declined prompts, `run` invokes the MVP reflection runner for discovered examples whose compiled spec classes are available on the effective classloader. `describe` rejects command-line `--source-dir`/`--source-root` and all run-only Phase 9 controls (`--generate`, `--dry-run`, `--stop-on-failure`, `--formatter`, `--profile`, `--verbose`, `--constructor-policy`, `--class`, and `--example`); a `sourceDir` present in a selected config suite is accepted because `describe` ignores source roots.
 
 ## Configuration files
 
@@ -63,7 +68,7 @@ The configuration format is intentionally restricted and line-based so the runti
 - Key/value separator is either `=` or `:`.
 - There is no YAML, TOML, or JSON parser dependency.
 - Top-level keys are `profile`, `formatter`, `constructorPolicy`/`constructor-policy`, `defaultSuite`/`default-suite`, and `bootstrap`.
-- Valid `profile` values are `java8`, `java11`, `java17`, `java21`, and `java25`; valid constructor policies are `delete`, `preserve`, and `comment`.
+- Valid `profile` values are `java8`, `java11`, `java17`, `java21`, and `java25`; valid `formatter` values are `progress` and `pretty`; valid constructor policies are `delete`, `preserve`, and `comment`.
 - Suite keys use `suite.<name>.<property>` with properties `specDir`/`spec-dir`, `sourceDir`/`source-dir`, `specPackagePrefix`/`spec-package-prefix`, `packagePrefix`/`package-prefix`, and `bootstrap`.
 - `bootstrap` values are comma-separated strings. They are metadata only in the current MVP and are not executed.
 - `specPackagePrefix` and `packagePrefix` drive naming conventions for `describe`, `run`, discovery, and spec/support generation. `packagePrefix` may be empty. Other configured values, including bootstrap entries when the key is present, must not be blank.
@@ -109,9 +114,10 @@ suite.integration.package-prefix:
 1. `--config <file>` loads explicit configuration; without it, defaults are inferred.
 2. `--suite <name>` selects a configured suite; without it, `defaultSuite` is used.
 3. The selected suite's `specDir`, `sourceDir`, `specPackagePrefix`, and `packagePrefix` are used. Command-line `--spec-dir`/`--spec-root` or `--source-dir`/`--source-root` override paths only; naming still comes from the selected suite.
-4. `run` uses the configured `constructorPolicy` unless overridden by command-line `--constructor-policy`.
+4. `run` uses the configured `constructorPolicy`, `profile`, and `formatter` unless overridden by command-line `--constructor-policy`, `--profile`, or `--formatter`.
 5. `run` applies repeatable `--class <name>` and `--example <name>` filters after suite selection.
-6. `describe` accepts `--config` and `--suite` for spec-root and naming selection, rejects command-line `--source-dir`, and ignores any `sourceDir` value loaded from config.
+6. `run --dry-run`, `--stop-on-failure`, and `--verbose` are command-line controls only.
+7. `describe` accepts `--config` and `--suite` for spec-root and naming selection, rejects command-line `--source-dir`, and ignores any `sourceDir` value loaded from config.
 
 Describe using a configured suite:
 
@@ -133,7 +139,7 @@ $javaspec run --config javaspec.conf --suite domain --source-dir /tmp/demo/src/m
 
 ### Diagnostics
 
-Invalid configuration exits as command-line usage error (`64`) and starts with `Error: Invalid configuration:`. Diagnostics include line numbers for parser errors where available. Examples include duplicate keys, unknown keys, malformed lines without `=` or `:`, blank required values, invalid profiles, invalid constructor policies, and selecting an unconfigured suite.
+Invalid configuration exits as command-line usage error (`64`) and starts with `Error: Invalid configuration:`. Diagnostics include line numbers for parser errors where available. Examples include duplicate keys, unknown keys, malformed lines without `=` or `:`, blank required values, invalid profiles, invalid formatters, invalid constructor policies, and selecting an unconfigured suite.
 
 Examples:
 
@@ -147,9 +153,10 @@ A missing or unreadable config file exits with I/O error (`70`) and prints the c
 ### Current configuration limitations
 
 - Bootstrap hooks are parsed as strings but are not executed yet.
-- `profile` and `formatter` are parsed and validated but active profile-aware execution and formatter selection are not implemented yet.
+- `profile` is selected and validated from config or `--profile`, but deep profile-aware execution/enforcement is not implemented yet.
+- `formatter` is selected from config or `--formatter` and controls the built-in `progress` or `pretty` CLI output; formatter extension contracts and machine-readable reports remain future work.
 - Package-prefix naming is implemented for describe/run discovery, generation, and MVP reflection execution; future runner/reporting layers may add richer diagnostics and source locations.
-- The runner lifecycle is intentionally minimal in the MVP: fresh spec instance per example plus optional public no-arg `let()` and `letGo()`. Pending examples, stop-on-failure, bootstrap execution, and active formatter behavior remain future work.
+- The runner lifecycle is intentionally minimal in the MVP: fresh spec instance per example plus optional public no-arg `let()` and `letGo()`. Pending examples, bootstrap execution, deeper profile enforcement, and richer reporting remain future work.
 
 ## Suite naming and filters
 
@@ -190,6 +197,44 @@ $javaspec run --config javaspec.conf --suite domain --example 0
 ```
 
 Class filters match described qualified names, described simple names, spec qualified names, or spec simple names exactly. Example filters match public `void` example methods named `it_*` or `its_*` by method name, display name (underscores replaced by spaces), or source-order index. Filters affect discovery/generation selection and MVP reflection execution because the runner uses the same `DiscoveredSpec`/`SpecExample` metadata.
+
+## Run controls
+
+### Dry-run planning
+
+`javaspec run --dry-run` performs discovery and planning without writing files and without prompting. It reports actions that would be generated or updated, including related specs/support, support updates, constructor changes, method skeletons, and missing production type generation.
+
+Dry-run exit behavior:
+
+| Condition | Exit code |
+|---|---:|
+| Pending generation/update work exists | `1` |
+| No pending generation/update work and examples pass or are skipped-only | `0` |
+| No pending generation/update work but executable examples fail or break | `1` |
+
+`--dry-run` is useful in CI when pending generated work should fail the build without modifying the workspace.
+
+### Stop on failure
+
+By default, `javaspec run` processes all discovered example metadata. With `--stop-on-failure`, the reflection runner stops after the first FAILED or BROKEN executable example. Skipped examples before that point are still reported; examples after the first failure/break are not executed.
+
+### Formatters
+
+`--formatter progress` is concise and summary-oriented. It is the default when neither config nor CLI selects a formatter.
+
+`--formatter pretty` prints per-example status lines plus details for failed, broken, or skipped examples.
+
+A config file can set `formatter = progress` or `formatter = pretty`. A valid CLI `--formatter` overrides the configured formatter.
+
+### Profile selection
+
+`--profile <java8|java11|java17|java21|java25>` validates and selects the active target profile for the run. A valid CLI profile overrides the configured profile. The selected profile is visible in verbose output, but deep profile enforcement during execution is not implemented yet.
+
+### Verbose diagnostics
+
+`--verbose` prints the selected suite, spec root, source root, spec package prefix, production package prefix, constructor policy, profile, formatter, dry-run setting, and stop-on-failure setting before run work proceeds.
+
+These controls belong to `run` only and are rejected for `describe`/`desc`.
 
 ## Example execution MVP
 
@@ -345,6 +390,14 @@ $javaspec run --generate
 ```
 
 This writes missing production type skeletons, generated specification support updates, constructor updates, static factory construction method skeletons, and missing instance method skeletons inferred from specs without interactive confirmation. After those updates, executable examples run only if the corresponding compiled spec classes are already on the effective classloader; otherwise they are reported as skipped.
+
+Use `--dry-run` when CI should report pending generated work without modifying the workspace:
+
+```sh
+$javaspec run --dry-run
+```
+
+Dry-run never writes files and never prompts. It exits `1` if any generation/update work is pending.
 
 ## Construction semantics
 
@@ -956,16 +1009,23 @@ Legacy same-package specs are also discovered by convention when the default pro
 
 ## Invalid usage examples
 
-### `--generate` does not belong to `describe`
+### Run-only flags do not belong to `describe`
 
 ```sh
 $javaspec describe org.example.Calculator --generate
+$javaspec describe org.example.Calculator --dry-run
+$javaspec describe org.example.Calculator --stop-on-failure
+$javaspec describe org.example.Calculator --formatter pretty
+$javaspec describe org.example.Calculator --profile java17
+$javaspec describe org.example.Calculator --verbose
 ```
 
-Result:
+Result examples:
 
 ```text
 Error: The --generate option belongs to run; describe creates only a specification skeleton.
+Error: The --dry-run option belongs to run; describe creates only a specification skeleton.
+Error: The --formatter option belongs to run; describe creates only a specification skeleton.
 ```
 
 ### `--source-dir` does not belong to `describe`
@@ -980,16 +1040,20 @@ Result:
 Error: The source directory is used by run; describe writes only to the spec directory.
 ```
 
-### Unknown constructor policy
+### Unknown constructor policy, formatter, or profile
 
 ```sh
 $javaspec run --constructor-policy keep
+$javaspec run --formatter dots
+$javaspec run --profile java99
 ```
 
-Result:
+Result examples:
 
 ```text
 Error: Invalid constructor policy: keep. Valid values: delete, preserve, comment.
+Error: Invalid formatter: dots. Valid values: progress, pretty.
+Error: Invalid profile: java99. Valid values: java8, java11, java17, java21, java25.
 ```
 
 ### Unknown command
@@ -1020,8 +1084,8 @@ Error: Invalid class name: Class name segment is a reserved Java word: class
 
 | Code | Meaning |
 |---:|---|
-| `0` | success, help, no specs found, existing/generated/updated targets, passed examples, or skipped-only example runs |
-| `1` | missing production type or missing method update was not generated because the prompt was declined or input was unavailable; or executable examples failed/broke |
+| `0` | success, help, no specs found, existing/generated/updated targets, dry-run with no pending generation/update work, passed examples, or skipped-only example runs |
+| `1` | missing production type or missing method update was not generated because the prompt was declined or input was unavailable; dry-run found pending generation/update work; or executable examples failed/broke |
 | `64` | invalid command line usage |
 | `70` | I/O or security error while reading config, checking, or writing files |
 
@@ -1043,16 +1107,16 @@ org.javaspec:javaspec:jar:0.1.0-SNAPSHOT
 
 ## Verification
 
-Current verification after completing the Phase 8 MVP collaborators/doubles implementation:
+Current verification after completing the Phase 9 CLI expansion:
 
-- `mvn verify` passed with 328 tests.
+- `mvn verify` passed with 338 tests.
 - `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
 
 ## Current MVP limitations
 
 - The CLI runner does not compile source or spec files itself; source-only or otherwise unavailable spec classes are skipped/not executable until compiled classes are present on the effective classloader.
-- The runner lifecycle is an MVP: fresh spec instance per example plus optional public no-arg `let()` and `letGo()`. Pending examples, stop-on-failure, active formatters, bootstrap execution, profile-aware execution, and richer reporting remain future work.
-- Configuration files currently drive selected suite paths, package-prefix naming, constructor-policy defaults, and run class/example filters; bootstrap hooks and profile/formatter behavior remain metadata until later runner and formatter features are implemented.
+- The runner lifecycle is an MVP: fresh spec instance per example plus optional public no-arg `let()` and `letGo()`. Pending examples, bootstrap execution, deep profile-aware execution/enforcement, and richer reporting remain future work.
+- Configuration files currently drive selected suite paths, package-prefix naming, constructor-policy defaults, profile and formatter defaults, and run class/example filters; bootstrap hooks remain metadata until later runner features are implemented.
 - Source parsing and generation use Java 8-compatible heuristics, not a full Java parser.
 - Generated post-Java-8 source forms, such as records and sealed types, require an appropriate JDK to compile.
 - Method generation covers the supported typed proxy, throw-proxy, direct subject/setter, and static factory construction marker syntax; it is not a general Java source synthesis engine.

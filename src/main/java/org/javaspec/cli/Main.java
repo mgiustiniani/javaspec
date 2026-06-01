@@ -22,6 +22,7 @@ import org.javaspec.generation.TypeSkeletonGenerator;
 import org.javaspec.model.DescribedClass;
 import org.javaspec.model.DescribedType;
 import org.javaspec.model.JavaTypeKind;
+import org.javaspec.profile.TargetProfile;
 import org.javaspec.runner.ExampleResult;
 import org.javaspec.runner.RunResult;
 import org.javaspec.runner.SpecRunner;
@@ -37,6 +38,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public final class Main {
     private static final int EXIT_OK = 0;
@@ -47,6 +49,8 @@ public final class Main {
 
     private static final String DEFAULT_SOURCE_ROOT = "src/main/java";
     private static final String DEFAULT_SPEC_ROOT = "src/test/java";
+    private static final String FORMATTER_PROGRESS = "progress";
+    private static final String FORMATTER_PRETTY = "pretty";
 
     private Main() {
     }
@@ -132,6 +136,12 @@ public final class Main {
         parsed.effectiveConstructorPolicy = parsed.constructorPolicyOverride == null
                 ? configuration.constructorPolicy()
                 : parsed.constructorPolicyOverride;
+        parsed.effectiveProfile = parsed.profileOverride == null
+                ? configuration.profile()
+                : parsed.profileOverride;
+        parsed.effectiveFormatter = parsed.formatterOverride == null
+                ? formatterFromConfiguration(configuration.formatter())
+                : parsed.formatterOverride;
         try {
             parsed.namingConvention = SpecNamingConvention.from(selectedSuite);
         } catch (IllegalArgumentException ex) {
@@ -218,6 +228,10 @@ public final class Main {
         File sourceRoot = new File(parsed.sourceRoot);
         BufferedReader input = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
 
+        if (parsed.verbose) {
+            printRunConfiguration(parsed, out);
+        }
+
         SpecDiscoveryRequest discoveryRequest = SpecDiscoveryRequest.of(specRoot, parsed.namingConvention);
         if (parsed.classFilters != null) {
             for (int fi = 0; fi < parsed.classFilters.size(); fi++) {
@@ -246,12 +260,27 @@ public final class Main {
 
         out.println("Found " + specs.size() + " specification(s) in " + specRoot.getPath() + ".");
         boolean missingWithoutGeneration = false;
+        boolean dryRunPendingChanges = false;
         for (int i = 0; i < specs.size(); i++) {
             DiscoveredSpec spec = specs.get(i);
             DescribedType describedType = spec.describedType();
             try {
-                if (!ensureRelatedSpecs(describedType, specs, specRoot, sourceRoot, input, out, parsed.generate, parsed.namingConvention)) {
+                RelatedSpecCheckResult relatedSpecResult = ensureRelatedSpecs(
+                        describedType,
+                        specs,
+                        specRoot,
+                        sourceRoot,
+                        input,
+                        out,
+                        parsed.generate,
+                        parsed.dryRun,
+                        parsed.namingConvention
+                );
+                if (!relatedSpecResult.allAccepted()) {
                     missingWithoutGeneration = true;
+                }
+                if (relatedSpecResult.hasPendingChanges()) {
+                    dryRunPendingChanges = true;
                 }
             } catch (IOException ex) {
                 err.println("I/O error while generating related specification: " + messageOf(ex));
@@ -261,11 +290,17 @@ public final class Main {
                 return EXIT_IO_ERROR;
             }
 
-            if (parsed.generate && describedType.hasMethods()) {
+            if ((parsed.generate || parsed.dryRun) && describedType.hasMethods()) {
                 SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(describedType, specRoot, parsed.namingConvention);
                 try {
-                    File supportFile = SpecSupportFileGenerator.writeOrUpdate(supportPlan);
-                    out.println("Updated specification support: " + supportFile.getPath());
+                    if (parsed.dryRun) {
+                        if (reportSupportDryRun(supportPlan, out, "specification support")) {
+                            dryRunPendingChanges = true;
+                        }
+                    } else {
+                        File supportFile = SpecSupportFileGenerator.writeOrUpdate(supportPlan);
+                        out.println("Updated specification support: " + supportFile.getPath());
+                    }
                 } catch (IOException ex) {
                     err.println("I/O error while updating specification support: " + messageOf(ex));
                     err.println("Target path: " + supportPlan.targetFile().getPath());
@@ -298,14 +333,25 @@ public final class Main {
                                 + " (expected " + describedType.kind().displayName() + ")");
                     }
                 }
-                // If the spec declares constructors, update the existing class.
+                String dryRunSource = null;
                 if (describedType.hasConstructors() && checkResult.sourceFilePresent()) {
                     ConstructorPolicy policy = resolveConstructorPolicy(parsed);
                     File sourceFile = checkResult.sourceFile();
                     try {
-                        ClassConstructorUpdater.updateFile(sourceFile, describedType, policy);
-                        out.println("Updated constructors in " + sourceFile.getPath()
-                                + " (policy: " + policy.name().toLowerCase().replace('_', '-') + ")");
+                        if (parsed.dryRun) {
+                            dryRunSource = new String(Files.readAllBytes(sourceFile.toPath()), StandardCharsets.UTF_8);
+                            String updatedSource = ClassConstructorUpdater.updateSource(dryRunSource, describedType, policy);
+                            if (!dryRunSource.equals(updatedSource)) {
+                                dryRunPendingChanges = true;
+                                out.println("Would update constructors in " + sourceFile.getPath()
+                                        + " (policy: " + policyOptionName(policy) + ")");
+                            }
+                            dryRunSource = updatedSource;
+                        } else {
+                            ClassConstructorUpdater.updateFile(sourceFile, describedType, policy);
+                            out.println("Updated constructors in " + sourceFile.getPath()
+                                    + " (policy: " + policyOptionName(policy) + ")");
+                        }
                     } catch (IOException ex) {
                         err.println("I/O error while updating constructors: " + messageOf(ex));
                         err.println("Target path: " + sourceFile.getPath());
@@ -315,16 +361,23 @@ public final class Main {
                 if (describedType.hasMethods() && checkResult.sourceFilePresent()) {
                     File sourceFile = checkResult.sourceFile();
                     try {
-                        String existingSource = new String(Files.readAllBytes(sourceFile.toPath()), StandardCharsets.UTF_8);
+                        String existingSource = parsed.dryRun && dryRunSource != null
+                                ? dryRunSource
+                                : new String(Files.readAllBytes(sourceFile.toPath()), StandardCharsets.UTF_8);
                         String updatedSource = ClassMethodUpdater.updateSource(existingSource, describedType);
                         if (!existingSource.equals(updatedSource)) {
-                            boolean accepted = parsed.generate || askToUpdateMethods(input, out, sourceFile, describedType);
-                            if (!accepted) {
-                                missingWithoutGeneration = true;
-                                continue;
+                            if (parsed.dryRun) {
+                                dryRunPendingChanges = true;
+                                out.println("Would update methods in " + sourceFile.getPath());
+                            } else {
+                                boolean accepted = parsed.generate || askToUpdateMethods(input, out, sourceFile, describedType);
+                                if (!accepted) {
+                                    missingWithoutGeneration = true;
+                                    continue;
+                                }
+                                Files.write(sourceFile.toPath(), updatedSource.getBytes(StandardCharsets.UTF_8));
+                                out.println("Updated methods in " + sourceFile.getPath());
                             }
-                            Files.write(sourceFile.toPath(), updatedSource.getBytes(StandardCharsets.UTF_8));
-                            out.println("Updated methods in " + sourceFile.getPath());
                         }
                     } catch (IOException ex) {
                         err.println("I/O error while updating methods: " + messageOf(ex));
@@ -339,6 +392,12 @@ public final class Main {
             out.println(spec.specQualifiedName() + " describes missing " + describedType.kind().displayName() + " " + describedType.qualifiedName() + ".");
             out.println("Spec file: " + spec.specFile().getPath());
             out.println("Target path: " + plan.targetFile().getPath());
+
+            if (parsed.dryRun) {
+                dryRunPendingChanges = true;
+                out.println("Would generate " + plan.describedType().kind().displayName() + " skeleton: " + plan.targetFile().getPath());
+                continue;
+            }
 
             if (!parsed.generate) {
                 boolean accepted;
@@ -368,20 +427,28 @@ public final class Main {
             }
         }
 
+        if (parsed.dryRun) {
+            if (dryRunPendingChanges) {
+                out.println("Dry-run found pending generation/update work; no files were written.");
+                return EXIT_MISSING_NOT_GENERATED;
+            }
+            out.println("Dry-run found no pending generation/update work.");
+        }
+
         if (missingWithoutGeneration) {
             out.println("No production files were written.");
             return EXIT_MISSING_NOT_GENERATED;
         }
 
-        RunResult runResult = SpecRunner.run(specs, effectiveClassLoader());
-        printRunnerSummary(runResult, out);
+        RunResult runResult = SpecRunner.run(specs, effectiveClassLoader(), parsed.stopOnFailure);
+        printRunnerSummary(runResult, out, parsed.effectiveFormatter);
         if (runResult.hasFailures()) {
             return EXIT_EXAMPLES_FAILED;
         }
         return EXIT_OK;
     }
 
-    private static boolean ensureRelatedSpecs(
+    private static RelatedSpecCheckResult ensureRelatedSpecs(
             DescribedType owner,
             List<DiscoveredSpec> specs,
             File specRoot,
@@ -389,9 +456,11 @@ public final class Main {
             BufferedReader input,
             PrintStream out,
             boolean generate,
+            boolean dryRun,
             SpecNamingConvention namingConvention
     ) throws IOException {
         boolean allAccepted = true;
+        boolean pendingChanges = false;
         List<DescribedType> relatedTypes = relatedTypesOf(owner);
         for (int i = 0; i < relatedTypes.size(); i++) {
             DescribedType relatedType = relatedTypes.get(i);
@@ -407,6 +476,17 @@ public final class Main {
 
             out.println("Related " + relatedType.kind().displayName() + " " + relatedType.qualifiedName() + " is missing.");
             out.println("Spec target path: " + specPlan.targetFile().getPath());
+            if (dryRun) {
+                SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(relatedType, specRoot, namingConvention);
+                if (reportSupportDryRun(supportPlan, out, "related specification support")) {
+                    pendingChanges = true;
+                }
+                out.println("Would generate related specification: " + specPlan.targetFile().getPath());
+                pendingChanges = true;
+                specs.add(DiscoveredSpec.of(specPlan.targetFile(), specPlan.specQualifiedName(), relatedType));
+                continue;
+            }
+
             boolean accepted = generate || askToGenerateSpec(input, out, specPlan);
             if (!accepted) {
                 allAccepted = false;
@@ -420,7 +500,27 @@ public final class Main {
             out.println("Generated related specification: " + generatedSpec.getPath());
             specs.add(DiscoveredSpec.of(generatedSpec, specPlan.specQualifiedName(), relatedType));
         }
-        return allAccepted;
+        return RelatedSpecCheckResult.of(allAccepted, pendingChanges);
+    }
+
+    private static boolean reportSupportDryRun(
+            SpecGenerationPlan supportPlan,
+            PrintStream out,
+            String artifactName
+    ) throws IOException {
+        File targetFile = supportPlan.targetFile();
+        if (!targetFile.exists()) {
+            out.println("Would generate " + artifactName + ": " + targetFile.getPath());
+            return true;
+        }
+
+        String existingSource = new String(Files.readAllBytes(targetFile.toPath()), StandardCharsets.UTF_8);
+        String updatedSource = SpecSupportFileGenerator.updateSource(existingSource, supportPlan.describedType());
+        if (!existingSource.equals(updatedSource)) {
+            out.println("Would update " + artifactName + ": " + targetFile.getPath());
+            return true;
+        }
+        return false;
     }
 
     private static boolean isSpecKnown(List<DiscoveredSpec> specs, String specQualifiedName) {
@@ -499,15 +599,37 @@ public final class Main {
                 + describedType.qualifiedName() + "; type exists.";
     }
 
-    private static void printRunnerSummary(RunResult runResult, PrintStream out) {
+    private static void printRunnerSummary(RunResult runResult, PrintStream out, String formatter) {
+        if (FORMATTER_PRETTY.equals(formatter)) {
+            printPrettyRunnerSummary(runResult, out);
+            return;
+        }
+        printProgressRunnerSummary(runResult, out);
+    }
+
+    private static void printProgressRunnerSummary(RunResult runResult, PrintStream out) {
+        printExampleSummary(runResult, out);
+        printExampleResults("Failed examples:", runResult.failedExamples(), out);
+        printExampleResults("Broken examples:", runResult.brokenExamples(), out);
+    }
+
+    private static void printPrettyRunnerSummary(RunResult runResult, PrintStream out) {
+        out.println("Example results:");
+        List<ExampleResult> examples = runResult.exampleResults();
+        for (int i = 0; i < examples.size(); i++) {
+            out.println(formatExampleResult(examples.get(i)));
+        }
+        printExampleSummary(runResult, out);
+        printExampleResults("Failed examples:", runResult.failedExamples(), out);
+        printExampleResults("Broken examples:", runResult.brokenExamples(), out);
+    }
+
+    private static void printExampleSummary(RunResult runResult, PrintStream out) {
         out.println("Examples: " + runResult.totalCount()
                 + " total, " + runResult.passedCount() + " passed, "
                 + runResult.failedCount() + " failed, "
                 + runResult.brokenCount() + " broken, "
                 + runResult.skippedCount() + " skipped.");
-        printExampleResults("Failed examples:", runResult.failedExamples(), out);
-        printExampleResults("Broken examples:", runResult.brokenExamples(), out);
-        printExampleResults("Skipped examples:", runResult.skippedExamples(), out);
     }
 
     private static void printExampleResults(String heading, List<ExampleResult> results, PrintStream out) {
@@ -531,6 +653,62 @@ public final class Main {
         }
         if (result.hasFailureDetail()) {
             builder.append(" - ").append(result.failureDetail().summary());
+        }
+        return builder.toString();
+    }
+
+    private static void printRunConfiguration(ParsedArguments parsed, PrintStream out) {
+        out.println("Run configuration:");
+        out.println("  Selected suite: " + parsed.selectedSuite.name());
+        out.println("  Spec root: " + parsed.specRoot);
+        out.println("  Source root: " + parsed.sourceRoot);
+        out.println("  Spec package prefix: " + parsed.namingConvention.specPackagePrefix());
+        out.println("  Production package prefix: " + displayPrefix(parsed.namingConvention.productionPackagePrefix()));
+        out.println("  Constructor policy: " + policyOptionName(resolveConstructorPolicy(parsed)));
+        out.println("  Profile: " + parsed.effectiveProfile.key());
+        out.println("  Formatter: " + parsed.effectiveFormatter);
+        out.println("  Dry-run: " + parsed.dryRun);
+        out.println("  Stop-on-failure: " + parsed.stopOnFailure);
+    }
+
+    private static String displayPrefix(String prefix) {
+        if (prefix.length() == 0) {
+            return "<none>";
+        }
+        return prefix;
+    }
+
+    private static String policyOptionName(ConstructorPolicy policy) {
+        return policy.name().toLowerCase(Locale.ROOT).replace('_', '-');
+    }
+
+    private static String formatterFromConfiguration(String formatter) {
+        String normalized = normalizeFormatter(formatter);
+        if (normalized == null) {
+            return FORMATTER_PROGRESS;
+        }
+        return normalized;
+    }
+
+    private static String normalizeFormatter(String formatter) {
+        if (formatter == null) {
+            return null;
+        }
+        String normalized = formatter.trim().toLowerCase(Locale.ROOT);
+        if (FORMATTER_PROGRESS.equals(normalized) || FORMATTER_PRETTY.equals(normalized)) {
+            return normalized;
+        }
+        return null;
+    }
+
+    private static String validProfileKeys() {
+        StringBuilder builder = new StringBuilder();
+        List<TargetProfile> profiles = TargetProfile.orderedProfiles();
+        for (int i = 0; i < profiles.size(); i++) {
+            if (i > 0) {
+                builder.append(", ");
+            }
+            builder.append(profiles.get(i).key());
         }
         return builder.toString();
     }
@@ -621,6 +799,39 @@ public final class Main {
             } else if ("--generate".equals(arg)) {
                 parsed.generate = true;
                 index++;
+            } else if ("--dry-run".equals(arg)) {
+                parsed.dryRun = true;
+                index++;
+            } else if ("--stop-on-failure".equals(arg)) {
+                parsed.stopOnFailure = true;
+                index++;
+            } else if ("--verbose".equals(arg)) {
+                parsed.verbose = true;
+                index++;
+            } else if ("--formatter".equals(arg)) {
+                if (index + 1 >= args.length) {
+                    parsed.errorMessage = "Missing value for " + arg + ".";
+                    return parsed;
+                }
+                parsed.formatter = args[index + 1].trim();
+                parsed.formatterSpecified = true;
+                if (parsed.formatter.length() == 0) {
+                    parsed.errorMessage = "Formatter must not be empty.";
+                    return parsed;
+                }
+                index += 2;
+            } else if ("--profile".equals(arg)) {
+                if (index + 1 >= args.length) {
+                    parsed.errorMessage = "Missing value for " + arg + ".";
+                    return parsed;
+                }
+                parsed.profile = args[index + 1].trim();
+                parsed.profileSpecified = true;
+                if (parsed.profile.length() == 0) {
+                    parsed.errorMessage = "Profile must not be empty.";
+                    return parsed;
+                }
+                index += 2;
             } else if ("--config".equals(arg)) {
                 if (index + 1 >= args.length) {
                     parsed.errorMessage = "Missing value for " + arg + ".";
@@ -743,6 +954,26 @@ public final class Main {
                 parsed.errorMessage = "The --generate option belongs to run; describe creates only a specification skeleton.";
                 return parsed;
             }
+            if (parsed.dryRun) {
+                parsed.errorMessage = "The --dry-run option belongs to run; describe creates only a specification skeleton.";
+                return parsed;
+            }
+            if (parsed.stopOnFailure) {
+                parsed.errorMessage = "The --stop-on-failure option belongs to run; describe does not execute examples.";
+                return parsed;
+            }
+            if (parsed.formatterSpecified) {
+                parsed.errorMessage = "The --formatter option belongs to run; describe does not execute examples.";
+                return parsed;
+            }
+            if (parsed.profileSpecified) {
+                parsed.errorMessage = "The --profile option belongs to run; describe does not execute examples.";
+                return parsed;
+            }
+            if (parsed.verbose) {
+                parsed.errorMessage = "The --verbose option belongs to run; describe does not discover specifications.";
+                return parsed;
+            }
             if (parsed.sourceRootSpecified) {
                 parsed.errorMessage = "The source directory is used by run; describe writes only to the spec directory.";
                 return parsed;
@@ -763,6 +994,23 @@ public final class Main {
             if (operands.size() > 1) {
                 parsed.errorMessage = "Unexpected argument: " + operands.get(1);
                 return parsed;
+            }
+            if (parsed.formatterSpecified) {
+                parsed.formatterOverride = normalizeFormatter(parsed.formatter);
+                if (parsed.formatterOverride == null) {
+                    parsed.errorMessage = "Invalid formatter: " + parsed.formatter
+                            + ". Valid values: " + FORMATTER_PROGRESS + ", " + FORMATTER_PRETTY + ".";
+                    return parsed;
+                }
+            }
+            if (parsed.profileSpecified) {
+                try {
+                    parsed.profileOverride = TargetProfile.parse(parsed.profile);
+                } catch (IllegalArgumentException ex) {
+                    parsed.errorMessage = "Invalid profile: " + parsed.profile
+                            + ". Valid profiles: " + validProfileKeys() + ".";
+                    return parsed;
+                }
             }
             return parsed;
         }
@@ -788,7 +1036,7 @@ public final class Main {
         stream.println("Usage:");
         stream.println("  javaspec describe <ClassName> [--config <file>] [--suite <name>] [--spec-dir <dir>]");
         stream.println("  javaspec desc <ClassName> [--config <file>] [--suite <name>] [--spec-root <dir>]");
-        stream.println("  javaspec run [--config <file>] [--suite <name>] [--spec-dir <dir>] [--source-dir <dir>] [--generate] [--constructor-policy <delete|preserve|comment>] [--class <name>] [--example <name>]");
+        stream.println("  javaspec run [--config <file>] [--suite <name>] [--spec-dir <dir>] [--source-dir <dir>] [--generate] [--dry-run] [--stop-on-failure] [--formatter <progress|pretty>] [--profile <java8|java11|java17|java21|java25>] [--verbose] [--constructor-policy <delete|preserve|comment>] [--class <name>] [--example <name>]");
         stream.println();
         stream.println("Commands:");
         stream.println("  describe <ClassName>  Create a PHPSpec-style specification skeleton; never creates production code.");
@@ -803,6 +1051,11 @@ public final class Main {
         stream.println("  --source-dir <dir>    Source root used by run (default: " + DEFAULT_SOURCE_ROOT + ").");
         stream.println("  --source-root <dir>   Alias for --source-dir.");
         stream.println("  --generate            With run, answer yes to missing production type generation prompts.");
+        stream.println("  --dry-run             With run, report pending generation/update work without writing files or prompting.");
+        stream.println("  --stop-on-failure     With run, stop after the first failed or broken executable example.");
+        stream.println("  --formatter <value>   With run, choose example output formatter. Valid values: progress, pretty.");
+        stream.println("  --profile <value>     With run, override target profile. Valid values: java8, java11, java17, java21, java25.");
+        stream.println("  --verbose             With run, print effective run configuration before discovery.");
         stream.println("  --constructor-policy  Constructor handling policy. Valid values: delete, preserve, comment (default: comment).");
         stream.println("  --class <name>        With run, filter specs by described class name (exact match, repeatable).");
         stream.println("  --example <name>      With run, filter examples by method name, display name, or order index (repeatable).");
@@ -817,6 +1070,28 @@ public final class Main {
         return message;
     }
 
+    private static final class RelatedSpecCheckResult {
+        private final boolean allAccepted;
+        private final boolean pendingChanges;
+
+        private RelatedSpecCheckResult(boolean allAccepted, boolean pendingChanges) {
+            this.allAccepted = allAccepted;
+            this.pendingChanges = pendingChanges;
+        }
+
+        static RelatedSpecCheckResult of(boolean allAccepted, boolean pendingChanges) {
+            return new RelatedSpecCheckResult(allAccepted, pendingChanges);
+        }
+
+        boolean allAccepted() {
+            return allAccepted;
+        }
+
+        boolean hasPendingChanges() {
+            return pendingChanges;
+        }
+    }
+
     private static final class ParsedArguments {
         private String command;
         private String className;
@@ -825,10 +1100,21 @@ public final class Main {
         private boolean sourceRootSpecified;
         private boolean specRootSpecified;
         private boolean generate;
+        private boolean dryRun;
+        private boolean stopOnFailure;
+        private boolean verbose;
         private boolean helpRequested;
         private String errorMessage;
         private String configPath;
         private String suiteName;
+        private String formatter;
+        private boolean formatterSpecified;
+        private String formatterOverride;
+        private String effectiveFormatter;
+        private String profile;
+        private boolean profileSpecified;
+        private TargetProfile profileOverride;
+        private TargetProfile effectiveProfile;
         private String constructorPolicy;
         private ConstructorPolicy constructorPolicyOverride;
         private ConstructorPolicy effectiveConstructorPolicy;

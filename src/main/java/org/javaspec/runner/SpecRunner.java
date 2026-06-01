@@ -22,25 +22,37 @@ public final class SpecRunner {
     }
 
     public static RunResult run(List<DiscoveredSpec> specs, ClassLoader classLoader) {
+        return run(specs, classLoader, false);
+    }
+
+    public static RunResult run(List<DiscoveredSpec> specs, ClassLoader classLoader, boolean stopOnFailure) {
         Objects.requireNonNull(specs, "specs must not be null");
         Objects.requireNonNull(classLoader, "classLoader must not be null");
 
         List<SpecResult> results = new ArrayList<SpecResult>();
         for (int i = 0; i < specs.size(); i++) {
             DiscoveredSpec spec = Objects.requireNonNull(specs.get(i), "specs[" + i + "] must not be null");
-            results.add(runSpec(spec, classLoader));
+            SpecResult result = runSpec(spec, classLoader, stopOnFailure);
+            results.add(result);
+            if (stopOnFailure && result.hasFailures()) {
+                break;
+            }
         }
         return RunResult.of(results);
     }
 
     public static RunResult run(DiscoveredSpec spec, ClassLoader classLoader) {
+        return run(spec, classLoader, false);
+    }
+
+    public static RunResult run(DiscoveredSpec spec, ClassLoader classLoader, boolean stopOnFailure) {
         Objects.requireNonNull(spec, "spec must not be null");
         List<DiscoveredSpec> specs = new ArrayList<DiscoveredSpec>();
         specs.add(spec);
-        return run(specs, classLoader);
+        return run(specs, classLoader, stopOnFailure);
     }
 
-    private static SpecResult runSpec(DiscoveredSpec spec, ClassLoader classLoader) {
+    private static SpecResult runSpec(DiscoveredSpec spec, ClassLoader classLoader, boolean stopOnFailure) {
         Class<?> specClass;
         try {
             specClass = Class.forName(spec.specQualifiedName(), false, classLoader);
@@ -60,7 +72,11 @@ public final class SpecRunner {
         List<ExampleResult> results = new ArrayList<ExampleResult>();
         List<SpecExample> examples = spec.exampleMetadata();
         for (int i = 0; i < examples.size(); i++) {
-            results.add(runExample(spec, specClass, examples.get(i)));
+            ExampleResult result = runExample(spec, specClass, examples.get(i));
+            results.add(result);
+            if (stopOnFailure && result.isFailure()) {
+                break;
+            }
         }
         return SpecResult.executable(spec, results);
     }
