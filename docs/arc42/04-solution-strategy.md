@@ -2,7 +2,7 @@
 
 ## 4.1 Strategy Overview
 
-javaspec is being built as a small Java 8-compatible core with clear extension boundaries. The implemented core already contains the first-MVP CLI/generation slice, profile metadata, compatibility checks/probes, Phase 4 configuration, naming, and discovery-filter integration, and the Phase 5/6 MVP reflection runner; later phases will add richer execution controls, active formatter/bootstrap behavior, matcher parity, doubles, and extension behavior needed for a fuller phpspec-inspired workflow.
+javaspec is being built as a small Java 8-compatible core with clear extension boundaries. The implemented core already contains the first-MVP CLI/generation slice, profile metadata, compatibility checks/probes, Phase 4 configuration, naming, and discovery-filter integration, the Phase 5/6 MVP reflection runner, and the Phase 7 matcher/expectation expansion; later phases will add richer execution controls, active formatter/bootstrap behavior, doubles, and extension behavior needed for a fuller phpspec-inspired workflow.
 
 ## 4.2 Key Architectural Decisions
 
@@ -43,15 +43,15 @@ javaspec is being built as a small Java 8-compatible core with clear extension b
 
 ## 4.4 Building Blocks
 
-The implemented architecture includes the Phase 2 first-MVP slice, the Phase 3 profile/catalog slice, the Phase 4 configuration slice, and the Phase 5/6 MVP reflection-runner slice. See [ARC42 section 5](05-building-block-view.md) for concise building-block notes.
+The implemented architecture includes the Phase 2 first-MVP slice, the Phase 3 profile/catalog slice, the Phase 4 configuration slice, the Phase 5/6 MVP reflection-runner slice, and the Phase 7 matcher/expectation expansion. See [ARC42 section 5](05-building-block-view.md) for concise building-block notes.
 
 Implemented building blocks:
 
 - **CLI adapter**: parses `describe`/`desc`, `run`, `--config`, `--suite`, source/spec-root aliases, `--generate`, constructor policy, help, and first-MVP exit codes without external libraries; after discovery/generation/update it prints runner summaries and exits `1` for failed or broken executable examples.
 - **Described-class model**: validates Java class names and maps them to source-relative paths.
-- **Spec discovery model**: maps default or configured spec-package-prefix `*Spec.java` files to described production class-like types deterministically, recognizes kind markers such as `shouldBeAnInterface()`, parses relationship markers such as `shouldExtend(...)` and `shouldImplement(...)`, parses construction markers, typed proxy matcher calls, throw proxy calls, sealed permitted subtype markers such as `shouldPermit(Circle.class)`, public `it_`/`its_` example metadata, and class/example filters.
+- **Spec discovery model**: maps default or configured spec-package-prefix `*Spec.java` files to described production class-like types deterministically, recognizes kind markers such as `shouldBeAnInterface()`, parses relationship markers such as `shouldExtend(...)` and `shouldImplement(...)`, parses construction markers, expanded chained typed proxy matcher calls for method-discovery/default-return inference where applicable, throw proxy calls, sealed permitted subtype markers such as `shouldPermit(Circle.class)`, public `it_`/`its_` example metadata, and class/example filters.
 - **Discovery check**: detects source-root and classpath presence for a described class.
-- **Object behavior base and matcher subset**: provide the generic `ObjectBehavior<T>` type used by generated specs, lazy construction configuration, throw expectations, and the implemented matcher subset.
+- **Object behavior base and matcher engine**: provide the generic `ObjectBehavior<T>` type used by generated specs, lazy construction configuration, throw expectations, expanded `Matchable` expectation methods, direct convenience assertions that delegate through `match(actual)`, custom matcher registration, and a zero-dependency default matcher registry including negated equality.
 - **Reflection runner**: uses the discovered spec/example metadata to load compiled spec classes from the effective classloader, execute filtered examples with fresh instances and optional `let()`/`letGo()`, and produce PASSED/FAILED/BROKEN/SKIPPED results.
 - **Spec/support skeleton generator**: plans and writes Java 8-compatible PHPSpec-style spec and typed support skeletons from `describe` and `run` support updates.
 - **Type/method skeleton generator**: plans and writes minimal production class/interface/enum/annotation/record/sealed skeletons, constructor/static-factory changes, and Java 8-compatible method skeletons after an interactive `run` confirmation or non-interactive `run --generate`; post-Java-8 forms are emitted only as source text.
@@ -62,7 +62,7 @@ Implemented building blocks:
 Later building blocks remain planned:
 
 - **Runner expansion**: adds richer suite execution controls, stop-on-failure, pending examples, source locations, bootstrap execution, profile-aware behavior, and formatter integration beyond the MVP reflection runner.
-- **Expectation and matcher engine**: expands matcher parity and diagnostics beyond the implemented subset.
+- **Expectation and matcher engine follow-up**: expands beyond the Phase 7 subset with additional PHPSpec parity, diagnostics, approximate equality, richer object-state matchers, and iteration/yield variants where Java-compatible.
 - **Doubles engine**: provides zero-dependency interface doubles and call predictions where feasible.
 - **Advanced generator**: creates richer spec/source skeletons and missing-method snippets beyond the current generator subset.
 - **Formatter/reporting layer**: emits progress, pretty, and optional machine-readable reports.

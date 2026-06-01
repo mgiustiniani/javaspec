@@ -7,12 +7,32 @@ import java.util.Objects;
 /**
  * Registry of named {@link Matcher} instances.
  * <p>
- * Built-in matchers (identity, equality, negated-identity) are registered by default.
+ * Built-in matchers (identity, equality, negated-equality, negated-identity) are available by default.
  * Custom matchers can be added via {@link #register(String, Matcher)}.
  * A JUnit-based implementation could swap the entire registry.
  * </p>
  */
 public final class MatcherRegistry {
+    private static final Matcher<Object> NEGATED_EQUALITY = new Matcher<Object>() {
+        @Override
+        public MatchResult evaluate(Object subject, Object... expected) {
+            Objects.requireNonNull(expected, "expected must not be null");
+            if (expected.length == 0) {
+                return MatchResult.failure("Expected a value to compare against but none was provided");
+            }
+            boolean equal = subject == null ? expected[0] == null : subject.equals(expected[0]);
+            if (!equal) {
+                return MatchResult.passed();
+            }
+            return MatchResult.failure("Expected value not to equal " + expected[0] + " but it did");
+        }
+
+        @Override
+        public String name() {
+            return "negated-equality";
+        }
+    };
+
     private final Map<String, Matcher<?>> matchers;
 
     private MatcherRegistry(Map<String, Matcher<?>> matchers) {
@@ -64,6 +84,9 @@ public final class MatcherRegistry {
     public <T> Matcher<T> matcherFor(String name) {
         Objects.requireNonNull(name, "name must not be null");
         Matcher<?> matcher = matchers.get(name);
+        if (matcher == null && "negated-equality".equals(name)) {
+            matcher = NEGATED_EQUALITY;
+        }
         if (matcher == null) {
             throw new IllegalArgumentException("No matcher registered for '" + name + "'");
         }
@@ -71,16 +94,16 @@ public final class MatcherRegistry {
     }
 
     /**
-     * Returns the number of registered matchers.
+     * Returns the number of explicitly registered matchers.
      */
     public int size() {
         return matchers.size();
     }
 
     /**
-     * Returns true if a matcher is registered for the given name.
+     * Returns true if a matcher is available for the given name.
      */
     public boolean contains(String name) {
-        return matchers.containsKey(name);
+        return matchers.containsKey(name) || "negated-equality".equals(name);
     }
 }

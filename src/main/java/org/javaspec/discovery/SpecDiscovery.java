@@ -26,16 +26,16 @@ import java.util.regex.Pattern;
 public final class SpecDiscovery {
     private static final String JAVA_SUFFIX = SpecNamingConvention.JAVA_SUFFIX;
     private static final Pattern IMPORT_PATTERN = Pattern.compile("(?m)^\\s*import\\s+([A-Za-z_$][A-Za-z0-9_$.]*)\\s*;");
-    private static final Pattern SHOULD_EXTEND_PATTERN = Pattern.compile("shouldExtend\\s*\\(([^)]*)\\)", Pattern.DOTALL);
-    private static final Pattern SHOULD_IMPLEMENT_PATTERN = Pattern.compile("shouldImplement\\s*\\(([^)]*)\\)", Pattern.DOTALL);
-    private static final Pattern SHOULD_PERMIT_PATTERN = Pattern.compile("shouldPermit\\s*\\(([^)]*)\\)", Pattern.DOTALL);
+    private static final Pattern SHOULD_EXTEND_PATTERN = Pattern.compile("(?<!\\.)\\bshouldExtend\\s*\\(([^)]*)\\)", Pattern.DOTALL);
+    private static final Pattern SHOULD_IMPLEMENT_PATTERN = Pattern.compile("(?<!\\.)\\bshouldImplement\\s*\\(([^)]*)\\)", Pattern.DOTALL);
+    private static final Pattern SHOULD_PERMIT_PATTERN = Pattern.compile("(?<!\\.)\\bshouldPermit\\s*\\(([^)]*)\\)", Pattern.DOTALL);
     private static final Pattern CLASS_LITERAL_PATTERN = Pattern.compile("([A-Za-z_$][A-Za-z0-9_$.]*)\\s*\\.\\s*class");
     private static final Pattern BE_CONSTRUCTED_WITH_PATTERN = Pattern.compile("beConstructedWith\\s*\\(([^)]*)\\)", Pattern.DOTALL);
     private static final Pattern FACTORY_CONSTRUCTION_PATTERN = Pattern.compile("beConstructed(?:ThroughNamed|Through|Named)\\s*\\(([^)]*)\\)", Pattern.DOTALL);
     private static final Pattern METHOD_PATTERN = Pattern.compile("public\\s+void\\s+([A-Za-z_$][A-Za-z0-9_$]*)\\s*\\(([^)]*)\\)\\s*(?:throws\\s+[^\\{]+)?\\{", Pattern.DOTALL);
     private static final Pattern PROXY_EXPECTATION_PATTERN = Pattern.compile(
             "\\b([a-z][A-Za-z0-9_$]*)\\s*\\(([^;{}]*)\\)\\s*\\.\\s*"
-                    + "(shouldReturn|shouldNotReturn|shouldBe|shouldNotBe|shouldEqual|shouldNotEqual|shouldBeLike|shouldBeEqualTo|shouldContain|shouldNotContain|shouldStartWith|shouldEndWith|shouldMatchPattern)"
+                    + "(shouldReturn|shouldNotReturn|shouldBe|shouldNotBe|shouldEqual|shouldNotEqual|shouldBeLike|shouldNotBeLike|shouldBeEqualTo|shouldNotBeEqualTo|shouldHaveType|shouldBeAnInstanceOf|shouldReturnAnInstanceOf|shouldImplement|shouldContain|shouldNotContain|shouldStartWith|shouldNotStartWith|shouldEndWith|shouldNotEndWith|shouldMatchPattern|shouldNotMatchPattern|shouldHaveCount|shouldBeEmpty|shouldNotBeEmpty|shouldHaveKey|shouldNotHaveKey|shouldHaveValue|shouldNotHaveValue)"
                     + "\\s*\\(([^;{}]*)\\)",
             Pattern.DOTALL
     );
@@ -338,11 +338,27 @@ public final class SpecDiscovery {
         if ("shouldContain".equals(matcherName)
                 || "shouldNotContain".equals(matcherName)
                 || "shouldStartWith".equals(matcherName)
+                || "shouldNotStartWith".equals(matcherName)
                 || "shouldEndWith".equals(matcherName)
-                || "shouldMatchPattern".equals(matcherName)) {
+                || "shouldNotEndWith".equals(matcherName)
+                || "shouldMatchPattern".equals(matcherName)
+                || "shouldNotMatchPattern".equals(matcherName)) {
             if (!expectationArgs.isEmpty() && isStringLiteral(expectationArgs.get(0))) {
                 return "String";
             }
+            return "Object";
+        }
+        if ("shouldHaveType".equals(matcherName)
+                || "shouldBeAnInstanceOf".equals(matcherName)
+                || "shouldReturnAnInstanceOf".equals(matcherName)
+                || "shouldImplement".equals(matcherName)
+                || "shouldHaveCount".equals(matcherName)
+                || "shouldBeEmpty".equals(matcherName)
+                || "shouldNotBeEmpty".equals(matcherName)
+                || "shouldHaveKey".equals(matcherName)
+                || "shouldNotHaveKey".equals(matcherName)
+                || "shouldHaveValue".equals(matcherName)
+                || "shouldNotHaveValue".equals(matcherName)) {
             return "Object";
         }
         if (expectationArgs.isEmpty()) {

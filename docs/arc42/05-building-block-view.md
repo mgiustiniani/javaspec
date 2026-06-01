@@ -2,15 +2,15 @@
 
 ## 5.1 Current Runtime Building Blocks
 
-The implemented architecture now includes the Phase 2 first-MVP CLI/generation slice, the Phase 3 target-profile catalog and compatibility boundary, the Phase 4 configuration, naming, and discovery-filter model, and the Phase 5/6 MVP reflection runner.
+The implemented architecture now includes the Phase 2 first-MVP CLI/generation slice, the Phase 3 target-profile catalog and compatibility boundary, the Phase 4 configuration, naming, and discovery-filter model, the Phase 5/6 MVP reflection runner, and the Phase 7 matcher/expectation expansion.
 
 | Building block | Package | Responsibility |
 |---|---|---|
 | CLI adapter | `org.javaspec.cli` | Parses first-MVP `describe`/`desc` and `run` commands, `--config`, `--suite`, path overrides, constructor-policy overrides, run `--class`/`--example` filters, diagnostics, and exit codes; invokes the runner after discovery/generation/update and prints example summaries. |
 | Configuration model | `org.javaspec.config` | Provides immutable default/configured suite settings and a restricted zero-runtime-dependency config parser. |
-| Spec discovery, naming, and generation | `org.javaspec.discovery`, `org.javaspec.naming`, `org.javaspec.generation` | Applies default/configured naming conventions, discovers `*Spec.java` files, extracts example metadata, applies suite selection and class/example filters, feeds runner metadata, and plans/writes gated spec, support, production type, constructor, factory, and method skeletons. |
+| Spec discovery, naming, and generation | `org.javaspec.discovery`, `org.javaspec.naming`, `org.javaspec.generation` | Applies default/configured naming conventions, discovers `*Spec.java` files, extracts example metadata, recognizes expanded chained matcher names for method-discovery/default-return inference where applicable, applies suite selection and class/example filters, feeds runner metadata, and plans/writes gated spec, support, production type, constructor, factory, and method skeletons. |
 | Reflection runner | `org.javaspec.runner` | Executes filtered discovered examples reflectively when compiled spec classes are available on the effective classloader, records PASSED/FAILED/BROKEN/SKIPPED outcomes, and aggregates run/spec/example results. |
-| Object behavior and matchers | `org.javaspec.api`, `org.javaspec.matcher` | Provides the Java-facing specification base class, lazy construction support, expectation wrappers, and matcher contracts. |
+| Object behavior and matchers | `org.javaspec.api`, `org.javaspec.matcher` | Provides the Java-facing specification base class, lazy construction support, expectation wrappers, expanded matcher helpers, direct convenience assertions that delegate through `match(actual)`, matcher contracts, and custom matcher registration without runtime dependencies. |
 | Profile catalog | `org.javaspec.profile` | Stores deterministic Java LTS profile, feature-flag, and API-symbol metadata for Java 8, 11, 17, 21, and 25. |
 | Compatibility boundary | `org.javaspec.compatibility` | Checks profile compatibility and reflectively probes optional APIs without direct post-Java-8 linkage. |
 
@@ -68,3 +68,15 @@ The CLI adapter applies the selected suite's spec/source paths and package prefi
 - `ExampleResult`, `SpecResult`, `RunResult`, and `FailureDetail` provide immutable result aggregation for the CLI summary and future formatters.
 
 The current limitation is deliberate: source-only or otherwise unavailable spec classes are skipped/not executable until an external build, IDE, or launcher puts compiled classes on the effective classloader.
+
+## 5.6 Expectations and Matchers
+
+`org.javaspec.matcher` contains the zero-dependency expectation wrapper and matcher registry:
+
+- `Matchable<T>` provides PHPSpec-inspired chained assertions for identity/equality and their negations, return/equality aliases, type/instance aliases, `shouldImplement`, containment, string start/end/pattern checks and their negations, count/empty checks, and map key/value checks.
+- Count and empty checks support arrays, collections, maps, character sequences, and generic iterables. Generic iterables are counted by iteration, so one-shot iterables are consumed and infinite iterables can hang.
+- `MatcherRegistry` keeps the default registry free of runtime dependencies. It exposes identity, equality, negated identity, and a default negated-equality matcher while still allowing custom matchers to be registered.
+- `ObjectBehavior<T>` keeps the generated-support-class base behavior and offers direct convenience assertion methods that delegate through `match(actual)`, so direct and fluent assertions share matcher behavior.
+- `SpecDiscovery` recognizes expanded chained matcher method names in typed proxy calls for method-discovery/default-return inference where applicable.
+
+No additional runtime component or third-party assertion library is introduced by this expansion.

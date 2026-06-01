@@ -2,9 +2,9 @@
 
 Wiki home for the current javaspec MVP.
 
-javaspec is a Java 8-compatible, zero-runtime-dependency specification tool inspired by PHPSpec. The current MVP supports the first spec-first loop plus the ADR 0004 correction work and follow-up factory construction generation: specification/support generation, production type discovery and generation, constructor and static factory construction generation, typed proxy matcher support, method skeleton generation, Phase 3 Java LTS profiles/catalog/API-symbol metadata/compatibility probes, Phase 4 configuration, naming, suite selection, discovery filters, and the Phase 5/6 MVP reflection runner.
+javaspec is a Java 8-compatible, zero-runtime-dependency specification tool inspired by PHPSpec. The current MVP supports the first spec-first loop plus the ADR 0004 correction work, follow-up factory construction generation, and the Phase 7 matcher/expectation expansion: specification/support generation, production type discovery and generation, constructor and static factory construction generation, typed proxy matcher support, direct `ObjectBehavior` convenience assertions, method skeleton generation, Phase 3 Java LTS profiles/catalog/API-symbol metadata/compatibility probes, Phase 4 configuration, naming, suite selection, discovery filters, and the Phase 5/6 MVP reflection runner.
 
-> Current status: `describe` writes specification/support files only. `javaspec run` keeps discovery, generation, and source updates, then executes discovered examples when the compiled spec classes are available on the effective classloader. It reuses `DiscoveredSpec`/`SpecExample` metadata, so suite, class, and example filters remain effective. Configured bootstrap hooks, profile, and formatter values are parsed/validated metadata for later runner and formatter features.
+> Current status: `describe` writes specification/support files only. `javaspec run` keeps discovery, generation, and source updates, then executes discovered examples when the compiled spec classes are available on the effective classloader. It reuses `DiscoveredSpec`/`SpecExample` metadata, so suite, class, and example filters remain effective. The matcher set includes expanded negation, type/instance, count/empty, string, and map key/value helpers while preserving zero runtime dependencies. Configured bootstrap hooks, profile, and formatter values are parsed/validated metadata for later runner and formatter features.
 
 ## Quick start
 
@@ -474,7 +474,7 @@ match(subject().getRating()).shouldReturn(5);
 
 ## Method generation
 
-`run` discovers typed proxy calls and construction factory markers, then can generate missing subject method skeletons. Discovery currently covers the supported matcher calls, typed throw calls such as `shouldThrow(...).duringSetRating(-3)`, direct `subject().method(...)` calls, simple setter-style calls, and static factory construction markers.
+`run` discovers typed proxy calls and construction factory markers, then can generate missing subject method skeletons. Discovery currently covers the supported expanded chained matcher calls, typed throw calls such as `shouldThrow(...).duringSetRating(-3)`, direct `subject().method(...)` calls, simple setter-style calls, and static factory construction markers.
 
 `beConstructedWith(...)` remains constructor descriptor generation. The factory construction forms `beConstructedThrough("create", args...)`, `beConstructedNamed("named", args...)`, and `beConstructedThroughNamed("createNamed", args...)` are method-generation inputs when the factory name is a string literal and a valid Java identifier; they generate static factory methods returning the described type instead of empty constructor markers.
 
@@ -559,17 +559,64 @@ Empty generated/no-op unmatched constructors may be removed when safe, regardles
 
 ## Matchers
 
-Typed proxy methods return `Matchable<T>` for non-void subject methods. The documented matcher set includes:
+Typed proxy methods return `Matchable<T>` for non-void subject methods. The explicit wrapper style also returns `Matchable<T>`:
 
-- `shouldReturn`
-- `shouldNotReturn`
-- `shouldEqual`
-- `shouldBeLike`
-- `shouldContain`
-- `shouldNotContain`
-- `shouldStartWith`
-- `shouldEndWith`
-- `shouldMatchPattern`
+```java
+getRating().shouldReturn(5);
+match(subject().getRating()).shouldReturn(5);
+```
+
+The implemented matcher set is dependency-free and includes these groups.
+
+### Equality, identity, and negation
+
+| Method | Meaning |
+|---|---|
+| `shouldBe(expected)` | identity comparison using Java `==` semantics |
+| `shouldNotBe(unexpected)` | negated identity comparison |
+| `shouldEqual(expected)` | equality comparison using `equals` semantics |
+| `shouldNotEqual(unexpected)` | negated equality comparison |
+| `shouldReturn(expected)` | alias for equality/return terminology |
+| `shouldNotReturn(unexpected)` | negated return/equality alias |
+| `shouldBeLike(expected)` | equality alias for PHPSpec-like terminology |
+| `shouldNotBeLike(unexpected)` | negated `beLike` alias |
+| `shouldBeEqualTo(expected)` | equality alias |
+| `shouldNotBeEqualTo(unexpected)` | negated equality alias |
+
+`MatcherRegistry` keeps the runtime dependency-free. It provides the built-in identity/equality/negated-identity matchers and a default negated-equality matcher for `shouldNotEqual` and its aliases.
+
+### Type, implementation, and containment
+
+| Method | Meaning |
+|---|---|
+| `shouldHaveType(Class<?>)` | requires a non-null value assignable to the expected type |
+| `shouldBeAnInstanceOf(Class<?>)` | alias for `shouldHaveType` |
+| `shouldReturnAnInstanceOf(Class<?>)` | return-terminology alias for `shouldHaveType` |
+| `shouldImplement(Class<?>)` | requires the wrapped value, or wrapped `Class<?>`, to implement or extend the expected type |
+| `shouldContain(value)` | checks character sequences, collections, maps, arrays, or iterables for a contained value |
+| `shouldNotContain(value)` | negated containment check |
+
+For maps, `shouldContain(value)` succeeds if the value is present as either a key or a value.
+
+### Count, emptiness, and maps
+
+| Method | Supported values |
+|---|---|
+| `shouldHaveCount(int)` | arrays, collections, maps, character sequences, and iterables |
+| `shouldBeEmpty()` | arrays, collections, maps, character sequences, and iterables |
+| `shouldNotBeEmpty()` | arrays, collections, maps, character sequences, and iterables |
+| `shouldHaveKey(key)` / `shouldNotHaveKey(key)` | maps |
+| `shouldHaveValue(value)` / `shouldNotHaveValue(value)` | maps |
+
+Known limitation: count and emptiness checks on a generic `Iterable` iterate the iterable to compute the count. This consumes one-shot iterables and can hang on infinite iterables.
+
+### String helpers
+
+| Method | Meaning |
+|---|---|
+| `shouldStartWith(prefix)` / `shouldNotStartWith(prefix)` | character sequence prefix check |
+| `shouldEndWith(suffix)` / `shouldNotEndWith(suffix)` | character sequence suffix check |
+| `shouldMatchPattern(pattern)` / `shouldNotMatchPattern(pattern)` | Java regular expression check using `Pattern` |
 
 Examples:
 
@@ -577,10 +624,39 @@ Examples:
 getRating().shouldReturn(5);
 getRating().shouldNotReturn(0);
 getTitle().shouldContain("Wizard");
+getTitle().shouldNotContain("Draft");
 getTitle().shouldStartWith("The");
+getTitle().shouldNotStartWith("Draft");
 getTitle().shouldEndWith("Oz");
+getTitle().shouldNotEndWith("Draft");
 getTitle().shouldMatchPattern("Wiz.*");
+getTitle().shouldNotMatchPattern("Draft.*");
+getTags().shouldHaveCount(2);
+getTags().shouldNotBeEmpty();
+getMetadata().shouldHaveKey("isbn");
+getMetadata().shouldHaveValue("Wizard");
+getBookClass().shouldImplement(Readable.class);
 ```
+
+### Direct `ObjectBehavior` convenience assertions
+
+`ObjectBehavior` also exposes direct assertion methods for ad-hoc checks. These methods delegate through `match(actual)`, so they share behavior with typed proxy and explicit wrapper assertions:
+
+```java
+shouldReturn(subject().getRating(), 5);
+shouldNotEqual(subject().getRating(), 0);
+shouldHaveType(subject().getTitle(), String.class);
+shouldImplement(subject(), Readable.class);
+shouldContain(subject().getTitle(), "Wizard");
+shouldHaveCount(subject().getTags(), 2);
+shouldBeEmpty(subject().getNotes());
+shouldHaveKey(subject().getMetadata(), "isbn");
+shouldNotStartWith(subject().getTitle(), "Draft");
+```
+
+The direct convenience set covers equality/negation aliases, type/instance/implementation checks, containment, count/empty checks, map key/value checks, and string negations. Positive string helpers are available through typed proxy or explicit `match(actual)` usage.
+
+### Custom matchers
 
 Custom matchers can be registered in the matcher registry and may evaluate null subjects; javaspec passes the actual subject value, including `null`, to the matcher predicate.
 
@@ -597,6 +673,8 @@ matcherRegistry().register("beAbsent", new org.javaspec.matcher.CustomMatcher<Ob
 
 match(null).shouldMatch("beAbsent");
 ```
+
+`SpecDiscovery` recognizes the expanded chained matcher names on typed proxy calls for method-discovery/default-return inference where applicable.
 
 ## Class-like type generation
 
@@ -763,7 +841,7 @@ Rules:
 5. The described production type name is the spec class name without the trailing `Spec`.
 6. The described production kind defaults to class unless the spec contains a marker such as `shouldBeAFinalClass();`, `shouldBeAnInterface();`, `shouldBeAnEnum();`, `shouldBeAnAnnotation();`, `shouldBeARecord();`, `shouldBeASealedClass();`, or `shouldBeASealedInterface();`.
 7. `shouldExtend(...)`, `shouldImplement(...)`, and `shouldPermit(...)` class literals are resolved through imports or the described production package.
-8. Constructor and method descriptors are discovered heuristically from supported construction and typed proxy syntax: `beConstructedWith(...)` describes constructors; factory construction markers with string-literal Java-identifier names describe static factory methods; typed proxy, throw-proxy, direct `subject().method(...)`, and simple setter calls describe instance methods.
+8. Constructor and method descriptors are discovered heuristically from supported construction and typed proxy syntax: `beConstructedWith(...)` describes constructors; factory construction markers with string-literal Java-identifier names describe static factory methods; typed proxy calls using the expanded chained matcher names, throw-proxy calls, direct `subject().method(...)`, and simple setter calls describe instance methods where applicable.
 
 Legacy same-package specs are also discovered by convention when the default production package prefix is empty, but new specs generated by `describe` use the active suite naming convention.
 
@@ -856,9 +934,9 @@ org.javaspec:javaspec:jar:0.1.0-SNAPSHOT
 
 ## Verification
 
-Current verification after completing the Phase 5/6 MVP reflection runner:
+Current verification after completing the Phase 7 matcher/expectation expansion:
 
-- `mvn verify` BUILD SUCCESS with 307 tests run, 0 failures, 0 errors, and 0 skipped.
+- `mvn verify` passed.
 - `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
 
 ## Current MVP limitations
@@ -869,4 +947,5 @@ Current verification after completing the Phase 5/6 MVP reflection runner:
 - Source parsing and generation use Java 8-compatible heuristics, not a full Java parser.
 - Generated post-Java-8 source forms, such as records and sealed types, require an appropriate JDK to compile.
 - Method generation covers the supported typed proxy, throw-proxy, direct subject/setter, and static factory construction marker syntax; it is not a general Java source synthesis engine.
+- Count and emptiness checks on generic `Iterable` values consume the iterable and can hang on infinite iterables.
 - Doubles/collaborators are not implemented yet.

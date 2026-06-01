@@ -1,5 +1,6 @@
 package org.javaspec.runner;
 
+import org.javaspec.api.ObjectBehavior;
 import org.javaspec.discovery.DiscoveredSpec;
 import org.javaspec.discovery.SpecExample;
 import org.javaspec.model.DescribedType;
@@ -78,6 +79,25 @@ public class SpecRunnerTest {
         assertTrue(broken.failureDetail().summary().contains("unexpected boom"));
         assertEquals(Arrays.asList(failed), result.failedExamples());
         assertEquals(Arrays.asList(broken), result.brokenExamples());
+    }
+
+    @Test
+    public void executesCompiledObjectBehaviorSpecUsingExpandedMatchers() {
+        RunResult result = run(
+                Phase7MatcherSpec.class,
+                "it_passes_with_expanded_matchers",
+                "it_fails_with_expanded_matcher"
+        );
+
+        assertEquals(2, result.totalCount());
+        assertEquals(1, result.passedCount());
+        assertEquals(1, result.failedCount());
+        assertEquals(0, result.brokenCount());
+
+        ExampleResult failed = result.exampleResults().get(1);
+        assertEquals(ExampleStatus.FAILED, failed.status());
+        assertNotNull(failed.failureDetail());
+        assertTrue(failed.failureDetail().message().contains("not to end with city"));
     }
 
     @Test
@@ -199,6 +219,17 @@ public class SpecRunnerTest {
 
         public void it_breaks() {
             throw new IllegalStateException("unexpected boom");
+        }
+    }
+
+    public static final class Phase7MatcherSpec extends ObjectBehavior<Object> {
+        public void it_passes_with_expanded_matchers() {
+            match("emerald city").shouldNotStartWith("ruby");
+            match(Arrays.asList("heart", "brain")).shouldHaveCount(2);
+        }
+
+        public void it_fails_with_expanded_matcher() {
+            match("emerald city").shouldNotEndWith("city");
         }
     }
 

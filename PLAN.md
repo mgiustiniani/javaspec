@@ -4,7 +4,7 @@ This plan defines the initial delivery path for javaspec, a Java 8-compatible, z
 
 ## Current Implementation Status — Implemented and Verified
 
-Phases 2, 3, and 4 are complete, and the Phase 5/6 MVP reflection runner is implemented.
+Phases 2, 3, and 4 are complete, the Phase 5/6 MVP reflection runner is implemented, and the Phase 7 matcher/expectation expansion is implemented.
 
 - Phase 2 implemented the Java 8 Maven project, zero-runtime-dependency guard, PHPSpec-style `describe`/`run` split, specification/support skeletons, and gated production type/method generation.
 - Phase 3 implemented Java LTS target profiles `java8`, `java11`, `java17`, `java21`, and `java25`, the profile catalog, API-symbol metadata, target-profile compatibility checks, and reflection-only API availability probes.
@@ -12,9 +12,11 @@ Phases 2, 3, and 4 are complete, and the Phase 5/6 MVP reflection runner is impl
 - The Phase 5/6 MVP implemented `org.javaspec.runner`, keeps `javaspec run` discovery/generation/update behavior, and executes filtered discovered examples when compiled spec classes are available on the effective classloader.
 - Runner behavior: existing `DiscoveredSpec`/`SpecExample` metadata remains the execution source, so suite/class/example filters remain effective; each example gets a fresh spec instance; optional public no-arg `let()` runs before each example and optional public no-arg `letGo()` runs after each example.
 - Result states are `PASSED`, `FAILED` for `AssertionError`, `BROKEN` for non-assertion throwables/lifecycle/reflection errors, and `SKIPPED` for non-loadable spec classes or missing reflected example methods. The CLI prints a summary and exits `1` for failed or broken executable examples.
-- Known limitation: the CLI runner does not compile source/spec files itself; source-only or otherwise unavailable spec classes are skipped/not executable.
-- Verification completed on 2026-06-01: `mvn verify` passed with 307 tests, 0 failures, 0 errors, and 0 skipped.
-- Runtime dependency verification completed on 2026-06-01: `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+- Phase 7 expanded `Matchable` with negated equality aliases, type/instance aliases, `shouldImplement`, string negations, count/empty helpers for arrays/collections/maps/character sequences/iterables, and map key/value helpers.
+- Phase 7 expanded `ObjectBehavior` direct convenience assertion methods that delegate through `match(actual)`, kept `MatcherRegistry` zero-dependency with a default negated-equality matcher, and updated `SpecDiscovery` so expanded chained matcher names participate in method-discovery/default-return inference where applicable.
+- Known limitations: the CLI runner does not compile source/spec files itself; source-only or otherwise unavailable spec classes are skipped/not executable. Count and emptiness checks on a generic `Iterable` consume the iterable and can hang on infinite iterables.
+- Verification completed on 2026-06-01 after the Phase 7 matcher/expectation expansion: `mvn verify` passed.
+- Runtime dependency verification completed on 2026-06-01 after the Phase 7 matcher/expectation expansion: `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
 
 ## ADR 0004 Correction Status — Implemented and Verified
 
@@ -38,7 +40,7 @@ Planner verification after ADR 0004 confirmed these source inputs:
 4. Generation distinguishes constructor and factory construction markers: `beConstructedWith(...)` remains constructor descriptor generation, while `beConstructedThrough("create", args...)`, `beConstructedNamed("named", args...)`, and `beConstructedThroughNamed("createNamed", args...)` discover/generate static factory method skeletons returning the described type. Factory names must be string literals and valid Java identifiers; non-string-literal names are ignored for generation instead of creating empty constructor markers.
 5. Typed proxy matcher syntax is supported through generated support classes, including calls such as `getRating().shouldReturn(5)`, `getTitle().shouldContain("Wizard")`, and `shouldThrow(IllegalArgumentException.class).duringSetRating(-3)`. Existing `match(value).should...` usage remains available.
 6. Method generation discovers typed proxy calls and can generate missing instance method skeletons with Java 8-compatible default returns. Generated typed spec support skips static factory descriptors because construction methods are not instance subject proxies. `run --generate` writes non-interactively; without `--generate`, `run` prompts before adding missing methods to an existing source file.
-7. The matcher subset includes `shouldReturn`, `shouldNotReturn`, `shouldEqual`, `shouldBeLike`, `shouldContain`, `shouldNotContain`, `shouldStartWith`, `shouldEndWith`, and `shouldMatchPattern`; custom matchers can evaluate null subjects.
+7. The matcher subset now includes identity/equality aliases and negations (`shouldBe`, `shouldNotBe`, `shouldEqual`, `shouldNotEqual`, `shouldReturn`, `shouldNotReturn`, `shouldBeLike`, `shouldNotBeLike`, `shouldBeEqualTo`, `shouldNotBeEqualTo`), type/instance aliases (`shouldHaveType`, `shouldBeAnInstanceOf`, `shouldReturnAnInstanceOf`), `shouldImplement`, string containment/start/end/pattern checks and their negations, count/empty helpers for arrays/collections/maps/character sequences/iterables, map key/value helpers, and custom matchers that can evaluate null subjects.
 8. Known limitations remain: the MVP reflection runner executes only compiled, classloader-available spec classes and does not compile source/spec files itself; lifecycle support is limited to optional public no-arg `let()`/`letGo()`; source parsing/generation uses Java 8-compatible heuristics rather than a full Java parser; generated post-Java-8 source forms still require an appropriate JDK to compile.
 9. Verification passed: `mvn test` completed with 174 tests, and `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT` in runtime scope.
 
@@ -161,6 +163,29 @@ Known limitations:
 - Lifecycle support is intentionally minimal: public no-argument `let()` and `letGo()` only.
 - Pending examples, stop-on-failure, active formatter behavior, bootstrap execution, profile-aware execution, and richer reporting remain later work.
 
+## Phase 7 Matcher/Expectation Expansion Status — Implemented and Verified
+
+Implementation summary:
+
+1. Expanded `org.javaspec.matcher.Matchable` with identity/equality aliases and negations: `shouldBe`, `shouldNotBe`, `shouldEqual`, `shouldNotEqual`, `shouldReturn`, `shouldNotReturn`, `shouldBeLike`, `shouldNotBeLike`, `shouldBeEqualTo`, and `shouldNotBeEqualTo`.
+2. Added type and assignability matcher aliases: `shouldHaveType`, `shouldBeAnInstanceOf`, `shouldReturnAnInstanceOf`, and `shouldImplement`.
+3. Expanded string and containment helpers: `shouldContain`, `shouldNotContain`, `shouldStartWith`, `shouldNotStartWith`, `shouldEndWith`, `shouldNotEndWith`, `shouldMatchPattern`, and `shouldNotMatchPattern`.
+4. Added count and emptiness helpers for arrays, collections, maps, character sequences, and generic iterables: `shouldHaveCount`, `shouldBeEmpty`, and `shouldNotBeEmpty`.
+5. Added map-specific helpers: `shouldHaveKey`, `shouldNotHaveKey`, `shouldHaveValue`, and `shouldNotHaveValue`.
+6. Expanded `ObjectBehavior` direct convenience assertion methods for equality/negation aliases, type/instance/implementation checks, containment, count/empty checks, map key/value checks, and string negations. These methods delegate through `match(actual)` so direct assertions and fluent `Matchable` assertions share the same implementation.
+7. Kept `MatcherRegistry` zero-runtime-dependency and added a default `negated-equality` matcher available through the registry fallback while retaining the existing identity, equality, and negated-identity defaults.
+8. Updated `SpecDiscovery` so expanded chained matcher names are recognized for method-discovery/default-return inference where applicable.
+9. Preserved custom matcher support through `shouldMatch(...)` and registry registration without adding runtime dependencies.
+
+Verification summary:
+
+- `mvn verify` passed after the Phase 7 matcher/expectation expansion.
+- `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+
+Known limitation:
+
+- Count and emptiness checks on a generic `Iterable` iterate the iterable to compute a size. This consumes one-shot iterables and can hang on infinite iterables.
+
 ## Delegation Rule for Later Work
 
 Further implementation work must be delegated to the appropriate workflow agents. The documenter must not create application source code, Maven build files, scaffolding, or tests. Future work should be delegated as follows by the parent workflow:
@@ -181,7 +206,8 @@ Further implementation work must be delegated to the appropriate workflow agents
 | Constructor-policy correction | ADR 0004, this plan, user manual | Implemented and verified: exact states `delete`, `preserve`, `comment`; default `comment`; destructive deletion only with `--constructor-policy delete`; empty no-op unmatched constructors may be removed safely. |
 | PHPSpec construction semantics | ADR 0004, verified PHPSpec construction docs/source, this plan, user manual | Runtime implemented in `ObjectBehavior`: lazy subject construction, `beConstructedWith`, factory/named construction forms, override-before-instantiation semantics, failure on change after instantiation, and `duringInstantiation()`. Generation implemented: `beConstructedWith(...)` remains constructor descriptor generation; factory/named forms with string-literal Java-identifier names generate static factory method skeletons returning the described type; non-string-literal factory names are ignored for generation. The MVP reflection lifecycle now runs compiled examples with fresh spec instances and optional public no-arg `let()`/`letGo()`; full PHPSpec parity remains future work. |
 | Typed proxy matcher syntax | ADR 0004, verified PHPSpec matcher docs/source, this plan, user manual | Implemented: generated subject-specific support classes expose typed proxy methods and throw proxies while existing `match(value).should...` usage remains available. |
-| Method generation | ADR 0004, this plan, user manual | Implemented and verified: discovery from typed proxy/throw calls, direct subject/setter calls, and static factory construction markers; Java 8-compatible instance method and static factory skeleton generation; static factory descriptors are skipped by generated support proxies; `--generate` writes non-interactively and interactive `run` prompts before updating existing source files. |
+| Phase 7 matcher/expectation expansion | README, user manual, ARC42 section 5, this plan | Implemented and verified: `Matchable` includes expanded equality/negation, type/instance, implementation, string, count/empty, and map key/value helpers; `ObjectBehavior` direct convenience methods delegate through `match(actual)`; `MatcherRegistry` keeps a zero-dependency default negated-equality matcher; `SpecDiscovery` recognizes expanded chained matcher names for method-discovery/default-return inference where applicable. Generic `Iterable` count/empty checks consume the iterable and can hang on infinite iterables. |
+| Method generation | ADR 0004, this plan, user manual | Implemented and verified: discovery from typed proxy/throw calls, direct subject/setter calls, static factory construction markers, and the expanded chained matcher names where applicable; Java 8-compatible instance method and static factory skeleton generation; static factory descriptors are skipped by generated support proxies; `--generate` writes non-interactively and interactive `run` prompts before updating existing source files. |
 | Configuration model and inferred defaults | README, user manual, ARC42 section 5, ADR 0005, this plan | Implemented in Phase 4: `JavaspecConfiguration.defaults()` provides the default suite `default`, Maven-style spec/source roots, `spec` package prefix, empty production package prefix, `java8` profile, `progress` formatter, `comment` constructor policy, and empty bootstrap hooks when no config file is supplied. |
 | Constructor-policy config default | ADR 0004, ADR 0005, user manual, this plan | Implemented in Phase 4: config key `constructorPolicy`/`constructor-policy` accepts only `delete`, `preserve`, and `comment`; `comment` remains the inferred and config default, and `run --constructor-policy` overrides config explicitly. |
 | Explicit suites, paths, profile, and formatter config | README, user manual, ARC42 section 5, ADR 0005, this plan | Implemented in Phase 4: `--config <file>` and `--suite <name>` select suite configuration; selected-suite `specDir`/`sourceDir` drive `describe`/`run` unless CLI path options override them; selected-suite `specPackagePrefix`/`packagePrefix` drive naming; `profile` and `formatter` are parsed/validated metadata until profile-aware runner and formatter behavior is implemented. |
@@ -218,6 +244,8 @@ Further implementation work must be delegated to the appropriate workflow agents
 - Use `DiscoveredSpec` and `SpecExample` as the execution selection source so suite, class, and example filters remain effective for the runner.
 - Treat the CLI runner as a classpath reflection executor, not an in-process compiler; source-only or unavailable spec classes are skipped/not executable until compiled classes are present on the effective classloader.
 - Prefer generated subject-specific typed support/proxy classes while keeping explicit `match(value)` style APIs available.
+- Keep `Matchable`, `ObjectBehavior` direct convenience assertions, and `SpecDiscovery` matcher-name recognition synchronized when matcher names are added.
+- Document that count/empty checks on generic `Iterable` values consume the iterable and are unsafe for infinite iterables.
 - Insert generated methods source-preservingly, with confirmation or documented non-interactive behavior, and with Java 8-compatible default returns.
 - Keep construction and matcher behavior aligned with the verified PHPSpec semantics for lazy construction, overrides before instantiation, negation, and exception matching.
 
@@ -274,7 +302,7 @@ Still out of scope after the ADR 0004 correction:
 - Private constructor source generation and broader named-constructor customization beyond the current static factory skeleton support.
 - Template systems beyond the minimal class-like/spec/support skeleton need.
 - Return constant generation from expectations beyond Java 8-compatible default returns.
-- Full PHPSpec matcher parity beyond the documented matcher subset.
+- Full PHPSpec matcher parity beyond the implemented Phase 7 matcher subset.
 - Broader Prophecy-inspired or double functionality.
 
 ### Phase 3 — Core Domain Model and LTS Profile Catalog (Completed)
@@ -418,7 +446,7 @@ Remaining tasks:
 
 1. Add pending examples, stop-on-failure, verbosity, active formatter behavior, bootstrap execution, profile-aware execution, and richer reporting.
 2. Expand source-location diagnostics for failed/broken examples where available.
-3. Deepen integration with typed proxy matchers and method-generation diagnostics without forcing eager subject construction.
+3. Continue to refine typed proxy matcher diagnostics and method-generation reporting without forcing eager subject construction.
 4. Keep ADR 0004 construction semantics stable as the runner grows beyond the MVP lifecycle.
 
 Acceptance criteria status:
@@ -429,27 +457,36 @@ Acceptance criteria status:
 - Exit code `1` is stable for failed/broken executable examples; skipped-only runs remain successful.
 - Source-only or unavailable spec classes are skipped until compiled classes are present on the effective classloader.
 
-### Phase 7 — Expectations and Matchers
+### Phase 7 — Expectations and Matchers (Completed)
 
-**Owner later:** Java implementation agent.
+**Status:** Implemented and verified for the current zero-dependency matcher/expectation expansion. Full PHPSpec matcher parity, approximate equality, richer object-state matchers, iteration/yield variants, and extension registration beyond the current registry remain future work.
 
-**Status note:** ADR 0004 implemented the documented matcher subset and generated typed proxy support. Full PHPSpec matcher parity remains future work.
+Implemented scope:
 
-Tasks:
+1. `Matchable<T>` exposes PHPSpec-inspired equality/identity aliases and negations: `shouldBe`, `shouldNotBe`, `shouldEqual`, `shouldNotEqual`, `shouldReturn`, `shouldNotReturn`, `shouldBeLike`, `shouldNotBeLike`, `shouldBeEqualTo`, and `shouldNotBeEqualTo`.
+2. Type and assignability aliases are implemented: `shouldHaveType`, `shouldBeAnInstanceOf`, `shouldReturnAnInstanceOf`, and `shouldImplement`.
+3. String and containment matchers are expanded: `shouldContain`, `shouldNotContain`, `shouldStartWith`, `shouldNotStartWith`, `shouldEndWith`, `shouldNotEndWith`, `shouldMatchPattern`, and `shouldNotMatchPattern`.
+4. Count and emptiness helpers are implemented for arrays, collections, maps, character sequences, and iterables: `shouldHaveCount`, `shouldBeEmpty`, and `shouldNotBeEmpty`.
+5. Map key/value helpers are implemented: `shouldHaveKey`, `shouldNotHaveKey`, `shouldHaveValue`, and `shouldNotHaveValue`.
+6. `ObjectBehavior` direct convenience assertions were expanded and delegate through `match(actual)` so direct assertions share the same matcher behavior as fluent typed proxy or explicit wrapper usage.
+7. `MatcherRegistry` keeps zero runtime dependencies and exposes a default negated-equality matcher while preserving custom matcher registration.
+8. `SpecDiscovery` recognizes the expanded chained matcher names for method-discovery/default-return inference where applicable.
 
-1. Define matcher contracts with no external assertion library and expose them through generated subject-specific typed support/proxy classes.
-2. Replace or refactor untyped wrapper-style matcher usage so user specs can call typed proxy methods such as `getRating().shouldReturn(5)` and `getTitle().shouldContain("Wizard")`.
-3. Implement PHPSpec-inspired `should*` and `shouldNot*` expectation names, including identity/equality (`return`, `be`, `equal`, `beEqualTo`), comparison (`beLike`), approximate equality, type/assignability (`beAnInstanceOf`, `returnAnInstanceOf`, `haveType`, `implement`), exception throwing with `during...` forms, object-state `be*`/`have*`, scalar checks, count, containment, key/key-value checks, iteration/yield variants where Java-compatible, and string start/end/regex checks.
-4. Support negation consistently across typed expectation objects.
-5. Add extension points for inline `getMatchers()` custom matchers and later extension registration without runtime dependencies.
+Verification:
 
-Acceptance criteria:
+- `mvn verify` passed.
+- `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
 
-- Generated typed proxy/support classes compile and expose PHPSpec-like Java syntax.
-- Matcher output explains expected and actual values.
-- Negated expectations behave consistently.
-- Throw matchers support method calls and `duringInstantiation()`.
-- Custom matcher registration does not require runtime dependencies.
+Known limitation:
+
+- Count and emptiness on a generic `Iterable` consume the iterable and can hang on infinite iterables.
+
+Acceptance criteria status:
+
+- Generated typed proxy/support classes continue to expose PHPSpec-like Java syntax through `Matchable<T>`.
+- Negated equality, string, count/empty, and map key/value expectations are implemented for the documented subset.
+- Throw matchers still support method calls and `duringInstantiation()` from the earlier runner/construction work.
+- Custom matcher registration still requires no runtime dependencies.
 
 ### Phase 8 — Collaborators and Doubles
 

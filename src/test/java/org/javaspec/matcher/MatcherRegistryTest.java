@@ -72,6 +72,27 @@ public class MatcherRegistryTest {
     }
 
     @Test
+    public void exposesDefaultNegatedEqualityMatcherWithoutCountingItAsRegistered() {
+        MatcherRegistry registry = MatcherRegistry.createWithDefaults();
+
+        assertTrue(registry.contains("negated-equality"));
+        assertEquals(3, registry.size());
+
+        Matcher<Object> negatedEquality = registry.matcherFor("negated-equality");
+        assertEquals("negated-equality", negatedEquality.name());
+        assertTrue(negatedEquality.evaluate("ruby", "emerald").isPassed());
+        assertTrue(negatedEquality.evaluate(null, "ruby").isPassed());
+
+        MatchResult equalResult = negatedEquality.evaluate("ruby", "ruby");
+        assertFalse(equalResult.isPassed());
+        assertTrue(equalResult.failureMessage().contains("not to equal ruby"));
+
+        MatchResult missingExpectedResult = negatedEquality.evaluate("ruby");
+        assertFalse(missingExpectedResult.isPassed());
+        assertTrue(missingExpectedResult.failureMessage().contains("none was provided"));
+    }
+
+    @Test
     public void reportsSize() {
         MatcherRegistry registry = MatcherRegistry.createWithDefaults();
         assertEquals(3, registry.size());

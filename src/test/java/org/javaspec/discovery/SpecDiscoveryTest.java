@@ -176,6 +176,58 @@ public class SpecDiscoveryTest {
     }
 
     @Test
+    public void discoversExpandedChainedMatcherNamesForMissingMethodInference() throws Exception {
+        File specRoot = temporaryFolder.newFolder("expanded-matcher-discovery-root");
+        writeFile(
+                specRoot,
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator + "CatalogSpec.java",
+                "package spec.com.example;\n\n" +
+                        "public class CatalogSpec extends CatalogSpecSupport {\n" +
+                        "    public void it_infers_expanded_chained_matchers() {\n" +
+                        "        getAlias().shouldNotBeLike(\"ruby\");\n" +
+                        "        getCanonicalName().shouldBeEqualTo(\"emerald\");\n" +
+                        "        getDifferentName().shouldNotBeEqualTo(\"emerald\");\n" +
+                        "        getInstance().shouldBeAnInstanceOf(Object.class);\n" +
+                        "        getReturnedInstance().shouldReturnAnInstanceOf(Object.class);\n" +
+                        "        getImplementation().shouldImplement(java.util.List.class);\n" +
+                        "        getPrefix().shouldNotStartWith(\"ruby\");\n" +
+                        "        getSuffix().shouldNotEndWith(\"ruby\");\n" +
+                        "        getPattern().shouldNotMatchPattern(\"ruby.*\");\n" +
+                        "        getItems().shouldHaveCount(2);\n" +
+                        "        getEmptyItems().shouldBeEmpty();\n" +
+                        "        getNonEmptyItems().shouldNotBeEmpty();\n" +
+                        "        getLookup().shouldHaveKey(\"ruby\");\n" +
+                        "        getMissingLookup().shouldNotHaveKey(\"sapphire\");\n" +
+                        "        getValuedLookup().shouldHaveValue(\"emerald\");\n" +
+                        "        getOtherValuedLookup().shouldNotHaveValue(\"sapphire\");\n" +
+                        "    }\n" +
+                        "}\n"
+        );
+
+        List<DiscoveredSpec> specs = SpecDiscovery.discover(specRoot);
+
+        assertEquals(1, specs.size());
+        assertEquals(Arrays.asList(
+                MethodDescriptor.of("getAlias", "String"),
+                MethodDescriptor.of("getCanonicalName", "String"),
+                MethodDescriptor.of("getDifferentName", "String"),
+                MethodDescriptor.of("getInstance", "Object"),
+                MethodDescriptor.of("getReturnedInstance", "Object"),
+                MethodDescriptor.of("getImplementation", "Object"),
+                MethodDescriptor.of("getPrefix", "String"),
+                MethodDescriptor.of("getSuffix", "String"),
+                MethodDescriptor.of("getPattern", "String"),
+                MethodDescriptor.of("getItems", "Object"),
+                MethodDescriptor.of("getEmptyItems", "Object"),
+                MethodDescriptor.of("getNonEmptyItems", "Object"),
+                MethodDescriptor.of("getLookup", "Object"),
+                MethodDescriptor.of("getMissingLookup", "Object"),
+                MethodDescriptor.of("getValuedLookup", "Object"),
+                MethodDescriptor.of("getOtherValuedLookup", "Object")
+        ), specs.get(0).describedType().methods());
+    }
+
+    @Test
     public void discoversLegacySamePackageSpecsByConvention() throws Exception {
         File specRoot = temporaryFolder.newFolder("legacy-spec-root");
         File specFile = writeFile(specRoot, "com" + File.separator + "example" + File.separator + "LegacySpec.java");

@@ -86,16 +86,29 @@ public final class Matchable<T> {
      * Asserts that the wrapped value is NOT equal to the unexpected value.
      */
     public void shouldNotEqual(T unexpected) {
-        boolean equal = value == null ? unexpected == null : value.equals(unexpected);
-        if (equal) {
-            throw new AssertionError("Expected value not to equal " + unexpected + " but it did");
-        }
+        Matcher<T> matcher = registry.matcherFor("negated-equality");
+        MatchResult result = matcher.evaluate(value, unexpected);
+        assertPassed(result);
     }
 
     /**
      * Alias for {@link #shouldNotEqual(Object)} using PHPSpec return terminology.
      */
     public void shouldNotReturn(T unexpected) {
+        shouldNotEqual(unexpected);
+    }
+
+    /**
+     * Alias for {@link #shouldNotEqual(Object)}.
+     */
+    public void shouldNotBeLike(T unexpected) {
+        shouldNotEqual(unexpected);
+    }
+
+    /**
+     * Alias for {@link #shouldNotEqual(Object)}.
+     */
+    public void shouldNotBeEqualTo(T unexpected) {
         shouldNotEqual(unexpected);
     }
 
@@ -119,6 +132,38 @@ public final class Matchable<T> {
     }
 
     /**
+     * Alias for {@link #shouldHaveType(Class)}.
+     */
+    public void shouldBeAnInstanceOf(Class<?> expectedType) {
+        shouldHaveType(expectedType);
+    }
+
+    /**
+     * Alias for {@link #shouldHaveType(Class)} using PHPSpec return terminology.
+     */
+    public void shouldReturnAnInstanceOf(Class<?> expectedType) {
+        shouldHaveType(expectedType);
+    }
+
+    /**
+     * Asserts that the wrapped object, or wrapped class object, implements or extends the expected type.
+     */
+    public void shouldImplement(Class<?> expectedType) {
+        if (expectedType == null) {
+            throw new AssertionError("Expected implemented type must not be null");
+        }
+        if (value == null) {
+            throw new AssertionError("Expected an implementation of " + expectedType.getName() + " but got null");
+        }
+        Class<?> actualType = value instanceof Class<?> ? (Class<?>) value : value.getClass();
+        if (!expectedType.isAssignableFrom(actualType)) {
+            throw new AssertionError(
+                    "Expected " + actualType.getName() + " to implement " + expectedType.getName()
+            );
+        }
+    }
+
+    /**
      * Asserts that strings, collections, maps, arrays, or iterables contain the expected value.
      */
     public void shouldContain(Object expected) {
@@ -133,6 +178,79 @@ public final class Matchable<T> {
     public void shouldNotContain(Object unexpected) {
         if (contains(value, unexpected)) {
             throw new AssertionError("Expected " + value + " not to contain " + unexpected);
+        }
+    }
+
+    /**
+     * Asserts that arrays, collections, maps, character sequences, or iterables have the expected count.
+     */
+    public void shouldHaveCount(int expectedCount) {
+        if (expectedCount < 0) {
+            throw new AssertionError("Expected count must not be negative: " + expectedCount);
+        }
+        int actualCount = countOf(value);
+        if (actualCount != expectedCount) {
+            throw new AssertionError("Expected " + value + " to have count " + expectedCount + " but got " + actualCount);
+        }
+    }
+
+    /**
+     * Asserts that arrays, collections, maps, character sequences, or iterables are empty.
+     */
+    public void shouldBeEmpty() {
+        int actualCount = countOf(value);
+        if (actualCount != 0) {
+            throw new AssertionError("Expected " + value + " to be empty but had count " + actualCount);
+        }
+    }
+
+    /**
+     * Asserts that arrays, collections, maps, character sequences, or iterables are not empty.
+     */
+    public void shouldNotBeEmpty() {
+        int actualCount = countOf(value);
+        if (actualCount == 0) {
+            throw new AssertionError("Expected " + value + " not to be empty");
+        }
+    }
+
+    /**
+     * Asserts that the wrapped map contains the expected key.
+     */
+    public void shouldHaveKey(Object expectedKey) {
+        Map<?, ?> map = mapOf(value);
+        if (!map.containsKey(expectedKey)) {
+            throw new AssertionError("Expected " + value + " to have key " + expectedKey);
+        }
+    }
+
+    /**
+     * Asserts that the wrapped map does not contain the unexpected key.
+     */
+    public void shouldNotHaveKey(Object unexpectedKey) {
+        Map<?, ?> map = mapOf(value);
+        if (map.containsKey(unexpectedKey)) {
+            throw new AssertionError("Expected " + value + " not to have key " + unexpectedKey);
+        }
+    }
+
+    /**
+     * Asserts that the wrapped map contains the expected value.
+     */
+    public void shouldHaveValue(Object expectedValue) {
+        Map<?, ?> map = mapOf(value);
+        if (!map.containsValue(expectedValue)) {
+            throw new AssertionError("Expected " + value + " to have value " + expectedValue);
+        }
+    }
+
+    /**
+     * Asserts that the wrapped map does not contain the unexpected value.
+     */
+    public void shouldNotHaveValue(Object unexpectedValue) {
+        Map<?, ?> map = mapOf(value);
+        if (map.containsValue(unexpectedValue)) {
+            throw new AssertionError("Expected " + value + " not to have value " + unexpectedValue);
         }
     }
 
@@ -152,6 +270,21 @@ public final class Matchable<T> {
     }
 
     /**
+     * Asserts that the wrapped character sequence does not start with the unexpected prefix.
+     */
+    public void shouldNotStartWith(String unexpectedPrefix) {
+        if (!(value instanceof CharSequence)) {
+            throw new AssertionError("Expected a character sequence but got " + typeName(value));
+        }
+        if (unexpectedPrefix == null) {
+            throw new AssertionError("Expected prefix must not be null");
+        }
+        if (value.toString().startsWith(unexpectedPrefix)) {
+            throw new AssertionError("Expected " + value + " not to start with " + unexpectedPrefix);
+        }
+    }
+
+    /**
      * Asserts that the wrapped character sequence ends with the expected suffix.
      */
     public void shouldEndWith(String expectedSuffix) {
@@ -163,6 +296,21 @@ public final class Matchable<T> {
         }
         if (!value.toString().endsWith(expectedSuffix)) {
             throw new AssertionError("Expected " + value + " to end with " + expectedSuffix);
+        }
+    }
+
+    /**
+     * Asserts that the wrapped character sequence does not end with the unexpected suffix.
+     */
+    public void shouldNotEndWith(String unexpectedSuffix) {
+        if (!(value instanceof CharSequence)) {
+            throw new AssertionError("Expected a character sequence but got " + typeName(value));
+        }
+        if (unexpectedSuffix == null) {
+            throw new AssertionError("Expected suffix must not be null");
+        }
+        if (value.toString().endsWith(unexpectedSuffix)) {
+            throw new AssertionError("Expected " + value + " not to end with " + unexpectedSuffix);
         }
     }
 
@@ -179,6 +327,27 @@ public final class Matchable<T> {
         try {
             if (!Pattern.compile(pattern).matcher(value.toString()).find()) {
                 throw new AssertionError("Expected " + value + " to match pattern " + pattern);
+            }
+        } catch (PatternSyntaxException ex) {
+            AssertionError error = new AssertionError("Invalid pattern: " + pattern);
+            error.initCause(ex);
+            throw error;
+        }
+    }
+
+    /**
+     * Asserts that the wrapped character sequence does not match the supplied regular expression.
+     */
+    public void shouldNotMatchPattern(String pattern) {
+        if (!(value instanceof CharSequence)) {
+            throw new AssertionError("Expected a character sequence but got " + typeName(value));
+        }
+        if (pattern == null) {
+            throw new AssertionError("Expected pattern must not be null");
+        }
+        try {
+            if (Pattern.compile(pattern).matcher(value.toString()).find()) {
+                throw new AssertionError("Expected " + value + " not to match pattern " + pattern);
             }
         } catch (PatternSyntaxException ex) {
             AssertionError error = new AssertionError("Invalid pattern: " + pattern);
@@ -235,6 +404,40 @@ public final class Matchable<T> {
             }
         }
         return false;
+    }
+
+    private static int countOf(Object actual) {
+        if (actual == null) {
+            throw new AssertionError("Expected a countable value but got null");
+        }
+        if (actual instanceof CharSequence) {
+            return ((CharSequence) actual).length();
+        }
+        if (actual instanceof Collection<?>) {
+            return ((Collection<?>) actual).size();
+        }
+        if (actual instanceof Map<?, ?>) {
+            return ((Map<?, ?>) actual).size();
+        }
+        Class<?> actualClass = actual.getClass();
+        if (actualClass.isArray()) {
+            return Array.getLength(actual);
+        }
+        if (actual instanceof Iterable<?>) {
+            int count = 0;
+            for (Object ignored : (Iterable<?>) actual) {
+                count++;
+            }
+            return count;
+        }
+        throw new AssertionError("Expected a countable value but got " + typeName(actual));
+    }
+
+    private static Map<?, ?> mapOf(Object actual) {
+        if (!(actual instanceof Map<?, ?>)) {
+            throw new AssertionError("Expected a map but got " + typeName(actual));
+        }
+        return (Map<?, ?>) actual;
     }
 
     private static String typeName(Object actual) {
