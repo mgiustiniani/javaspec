@@ -13,6 +13,7 @@
 | LTS profiles | The system must model Java LTS profiles for 8, 11, 17, 21, and 25. |
 | Restricted configuration parser | Configuration files must be parsed by an internal line-based parser; no YAML/TOML/JSON parser may be added to the runtime artifact. |
 | Java 25 stream metadata | Java 25 stream gatherer metadata is implemented from verified API-documentation research, but runtime availability must remain metadata/reflection-only and be re-validated during quality-matrix work. |
+| JDK proxy-only doubles | Core doubles must use Java 8 JDK dynamic proxies and therefore support ordinary interfaces only. |
 
 ## 2.2 Organizational Constraints
 
@@ -25,6 +26,7 @@
 
 - The core runtime cannot depend on external assertion libraries, mocking libraries, YAML parsers, logging frameworks, dependency injection containers, or bytecode-generation libraries.
 - Advanced features that normally require third-party dependencies must be implemented using JDK APIs, exposed as optional extensions, or deferred.
+- Core doubles are ordinary interface-only JDK dynamic proxies; concrete/final class doubles, static doubles, constructor doubles, wildcard matchers, exception/callback stubbing, and default-interface-method invocation are outside the Phase 8 core MVP.
 - Reflection must be isolated behind compatibility boundaries to avoid accidental linkage to newer JDK APIs.
 - Configuration bootstrap hooks and profile/formatter settings remain metadata until the corresponding runner and formatter features are implemented; suite package prefixes are active naming-convention inputs for `describe`, `run`, discovery, spec/support generation, and MVP reflection execution.
 - The MVP CLI runner does not compile source or specification files itself; executable examples require compiled spec classes on the effective classloader, while source-only or unavailable spec classes are skipped.

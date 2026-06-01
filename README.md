@@ -2,7 +2,7 @@
 
 javaspec is a Java 8-compatible, zero-runtime-dependency specification framework inspired by phpspec. Its goal is to bring a specification-first workflow to Java while preserving a small runtime footprint and a conservative compatibility baseline.
 
-Phases 2, 3, and 4 are implemented, the Phase 5/6 MVP reflection runner is implemented, and the Phase 7 matcher/expectation expansion is implemented. Phase 2 provides a Maven-based CLI entry point, `org.javaspec.cli.Main`, with a PHPSpec-style split: `describe` creates specification/support skeletons, while `run` discovers specs and can generate missing class-like production type skeletons after confirmation or `--generate`. Phase 3 adds Java LTS target profiles `java8`, `java11`, `java17`, `java21`, and `java25`, the profile catalog, API-symbol metadata, compatibility checks, and reflective API availability probes. Phase 4 adds the zero-runtime-dependency line-based configuration model, `--config <file>` and `--suite <name>` integration, suite-level spec/source directories, package-prefix-driven naming conventions, suite selection for `describe` and `run`, and class/example filters for `run`. The Phase 5/6 MVP keeps the existing `run` discovery/generation/update behavior and then executes discovered examples when the compiled spec classes are available on the effective classloader. Phase 7 expands `Matchable` with negated equality aliases, type/instance aliases, `shouldImplement`, string negations, count/empty helpers for arrays, collections, maps, character sequences, and iterables, and map key/value helpers. `ObjectBehavior` exposes direct convenience assertions that delegate through `match(actual)`, `MatcherRegistry` includes a default negated-equality matcher without adding runtime dependencies, and `SpecDiscovery` recognizes the expanded chained matcher names for method-discovery/default-return inference where applicable. Known limitation: count and emptiness checks on a generic `Iterable` consume the iterable and can hang on infinite iterables. The binary remains Java 8-compatible; post-Java 8 forms such as records, sealed types, sequenced collections, and stream gatherers are modeled as source text or metadata/reflection only. Specs can declare `shouldExtend(...)`, `shouldImplement(...)`, and sealed `shouldPermit(...)`; missing related types get specs before production skeletons, except permitted implementations of sealed interfaces, which stay in the same production file.
+Phases 2, 3, 4, 5/6, 7, and 8 are implemented. Phase 2 provides a Maven-based CLI entry point, `org.javaspec.cli.Main`, with a PHPSpec-style split: `describe` creates specification/support skeletons, while `run` discovers specs and can generate missing class-like production type skeletons after confirmation or `--generate`. Phase 3 adds Java LTS target profiles `java8`, `java11`, `java17`, `java21`, and `java25`, the profile catalog, API-symbol metadata, compatibility checks, and reflective API availability probes. Phase 4 adds the zero-runtime-dependency line-based configuration model, `--config <file>` and `--suite <name>` integration, suite-level spec/source directories, package-prefix-driven naming conventions, suite selection for `describe` and `run`, and class/example filters for `run`. The Phase 5/6 MVP keeps the existing `run` discovery/generation/update behavior and then executes discovered examples when the compiled spec classes are available on the effective classloader. Phase 7 expands `Matchable`, `ObjectBehavior` convenience assertions, and matcher-name discovery for the documented zero-dependency matcher subset. Phase 8 adds zero-runtime-dependency interface doubles under `org.javaspec.doubles` using JDK dynamic proxies: stubbing by method name or exact arguments, call recording/history, called/not-called/exact-count verification, deterministic `toString`/`equals`/`hashCode`, Java default returns for unstubbed methods, and `ObjectBehavior` double conveniences. Known limitations: generic `Iterable` count/empty checks consume the iterable and can hang on infinite iterables; doubles are interface-only and do not support concrete class, final class, static, constructor, primitive, array, annotation, or enum doubles, wildcard matchers, exception/callback stubbing, bytecode libraries, or invocation of default interface methods. The binary remains Java 8-compatible; post-Java 8 forms such as records, sealed types, sequenced collections, and stream gatherers are modeled as source text or metadata/reflection only. Specs can declare `shouldExtend(...)`, `shouldImplement(...)`, and sealed `shouldPermit(...)`; missing related types get specs before production skeletons, except permitted implementations of sealed interfaces, which stay in the same production file.
 
 ## Project Goals
 
@@ -39,7 +39,7 @@ The runtime artifact must not require libraries such as YAML parsers, bytecode m
 - expose an extension point so users can integrate optional tools outside the core runtime, or
 - defer the feature until it can be implemented without violating the policy.
 
-Project tests may use external test dependencies, but those dependencies must not leak into runtime packaging. The current MVP uses JUnit in test scope only; the runtime dependency tree contains only the project artifact, aside from the JDK platform.
+Project tests may use external test dependencies, but those dependencies must not leak into runtime packaging. The current MVP uses JUnit in test scope only; Phase 8 doubles use JDK dynamic proxies rather than bytecode libraries. The runtime dependency tree contains only the project artifact, aside from the JDK platform.
 
 ## Profile Catalog and Java 8 Compatibility Strategy
 
@@ -56,7 +56,7 @@ mvn verify
 mvn dependency:tree -Dscope=runtime
 ```
 
-Latest verification after the Phase 7 matcher/expectation expansion: `mvn verify` passed, and `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+Latest verification after the Phase 8 MVP collaborators/doubles implementation: `mvn verify` passed with 328 tests, and `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
 
 The Maven compiler configuration targets Java 8 (`source`/`target` 1.8). The packaged runtime has no third-party dependencies.
 
@@ -94,6 +94,14 @@ java -jar target/javaspec-0.1.0-SNAPSHOT.jar run --config javaspec.conf --suite 
 
 Exit codes: `0` for success/help/generated-or-existing targets and successful or skipped-only executable runs, `1` when missing production types or method updates are not generated after a prompt is declined or unavailable, or when executable examples fail or break, `64` for invalid arguments, and `70` for I/O errors.
 
+## Interface Doubles
+
+`org.javaspec.doubles` provides zero-runtime-dependency interface doubles built with `java.lang.reflect.Proxy`. Create a proxy with `Doubles.create(Foo.class)`, `Doubles.of(Foo.class)`, or `Doubles.proxy(Foo.class)`, or create a typed handle with `Doubles.interfaceDouble(Foo.class)`. `ObjectBehavior` also exposes `doubleFor`, `interfaceDouble`, `doubleControl`/`inspectDouble`, call-history, call-count, and called/not-called/count assertion helpers.
+
+Doubles support ordinary interfaces only. Unsupported inputs are rejected with clear diagnostics: `null`, primitives, arrays, annotations, enums, concrete classes, and final classes. Stubs can match any arguments by method name or exact arguments with `when(...).thenReturn(...)`, `returns(...)`, and `returnsFor(...)`; exact argument comparison handles `null` values and array contents. Unstubbed interface methods return Java defaults and `void` methods are no-ops. Calls are recorded as `Call` snapshots and can be inspected or verified through `called()`, `notCalled()`, `calledOnce()`, `times(n)`, and convenience methods. `toString`, `equals`, and `hashCode` are deterministic.
+
+Limitations: no concrete class/final class/static/constructor doubles, no wildcard argument matchers, no exception/callback stubbing, no bytecode-library integration in core, and default interface methods are not invoked.
+
 ## Java LTS Targeting Concept
 
 javaspec runs as a Java 8-compatible binary while understanding target profiles:
@@ -110,7 +118,7 @@ The implemented catalog is based on the Java data-structure research in [`docs/r
 
 ## Future Usage Vision
 
-The implemented MVP covers `describe`/`desc` for PHPSpec-style spec/support skeleton generation, a `run` command that maps discovered `*Spec.java` files under the active naming convention to described production classes, interfaces, enums, annotations, records, sealed classes, and sealed interfaces, Phase 4 configuration files for defaults, suite path selection, package-prefix naming, class/example filters, profile/formatter metadata, bootstrap metadata, and constructor-policy defaults, the Phase 5/6 reflection runner for executable examples that are already compiled and available on the effective classloader, and the Phase 7 matcher/expectation expansion. Later phases are planned to expand the phpspec-inspired workflow with richer runner controls, doubles, active formatter behavior, bootstrap execution, profile-aware runs, and extension behavior. Planned future command shapes include:
+The implemented MVP covers `describe`/`desc` for PHPSpec-style spec/support skeleton generation, a `run` command that maps discovered `*Spec.java` files under the active naming convention to described production classes, interfaces, enums, annotations, records, sealed classes, and sealed interfaces, Phase 4 configuration files for defaults, suite path selection, package-prefix naming, class/example filters, profile/formatter metadata, bootstrap metadata, and constructor-policy defaults, the Phase 5/6 reflection runner for executable examples that are already compiled and available on the effective classloader, the Phase 7 matcher/expectation expansion, and Phase 8 interface doubles. Later phases are planned to expand the phpspec-inspired workflow with richer runner controls, active formatter behavior, bootstrap execution, profile-aware runs, advanced double integrations, and extension behavior. Planned future command shapes include:
 
 ```text
 javaspec run
@@ -125,7 +133,7 @@ The stabilized discovery and execution flow honors configured suite package pref
 2. Run specs.
 3. Let the run phase ask whether to generate missing production code, or answer yes non-interactively with `--generate`.
 4. Run examples expressed with javaspec expectations.
-5. Use collaborators/doubles where possible without runtime dependencies.
+5. Use interface collaborators/doubles where possible without runtime dependencies.
 6. Report failures with actionable snippets and stable exit codes.
 
 ## Documentation Map
@@ -143,4 +151,5 @@ The stabilized discovery and execution flow honors configured suite package pref
 - [`docs/adr/0004-course-correction-construction-defaults-typed-matcher-proxies-and-method-generators.md`](docs/adr/0004-course-correction-construction-defaults-typed-matcher-proxies-and-method-generators.md) — implemented construction, typed matcher proxy, and method-generator correction.
 - [`docs/adr/0005-restricted-line-based-configuration-format.md`](docs/adr/0005-restricted-line-based-configuration-format.md) — restricted zero-dependency configuration format decision.
 - [`docs/adr/0006-classpath-reflection-runner.md`](docs/adr/0006-classpath-reflection-runner.md) — classpath reflection runner decision for the Phase 5/6 MVP.
+- [`docs/adr/0007-jdk-proxy-only-interface-doubles.md`](docs/adr/0007-jdk-proxy-only-interface-doubles.md) — JDK proxy-only interface doubles decision for the Phase 8 MVP.
 - [`docs/research/phpspec-feature-inventory.md`](docs/research/phpspec-feature-inventory.md) — phpspec feature inventory for the Java port.

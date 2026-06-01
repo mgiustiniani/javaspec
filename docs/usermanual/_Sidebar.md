@@ -12,6 +12,7 @@
 - [Method generation](Home.md#method-generation)
 - [Constructor policy](Home.md#constructor-policy)
 - [Matchers](Home.md#matchers)
+- [Interface doubles](Home.md#interface-doubles)
 - [Class-like type generation](Home.md#class-like-type-generation)
 - [Extends and implements](Home.md#extends-and-implements)
 - [Custom directories](Home.md#custom-directories)

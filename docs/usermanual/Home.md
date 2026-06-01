@@ -2,9 +2,9 @@
 
 Wiki home for the current javaspec MVP.
 
-javaspec is a Java 8-compatible, zero-runtime-dependency specification tool inspired by PHPSpec. The current MVP supports the first spec-first loop plus the ADR 0004 correction work, follow-up factory construction generation, and the Phase 7 matcher/expectation expansion: specification/support generation, production type discovery and generation, constructor and static factory construction generation, typed proxy matcher support, direct `ObjectBehavior` convenience assertions, method skeleton generation, Phase 3 Java LTS profiles/catalog/API-symbol metadata/compatibility probes, Phase 4 configuration, naming, suite selection, discovery filters, and the Phase 5/6 MVP reflection runner.
+javaspec is a Java 8-compatible, zero-runtime-dependency specification tool inspired by PHPSpec. The current MVP supports the first spec-first loop plus the ADR 0004 correction work, follow-up factory construction generation, the Phase 7 matcher/expectation expansion, and Phase 8 MVP collaborators/doubles: specification/support generation, production type discovery and generation, constructor and static factory construction generation, typed proxy matcher support, direct `ObjectBehavior` convenience assertions, method skeleton generation, Phase 3 Java LTS profiles/catalog/API-symbol metadata/compatibility probes, Phase 4 configuration, naming, suite selection, discovery filters, the Phase 5/6 MVP reflection runner, and JDK-proxy interface doubles.
 
-> Current status: `describe` writes specification/support files only. `javaspec run` keeps discovery, generation, and source updates, then executes discovered examples when the compiled spec classes are available on the effective classloader. It reuses `DiscoveredSpec`/`SpecExample` metadata, so suite, class, and example filters remain effective. The matcher set includes expanded negation, type/instance, count/empty, string, and map key/value helpers while preserving zero runtime dependencies. Configured bootstrap hooks, profile, and formatter values are parsed/validated metadata for later runner and formatter features.
+> Current status: `describe` writes specification/support files only. `javaspec run` keeps discovery, generation, and source updates, then executes discovered examples when the compiled spec classes are available on the effective classloader. It reuses `DiscoveredSpec`/`SpecExample` metadata, so suite, class, and example filters remain effective. The matcher set includes expanded negation, type/instance, count/empty, string, and map key/value helpers while preserving zero runtime dependencies. Interface doubles are available for ordinary interfaces through JDK dynamic proxies, with method-name/exact-argument stubbing, call history, and verification helpers. Configured bootstrap hooks, profile, and formatter values are parsed/validated metadata for later runner and formatter features.
 
 ## Quick start
 
@@ -676,6 +676,115 @@ match(null).shouldMatch("beAbsent");
 
 `SpecDiscovery` recognizes the expanded chained matcher names on typed proxy calls for method-discovery/default-return inference where applicable.
 
+## Interface doubles
+
+The Phase 8 MVP adds zero-runtime-dependency collaborator doubles under `org.javaspec.doubles`. Doubles are implemented with Java 8 JDK dynamic proxies, so the core runtime can double ordinary interfaces without bytecode libraries.
+
+### Creating interface doubles
+
+Use `Doubles` directly when working outside an `ObjectBehavior` subclass. The examples below assume `Notifier` is an ordinary interface.
+
+```java
+import org.javaspec.doubles.Doubles;
+import org.javaspec.doubles.InterfaceDouble;
+
+InterfaceDouble<Notifier> notifierDouble = Doubles.interfaceDouble(Notifier.class);
+Notifier notifier = notifierDouble.instance();
+
+// Shortcuts when only the proxy is needed:
+Notifier proxy = Doubles.create(Notifier.class);
+Notifier sameStyle = Doubles.of(Notifier.class);
+Notifier alsoProxy = Doubles.proxy(Notifier.class);
+```
+
+Inside specs that extend `ObjectBehavior`, use the convenience APIs:
+
+```java
+Notifier notifier = doubleFor(Notifier.class);
+InterfaceDouble<Notifier> notifierDouble = interfaceDouble(Notifier.class);
+```
+
+`Doubles.isDouble(value)` returns whether a value is a javaspec double. `Doubles.control(proxy)`, `Doubles.inspect(proxy)`, `doubleControl(proxy)`, and `inspectDouble(proxy)` return the control API for an existing proxy.
+
+### Stubbing return values
+
+Stubs match either by method name with any arguments or by method name with exact arguments:
+
+```java
+notifierDouble.when("channel").thenReturn("alerts");
+notifierDouble.when("send", "alerts", new String[] {"ops", "oncall"}).thenReturn(Boolean.TRUE);
+
+notifierDouble.returns("fallbackChannel", "general");
+notifierDouble.returnsFor("send", Boolean.TRUE, "alerts", new String[] {"ops", "oncall"});
+```
+
+Exact argument matching supports `null` values and compares array contents rather than array identity. Unstubbed methods return Java defaults: `false` for `boolean`, zero values for numeric primitives, `'\0'` for `char`, `null` for reference types, and no action for `void` methods.
+
+### Call history and verification
+
+Interface method calls are recorded as immutable `Call` snapshots. The control APIs can inspect all calls, calls by method name, or calls by method name and exact arguments:
+
+```java
+notifier.send("alerts", new String[] {"ops", "oncall"});
+
+notifierDouble.calls();
+notifierDouble.calls("send");
+notifierDouble.calls("send", "alerts", new String[] {"ops", "oncall"});
+notifierDouble.callCount("send");
+notifierDouble.callCount("send", "alerts", new String[] {"ops", "oncall"});
+```
+
+Verification supports called, not-called, called-once, and exact-count checks:
+
+```java
+notifierDouble.verify("send").called();
+notifierDouble.verify("send", "alerts", new String[] {"ops", "oncall"}).calledOnce();
+notifierDouble.verify("send").times(1);
+notifierDouble.verify("missing").notCalled();
+
+notifierDouble.verifyCalled("send");
+notifierDouble.verifyCalledWith("send", "alerts", new String[] {"ops", "oncall"});
+notifierDouble.verifyNotCalled("missing");
+notifierDouble.verifyCallCount("send", 1);
+```
+
+`ObjectBehavior` adds spec-style convenience assertions:
+
+```java
+shouldHaveBeenCalled(notifier, "send");
+shouldHaveBeenCalledWith(notifier, "send", "alerts", new String[] {"ops", "oncall"});
+shouldNotHaveBeenCalled(notifier, "missing");
+shouldHaveBeenCalledTimes(notifier, "send", 1);
+
+doubleCalls(notifier);
+doubleCalls(notifier, "send");
+doubleCallCount(notifier, "send");
+```
+
+### Object methods and resets
+
+`toString()`, `equals(Object)`, and `hashCode()` are handled deterministically by the proxy invocation handler. `toString()` identifies the doubled interface and internal id, `equals` uses proxy identity, and `hashCode` uses the stable internal id. These object methods are not user stubs and do not represent collaborator calls.
+
+Call and stub state can be cleared separately or together:
+
+```java
+notifierDouble.clearCalls();
+notifierDouble.clearStubs();
+notifierDouble.reset();
+```
+
+### Supported targets and limitations
+
+Only ordinary interfaces are supported. The double factory rejects `null`, primitive types, arrays, annotations, enums, concrete classes, and final classes with clear `IllegalArgumentException` messages.
+
+Current MVP limitations:
+
+- No concrete class, final class, static method, or constructor doubles.
+- No wildcard or predicate argument matchers; matching is by method name or exact arguments only.
+- No exception stubbing, callback stubbing, sequential returns, or side-effect stubbing.
+- No bytecode-library integration in the core runtime.
+- Default interface methods are not invoked by the proxy handler.
+
 ## Class-like type generation
 
 javaspec supports these class-like production types. The javaspec binary remains Java 8-compatible; post-Java-8 forms are generated as source text and represented as metadata/strings.
@@ -934,9 +1043,9 @@ org.javaspec:javaspec:jar:0.1.0-SNAPSHOT
 
 ## Verification
 
-Current verification after completing the Phase 7 matcher/expectation expansion:
+Current verification after completing the Phase 8 MVP collaborators/doubles implementation:
 
-- `mvn verify` passed.
+- `mvn verify` passed with 328 tests.
 - `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
 
 ## Current MVP limitations
@@ -948,4 +1057,6 @@ Current verification after completing the Phase 7 matcher/expectation expansion:
 - Generated post-Java-8 source forms, such as records and sealed types, require an appropriate JDK to compile.
 - Method generation covers the supported typed proxy, throw-proxy, direct subject/setter, and static factory construction marker syntax; it is not a general Java source synthesis engine.
 - Count and emptiness checks on generic `Iterable` values consume the iterable and can hang on infinite iterables.
-- Doubles/collaborators are not implemented yet.
+- Doubles/collaborators are interface-only in the core runtime. Concrete class, final class, static method, constructor, primitive, array, annotation, and enum doubles are not supported.
+- Double argument matching has no wildcard or predicate matchers; stubbing is return-value-only and does not support exceptions, callbacks, sequences, or side effects.
+- Default interface methods are not invoked by interface doubles.

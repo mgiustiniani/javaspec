@@ -2,7 +2,7 @@
 
 ## 5.1 Current Runtime Building Blocks
 
-The implemented architecture now includes the Phase 2 first-MVP CLI/generation slice, the Phase 3 target-profile catalog and compatibility boundary, the Phase 4 configuration, naming, and discovery-filter model, the Phase 5/6 MVP reflection runner, and the Phase 7 matcher/expectation expansion.
+The implemented architecture now includes the Phase 2 first-MVP CLI/generation slice, the Phase 3 target-profile catalog and compatibility boundary, the Phase 4 configuration, naming, and discovery-filter model, the Phase 5/6 MVP reflection runner, the Phase 7 matcher/expectation expansion, and the Phase 8 MVP collaborators/doubles slice.
 
 | Building block | Package | Responsibility |
 |---|---|---|
@@ -10,7 +10,8 @@ The implemented architecture now includes the Phase 2 first-MVP CLI/generation s
 | Configuration model | `org.javaspec.config` | Provides immutable default/configured suite settings and a restricted zero-runtime-dependency config parser. |
 | Spec discovery, naming, and generation | `org.javaspec.discovery`, `org.javaspec.naming`, `org.javaspec.generation` | Applies default/configured naming conventions, discovers `*Spec.java` files, extracts example metadata, recognizes expanded chained matcher names for method-discovery/default-return inference where applicable, applies suite selection and class/example filters, feeds runner metadata, and plans/writes gated spec, support, production type, constructor, factory, and method skeletons. |
 | Reflection runner | `org.javaspec.runner` | Executes filtered discovered examples reflectively when compiled spec classes are available on the effective classloader, records PASSED/FAILED/BROKEN/SKIPPED outcomes, and aggregates run/spec/example results. |
-| Object behavior and matchers | `org.javaspec.api`, `org.javaspec.matcher` | Provides the Java-facing specification base class, lazy construction support, expectation wrappers, expanded matcher helpers, direct convenience assertions that delegate through `match(actual)`, matcher contracts, and custom matcher registration without runtime dependencies. |
+| Object behavior and matchers | `org.javaspec.api`, `org.javaspec.matcher` | Provides the Java-facing specification base class, lazy construction support, expectation wrappers, expanded matcher helpers, direct convenience assertions that delegate through `match(actual)`, double convenience APIs, matcher contracts, and custom matcher registration without runtime dependencies. |
+| Doubles engine | `org.javaspec.doubles` | Provides zero-runtime-dependency interface doubles using JDK dynamic proxies, return-value stubbing, call history, and called/not-called/exact-count verification. |
 | Profile catalog | `org.javaspec.profile` | Stores deterministic Java LTS profile, feature-flag, and API-symbol metadata for Java 8, 11, 17, 21, and 25. |
 | Compatibility boundary | `org.javaspec.compatibility` | Checks profile compatibility and reflectively probes optional APIs without direct post-Java-8 linkage. |
 
@@ -80,3 +81,18 @@ The current limitation is deliberate: source-only or otherwise unavailable spec 
 - `SpecDiscovery` recognizes expanded chained matcher method names in typed proxy calls for method-discovery/default-return inference where applicable.
 
 No additional runtime component or third-party assertion library is introduced by this expansion.
+
+## 5.7 Interface Doubles
+
+`org.javaspec.doubles` contains the Phase 8 MVP collaborators/doubles implementation:
+
+- `Doubles` creates interface proxies with `create`, `of`, and `proxy`, creates typed handles with `interfaceDouble`, detects javaspec doubles with `isDouble`, and returns a `DoubleControl` through `control`/`inspect`.
+- `InterfaceDouble<T>` bundles the doubled interface type, proxy instance, control API, stubbing helpers, verification helpers, call-history queries, and reset operations.
+- `DoubleControl`, `MethodStub`, and `CallVerifier` provide return-value stubbing, call counting, and called/not-called/exact-count verification.
+- `Call` records immutable call snapshots with defensive argument copies and supports method-name and exact-argument matching.
+- Exact argument matching supports `null` values and compares array contents rather than array identity.
+- Interface method calls are recorded before a stubbed or default return is produced. Unstubbed methods return Java defaults: primitive defaults, `null` for reference types, and no action for `void`.
+- `toString`, `equals`, and `hashCode` are handled deterministically by the invocation handler.
+- `ObjectBehavior<T>` exposes convenience APIs such as `doubleFor`, `interfaceDouble`, `doubleControl`, `inspectDouble`, `doubleCalls`, `doubleCallCount`, `shouldHaveBeenCalled`, `shouldNotHaveBeenCalled`, and `shouldHaveBeenCalledTimes`.
+
+The supported target is an ordinary interface. The type validator rejects `null`, primitive types, arrays, annotations, enums, concrete classes, and final classes with explicit diagnostics. The MVP deliberately excludes concrete class/final class/static/constructor doubles, wildcard argument matchers, exception/callback stubbing, bytecode-library integration in core, and default-interface-method invocation.

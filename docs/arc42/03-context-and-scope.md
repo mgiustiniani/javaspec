@@ -2,7 +2,7 @@
 
 ## 3.1 System Context
 
-javaspec is a developer tool used from local development environments and CI pipelines. The implemented MVP discovers specifications with configured suite paths/package prefixes and class/example filters, can generate gated spec or source skeletons, and now runs discovered examples through a reflection runner when the compiled spec classes are available on the effective classloader. Later phases will expand reporting, formatter behavior, bootstrap execution, and richer runner controls.
+javaspec is a developer tool used from local development environments and CI pipelines. The implemented MVP discovers specifications with configured suite paths/package prefixes and class/example filters, can generate gated spec or source skeletons, runs discovered examples through a reflection runner when the compiled spec classes are available on the effective classloader, and provides zero-dependency interface doubles for collaborators. Later phases will expand reporting, formatter behavior, bootstrap execution, richer runner controls, and optional advanced double integrations.
 
 External actors and systems:
 
@@ -26,7 +26,7 @@ In scope for the planned product:
 - Spec discovery, described-class mapping, and class/example filters.
 - Example lifecycle and subject construction.
 - Expectations and matchers.
-- Zero-dependency object doubles where feasible.
+- Zero-dependency interface doubles where feasible, currently through JDK dynamic proxies.
 - Code generation prompts and templates.
 - Progress/pretty reporting and stable exit codes.
 - Extension contracts.
@@ -45,6 +45,6 @@ javaspec should help Java teams practice specification-first design with a low-f
 
 ## 3.4 Technical Context
 
-The implementation is a Java 8-compatible Maven project. JDK-version-specific knowledge above Java 8 is stored as profile metadata under `org.javaspec.profile` and resolved through the `org.javaspec.compatibility` boundary using reflection only when the runtime JDK supports it. Example execution uses Java reflection against compiled spec classes on the effective classloader; the CLI does not compile source/spec files itself, so source-only or otherwise unavailable spec classes are skipped.
+The implementation is a Java 8-compatible Maven project. JDK-version-specific knowledge above Java 8 is stored as profile metadata under `org.javaspec.profile` and resolved through the `org.javaspec.compatibility` boundary using reflection only when the runtime JDK supports it. Example execution uses Java reflection against compiled spec classes on the effective classloader; the CLI does not compile source/spec files itself, so source-only or otherwise unavailable spec classes are skipped. Collaborator doubles use Java 8 JDK dynamic proxies for ordinary interfaces and do not require bytecode libraries.
 
 No C4 diagrams are currently generated. If diagrams are requested later, the documenter should delegate diagram generation to the `c4model` child agent and integrate the resulting diagrams into ARC42 section 3 or section 5 as appropriate.

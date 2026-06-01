@@ -4,7 +4,7 @@ This plan defines the initial delivery path for javaspec, a Java 8-compatible, z
 
 ## Current Implementation Status — Implemented and Verified
 
-Phases 2, 3, and 4 are complete, the Phase 5/6 MVP reflection runner is implemented, and the Phase 7 matcher/expectation expansion is implemented.
+Phases 2, 3, and 4 are complete, the Phase 5/6 MVP reflection runner is implemented, the Phase 7 matcher/expectation expansion is implemented, and the Phase 8 MVP collaborators/doubles implementation is complete.
 
 - Phase 2 implemented the Java 8 Maven project, zero-runtime-dependency guard, PHPSpec-style `describe`/`run` split, specification/support skeletons, and gated production type/method generation.
 - Phase 3 implemented Java LTS target profiles `java8`, `java11`, `java17`, `java21`, and `java25`, the profile catalog, API-symbol metadata, target-profile compatibility checks, and reflection-only API availability probes.
@@ -14,9 +14,10 @@ Phases 2, 3, and 4 are complete, the Phase 5/6 MVP reflection runner is implemen
 - Result states are `PASSED`, `FAILED` for `AssertionError`, `BROKEN` for non-assertion throwables/lifecycle/reflection errors, and `SKIPPED` for non-loadable spec classes or missing reflected example methods. The CLI prints a summary and exits `1` for failed or broken executable examples.
 - Phase 7 expanded `Matchable` with negated equality aliases, type/instance aliases, `shouldImplement`, string negations, count/empty helpers for arrays/collections/maps/character sequences/iterables, and map key/value helpers.
 - Phase 7 expanded `ObjectBehavior` direct convenience assertion methods that delegate through `match(actual)`, kept `MatcherRegistry` zero-dependency with a default negated-equality matcher, and updated `SpecDiscovery` so expanded chained matcher names participate in method-discovery/default-return inference where applicable.
-- Known limitations: the CLI runner does not compile source/spec files itself; source-only or otherwise unavailable spec classes are skipped/not executable. Count and emptiness checks on a generic `Iterable` consume the iterable and can hang on infinite iterables.
-- Verification completed on 2026-06-01 after the Phase 7 matcher/expectation expansion: `mvn verify` passed.
-- Runtime dependency verification completed on 2026-06-01 after the Phase 7 matcher/expectation expansion: `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+- Phase 8 added zero-runtime-dependency interface doubles under `org.javaspec.doubles` using JDK dynamic proxies. The MVP supports ordinary interface doubles, return-value stubbing by method name or exact arguments, null and array-content argument matching, call history, called/not-called/exact-count verification, deterministic `toString`/`equals`/`hashCode`, Java default returns for unstubbed methods, and `ObjectBehavior` double convenience APIs.
+- Known limitations: the CLI runner does not compile source/spec files itself; source-only or otherwise unavailable spec classes are skipped/not executable. Count and emptiness checks on a generic `Iterable` consume the iterable and can hang on infinite iterables. Phase 8 doubles do not support concrete class/static/constructor/final-class doubles, primitives, arrays, annotations, enums, wildcard argument matchers, exception/callback stubbing, bytecode libraries, or default-interface-method invocation.
+- Verification completed on 2026-06-01 after the Phase 8 MVP collaborators/doubles implementation: `mvn verify` passed with 328 tests.
+- Runtime dependency verification completed on 2026-06-01 after the Phase 8 MVP collaborators/doubles implementation: `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
 
 ## ADR 0004 Correction Status — Implemented and Verified
 
@@ -207,6 +208,7 @@ Further implementation work must be delegated to the appropriate workflow agents
 | PHPSpec construction semantics | ADR 0004, verified PHPSpec construction docs/source, this plan, user manual | Runtime implemented in `ObjectBehavior`: lazy subject construction, `beConstructedWith`, factory/named construction forms, override-before-instantiation semantics, failure on change after instantiation, and `duringInstantiation()`. Generation implemented: `beConstructedWith(...)` remains constructor descriptor generation; factory/named forms with string-literal Java-identifier names generate static factory method skeletons returning the described type; non-string-literal factory names are ignored for generation. The MVP reflection lifecycle now runs compiled examples with fresh spec instances and optional public no-arg `let()`/`letGo()`; full PHPSpec parity remains future work. |
 | Typed proxy matcher syntax | ADR 0004, verified PHPSpec matcher docs/source, this plan, user manual | Implemented: generated subject-specific support classes expose typed proxy methods and throw proxies while existing `match(value).should...` usage remains available. |
 | Phase 7 matcher/expectation expansion | README, user manual, ARC42 section 5, this plan | Implemented and verified: `Matchable` includes expanded equality/negation, type/instance, implementation, string, count/empty, and map key/value helpers; `ObjectBehavior` direct convenience methods delegate through `match(actual)`; `MatcherRegistry` keeps a zero-dependency default negated-equality matcher; `SpecDiscovery` recognizes expanded chained matcher names for method-discovery/default-return inference where applicable. Generic `Iterable` count/empty checks consume the iterable and can hang on infinite iterables. |
+| Phase 8 MVP collaborators/doubles | README, user manual, ARC42 section 5, ADR 0007, this plan | Implemented and verified: `org.javaspec.doubles` provides JDK-proxy ordinary-interface doubles, method-name and exact-argument return stubs, null and array-content argument matching, immutable call history, called/not-called/exact-count verification, deterministic object methods, Java default returns for unstubbed methods, and `ObjectBehavior` double conveniences. Limitations are explicit: no concrete class/static/constructor/final-class doubles, primitives, arrays, annotations, enums, wildcard matchers, exception/callback stubbing, bytecode libraries, or default-interface-method invocation. |
 | Method generation | ADR 0004, this plan, user manual | Implemented and verified: discovery from typed proxy/throw calls, direct subject/setter calls, static factory construction markers, and the expanded chained matcher names where applicable; Java 8-compatible instance method and static factory skeleton generation; static factory descriptors are skipped by generated support proxies; `--generate` writes non-interactively and interactive `run` prompts before updating existing source files. |
 | Configuration model and inferred defaults | README, user manual, ARC42 section 5, ADR 0005, this plan | Implemented in Phase 4: `JavaspecConfiguration.defaults()` provides the default suite `default`, Maven-style spec/source roots, `spec` package prefix, empty production package prefix, `java8` profile, `progress` formatter, `comment` constructor policy, and empty bootstrap hooks when no config file is supplied. |
 | Constructor-policy config default | ADR 0004, ADR 0005, user manual, this plan | Implemented in Phase 4: config key `constructorPolicy`/`constructor-policy` accepts only `delete`, `preserve`, and `comment`; `comment` remains the inferred and config default, and `run --constructor-policy` overrides config explicitly. |
@@ -245,6 +247,8 @@ Further implementation work must be delegated to the appropriate workflow agents
 - Treat the CLI runner as a classpath reflection executor, not an in-process compiler; source-only or unavailable spec classes are skipped/not executable until compiled classes are present on the effective classloader.
 - Prefer generated subject-specific typed support/proxy classes while keeping explicit `match(value)` style APIs available.
 - Keep `Matchable`, `ObjectBehavior` direct convenience assertions, and `SpecDiscovery` matcher-name recognition synchronized when matcher names are added.
+- Keep core doubles interface-only and JDK-proxy based unless a future ADR authorizes optional advanced integrations; reject unsupported double targets with clear diagnostics.
+- Preserve exact-argument double semantics for `null` values and array contents, and keep `ObjectBehavior` double convenience APIs synchronized with `org.javaspec.doubles` control behavior.
 - Document that count/empty checks on generic `Iterable` values consume the iterable and are unsafe for infinite iterables.
 - Insert generated methods source-preservingly, with confirmation or documented non-interactive behavior, and with Java 8-compatible default returns.
 - Keep construction and matcher behavior aligned with the verified PHPSpec semantics for lazy construction, overrides before instantiation, negation, and exception matching.
@@ -488,19 +492,39 @@ Acceptance criteria status:
 - Throw matchers still support method calls and `duringInstantiation()` from the earlier runner/construction work.
 - Custom matcher registration still requires no runtime dependencies.
 
-### Phase 8 — Collaborators and Doubles
+### Phase 8 — Collaborators and Doubles (Completed)
 
-**Owner later:** Java implementation agent.
+**Status:** Implemented and verified for the current zero-dependency interface-doubles MVP.
 
-Tasks:
+**Relevant ADRs:** ADR 0002, ADR 0007.
 
-1. Define a zero-dependency double model.
-2. Support interface doubles through JDK dynamic proxies for MVP.
-3. Support stubbing, simple mocking expectations, argument matching, and call recording.
-4. Document limitations for concrete classes, final classes, static methods, and constructors without bytecode libraries.
-5. Consider extension-only integration for advanced doubles if users accept external dependencies outside core.
+Implementation summary:
 
-Acceptance criteria:
+1. Added `org.javaspec.doubles` with a JDK dynamic proxy implementation for ordinary interface doubles.
+2. Added public factory/control/history/verification APIs through `Doubles`, `InterfaceDouble`, `DoubleControl`, `MethodStub`, `CallVerifier`, and `Call`.
+3. Added `ObjectBehavior` convenience APIs for `doubleFor`, `interfaceDouble`, `doubleControl`/`inspectDouble`, call history, call counts, called/not-called assertions, and exact-count assertions.
+4. Implemented stubbing by method name with any arguments and by method name with exact arguments; exact matching supports `null` values and array-content comparison.
+5. Implemented call recording and immutable call-history snapshots, including method-name and exact-argument filtering.
+6. Implemented verification for called, not called, called once, and exact call count checks through fluent and direct APIs.
+7. Handled `toString`, `equals`, and `hashCode` deterministically in the proxy invocation handler.
+8. Returned Java defaults for unstubbed methods: primitive defaults, `null` for reference types, and no-op behavior for `void` methods.
+9. Added explicit unsupported-target diagnostics for `null`, primitives, arrays, annotations, enums, concrete classes, and final classes.
+10. Preserved the zero-runtime-dependency policy; no bytecode, mocking, assertion, or callback libraries were added.
+
+Verification:
+
+- `mvn verify` passed with 328 tests.
+- `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+
+Known limitations:
+
+- The core runtime supports ordinary interface doubles only.
+- Concrete class, final class, static method, and constructor doubles are not implemented.
+- Wildcard argument matchers, predicate matchers, exception stubbing, callback stubbing, sequences, and side-effect stubbing are not implemented.
+- Default interface methods are not invoked by the proxy handler.
+- Advanced doubles that require bytecode libraries must remain future optional integrations outside the core runtime unless a future ADR changes the policy.
+
+Acceptance criteria status:
 
 - Interface doubles work on Java 8 without third-party libraries.
 - Limitations are explicit and tested.
@@ -590,6 +614,7 @@ Tasks:
 6. Include first-MVP tests for existing type detection, missing type detection, prompt output for a missing type, class-like kind generation, and write gating.
 7. Maintain and expand ADR 0004 correction tests for constructor default/comment policy, CLI help/parser behavior, class update safety, PHPSpec construction override/lazy semantics, factory construction skeleton generation, generated typed proxy compilation, matcher semantics and negation, throw/during/duringInstantiation behavior, method generation for missing methods and default returns, and user-manual examples when those examples become testable.
 8. Maintain and expand Phase 4 configuration, naming, and filter tests for defaults, parser diagnostics, suite/path/package-prefix precedence, constructor-policy config defaults and overrides, class/example filters, and missing-class flow with inferred and explicit config.
+9. Maintain and expand Phase 8 doubles tests for supported interface doubles, unsupported target diagnostics, method-name and exact-argument stubbing, null and array argument matching, call history, verification helpers, default returns, object methods, and `ObjectBehavior` convenience APIs.
 
 Acceptance criteria:
 
@@ -610,7 +635,7 @@ Tasks:
 3. Integrate test and quality reports produced by tester agents.
 4. Keep `docs/usermanual/Home.md` and `docs/usermanual/_Sidebar.md` synchronized after implementation begins.
 5. Add user guide and migration notes from PHPSpec concepts to Java concepts.
-6. Document configuration files, construction, constructor policy, typed matcher syntax, method generation, limitations, commands, examples, the first-MVP generator flow, and later advanced generator behavior according to what is implemented.
+6. Document configuration files, construction, constructor policy, typed matcher syntax, method generation, interface doubles, limitations, commands, examples, the first-MVP generator flow, and later advanced generator behavior according to what is implemented.
 
 Acceptance criteria:
 

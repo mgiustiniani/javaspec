@@ -10,3 +10,4 @@ Architecture decisions are recorded as ADRs in `docs/adr/`.
 | [ADR 0004](../adr/0004-course-correction-construction-defaults-typed-matcher-proxies-and-method-generators.md) | Course correction: construction defaults, typed matcher proxies, and method generators |
 | [ADR 0005](../adr/0005-restricted-line-based-configuration-format.md) | Restricted line-based configuration format |
 | [ADR 0006](../adr/0006-classpath-reflection-runner.md) | Classpath reflection runner for executable examples |
+| [ADR 0007](../adr/0007-jdk-proxy-only-interface-doubles.md) | JDK proxy-only interface doubles |

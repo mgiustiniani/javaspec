@@ -3,6 +3,7 @@ package org.javaspec.runner;
 import org.javaspec.api.ObjectBehavior;
 import org.javaspec.discovery.DiscoveredSpec;
 import org.javaspec.discovery.SpecExample;
+import org.javaspec.doubles.InterfaceDouble;
 import org.javaspec.model.DescribedType;
 import org.junit.Test;
 
@@ -98,6 +99,25 @@ public class SpecRunnerTest {
         assertEquals(ExampleStatus.FAILED, failed.status());
         assertNotNull(failed.failureDetail());
         assertTrue(failed.failureDetail().message().contains("not to end with city"));
+    }
+
+    @Test
+    public void executesCompiledObjectBehaviorSpecUsingInterfaceDoubles() {
+        RunResult result = run(
+                Phase8DoubleSpec.class,
+                "it_passes_with_interface_double",
+                "it_fails_with_interface_double_verification"
+        );
+
+        assertEquals(2, result.totalCount());
+        assertEquals(1, result.passedCount());
+        assertEquals(1, result.failedCount());
+        assertEquals(0, result.brokenCount());
+
+        ExampleResult failed = result.exampleResults().get(1);
+        assertEquals(ExampleStatus.FAILED, failed.status());
+        assertNotNull(failed.failureDetail());
+        assertTrue(failed.failureDetail().message().contains("method 'publish' not to have been called"));
     }
 
     @Test
@@ -231,6 +251,33 @@ public class SpecRunnerTest {
         public void it_fails_with_expanded_matcher() {
             match("emerald city").shouldNotEndWith("city");
         }
+    }
+
+    public static final class Phase8DoubleSpec extends ObjectBehavior<Object> {
+        public void it_passes_with_interface_double() {
+            InterfaceDouble<Phase8Collaborator> collaborator = interfaceDouble(Phase8Collaborator.class);
+            collaborator.when("compose", "Ada").thenReturn("Hello Ada");
+
+            String message = collaborator.instance().compose("Ada");
+            collaborator.instance().publish(message);
+
+            shouldReturn(message, "Hello Ada");
+            shouldHaveBeenCalledWith(collaborator.instance(), "compose", "Ada");
+            shouldHaveBeenCalledTimes(collaborator.instance(), "publish", 1, "Hello Ada");
+        }
+
+        public void it_fails_with_interface_double_verification() {
+            Phase8Collaborator collaborator = doubleFor(Phase8Collaborator.class);
+            collaborator.publish("unexpected");
+
+            shouldNotHaveBeenCalled(collaborator, "publish");
+        }
+    }
+
+    public interface Phase8Collaborator {
+        String compose(String name);
+
+        void publish(String message);
     }
 
     public static final class MissingMethodSpec {

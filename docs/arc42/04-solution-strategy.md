@@ -2,7 +2,7 @@
 
 ## 4.1 Strategy Overview
 
-javaspec is being built as a small Java 8-compatible core with clear extension boundaries. The implemented core already contains the first-MVP CLI/generation slice, profile metadata, compatibility checks/probes, Phase 4 configuration, naming, and discovery-filter integration, the Phase 5/6 MVP reflection runner, and the Phase 7 matcher/expectation expansion; later phases will add richer execution controls, active formatter/bootstrap behavior, doubles, and extension behavior needed for a fuller phpspec-inspired workflow.
+javaspec is being built as a small Java 8-compatible core with clear extension boundaries. The implemented core already contains the first-MVP CLI/generation slice, profile metadata, compatibility checks/probes, Phase 4 configuration, naming, and discovery-filter integration, the Phase 5/6 MVP reflection runner, the Phase 7 matcher/expectation expansion, and Phase 8 JDK-proxy interface doubles; later phases will add richer execution controls, active formatter/bootstrap behavior, optional advanced doubles, and extension behavior needed for a fuller phpspec-inspired workflow.
 
 ## 4.2 Key Architectural Decisions
 
@@ -14,6 +14,7 @@ javaspec is being built as a small Java 8-compatible core with clear extension b
 | Construction defaults, typed matcher proxies, and method generators course correction | [ADR 0004](../adr/0004-course-correction-construction-defaults-typed-matcher-proxies-and-method-generators.md) |
 | Restricted line-based configuration format | [ADR 0005](../adr/0005-restricted-line-based-configuration-format.md) |
 | Classpath reflection runner for executable examples | [ADR 0006](../adr/0006-classpath-reflection-runner.md) |
+| JDK proxy-only interface doubles | [ADR 0007](../adr/0007-jdk-proxy-only-interface-doubles.md) |
 
 ## 4.3 Core Strategy
 
@@ -35,15 +36,18 @@ javaspec is being built as a small Java 8-compatible core with clear extension b
 6. **phpspec-inspired model adapted to Java**
    Concepts such as `describe`, examples, subject lifecycle, matchers, doubles, generators, formatters, and extensions are retained where useful but adapted to Java packages, classes, methods, constructors, and static typing.
 
-7. **No dependency leakage**
+7. **Interface proxy doubles**
+   The implemented doubles boundary uses Java 8 JDK dynamic proxies for ordinary interfaces, records calls, verifies simple call predictions, returns Java defaults for unstubbed methods, and rejects unsupported target kinds with explicit diagnostics.
+
+8. **No dependency leakage**
    Runtime packaging is audited so third-party libraries are absent. Optional integrations must live outside the core or in test/build scopes.
 
-8. **First-MVP PHPSpec-style describe/run slice**
+9. **First-MVP PHPSpec-style describe/run slice**
    The implemented first-MVP keeps `describe`/`desc` focused on PHPSpec-style specification skeleton creation. The `run` command discovers `spec.*.*Spec.java` files, infers described production class-like types, reports missing types with target paths, asks whether to create them (`Y/n`), writes Java 8-compatible class/interface/enum/annotation plus source-text record/sealed skeletons only after confirmation or when `run --generate` is supplied, and then executes loadable discovered examples through the MVP reflection runner.
 
 ## 4.4 Building Blocks
 
-The implemented architecture includes the Phase 2 first-MVP slice, the Phase 3 profile/catalog slice, the Phase 4 configuration slice, the Phase 5/6 MVP reflection-runner slice, and the Phase 7 matcher/expectation expansion. See [ARC42 section 5](05-building-block-view.md) for concise building-block notes.
+The implemented architecture includes the Phase 2 first-MVP slice, the Phase 3 profile/catalog slice, the Phase 4 configuration slice, the Phase 5/6 MVP reflection-runner slice, the Phase 7 matcher/expectation expansion, and the Phase 8 interface-doubles slice. See [ARC42 section 5](05-building-block-view.md) for concise building-block notes.
 
 Implemented building blocks:
 
@@ -51,19 +55,20 @@ Implemented building blocks:
 - **Described-class model**: validates Java class names and maps them to source-relative paths.
 - **Spec discovery model**: maps default or configured spec-package-prefix `*Spec.java` files to described production class-like types deterministically, recognizes kind markers such as `shouldBeAnInterface()`, parses relationship markers such as `shouldExtend(...)` and `shouldImplement(...)`, parses construction markers, expanded chained typed proxy matcher calls for method-discovery/default-return inference where applicable, throw proxy calls, sealed permitted subtype markers such as `shouldPermit(Circle.class)`, public `it_`/`its_` example metadata, and class/example filters.
 - **Discovery check**: detects source-root and classpath presence for a described class.
-- **Object behavior base and matcher engine**: provide the generic `ObjectBehavior<T>` type used by generated specs, lazy construction configuration, throw expectations, expanded `Matchable` expectation methods, direct convenience assertions that delegate through `match(actual)`, custom matcher registration, and a zero-dependency default matcher registry including negated equality.
+- **Object behavior base and matcher engine**: provide the generic `ObjectBehavior<T>` type used by generated specs, lazy construction configuration, throw expectations, expanded `Matchable` expectation methods, direct convenience assertions that delegate through `match(actual)`, custom matcher registration, `ObjectBehavior` double conveniences, and a zero-dependency default matcher registry including negated equality.
 - **Reflection runner**: uses the discovered spec/example metadata to load compiled spec classes from the effective classloader, execute filtered examples with fresh instances and optional `let()`/`letGo()`, and produce PASSED/FAILED/BROKEN/SKIPPED results.
 - **Spec/support skeleton generator**: plans and writes Java 8-compatible PHPSpec-style spec and typed support skeletons from `describe` and `run` support updates.
 - **Type/method skeleton generator**: plans and writes minimal production class/interface/enum/annotation/record/sealed skeletons, constructor/static-factory changes, and Java 8-compatible method skeletons after an interactive `run` confirmation or non-interactive `run --generate`; post-Java-8 forms are emitted only as source text.
 - **Profile catalog**: `org.javaspec.profile` stores deterministic target profiles, feature flags, API symbols, symbol categories/kinds, and representative Java LTS data-structure metadata including Java 25 stream gatherers.
 - **Configuration and naming model**: `org.javaspec.config` loads inferred defaults and explicit suite/profile/formatter/path/package-prefix/constructor-policy settings with a restricted line-based parser; `SpecNamingConvention` applies suite package prefixes to describe, discovery, and support generation.
 - **Compatibility boundary**: `org.javaspec.compatibility` checks profile compatibility and probes optional APIs reflectively by string name, without direct Java 9+ production imports.
+- **Doubles engine**: `org.javaspec.doubles` creates ordinary-interface doubles through JDK dynamic proxies, configures return-value stubs by method name or exact arguments, records immutable call snapshots, verifies simple call expectations, and returns Java defaults for unstubbed methods.
 
 Later building blocks remain planned:
 
 - **Runner expansion**: adds richer suite execution controls, stop-on-failure, pending examples, source locations, bootstrap execution, profile-aware behavior, and formatter integration beyond the MVP reflection runner.
 - **Expectation and matcher engine follow-up**: expands beyond the Phase 7 subset with additional PHPSpec parity, diagnostics, approximate equality, richer object-state matchers, and iteration/yield variants where Java-compatible.
-- **Doubles engine**: provides zero-dependency interface doubles and call predictions where feasible.
+- **Advanced doubles extensions**: may add richer argument matching, exception/callback stubbing, or concrete-class/final-class/static/constructor doubles outside the zero-dependency core if a future ADR permits optional integrations.
 - **Advanced generator**: creates richer spec/source skeletons and missing-method snippets beyond the current generator subset.
 - **Formatter/reporting layer**: emits progress, pretty, and optional machine-readable reports.
 - **Extension API**: registers custom matchers, formatters, generators, and lifecycle hooks.
@@ -74,5 +79,5 @@ Later building blocks remain planned:
 - Add a runtime dependency audit as a build gate.
 - Keep the profile catalog synchronized with explicit research and re-validate Java 25 stream gatherer metadata during quality-matrix work before relying on environment-specific behavior.
 - Keep configuration syntax restricted and line-based unless a future zero-runtime-dependency-compatible design supersedes it.
-- Implement doubles incrementally, starting with interface proxies because they are supported by Java 8 JDK APIs.
+- Keep MVP doubles interface-only and JDK-proxy based; require a future ADR before adding optional advanced doubles that need external tooling.
 - Treat advanced generation and external integrations as later or extension features.
