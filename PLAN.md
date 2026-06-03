@@ -225,6 +225,7 @@ Further implementation work must be delegated to the appropriate workflow agents
 | Phase 5/6 MVP reflection runner | README, user manual, ARC42 section 5, ADR 0006, this plan | Implemented and verified: after discovery/generation/update, `javaspec run` executes examples when compiled spec classes are available on the effective classloader; each example uses a fresh spec instance with optional public no-arg `let()` and `letGo()`; results are `PASSED`, `FAILED`, `BROKEN`, or `SKIPPED`; CLI summary exits `1` for failed/broken executable examples; source-only/unavailable spec classes are skipped because the CLI does not compile them. Phase 9 adds `--stop-on-failure` to stop after the first FAILED or BROKEN executable example while the default remains executing all discovered metadata. |
 | Phase 9 CLI expansion | README, user manual, ARC42 section 5, this plan | Implemented and verified: `run --dry-run` performs no writes and no prompts, reports would-generate/would-update actions for related specs/support, support updates, constructors, method bodies/declarations/elements, and missing production type generation, exits `1` when pending work exists, and exits `0` when no pending changes exist and examples pass or skip; `run --stop-on-failure` stops after the first FAILED or BROKEN executable example; `run --formatter <progress|pretty>` selects concise or per-example output and overrides config/default; `run --profile <java8|java11|java17|java21|java25>` validates/selects the profile and overrides config without deep enforcement yet; `run --verbose` prints selected run settings; all Phase 9 controls are rejected for `describe`. |
 | Phase 11 formatter/reporting/extension increment | README, user manual, ARC42 section 5, this plan | Implemented and verified: built-in output uses the public zero-dependency `RunFormatter` contract and deterministic `RunFormatterRegistry`; `progress` and `pretty` behavior remains compatible; `JavaspecExtension`/`Extension` and `ExtensionContext` allow programmatic run formatter registration; `javaspec run --report <file>` and alias `--report-file <file>` write UTF-8 JSON reports with `schemaVersion` 1, summary counts, specs, examples, nullable failure details, throwable class/message, and stack trace lines. Reports are run-only, rejected by `describe`, written for no-spec/passing/failing/broken/skipped runs after normal output, skipped for dry-run pending generation/update, and report write failures exit `70`. External extension discovery/loading is not implemented. |
+| Future no-JUnit runner integrations and optional JUnit adapter | README, user manual, ADR 0011, this plan | Future roadmap only: Phases 14-18 plan a no-JUnit integration foundation, optional Maven and Gradle plugins, an optional separate JUnit Platform engine adapter, and IDE/CI polish. The canonical runner remains javaspec core, and JUnit must not become a core runtime dependency or a requirement for using javaspec specs. |
 | Missing-class flow with config | User manual, this plan | Implemented in Phase 4: `run` uses inferred defaults without a config file and selected-suite paths/naming with explicit config, preserving the existing missing-production prompt and `--generate` non-interactive generation behavior. |
 | Maven implementation | This plan | Implemented in Phase 2. |
 | Package base `org.javaspec` | README, this plan | Implemented in Phase 2 and retained for future work. |
@@ -244,6 +245,9 @@ Further implementation work must be delegated to the appropriate workflow agents
 - Store Java 9+ API names as strings in profile metadata.
 - Use reflection only behind explicit compatibility boundaries.
 - Keep optional integrations outside the core runtime.
+- Keep the javaspec core runner canonical; CLI, Maven, Gradle, and JUnit Platform entry points must be adapters over core discovery, execution, result, formatter, and report semantics.
+- Keep no-JUnit execution first-class, including CLI usage and future build-tool adapters; never require JUnit to run javaspec specs.
+- Keep any future JUnit dependency in a separate optional adapter/engine artifact, never in the core runtime artifact.
 - Keep production generation governed by the ADR 0003 `describe`/`run` split and by explicit confirmation or documented non-interactive generation policy.
 - Treat `describe` as the explicit command that writes specification skeletons, interactive `run` confirmation as the normal PHPSpec-style production generation authorization, and `run --generate` as the explicit non-interactive yes.
 - Do not write generated source files unless the user explicitly confirms the action or a documented non-interactive policy allows it.
@@ -735,3 +739,116 @@ Acceptance criteria:
 - `docs/usermanual/Home.md` and `docs/usermanual/_Sidebar.md` expose the same navigation topics.
 - ADRs link to relevant ARC42 sections.
 - Test and quality claims are backed by produced reports.
+
+### Phase 14 — Test Integration Foundation Without JUnit (Future Roadmap)
+
+**Owner:** Future Java implementation and tester/quality agents as delegated by the parent workflow.
+
+**Status:** Future roadmap only; not implemented.
+
+**Relevant ADRs:** ADR 0002, ADR 0006, ADR 0010, ADR 0011.
+
+Planned scope:
+
+1. Add a programmatic launcher/invocation API around the canonical javaspec runner that returns structured results and does not call `System.exit`.
+2. Add classpath input options, such as `--classpath` and `--classpath-file`, or an equivalent invocation model so external tools can supply compiled production/spec classes explicitly.
+3. Add a dependency-free JUnit XML-compatible report writer based on the core runner result model, without adding any JUnit dependency.
+4. Define stable CI behavior for exit codes and report writing across pass, fail, broken, skipped-only, no-spec, dry-run, and report I/O scenarios.
+5. Preserve the current CLI and no-JUnit usage as first-class modes; this phase must not require users to install or depend on JUnit.
+6. Keep the core runner as a classpath-based executor unless a later ADR explicitly changes compilation ownership.
+
+Future acceptance criteria:
+
+- Core runtime dependency auditing still shows no third-party runtime dependencies.
+- CLI and programmatic callers can invoke the runner without `System.exit` terminating the host process.
+- A no-JUnit CI job can provide a classpath, run specs, receive deterministic exit behavior, and collect a machine-readable report.
+- Existing `describe`/`run` generation behavior remains unchanged except for documented invocation/classpath/report options.
+
+### Phase 15 — Maven Plugin Optional Integration (Future Roadmap)
+
+**Owner:** Future Maven/build integration agent as delegated by the parent workflow.
+
+**Status:** Future roadmap only; not implemented.
+
+**Relevant ADRs:** ADR 0002, ADR 0011.
+
+Planned scope:
+
+1. Provide an optional Maven plugin or module outside the core runtime artifact.
+2. Integrate with Maven project compilation and classpath calculation so compiled production and spec classes are supplied to the canonical javaspec runner.
+3. Provide Maven-friendly report locations, including the Phase 14 JUnit XML-compatible report when requested.
+4. Fail the Maven build consistently for failed or broken executable examples and for configured CI failure conditions.
+5. Reuse javaspec configuration, suite, class, and example filters where practical.
+6. Do not require JUnit in the project under test; any Maven-specific dependencies belong to the plugin artifact, not the core runtime.
+
+Future acceptance criteria:
+
+- Maven users can run javaspec specs through the optional plugin without adding JUnit.
+- Plugin behavior is an adapter over the canonical javaspec invocation API and result model.
+- Core runtime dependency and Java 8 compatibility gates remain unaffected by the plugin artifact.
+
+### Phase 16 — Gradle Plugin Optional Integration (Future Roadmap)
+
+**Owner:** Future Gradle/build integration agent as delegated by the parent workflow.
+
+**Status:** Future roadmap only; not implemented.
+
+**Relevant ADRs:** ADR 0002, ADR 0011.
+
+Planned scope:
+
+1. Provide an optional Gradle plugin outside the core runtime artifact.
+2. Integrate with Gradle source sets, compilation, test/runtime classpaths, task inputs, and report outputs so compiled classes are passed to the canonical javaspec runner.
+3. Provide Gradle-friendly task configuration for suites, filters, classpaths, formatter/report choices, and fail-build behavior.
+4. Produce CI-friendly reports, including the Phase 14 JUnit XML-compatible report when requested.
+5. Do not require JUnit in the project under test; any Gradle-specific dependencies belong to the plugin artifact, not the core runtime.
+
+Future acceptance criteria:
+
+- Gradle users can run javaspec specs through the optional plugin without adding JUnit.
+- The plugin delegates to the canonical javaspec invocation API and preserves core runner result semantics.
+- Core runtime dependency and Java 8 compatibility gates remain unaffected by the plugin artifact.
+
+### Phase 17 — Optional JUnit Platform Engine (Future Roadmap)
+
+**Owner:** Future optional integration agent as delegated by the parent workflow.
+
+**Status:** Future roadmap only; not implemented.
+
+**Relevant ADRs:** ADR 0002, ADR 0006, ADR 0011.
+
+Planned scope:
+
+1. Provide a separate optional JUnit Platform engine module; do not add JUnit or JUnit Platform dependencies to the core runtime artifact.
+2. Implement the engine as an adapter over the canonical javaspec runner, discovery metadata, and result model, not as a replacement runner.
+3. Require no changes to javaspec spec style; existing `*Spec` classes and `ObjectBehavior`/matcher usage remain the authoring model.
+4. Treat the JUnit Platform engine as an IDE/CI integration path only.
+5. Map javaspec example identifiers, outcomes, failures, broken states, skipped/pending states, and source locations to JUnit Platform concepts as faithfully as possible while preserving javaspec semantics.
+
+Future acceptance criteria:
+
+- Projects that do not opt into the JUnit Platform engine still have no JUnit dependency and can keep using CLI/build-tool no-JUnit execution.
+- Projects that opt into the separate engine can discover and execute javaspec specs through JUnit Platform-enabled IDEs or CI tools.
+- The canonical javaspec runner remains the source of truth for execution behavior and result semantics.
+
+### Phase 18 — IDE/CI Polish (Future Roadmap)
+
+**Owner:** Future implementation, documentation, and tester/quality agents as delegated by the parent workflow.
+
+**Status:** Future roadmap only; not implemented.
+
+**Relevant ADRs:** ADR 0010, ADR 0011.
+
+Planned scope:
+
+1. Stabilize test/example identifiers across CLI, programmatic invocation, Maven, Gradle, JUnit Platform, JSON reports, and JUnit XML-compatible reports.
+2. Add richer report data where available, including source file/line locations, failure locations, throwable detail, suite/filter metadata, and classpath diagnostics.
+3. Define and document pending/skipped mappings consistently across all execution and reporting modes.
+4. Document all supported modes clearly: CLI no-JUnit, programmatic no-JUnit, Maven plugin, Gradle plugin, and optional JUnit Platform engine.
+5. Extend quality verification to cover no-JUnit CI execution, build-tool adapters, optional JUnit Platform integration, report compatibility, and multi-JDK behavior.
+
+Future acceptance criteria:
+
+- All integration modes report stable identifiers and compatible outcomes for the same javaspec examples.
+- User documentation clearly distinguishes implemented features from optional future integrations and never implies that JUnit is required.
+- CI and IDE documentation includes no-JUnit paths first, with JUnit Platform documented only as an optional adapter.

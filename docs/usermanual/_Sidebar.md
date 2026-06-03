@@ -58,4 +58,5 @@
 - [Exit codes](Home.md#exit-codes)
 - [Dependency policy](Home.md#dependency-policy)
 - [Verification](Home.md#verification)
+- [Future integration roadmap](Home.md#future-integration-roadmap-not-implemented-yet)
 - [Current MVP limitations](Home.md#current-mvp-limitations)

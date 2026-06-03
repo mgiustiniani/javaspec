@@ -1209,7 +1209,7 @@ Error: Invalid class name: Class name segment is a reserved Java word: class
 
 ## Dependency policy
 
-Runtime dependencies are not allowed.
+Runtime dependencies are not allowed. The repository test suite uses JUnit only as a test-scope dependency; using javaspec specs does not require JUnit. Any future JUnit Platform support is planned as a separate optional adapter/engine over the canonical javaspec runner, not as a replacement runner and not as a core runtime dependency.
 
 Check runtime dependencies:
 
@@ -1236,6 +1236,16 @@ Current verification after the Phase 12 Distrobox compatibility/quality matrix:
 - Blockers: none.
 
 See [`../test-report.md`](../test-report.md) for the consolidated Phase 12 test and quality report.
+
+## Future integration roadmap (not implemented yet)
+
+The following paths are planned as future roadmap work only. They do not exist in the current MVP and should not be documented as available commands, plugins, or engines.
+
+1. **No-JUnit foundation first:** add a programmatic no-`System.exit` invocation API, explicit classpath input such as `--classpath` / `--classpath-file` or an equivalent launcher model, dependency-free JUnit XML-compatible reports, and stable CI exit/report behavior.
+2. **Optional Maven plugin:** provide a separate Maven adapter that handles compile/classpath/report/fail-build behavior and delegates to the canonical javaspec runner without requiring JUnit.
+3. **Optional Gradle plugin:** provide a separate Gradle adapter with automatic source set/classpath/report behavior and no JUnit requirement.
+4. **Optional JUnit Platform engine:** provide a separate optional module for IDE/CI integration only. It must adapt the canonical javaspec runner, require no spec-style changes, and keep JUnit dependencies out of the core runtime.
+5. **IDE/CI polish:** stabilize test IDs, enrich reports and failure locations, map pending/skipped states consistently, and document all modes with no-JUnit paths first.
 
 ## Current MVP limitations
 
