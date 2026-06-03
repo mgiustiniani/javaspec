@@ -5,11 +5,11 @@
 | Quality attribute | Scenario | Evidence / current status |
 |---|---|---|
 | Java 8 compatibility | The runtime artifact executes on Java 8 and does not link directly to Java 9+ APIs. | Phase 12 Java 8 Distrobox `mvn clean` and `mvn verify` passed; compiler source/target is 1.8; bytecode and constant-pool audits are summarized in [Test and Quality Report](../test-report.md). |
-| Zero runtime dependencies | Runtime dependency scope contains only the javaspec artifact. | Phase 12 Java 25 runtime dependency audit passed with only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`. |
-| Deterministic CLI behavior | Commands, options, prompts, output modes, and exit codes are stable for local and CI usage. | CLI behavior is documented in the user manual; Phase 12 ran 364 tests per JDK across the matrix. |
+| Zero runtime dependencies | Runtime dependency scope contains only the javaspec artifact for core; optional adapters do not leak dependencies into core. | Phase 12 Java 25 runtime dependency audit passed with only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`; Phase 15 root runtime audit passed with only `org.javaspec:javaspec`, and Maven plugin runtime audit passed with the plugin plus compile-scope core only; Phase 16 root runtime audit passed with only `org.javaspec:javaspec`, and Gradle plugin runtimeClasspath contained only `org.javaspec:javaspec:0.1.0-SNAPSHOT`; Phase 17 root runtime audit passed with only `org.javaspec:javaspec`, and JUnit Platform engine runtime dependencies stayed isolated to the optional engine artifact. |
+| Deterministic CLI/build-tool/engine behavior | Commands, options, prompts, output modes, explicit classpath handling, report writing, Maven/Gradle plugin adapter behavior, JUnit Platform engine mapping, and exit codes/events are stable for local and CI usage. | CLI and optional Maven/Gradle/JUnit Platform adapter behavior are documented in the user manual; Phase 12 ran 364 tests per JDK across the matrix; Phase 15 standalone Maven plugin verification passed with 12 plugin tests; Phase 16 standalone Gradle plugin verification passed with 11 plugin tests using Gradle 8.8; Phase 17 standalone JUnit Platform engine verification passed with 12 tests. |
 | Safe generation | Production source generation/update is gated by prompts, `--generate`, or `--dry-run` planning. | ADR 0003, ADR 0004, ADR 0008, and the user manual document generation ownership and policies. |
 | Accurate implemented-feature documentation | Docs do not overstate unsupported behavior. | Limitations are recorded in the user manual, README, ARC42 section 11, and ADR consequences. |
-| Extensibility without dependency cost | Formatter and extension contracts are public without adding runtime libraries. | ADR 0010 documents programmatic-only extension behavior and lack of external CLI loading. |
+| Extensibility without dependency cost | Formatter, extension, reporting, invocation contracts, and optional adapters are public boundaries without adding libraries to the core runtime. | ADR 0010 documents programmatic-only extension behavior and lack of external CLI loading; ADR 0011 covers no-JUnit invocation and optional adapters; Phase 15 verifies the standalone Maven plugin boundary, Phase 16 verifies the standalone Gradle plugin boundary, and Phase 17 verifies the standalone JUnit Platform engine boundary. |
 | LTS awareness | Java 8, 11, 17, 21, and 25 profiles are modeled and verified where runtime probing is relevant. | Phase 12 matrix passed; Java 25 Gatherer reflection probe passed. |
 
 ## 10.2 Quality Scenarios
@@ -23,7 +23,8 @@
 ### Dependency Integrity
 
 - `mvn dependency:tree -Dscope=runtime` must show no third-party runtime dependencies.
-- Features that normally need libraries, such as configuration parsing, JSON writing, doubles, or CLI parsing, must stay internal/JDK-based or move to future optional integrations.
+- Features that normally need libraries, such as configuration parsing, JSON/XML writing, doubles, invocation, or CLI parsing, must stay internal/JDK-based or move to optional integrations outside the core runtime.
+- Optional build-tool adapters must not alter the core runtime dependency audit; their own runtime dependency trees must be documented and verified separately.
 
 ### Generation Safety
 
@@ -44,12 +45,17 @@
 
 - Built-in `progress` and `pretty` formatters must remain deterministic.
 - JSON report schemaVersion 1 must remain stable unless a future schema decision is made.
+- JUnit XML-compatible reports must be generated without JUnit or XML/reporting runtime dependencies.
+- JSON and JUnit XML-compatible reports can be requested together for no-spec and executed run paths.
+- Dry-run pending generation/update exits before execution and must not write reports.
 - Report write failures must include the report path and exit `70`.
+- Programmatic invocation must not call `System.exit` and must return structured results with deterministic exit-code mapping.
 - Test and quality claims must cite produced tester/quality reports rather than invented results.
+- Optional JUnit Platform engine execution must remain an adapter over canonical discovery and `JavaspecLauncher`, avoid `System.exit`, and map passed/failed/broken/skipped javaspec states to JUnit Platform events without requiring spec authoring changes.
 
 ## 10.3 Phase 12 Verification Summary
 
-Phase 12 is the current authoritative compatibility and quality evidence:
+Phase 12 is the current authoritative cross-JDK compatibility evidence:
 
 | JDK | Runtime | Result |
 |---|---|---|
@@ -69,7 +75,102 @@ Additional Phase 12 evidence:
 
 See [Test and Quality Report](../test-report.md) for the consolidated report.
 
-## 10.4 Quality Gates for Future Work
+## 10.4 Phase 14 Verification Summary
+
+Phase 14 is the current authoritative verification for no-JUnit invocation, explicit classpath runs, and JUnit XML-compatible reporting:
+
+| Command | Result |
+|---|---|
+| `mvn -q -Dtest=JavaspecLauncherTest,JUnitXmlReportWriterTest,MainPhase14CliTest test` | PASS — 18 tests |
+| `mvn verify` | PASS — 382 tests, 0 failures, 0 errors, 0 skipped |
+| `mvn dependency:tree -Dscope=runtime` | PASS — runtime tree contains only the root artifact |
+
+Verified Phase 14 quality points:
+
+- `JavaspecLauncher` returns structured results and does not terminate the JVM with `System.exit`.
+- Exit-code mapping returns `0` for passing, skipped-only, and no-spec invocation paths, and `1` for failed or broken execution.
+- `--classpath` and `--classpath-file` use explicit compiled-class entries for type existence checks and spec execution, with UTF-8 classpath files and comment/blank-line handling.
+- `--junit-xml` and `--junit-xml-file` write no-spec and normal run reports; failing/broken runs write reports before exit `1`; dry-run pending generation/update writes no reports; report I/O failures exit `70` with path diagnostics.
+- JSON `--report` / `--report-file` behavior remains compatible, and JSON plus JUnit XML-compatible reports can be requested together.
+
+See [Test and Quality Report](../test-report.md) for details.
+
+## 10.5 Phase 15 Verification Summary
+
+Phase 15 is the current authoritative verification for the standalone optional Maven plugin integration:
+
+| Command | Result |
+|---|---|
+| `mvn -q verify` | PASS — 382 core tests |
+| `mvn -q -DskipTests install` | PASS — current core installed for standalone plugin verification |
+| `mvn -q -f javaspec-maven-plugin/pom.xml -Dtest=JavaspecRunMojoTest test` | PASS — 12 plugin tests |
+| `mvn -q -f javaspec-maven-plugin/pom.xml verify` | PASS — 12 plugin tests |
+| `mvn dependency:tree -Dscope=runtime` | PASS — root runtime tree contained only `org.javaspec:javaspec` |
+| `mvn -f javaspec-maven-plugin/pom.xml dependency:tree -Dscope=runtime` | PASS — plugin runtime tree contained the plugin plus compile-scope core `org.javaspec:javaspec` only |
+
+Verified Phase 15 quality points:
+
+- The Maven plugin is a standalone optional artifact at `javaspec-maven-plugin/` and is intentionally not registered as a root module.
+- Root `mvn verify` continues to build and audit only the zero-runtime-dependency core artifact.
+- The plugin packages as `maven-plugin` with Java source/target `1.8`, Maven API baseline `3.6.3`, Maven APIs and plugin annotations in `provided` scope, JUnit in `test` scope, and compile-scope core dependency.
+- `JavaspecRunMojo` uses Maven test dependency resolution and Maven test classpath, supports the documented filters/options/reports, and delegates to `JavaspecLauncher` without `System.exit`.
+- Plugin tests cover JUnit XML report I/O failure handling, plugin POM dependency scopes, and the canonical launcher delegation guard.
+- Projects under test do not need JUnit.
+
+See [Test and Quality Report](../test-report.md) for details.
+
+## 10.6 Phase 16 Verification Summary
+
+Phase 16 is the current authoritative verification for the standalone optional Gradle plugin integration:
+
+| Command | Result |
+|---|---|
+| `mvn -q -DskipTests install` | PASS — current core installed for standalone plugin verification |
+| `mvn -q verify` | PASS |
+| `mvn dependency:tree -Dscope=runtime` | PASS — root runtime tree contained only `org.javaspec:javaspec` |
+| `/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin test` | PASS — 11 plugin tests |
+| `/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin build` | PASS |
+| `/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin dependencies --configuration runtimeClasspath` | PASS — runtimeClasspath contained only `org.javaspec:javaspec:0.1.0-SNAPSHOT` |
+| `/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin dependencies --configuration testRuntimeClasspath` | PASS — testRuntimeClasspath contained javaspec, JUnit, and Hamcrest only |
+| Cached Gradle 7.4.2 command on installed Java 21 | BLOCKED — `Unsupported class file major version 65`; environment/tooling compatibility blocker for that cached executable, not a javaspec feature failure |
+
+Verified Phase 16 quality points:
+
+- The Gradle plugin is a standalone optional artifact at `javaspec-gradle-plugin/` and is intentionally not registered as a root Maven module.
+- Root Maven verification continues to build and audit only the zero-runtime-dependency core artifact.
+- The plugin uses `java-gradle-plugin`, Java source/target `1.8`, plugin id `org.javaspec`, implementation class `org.javaspec.gradle.JavaspecPlugin`, and a core dependency on `org.javaspec:javaspec:0.1.0-SNAPSHOT`.
+- `JavaspecPlugin` registers extension `javaspec` and task `javaspecRun`; Java plugin/source-set defaults use the `test` source set runtime classpath and depend on `testClasses`.
+- `JavaspecRunTask` supports the documented filters/options/reports, logs through Gradle, manages the run classloader, and delegates to `JavaspecLauncher` without `System.exit`.
+- Projects under test do not need JUnit; JUnit is only a plugin test dependency.
+
+See [Test and Quality Report](../test-report.md) for details.
+
+## 10.7 Phase 17 Verification Summary
+
+Phase 17 is the current authoritative verification for the standalone optional JUnit Platform engine integration:
+
+| Command | Result |
+|---|---|
+| `mvn -q -DskipTests install` | PASS — current core installed for standalone engine verification |
+| `mvn -q verify` | PASS — root Surefire: 382 tests, 0 failures, 0 errors, 0 skipped |
+| `mvn -q -f javaspec-junit-platform-engine/pom.xml -Dtest=JavaspecTestEnginePhase17Test test` | PASS — 12 tests, 0 failures, 0 errors, 0 skipped |
+| `mvn -q -f javaspec-junit-platform-engine/pom.xml verify` | PASS — 12 tests, 0 failures, 0 errors, 0 skipped |
+| `mvn dependency:tree -Dscope=runtime` | PASS — root runtime tree contained only `org.javaspec:javaspec` |
+| `mvn -f javaspec-junit-platform-engine/pom.xml dependency:tree -Dscope=runtime` | PASS — engine runtime dependencies were core `org.javaspec:javaspec`, `org.junit.platform:junit-platform-engine`, `opentest4j`, `junit-platform-commons`, and `apiguardian-api`; no runtime `junit-jupiter`, `junit-platform-launcher`, or `junit-platform-testkit` |
+
+Verified Phase 17 quality points:
+
+- The JUnit Platform engine is a standalone optional artifact at `javaspec-junit-platform-engine/` and is intentionally not registered as a root Maven module.
+- Root Maven verification continues to build and audit only the zero-runtime-dependency core artifact.
+- The engine uses Java source/target `1.8` and JUnit Platform `1.10.2`, avoiding JUnit Platform 6/JUnit 6.
+- `JavaspecTestEngine` is discovered through ServiceLoader with engine id `javaspec`.
+- Discovery uses canonical `SpecDiscovery` / `SpecDiscoveryRequest`, configuration parameters, and class/package/method/unique-id selectors as filters over canonical discovery results.
+- Execution delegates to canonical no-JUnit `JavaspecLauncher`, avoids `System.exit`, maps javaspec result states to JUnit Platform listener events, and does not require spec authoring style changes.
+- Projects that do not opt into the engine keep no-JUnit CLI/programmatic/Maven/Gradle execution paths.
+
+See [Test and Quality Report](../test-report.md) for details.
+
+## 10.8 Quality Gates for Future Work
 
 Future implementation phases should preserve these gates:
 

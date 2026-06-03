@@ -12,19 +12,31 @@
 | `describe` / `desc` | CLI command that creates specification/support skeletons only and never writes production source. |
 | Direct matcher | An `ObjectBehavior` convenience assertion such as `shouldReturn(actual, expected)` that delegates through `match(actual)`. |
 | Dry-run | `run --dry-run`; plans generation/update work without writes or prompts and exits `1` when pending work exists. |
-| Effective classloader | The classloader visible to the CLI process. The runner can execute only spec classes available there. |
+| Effective classloader | The classloader visible to the CLI process. The runner can execute only spec classes available there unless an explicit classloader is selected. |
+| Explicit classpath | `run --classpath` or `--classpath-file` entries used to create the selected classloader for type existence checks and spec execution. Entries must point to already compiled classes or archives. |
 | Example | A public `void` Java spec method named `it_*` or `its_*`. |
 | Example status | Runtime outcome: `PASSED`, `FAILED`, `BROKEN`, or `SKIPPED`. |
 | Extension API | Programmatic contracts `JavaspecExtension`/`Extension` and `ExtensionContext`. External CLI extension discovery/loading is not implemented. |
 | Formatter | A `RunFormatter` implementation. The CLI supports built-in `progress` and `pretty` names. |
+| Gradle plugin adapter | Standalone optional artifact `javaspec-gradle-plugin/` with plugin id `org.javaspec`, extension `javaspec`, and task `javaspecRun`. It is not a root Maven module and does not require JUnit in projects under test. |
+| Gradle test source set runtime classpath | The compiled `test` source set runtime classpath used by the optional Gradle plugin by default when the Gradle Java plugin/source sets are present. |
 | Interface double | A JDK dynamic proxy double for an ordinary Java interface under `org.javaspec.doubles`. |
+| Invocation API | `org.javaspec.invocation` no-`System.exit` programmatic API over canonical discovery, `SpecRunner`, and `RunResult`. |
+| `JavaspecRunMojo` | Phase 15 Maven plugin goal implementation for `javaspec:run`; it uses Maven test dependency resolution/classpath and delegates to `JavaspecLauncher` without `System.exit`. |
+| `JavaspecRunTask` | Phase 16 Gradle plugin task implementation for `javaspecRun`; it uses the Gradle classpath, manages a `URLClassLoader` and thread context classloader, writes reports through core writers, and delegates to `JavaspecLauncher` without `System.exit`. |
+| `JavaspecTestEngine` | Phase 17 optional JUnit Platform `TestEngine` implementation with engine id `javaspec`; it is registered through ServiceLoader, filters canonical discovery by JUnit Platform selectors/configuration parameters, and delegates execution to `JavaspecLauncher` without `System.exit`. |
+| JUnit Platform engine adapter | Standalone optional artifact `javaspec-junit-platform-engine/` packaging `org.javaspec:javaspec-junit-platform-engine:0.1.0-SNAPSHOT`; it is not a root Maven module and does not add JUnit Platform dependencies to the core runtime artifact. |
+| JUnit Platform selector | Class, package, method, or unique-id selector supplied by JUnit Platform and applied by the optional engine as a filter over canonical javaspec discovery results. |
+| JUnit XML-compatible report | Dependency-free UTF-8 XML report written by `run --junit-xml` / `--junit-xml-file`, Maven/Gradle plugin report settings, or core report writers from `RunResult`; it does not require JUnit. |
 | LTS profile | Target Java profile key: `java8`, `java11`, `java17`, `java21`, or `java25`. |
 | Matchable | Fluent expectation wrapper returned by typed proxy methods and `match(actual)`. |
+| Maven plugin adapter | Standalone optional artifact `javaspec-maven-plugin/` packaging `org.javaspec:javaspec-maven-plugin:0.1.0-SNAPSHOT` as a Maven plugin with goal prefix `javaspec`. It is not a root module and does not require JUnit in projects under test. |
+| Maven test classpath | The compiled test-scope classpath supplied by Maven to the optional plugin and used as input to the canonical javaspec runner. |
 | Missing sealed-interface skeleton | A generated sealed-interface source file that can include root method declarations and nested permitted implementation bodies. |
 | PHPSpec-inspired | Modeled after PHPSpec workflow concepts while adapted to Java packages, classes, static typing, compilation, and interfaces. |
 | Profile catalog | Metadata model for Java LTS profiles, feature flags, and API symbols under `org.javaspec.profile`. |
 | Reflection runner | Dependency-free runner that executes compiled spec examples by Java reflection after discovery/generation/update work. |
-| Report | Optional UTF-8 JSON file written by `run --report` or `--report-file` with schemaVersion 1 runner results. |
+| Report | Optional machine-readable output written by `run`, currently JSON via `--report` / `--report-file` and JUnit XML-compatible XML via `--junit-xml` / `--junit-xml-file`. |
 | `run` | CLI command that discovers specs, owns production generation/update, can execute compiled examples, renders output, and can write reports. |
 | Sealed-interface update deferral | Intentional limitation: existing sealed-interface source updates are skipped until nested permitted implementation updates can be done safely. |
 | Source-only spec | A discovered spec source file whose compiled class is unavailable to the runner; examples are reported as skipped. |
@@ -32,4 +44,5 @@
 | Spec root | File-system root searched for specification sources, default `src/test/java`. |
 | Suite | Configuration grouping for spec root, source root, spec package prefix, production package prefix, and bootstrap metadata. |
 | Typed proxy | Generated support method that returns `Matchable<T>` for a subject method, enabling syntax like `getRating().shouldReturn(5)`. |
+| UniqueId segment | Optional JUnit Platform engine identifier segment. The Phase 17 engine uses `[engine:javaspec]`, `[spec:<specQualifiedName>]`, and `[example:<methodName>]`. |
 | Zero runtime dependency | Architectural policy that the runtime artifact depends only on the JDK and the project artifact itself. |

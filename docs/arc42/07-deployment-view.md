@@ -2,9 +2,15 @@
 
 ## 7.1 Runtime Artifact
 
-javaspec is packaged as a Maven-built Java artifact with CLI main class `org.javaspec.cli.Main`. The current repository build produces `target/javaspec-0.1.0-SNAPSHOT.jar`.
+javaspec core is packaged as a Maven-built Java artifact with CLI main class `org.javaspec.cli.Main`. The current repository build produces `target/javaspec-0.1.0-SNAPSHOT.jar`.
 
-The runtime artifact is intentionally small:
+Phase 15 also provides a standalone optional Maven plugin artifact at `javaspec-maven-plugin/`, packaging `org.javaspec:javaspec-maven-plugin:0.1.0-SNAPSHOT` as `maven-plugin`. It is intentionally not registered as a root module so repository-root verification continues to build and audit only the core artifact.
+
+Phase 16 provides a standalone optional Gradle plugin artifact at `javaspec-gradle-plugin/` with plugin id `org.javaspec`. It is intentionally not registered as a root Maven module and remains outside the core artifact.
+
+Phase 17 provides a standalone optional JUnit Platform engine artifact at `javaspec-junit-platform-engine/`, packaging `org.javaspec:javaspec-junit-platform-engine:0.1.0-SNAPSHOT` as a Java 8-compatible `jar` with engine id `javaspec`. It is intentionally not registered as a root Maven module and remains outside the core artifact.
+
+The core runtime artifact is intentionally small:
 
 - Java 8 source/target compatibility.
 - No third-party runtime dependencies.
@@ -16,32 +22,61 @@ The runtime artifact is intentionally small:
 
 | Environment | Usage |
 |---|---|
-| Developer workstation | Run `describe` and `run`, review generated source, execute already-compiled specs, write reports when requested. |
-| Build tool or IDE classpath | Supplies compiled production/spec classes to the reflection runner. The CLI does not compile source/spec files itself. |
-| CI pipeline | Runs `mvn verify`, dependency audits, optional `javaspec run --dry-run`, optional `javaspec run --report <file>`, and consumes exit codes. |
+| Developer workstation | Run `describe` and `run`, review generated source, execute already-compiled specs, write JSON or JUnit XML-compatible reports when requested. |
+| Build tool or IDE classpath | Supplies compiled production/spec classes to the reflection runner through the process classpath, explicit CLI classpath entries, optional Maven plugin test classpath integration, optional Gradle plugin test source set runtime classpath integration, optional JUnit Platform engine runtime classpath integration, or programmatic invocation classloaders. The CLI, invocation API, and JUnit Platform engine adapter do not compile source/spec files themselves. |
+| CI pipeline | Runs root `mvn verify`, dependency audits, optional standalone Maven/Gradle/JUnit Platform engine verification, optional `javaspec run --dry-run`, optional explicit classpath runs, optional `javaspec run --report <file>` / `--junit-xml <file>`, and consumes exit codes or JUnit Platform engine events when that optional engine is selected. |
 | Java 8 runtime | Compatibility floor for the production binary. |
 | Java 11/17/21/25 runtimes | Supported target/runtime matrix entries; newer APIs remain metadata/reflection-only unless generated source is compiled by a suitable JDK. |
 
 ## 7.3 Build and Verification Commands
 
-Repository verification uses Maven:
+Repository core verification uses Maven:
 
 ```sh
 mvn verify
 mvn dependency:tree -Dscope=runtime
 ```
 
-Phase 12 used Distrobox/Podman containers for Java 8, 11, 17, 21, and 25. Each container ran `mvn clean` and `mvn verify` with 364 tests, 0 failures, 0 errors, and 0 skipped. The Java 25 container also passed the runtime dependency audit and Java 25 Gatherer reflection probe. See [Test and Quality Report](../test-report.md).
+Standalone optional Maven plugin verification first installs the current core, then verifies the plugin POM:
+
+```sh
+mvn -q -DskipTests install
+mvn -q -f javaspec-maven-plugin/pom.xml verify
+mvn -f javaspec-maven-plugin/pom.xml dependency:tree -Dscope=runtime
+```
+
+Standalone optional Gradle plugin verification also installs the current core first, then verifies the plugin with a compatible Gradle executable:
+
+```sh
+mvn -q -DskipTests install
+gradle -p javaspec-gradle-plugin build
+gradle -p javaspec-gradle-plugin dependencies --configuration runtimeClasspath
+```
+
+Standalone optional JUnit Platform engine verification installs the current core first, then verifies the engine POM:
+
+```sh
+mvn -q -DskipTests install
+mvn -q -f javaspec-junit-platform-engine/pom.xml verify
+mvn -f javaspec-junit-platform-engine/pom.xml dependency:tree -Dscope=runtime
+```
+
+Phase 17 verification passed root `mvn -q -DskipTests install`, root `mvn -q verify` with 382 tests and no failures/errors/skips, root runtime dependency audit with only `org.javaspec:javaspec`, targeted engine test execution with 12 tests and no failures/errors/skips, standalone engine `verify` with 12 tests and no failures/errors/skips, and engine runtime dependency audit showing core `org.javaspec:javaspec`, `org.junit.platform:junit-platform-engine`, `opentest4j`, `junit-platform-commons`, and `apiguardian-api`, with no runtime `junit-jupiter`, `junit-platform-launcher`, or `junit-platform-testkit`. Phase 16 Gradle plugin verification, Phase 15 Maven plugin verification, and Phase 12 Distrobox/Podman multi-JDK verification remain recorded in [Test and Quality Report](../test-report.md).
 
 ## 7.4 Classpath Requirements for Execution
 
-`javaspec run` discovers source files but executes examples only when compiled spec classes are available on the effective classloader.
+`javaspec run` discovers source files but executes examples only when compiled spec classes are available on the effective classloader or selected explicit classloader.
 
 Consequences for deployment:
 
 - A source-only spec tree can be discovered but its examples are marked `SKIPPED`.
 - Users should compile the project or run javaspec from a launcher/classpath that includes compiled spec and production classes when they expect execution.
+- CLI users can pass already compiled directories or archives with `--classpath <path-list>` or a UTF-8 `--classpath-file <file>`; path-list separators use `File.pathSeparator`.
+- Programmatic callers can supply a classloader through `JavaspecInvocation`.
 - Build systems may run javaspec after compilation or use `--dry-run` earlier to detect pending generated work without requiring compiled specs.
+- The optional Maven plugin uses Maven test dependency resolution and the Maven test classpath to invoke the canonical runner during its `javaspec:run` goal.
+- The optional Gradle plugin uses the configured Gradle classpath and, when Java plugin source sets are present, defaults `javaspecRun` to the `test` source set runtime classpath and `testClasses` dependency.
+- The optional JUnit Platform engine uses the JUnit Platform runtime classpath provided by the selected launcher and filters canonical discovery through JUnit Platform selectors/configuration parameters.
 
 ## 7.5 Generated Source Deployment
 
@@ -57,10 +92,10 @@ Generated post-Java-8 source forms are text output only from the Java 8-compatib
 
 ## 7.6 Runtime Dependency Deployment Constraint
 
-The runtime dependency audit must continue to show only the project artifact in runtime scope:
+The core runtime dependency audit must continue to show only the project artifact in runtime scope:
 
 ```text
 org.javaspec:javaspec:jar:0.1.0-SNAPSHOT
 ```
 
-Optional integrations that need third-party libraries must remain outside the core runtime or be scoped to test/build tooling until a future ADR changes the deployment model.
+Phase 14's programmatic invocation API and JUnit XML-compatible writer remain inside the core runtime without adding third-party runtime dependencies. The Phase 15 Maven plugin remains outside the core runtime as a standalone optional artifact: Maven API and plugin annotations are `provided`, JUnit is only a plugin test dependency, and the plugin runtime tree contains the plugin plus compile-scope core `org.javaspec:javaspec` only. The Phase 16 Gradle plugin also remains outside the core runtime as a standalone optional artifact: JUnit/TestKit are only plugin test dependencies, and the verified Gradle runtimeClasspath contains only core `org.javaspec:javaspec:0.1.0-SNAPSHOT`. The Phase 17 JUnit Platform engine remains outside the core runtime as a standalone optional artifact: its runtime dependencies are core `org.javaspec:javaspec`, `org.junit.platform:junit-platform-engine`, `opentest4j`, `junit-platform-commons`, and `apiguardian-api`, with no runtime `junit-jupiter`, `junit-platform-launcher`, or `junit-platform-testkit`. Projects that do not opt into the engine keep no-JUnit execution paths and no JUnit dependency.

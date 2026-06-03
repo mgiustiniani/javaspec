@@ -1,0 +1,44 @@
+plugins {
+    id 'java-gradle-plugin'
+}
+
+group = 'org.javaspec'
+version = '0.1.0-SNAPSHOT'
+
+description = 'Optional Gradle adapter for the javaspec runner.'
+
+ext {
+    javaspecCoreVersion = '0.1.0-SNAPSHOT'
+    junitVersion = '4.13.2'
+}
+
+repositories {
+    // Resolve the local core snapshot after running `mvn install` from the repository root.
+    mavenLocal()
+    mavenCentral()
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+dependencies {
+    implementation "org.javaspec:javaspec:${javaspecCoreVersion}"
+
+    testImplementation gradleTestKit()
+    testImplementation "junit:junit:${junitVersion}"
+}
+
+gradlePlugin {
+    plugins {
+        javaspec {
+            id = 'org.javaspec'
+            implementationClass = 'org.javaspec.gradle.JavaspecPlugin'
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}

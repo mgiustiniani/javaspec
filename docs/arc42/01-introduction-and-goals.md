@@ -2,21 +2,22 @@
 
 ## 1.1 Requirements Overview
 
-javaspec is a Java 8-compatible, zero-runtime-dependency specification framework inspired by phpspec. It supports an implemented first-MVP specification/generation slice, reflection runner, matcher expansion, MVP interface doubles, Phase 9 run controls, Phase 10 interface-style method generation, and Phase 11 formatter/reporting/programmatic extension contracts, and is planned to grow into a complete specification-first workflow for Java projects while keeping a conservative runtime baseline.
+javaspec is a Java 8-compatible, zero-runtime-dependency specification framework inspired by phpspec. It supports an implemented first-MVP specification/generation slice, reflection runner, matcher expansion, MVP interface doubles, Phase 9 run controls, Phase 10 interface-style method generation, Phase 11 formatter/reporting/programmatic extension contracts, the Phase 14 no-JUnit integration foundation for programmatic invocation, explicit classpath input, and JUnit XML-compatible reports, plus Phase 15 Maven, Phase 16 Gradle, and Phase 17 JUnit Platform standalone optional adapters. It is planned to grow into a complete specification-first workflow for Java projects while keeping a conservative compatibility baseline.
 
 Core requirements:
 
 - Compile and run on Java 8.
 - Use Maven and package base `org.javaspec`.
-- Have no runtime dependencies beyond the JDK.
+- Keep the core runtime artifact free of third-party runtime dependencies beyond the JDK.
 - Allow dependencies only in test scope.
 - Model Java LTS target profiles for Java 8, 11, 17, 21, and 25 through a profile catalog, API-symbol metadata, compatibility checks, and reflection-only probes.
 - Avoid direct production-code references to APIs unavailable on Java 8.
 - Support zero-runtime-dependency line-based configuration with suite-level spec/source directories, package-prefix naming, and selected-suite discovery.
-- Execute discovered examples through a Java 8-compatible reflection runner when compiled spec classes are available on the effective classloader, with optional stop-on-failure.
+- Execute discovered examples through a Java 8-compatible reflection runner when compiled spec classes are available on the effective or selected explicit classloader, with optional stop-on-failure.
 - Support zero-runtime-dependency interface doubles using JDK dynamic proxies, with explicit limitations for unsupported concrete/static/constructor scenarios.
-- Support run-only CLI controls for dry-run planning, stop-on-failure, progress/pretty output, profile selection, verbose diagnostics, and optional JSON reports.
-- Expose formatter/reporting and minimal programmatic extension contracts without external CLI extension loading in the current implementation.
+- Support run-only CLI controls for dry-run planning, stop-on-failure, progress/pretty output, profile selection, verbose diagnostics, explicit classpath input, optional JSON reports, and optional JUnit XML-compatible reports.
+- Expose no-`System.exit` invocation, formatter/reporting, and minimal programmatic extension contracts without external CLI extension loading in the current implementation.
+- Provide Maven, Gradle, and JUnit Platform integrations only as standalone optional adapters over the canonical runner, not as core runtime dependencies.
 - Use phpspec as the functional inspiration for CLI, discovery, lifecycle, expectations, doubles, generation, reporting, and extension concepts.
 
 ## 1.2 Quality Goals
@@ -42,8 +43,8 @@ Core requirements:
 
 ## 1.4 Current Non-Goals and Limits
 
-- No third-party runtime dependencies.
-- No in-process source/spec compilation by the CLI runner; source-only specs are skipped until compiled classes are available.
+- No third-party runtime dependencies in the core artifact.
+- No in-process source/spec compilation by the CLI runner, invocation API, or optional adapters; source-only specs are skipped until compiled classes are available. Optional Maven, Gradle, and JUnit Platform adapters supply host classpath integration but do not change core compilation ownership.
 - No deep profile enforcement during execution yet; profiles are validated and reported.
 - No external CLI extension discovery/loading; extension APIs are programmatic only.
 - No existing sealed-interface source updates until nested permitted implementations can be updated source-preservingly.

@@ -11,7 +11,9 @@ The core runtime depends only on the JDK. This affects every feature:
 - Configuration uses a restricted internal line-based parser instead of YAML/TOML/JSON libraries.
 - Doubles use JDK dynamic proxies instead of bytecode libraries.
 - JSON reports are written by an internal UTF-8 writer instead of a JSON library.
-- CLI parsing, formatting, matchers, and extension contracts are implemented with JDK APIs.
+- JUnit XML-compatible reports are written internally instead of using JUnit or XML/reporting libraries.
+- CLI parsing, explicit classpath handling, formatting, matchers, invocation APIs, and extension contracts are implemented with JDK APIs.
+- Optional adapters stay outside the core runtime; the Phase 15 Maven plugin uses Maven APIs as plugin-provided/build-tool dependencies, the Phase 16 Gradle plugin uses Gradle plugin APIs in its standalone artifact, and the Phase 17 JUnit Platform engine uses JUnit Platform APIs in its standalone artifact. Projects that do not opt into the JUnit Platform engine keep no-JUnit execution paths.
 
 ## 8.3 PHPSpec-Inspired Java Workflow
 
@@ -27,6 +29,8 @@ javaspec keeps the PHPSpec workflow shape but adapts it to Java:
 | Matcher syntax | `getValue().shouldReturn(...)`, `match(value).should...`, and direct `ObjectBehavior` convenience assertions. |
 | Collaborator doubles | Interface-only JDK-proxy doubles in the zero-dependency core. |
 | Generation prompts | Production generation/update belongs to `run`, gated by confirmation or `--generate`; `--dry-run` reports planned work without writing. |
+| No-JUnit execution | CLI, programmatic invocation, and optional Maven/Gradle plugins run compiled specs through the canonical javaspec runner without requiring JUnit. |
+| Optional JUnit Platform execution | The standalone optional engine exposes canonical javaspec discovery/execution to JUnit Platform tools without changing spec authoring style or adding JUnit dependencies to core. |
 
 The user manual contains practical migration notes for PHPSpec users.
 
@@ -35,7 +39,8 @@ The user manual contains practical migration notes for PHPSpec users.
 The architecture preserves a strict command split:
 
 - `describe` creates or finds specification/support files and never writes production source.
-- `run` discovers specs, handles generation/update planning, prompts or uses `--generate`, executes compiled examples when available, renders output, writes optional reports, and returns stable exit codes.
+- `run` discovers specs, handles generation/update planning, prompts or uses `--generate`, accepts explicit compiled-class classpath input, executes compiled examples when available, renders output, writes optional JSON and/or JUnit XML-compatible reports, and returns stable exit codes.
+- The optional Maven `javaspec:run` goal, optional Gradle `javaspecRun` task, and optional JUnit Platform `javaspec` engine are adapters over the same canonical runner and result model, using host-supplied classpaths/selectors rather than replacing runner semantics.
 
 This split is central to ADR 0003 and ADR 0008.
 
@@ -78,16 +83,18 @@ Generation is deterministic and reviewable:
 
 Source parsing/generation uses Java 8-compatible heuristics rather than a full Java parser.
 
-## 8.9 Runner, Results, Formatters, and Reports
+## 8.9 Runner, Results, Invocation, Formatters, and Reports
 
-The runner result model separates discovery from output:
+The runner result model separates discovery and execution from output and process termination:
 
 - `SpecRunner` produces immutable `RunResult`, `SpecResult`, and `ExampleResult` data.
-- Built-in `progress` and `pretty` output render those results through `RunFormatter` implementations.
+- `JavaspecLauncher` returns `JavaspecInvocationResult` for no-`System.exit` programmatic callers while reusing canonical discovery and `SpecRunner` semantics.
+- Built-in `progress` and `pretty` output render results through `RunFormatter` implementations.
 - JSON reports with `schemaVersion` 1 are written from the same results.
-- Report failures are I/O failures and exit `70`.
+- JUnit XML-compatible reports are also written from `RunResult`, mapping FAILED to failures, BROKEN to errors, and SKIPPED to skipped test cases.
+- Report failures are I/O failures and exit `70` for CLI runs.
 
-Source-only or non-loadable compiled spec classes produce skipped examples because javaspec is not an in-process compiler.
+Source-only or non-loadable compiled spec classes produce skipped examples because javaspec is not an in-process compiler. CLI `--classpath` / `--classpath-file` and programmatic invocation classloaders can supply compiled classes explicitly, but the entries must already be compiled.
 
 ## 8.10 Interface Doubles Concept
 
@@ -101,7 +108,62 @@ Core doubles intentionally support ordinary Java interfaces only. The design fav
 
 Concrete class, final class, static method, constructor, primitive, array, annotation, and enum doubles are outside the core runtime.
 
-## 8.11 Extension Boundary
+## 8.11 Explicit Classpath and No-JUnit Integration Boundary
+
+Phase 14 makes no-JUnit execution first-class without changing compilation ownership, and Phases 15 through 17 use that boundary for optional Maven, Gradle, and JUnit Platform adapters:
+
+- `--classpath` accepts a `File.pathSeparator`-separated path list.
+- `--classpath-file` reads UTF-8 non-empty, non-comment entries.
+- The selected classloader is used for type existence checks and spec execution.
+- `org.javaspec.invocation` allows host processes to provide a discovery request or pre-discovered specs and a classloader, then receive structured results.
+- Passing, skipped-only, and no-spec invocation paths map to exit code `0`; failed or broken paths map to `1`.
+- Neither CLI nor programmatic invocation compiles source/spec files.
+- `JavaspecRunMojo` delegates to `JavaspecLauncher` with Maven's test classpath and does not call `System.exit`.
+- `JavaspecRunTask` delegates to `JavaspecLauncher` with the Gradle classpath, manages a `URLClassLoader` and thread context classloader, and does not call `System.exit`.
+- `JavaspecTestEngine` delegates to `JavaspecLauncher` with discovered specs, applies JUnit Platform selectors as filters over canonical discovery, maps results to listener events, and does not call `System.exit`.
+
+## 8.12 Optional Maven Plugin Boundary
+
+The Phase 15 Maven plugin is an optional adapter artifact, not part of the core runtime artifact and not registered as a root module. This preserves root `mvn verify` as a core build/audit while allowing standalone plugin verification after the current core has been installed.
+
+The plugin boundary principles are:
+
+- The plugin packages `org.javaspec:javaspec-maven-plugin:0.1.0-SNAPSHOT` as `maven-plugin` with Java source/target `1.8` and goal prefix `javaspec`.
+- Maven API and plugin annotations are `provided`; JUnit is only a plugin test dependency.
+- The only plugin runtime dependency beyond the plugin itself is compile-scope core `org.javaspec:javaspec`.
+- `javaspec:run` uses Maven test dependency resolution and the Maven test classpath.
+- The Mojo supports config/suite/specDir/specRoot selection, class/example filters, stop/fail/skip controls, JSON reports, JUnit XML-compatible reports, and Maven logging.
+- The Mojo delegates to canonical `JavaspecLauncher` and avoids `System.exit` or direct low-level runner coupling.
+- Projects under test do not need JUnit.
+
+## 8.13 Optional Gradle Plugin Boundary
+
+The Phase 16 Gradle plugin is an optional adapter artifact, not part of the core runtime artifact and not registered as a root Maven module. This preserves root `mvn verify` as a core build/audit while allowing standalone plugin verification after the current core has been installed.
+
+The plugin boundary principles are:
+
+- The plugin uses `java-gradle-plugin`, group `org.javaspec`, version `0.1.0-SNAPSHOT`, Java source/target `1.8`, plugin id `org.javaspec`, and implementation class `org.javaspec.gradle.JavaspecPlugin`.
+- The plugin depends on core `org.javaspec:javaspec:0.1.0-SNAPSHOT`; verified runtimeClasspath contains only that core dependency.
+- JUnit and TestKit are plugin test dependencies only; projects under test do not need JUnit.
+- `javaspecRun` uses the configured Gradle classpath and defaults to the Java plugin `test` source set runtime classpath plus `testClasses` dependency when source sets are present.
+- The extension/task supports skip/fail/stop controls, config/suite/specDir/specRoot, class/example filters, built-in formatter selection, JSON reports, JUnit XML-compatible reports, and Gradle logging.
+- The task delegates to canonical `JavaspecLauncher`, avoids `System.exit`, restores the thread context classloader, and closes its `URLClassLoader`.
+
+## 8.14 Optional JUnit Platform Engine Boundary
+
+The Phase 17 JUnit Platform engine is an optional adapter artifact, not part of the core runtime artifact and not registered as a root Maven module. This preserves root `mvn verify` as a core build/audit while allowing standalone engine verification after the current core has been installed.
+
+The engine boundary principles are:
+
+- The engine packages `org.javaspec:javaspec-junit-platform-engine:0.1.0-SNAPSHOT` as a Java 8-compatible `jar` using JUnit Platform `1.10.2`, not JUnit Platform 6/JUnit 6.
+- `JavaspecTestEngine` is registered by ServiceLoader with engine id `javaspec`.
+- Runtime dependencies are isolated to the engine artifact: core `org.javaspec:javaspec`, `org.junit.platform:junit-platform-engine`, `opentest4j`, `junit-platform-commons`, and `apiguardian-api`.
+- Discovery uses canonical `SpecDiscovery` / `SpecDiscoveryRequest`, with configuration parameters and class/package/method/unique-id selectors acting as filters over canonical discovery results.
+- UniqueId segments are `[engine:javaspec]`, `[spec:<specQualifiedName>]`, and `[example:<methodName>]`.
+- Execution delegates to canonical no-JUnit `JavaspecLauncher`, avoids `System.exit`, maps javaspec outcomes to JUnit Platform listener events, and does not require changes to javaspec spec authoring style.
+- Projects that do not opt into the engine still have no JUnit dependency and can keep CLI/programmatic/Maven/Gradle no-JUnit execution paths.
+
+## 8.15 Extension Boundary
 
 The current extension API is programmatic. `JavaspecExtension`/`Extension` can configure an `ExtensionContext`, and the context exposes the run formatter registry.
 
@@ -110,6 +172,6 @@ Not implemented in the current architecture:
 - Configuration-driven extension activation.
 - External CLI extension discovery/loading.
 - Classpath scanning.
-- `ServiceLoader` integration.
+- `ServiceLoader` integration for extensions.
 - Plugin lookup.
 - CLI formatter selection for extension-provided names.

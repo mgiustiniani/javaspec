@@ -14,7 +14,7 @@ Architecture decisions are recorded as ADRs in `docs/adr/`.
 | [ADR 0008](../adr/0008-run-only-controls-and-non-mutating-dry-run-planning.md) | Run-only controls and non-mutating dry-run planning |
 | [ADR 0009](../adr/0009-interface-style-method-generation-and-sealed-interface-update-deferral.md) | Interface-style method generation and sealed-interface update deferral |
 | [ADR 0010](../adr/0010-zero-dependency-formatter-reporting-and-programmatic-extension-boundary.md) | Zero-dependency formatter, reporting, and programmatic extension boundary |
-| [ADR 0011](../adr/0011-optional-junit-adapter-and-canonical-javaspec-runner.md) | Optional JUnit adapter and canonical javaspec runner |
+| [ADR 0011](../adr/0011-optional-junit-adapter-and-canonical-javaspec-runner.md) | Optional build-tool/JUnit adapters and canonical javaspec runner |
 
 ## 9.1 Decision Coverage by Architecture Area
 
@@ -30,6 +30,6 @@ Architecture decisions are recorded as ADRs in `docs/adr/`.
 | Phase 9 run controls and dry-run behavior | ADR 0008 |
 | Phase 10 interface/annotation/sealed-interface generation | ADR 0009 |
 | Phase 11 formatter, JSON reporting, and programmatic extension contracts | ADR 0010 |
-| Future no-JUnit runner integrations, Maven/Gradle plugins, and optional JUnit Platform adapter | ADR 0011 |
+| Phase 14 no-JUnit invocation, explicit classpath input, JUnit XML-compatible reports, Phase 15 standalone optional Maven plugin, Phase 16 standalone optional Gradle plugin, and Phase 17 standalone optional JUnit Platform engine | ADR 0011 |
 
-External CLI extension discovery/loading, deeper profile enforcement, bootstrap execution, pending examples, Maven/Gradle plugins, optional JUnit Platform integration, and advanced doubles remain future work and require new or updated ADRs before implementation if they change the current architecture boundaries. ADR 0011 fixes the current boundary that javaspec core remains canonical and no-JUnit execution stays first-class.
+No new ADR was needed for Phase 14 because the implemented no-`System.exit` invocation API, explicit classpath input, and dependency-free JUnit XML-compatible reports follow ADR 0011's accepted canonical-runner/no-JUnit boundary. No new ADR was needed for Phase 15 because the standalone optional Maven plugin follows the same adapter boundary: it stays outside the core runtime artifact, delegates to `JavaspecLauncher`, avoids `System.exit`, and does not require JUnit in projects under test. No new ADR was needed for Phase 16 because the standalone optional Gradle plugin follows the same adapter boundary: it stays outside the core runtime artifact and root Maven module list, delegates to `JavaspecLauncher`, avoids `System.exit`, and does not require JUnit in projects under test. No new ADR was needed for Phase 17 because the standalone optional JUnit Platform engine follows the same adapter boundary: it stays outside the core runtime artifact and root Maven module list, uses JUnit Platform APIs only in the optional engine artifact, delegates to `JavaspecLauncher`, avoids `System.exit`, and does not require changes to javaspec spec authoring style. External CLI extension discovery/loading, deeper profile enforcement, bootstrap execution, pending examples, Phase 18 IDE/CI polish, and advanced doubles remain future work and require new or updated ADRs before implementation if they change the current architecture boundaries. ADR 0011 fixes the current boundary that javaspec core remains canonical and no-JUnit execution stays first-class.
