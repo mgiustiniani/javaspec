@@ -11,3 +11,23 @@ Architecture decisions are recorded as ADRs in `docs/adr/`.
 | [ADR 0005](../adr/0005-restricted-line-based-configuration-format.md) | Restricted line-based configuration format |
 | [ADR 0006](../adr/0006-classpath-reflection-runner.md) | Classpath reflection runner for executable examples |
 | [ADR 0007](../adr/0007-jdk-proxy-only-interface-doubles.md) | JDK proxy-only interface doubles |
+| [ADR 0008](../adr/0008-run-only-controls-and-non-mutating-dry-run-planning.md) | Run-only controls and non-mutating dry-run planning |
+| [ADR 0009](../adr/0009-interface-style-method-generation-and-sealed-interface-update-deferral.md) | Interface-style method generation and sealed-interface update deferral |
+| [ADR 0010](../adr/0010-zero-dependency-formatter-reporting-and-programmatic-extension-boundary.md) | Zero-dependency formatter, reporting, and programmatic extension boundary |
+
+## 9.1 Decision Coverage by Architecture Area
+
+| Architecture area | Relevant decisions |
+|---|---|
+| Compatibility and target profiles | ADR 0001 |
+| Dependency policy | ADR 0002 |
+| PHPSpec-style describe/run generation split | ADR 0003 |
+| Construction semantics, typed proxies, and method generation foundation | ADR 0004 |
+| Configuration and suite naming | ADR 0005 |
+| Reflection execution and runner result semantics | ADR 0006 |
+| Interface doubles | ADR 0007 |
+| Phase 9 run controls and dry-run behavior | ADR 0008 |
+| Phase 10 interface/annotation/sealed-interface generation | ADR 0009 |
+| Phase 11 formatter, JSON reporting, and programmatic extension contracts | ADR 0010 |
+
+External CLI extension discovery/loading, deeper profile enforcement, bootstrap execution, pending examples, and advanced doubles remain future work and require new or updated ADRs before implementation if they change the current architecture boundaries.

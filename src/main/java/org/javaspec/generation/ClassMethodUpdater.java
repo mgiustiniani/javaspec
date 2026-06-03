@@ -35,7 +35,7 @@ public final class ClassMethodUpdater {
         Objects.requireNonNull(existingSource, "existingSource must not be null");
         Objects.requireNonNull(describedType, "describedType must not be null");
 
-        if (!describedType.hasMethods() || !supportsMethodBodies(describedType.kind())) {
+        if (!describedType.hasMethods()) {
             return existingSource;
         }
 
@@ -49,7 +49,11 @@ public final class ClassMethodUpdater {
             return existingSource;
         }
 
-        String insertion = renderMethods(missingMethods, describedType, indentationBefore(existingSource, closingBrace) + "    ");
+        String indent = indentationBefore(existingSource, closingBrace) + "    ";
+        String insertion = renderMissingMethods(missingMethods, describedType, indent);
+        if (insertion.length() == 0) {
+            return existingSource;
+        }
         String prefix = existingSource.substring(0, closingBrace);
         String suffix = existingSource.substring(closingBrace);
 
@@ -95,11 +99,19 @@ public final class ClassMethodUpdater {
                 || JavaTypeKind.RECORD.equals(kind);
     }
 
+    private static boolean supportsInterfaceDeclarations(JavaTypeKind kind) {
+        return JavaTypeKind.INTERFACE.equals(kind);
+    }
+
+    private static boolean supportsAnnotationElements(JavaTypeKind kind) {
+        return JavaTypeKind.ANNOTATION.equals(kind);
+    }
+
     private static List<MethodDescriptor> missingMethods(String source, DescribedType describedType) {
         Set<String> existingSignatures = existingMethodSignatures(source);
         List<MethodDescriptor> missing = new ArrayList<MethodDescriptor>();
         Set<String> plannedSignatures = new LinkedHashSet<String>();
-        List<MethodDescriptor> methods = describedType.methods();
+        List<MethodDescriptor> methods = eligibleMethods(describedType);
         for (int i = 0; i < methods.size(); i++) {
             MethodDescriptor method = methods.get(i);
             String key = signatureKey(method.methodName(), method.parameterTypes());
@@ -110,6 +122,148 @@ public final class ClassMethodUpdater {
             plannedSignatures.add(key);
         }
         return missing;
+    }
+
+    private static List<MethodDescriptor> eligibleMethods(DescribedType describedType) {
+        JavaTypeKind kind = describedType.kind();
+        if (supportsMethodBodies(kind)) {
+            return describedType.methods();
+        }
+        if (supportsInterfaceDeclarations(kind)) {
+            return interfaceMethods(describedType);
+        }
+        if (supportsAnnotationElements(kind)) {
+            return annotationElementMethods(describedType);
+        }
+        return new ArrayList<MethodDescriptor>();
+    }
+
+    private static List<MethodDescriptor> interfaceMethods(DescribedType describedType) {
+        List<MethodDescriptor> result = new ArrayList<MethodDescriptor>();
+        List<MethodDescriptor> methods = describedType.methods();
+        for (int i = 0; i < methods.size(); i++) {
+            MethodDescriptor method = methods.get(i);
+            if (!method.isStatic()) {
+                result.add(method);
+            }
+        }
+        return result;
+    }
+
+    private static List<MethodDescriptor> annotationElementMethods(DescribedType describedType) {
+        List<MethodDescriptor> result = new ArrayList<MethodDescriptor>();
+        List<MethodDescriptor> methods = describedType.methods();
+        for (int i = 0; i < methods.size(); i++) {
+            MethodDescriptor method = methods.get(i);
+            if (isCompatibleAnnotationElement(method)) {
+                result.add(method);
+            }
+        }
+        return result;
+    }
+
+    private static boolean isCompatibleAnnotationElement(MethodDescriptor method) {
+        return !method.isStatic()
+                && !method.hasParameters()
+                && isCompatibleAnnotationElementReturnType(method.returnType());
+    }
+
+    private static boolean isCompatibleAnnotationElementReturnType(String returnType) {
+        String normalized = returnType.trim().replace(" ", "");
+        int arrayDimensions = 0;
+        while (normalized.endsWith("[]")) {
+            arrayDimensions++;
+            normalized = normalized.substring(0, normalized.length() - 2);
+        }
+        if (arrayDimensions > 1
+                || "void".equals(normalized)
+                || isKnownInvalidAnnotationElementType(normalized)) {
+            return false;
+        }
+        if (isPrimitiveType(normalized)
+                || "String".equals(normalized)
+                || "java.lang.String".equals(normalized)
+                || "Class".equals(normalized)
+                || "java.lang.Class".equals(normalized)
+                || isClassElementType(normalized)) {
+            return true;
+        }
+        if (normalized.indexOf('<') >= 0 || normalized.indexOf('?') >= 0) {
+            return false;
+        }
+        return isQualifiedTypeName(normalized);
+    }
+
+    private static boolean isPrimitiveType(String typeName) {
+        return "boolean".equals(typeName)
+                || "byte".equals(typeName)
+                || "short".equals(typeName)
+                || "int".equals(typeName)
+                || "long".equals(typeName)
+                || "float".equals(typeName)
+                || "double".equals(typeName)
+                || "char".equals(typeName);
+    }
+
+    private static boolean isKnownInvalidAnnotationElementType(String typeName) {
+        return "Object".equals(typeName)
+                || "java.lang.Object".equals(typeName)
+                || "Void".equals(typeName)
+                || "java.lang.Void".equals(typeName)
+                || "Boolean".equals(typeName)
+                || "java.lang.Boolean".equals(typeName)
+                || "Byte".equals(typeName)
+                || "java.lang.Byte".equals(typeName)
+                || "Short".equals(typeName)
+                || "java.lang.Short".equals(typeName)
+                || "Integer".equals(typeName)
+                || "java.lang.Integer".equals(typeName)
+                || "Long".equals(typeName)
+                || "java.lang.Long".equals(typeName)
+                || "Float".equals(typeName)
+                || "java.lang.Float".equals(typeName)
+                || "Double".equals(typeName)
+                || "java.lang.Double".equals(typeName)
+                || "Character".equals(typeName)
+                || "java.lang.Character".equals(typeName);
+    }
+
+    private static boolean isClassElementType(String typeName) {
+        return (typeName.startsWith("Class<") || typeName.startsWith("java.lang.Class<"))
+                && typeName.endsWith(">");
+    }
+
+    private static boolean isQualifiedTypeName(String typeName) {
+        if (typeName.length() == 0) {
+            return false;
+        }
+        String[] parts = typeName.split("\\.");
+        for (int i = 0; i < parts.length; i++) {
+            if (!isJavaIdentifier(parts[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean isJavaIdentifier(String value) {
+        if (value.length() == 0) {
+            return false;
+        }
+        int index = 0;
+        int firstCodePoint = value.codePointAt(index);
+        if (!Character.isJavaIdentifierStart(firstCodePoint)) {
+            return false;
+        }
+        index += Character.charCount(firstCodePoint);
+        while (index < value.length()) {
+            int currentCodePoint = value.codePointAt(index);
+            if (!Character.isJavaIdentifierPart(currentCodePoint)) {
+                return false;
+            }
+            index += Character.charCount(currentCodePoint);
+        }
+        return true;
     }
 
     private static Set<String> existingMethodSignatures(String source) {
@@ -368,6 +522,20 @@ public final class ClassMethodUpdater {
         return previous >= 0 && builder.charAt(previous) == '\n';
     }
 
+    private static String renderMissingMethods(List<MethodDescriptor> methods, DescribedType owner, String indent) {
+        JavaTypeKind kind = owner.kind();
+        if (supportsMethodBodies(kind)) {
+            return renderMethods(methods, owner, indent);
+        }
+        if (supportsInterfaceDeclarations(kind)) {
+            return renderInterfaceDeclarations(methods, owner, indent);
+        }
+        if (supportsAnnotationElements(kind)) {
+            return renderAnnotationElements(methods, owner, indent);
+        }
+        return "";
+    }
+
     private static String renderMethods(List<MethodDescriptor> methods, DescribedType owner, String indent) {
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < methods.size(); i++) {
@@ -378,6 +546,38 @@ public final class ClassMethodUpdater {
             }
         }
         return builder.toString();
+    }
+
+    private static String renderInterfaceDeclarations(List<MethodDescriptor> methods, DescribedType owner, String indent) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < methods.size(); i++) {
+            MethodDescriptor method = methods.get(i);
+            appendInterfaceDeclaration(builder, owner, method, indent);
+            if (i < methods.size() - 1) {
+                builder.append("\n");
+            }
+        }
+        return builder.toString();
+    }
+
+    private static String renderAnnotationElements(List<MethodDescriptor> methods, DescribedType owner, String indent) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < methods.size(); i++) {
+            MethodDescriptor method = methods.get(i);
+            builder.append(indent).append(sourceTypeName(owner, method.returnType())).append(" ")
+                    .append(method.methodName()).append("();\n");
+            if (i < methods.size() - 1) {
+                builder.append("\n");
+            }
+        }
+        return builder.toString();
+    }
+
+    private static void appendInterfaceDeclaration(StringBuilder builder, DescribedType owner, MethodDescriptor method, String indent) {
+        builder.append(indent).append(sourceTypeName(owner, method.returnType())).append(" ")
+                .append(method.methodName()).append("(");
+        appendParameters(builder, method.parameterTypes(), method.parameterNames());
+        builder.append(");\n");
     }
 
     private static void appendMethod(StringBuilder builder, DescribedType owner, MethodDescriptor method, String indent) {

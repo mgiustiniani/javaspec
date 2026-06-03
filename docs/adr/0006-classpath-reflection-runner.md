@@ -47,3 +47,9 @@ Verification:
 
 - `mvn verify` passed with 307 tests.
 - `mvn dependency:tree -Dscope=runtime` still showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+
+Implementation follow-up:
+
+- Phase 9 implemented stop-on-failure, dry-run planning, active built-in formatter selection, profile selection, and verbose diagnostics; see [ADR 0008](0008-run-only-controls-and-non-mutating-dry-run-planning.md).
+- Phase 11 implemented optional JSON runner reports and public formatter contracts; see [ADR 0010](0010-zero-dependency-formatter-reporting-and-programmatic-extension-boundary.md).
+- Pending examples, bootstrap execution, and deep profile-aware execution remain future work.

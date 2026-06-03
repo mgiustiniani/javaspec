@@ -2,7 +2,7 @@
 
 ## 1.1 Requirements Overview
 
-javaspec is a Java 8-compatible, zero-runtime-dependency specification framework inspired by phpspec. It supports an implemented first-MVP specification/generation slice, reflection runner, matcher expansion, MVP interface doubles, and Phase 9 run controls, and is planned to grow into a complete specification-first workflow for Java projects while keeping a conservative runtime baseline.
+javaspec is a Java 8-compatible, zero-runtime-dependency specification framework inspired by phpspec. It supports an implemented first-MVP specification/generation slice, reflection runner, matcher expansion, MVP interface doubles, Phase 9 run controls, Phase 10 interface-style method generation, and Phase 11 formatter/reporting/programmatic extension contracts, and is planned to grow into a complete specification-first workflow for Java projects while keeping a conservative runtime baseline.
 
 Core requirements:
 
@@ -15,7 +15,8 @@ Core requirements:
 - Support zero-runtime-dependency line-based configuration with suite-level spec/source directories, package-prefix naming, and selected-suite discovery.
 - Execute discovered examples through a Java 8-compatible reflection runner when compiled spec classes are available on the effective classloader, with optional stop-on-failure.
 - Support zero-runtime-dependency interface doubles using JDK dynamic proxies, with explicit limitations for unsupported concrete/static/constructor scenarios.
-- Support run-only CLI controls for dry-run planning, progress/pretty output, profile selection, and verbose diagnostics.
+- Support run-only CLI controls for dry-run planning, stop-on-failure, progress/pretty output, profile selection, verbose diagnostics, and optional JSON reports.
+- Expose formatter/reporting and minimal programmatic extension contracts without external CLI extension loading in the current implementation.
 - Use phpspec as the functional inspiration for CLI, discovery, lifecycle, expectations, doubles, generation, reporting, and extension concepts.
 
 ## 1.2 Quality Goals
@@ -39,10 +40,11 @@ Core requirements:
 | Extension authors | Clear contracts for matchers, formatters, generators, and integrations. |
 | Project maintainers | Strict compatibility rules, documented decisions, and traceable implementation phases. |
 
-## 1.4 Non-Goals for Phase 1
+## 1.4 Current Non-Goals and Limits
 
-- No Java source code.
-- No Maven build file.
-- No test code.
-- No generated CLI or executable artifact.
-- No C4 diagrams unless requested in a later documentation phase.
+- No third-party runtime dependencies.
+- No in-process source/spec compilation by the CLI runner; source-only specs are skipped until compiled classes are available.
+- No deep profile enforcement during execution yet; profiles are validated and reported.
+- No external CLI extension discovery/loading; extension APIs are programmatic only.
+- No existing sealed-interface source updates until nested permitted implementations can be updated source-preservingly.
+- No C4 diagrams are currently generated.

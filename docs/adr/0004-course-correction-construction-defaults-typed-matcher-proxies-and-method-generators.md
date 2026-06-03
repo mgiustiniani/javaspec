@@ -38,3 +38,9 @@ Tests must be added or updated for:
 - user-manual examples that describe the corrected behavior.
 
 Existing construction and matcher implementation may need to be refactored or replaced where it conflicts with the typed-proxy and constructor-policy requirements. Documentation updates must remain part of the correction, not a deferred cleanup task.
+
+## Implementation follow-up
+
+The correction is implemented and verified in the current MVP: constructor policy values are `delete`, `preserve`, and `comment` with `comment` as the default; generated support classes expose typed matcher and throw-proxy syntax; and `run` owns production constructor, static factory, and method generation/update according to the documented confirmation and `--generate` rules.
+
+Phase 10 extends the method-generation boundary for ordinary interfaces, annotations, and missing sealed-interface skeletons. Existing sealed-interface source updates remain intentionally deferred and are covered by [ADR 0009](0009-interface-style-method-generation-and-sealed-interface-update-deferral.md).

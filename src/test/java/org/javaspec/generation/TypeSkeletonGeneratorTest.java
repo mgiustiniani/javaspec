@@ -8,10 +8,20 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+
+import javax.tools.JavaCompiler;
+import javax.tools.JavaFileObject;
+import javax.tools.StandardJavaFileManager;
+import javax.tools.ToolProvider;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class TypeSkeletonGeneratorTest {
     @Rule
@@ -45,6 +55,37 @@ public class TypeSkeletonGeneratorTest {
     }
 
     @Test
+    public void rendersInterfaceMethodDeclarationsAndSkipsStaticDescriptors() {
+        DescribedType type = DescribedType.of(
+                "com.example.PaymentGateway",
+                JavaTypeKind.INTERFACE,
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<org.javaspec.model.ConstructorDescriptor>emptyList(),
+                Arrays.asList(
+                        MethodDescriptor.of("status", "String"),
+                        MethodDescriptor.of(
+                                "charge",
+                                "boolean",
+                                Arrays.asList("String", "int"),
+                                Arrays.asList("accountId", "cents")
+                        ),
+                        MethodDescriptor.staticMethod("named", "com.example.PaymentGateway")
+                )
+        );
+
+        String source = TypeSkeletonGenerator.render(type);
+
+        assertEquals("package com.example;\n\n" +
+                "public interface PaymentGateway {\n" +
+                "    String status();\n" +
+                "\n" +
+                "    boolean charge(String accountId, int cents);\n" +
+                "}\n", source);
+    }
+
+    @Test
     public void rendersEnumSkeleton() {
         String source = TypeSkeletonGenerator.render(DescribedType.of("com.example.OrderStatus", JavaTypeKind.ENUM));
 
@@ -56,6 +97,43 @@ public class TypeSkeletonGeneratorTest {
         String source = TypeSkeletonGenerator.render(DescribedType.of("com.example.Experimental", JavaTypeKind.ANNOTATION));
 
         assertEquals("package com.example;\n\npublic @interface Experimental { }\n", source);
+    }
+
+    @Test
+    public void rendersAnnotationElementsAndSkipsIncompatibleDescriptors() {
+        DescribedType type = DescribedType.of(
+                "com.example.GeneratedTag",
+                JavaTypeKind.ANNOTATION,
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<org.javaspec.model.ConstructorDescriptor>emptyList(),
+                Arrays.asList(
+                        MethodDescriptor.of("value", "String"),
+                        MethodDescriptor.of("priority", "int"),
+                        MethodDescriptor.of("tags", "String[]"),
+                        MethodDescriptor.of(
+                                "withParameter",
+                                "String",
+                                Arrays.asList("String"),
+                                Arrays.asList("value")
+                        ),
+                        MethodDescriptor.staticMethod("staticValue", "String"),
+                        MethodDescriptor.of("objectValue", "Object"),
+                        MethodDescriptor.voidMethod("nothing")
+                )
+        );
+
+        String source = TypeSkeletonGenerator.render(type);
+
+        assertEquals("package com.example;\n\n" +
+                "public @interface GeneratedTag {\n" +
+                "    String value();\n" +
+                "\n" +
+                "    int priority();\n" +
+                "\n" +
+                "    String[] tags();\n" +
+                "}\n", source);
     }
 
     @Test
@@ -109,6 +187,62 @@ public class TypeSkeletonGeneratorTest {
                 "    final class EmailMessage implements Message { }\n" +
                 "    final class SmsMessage implements Message { }\n" +
                 "}\n", source);
+    }
+
+    @Test
+    public void rendersSealedInterfaceMethodsWithNestedDefaultImplementationsThatCompileAsJava17Source() throws Exception {
+        DescribedType type = DescribedType.of(
+                "com.example.Shape",
+                JavaTypeKind.SEALED_INTERFACE,
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Arrays.asList("com.example.Circle", "com.example.Rectangle"),
+                Collections.<org.javaspec.model.ConstructorDescriptor>emptyList(),
+                Arrays.asList(
+                        MethodDescriptor.of("sides", "int"),
+                        MethodDescriptor.of("name", "String"),
+                        MethodDescriptor.of("enabled", "boolean")
+                )
+        );
+
+        String source = TypeSkeletonGenerator.render(type);
+
+        assertEquals("package com.example;\n\n" +
+                "public sealed interface Shape permits Shape.Circle, Shape.Rectangle {\n" +
+                "    int sides();\n" +
+                "\n" +
+                "    String name();\n" +
+                "\n" +
+                "    boolean enabled();\n" +
+                "\n" +
+                "    final class Circle implements Shape {\n" +
+                "        public int sides() {\n" +
+                "            return 0;\n" +
+                "        }\n" +
+                "\n" +
+                "        public String name() {\n" +
+                "            return null;\n" +
+                "        }\n" +
+                "\n" +
+                "        public boolean enabled() {\n" +
+                "            return false;\n" +
+                "        }\n" +
+                "    }\n" +
+                "    final class Rectangle implements Shape {\n" +
+                "        public int sides() {\n" +
+                "            return 0;\n" +
+                "        }\n" +
+                "\n" +
+                "        public String name() {\n" +
+                "            return null;\n" +
+                "        }\n" +
+                "\n" +
+                "        public boolean enabled() {\n" +
+                "            return false;\n" +
+                "        }\n" +
+                "    }\n" +
+                "}\n", source);
+        assertCompilesAsJava17Source(source, "com/example/Shape.java");
     }
 
     @Test
@@ -207,5 +341,49 @@ public class TypeSkeletonGeneratorTest {
         assertEquals(sourceRoot, plan.sourceRoot());
         assertEquals(new File(sourceRoot, "com" + File.separator + "example" + File.separator + "PaymentGateway.java"), plan.targetFile());
         assertEquals("package com.example;\n\npublic interface PaymentGateway { }\n", plan.sourceContent());
+    }
+
+    private void assertCompilesAsJava17Source(String source, String sourceRelativePath) throws Exception {
+        if (!supportsJavaSpecificationVersion(17)) {
+            return;
+        }
+        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+        assertNotNull("A JDK compiler is required to verify Java 17 generated source", compiler);
+
+        File sourceRoot = temporaryFolder.newFolder("generated-java17-source");
+        File sourceFile = new File(sourceRoot, sourceRelativePath);
+        File parent = sourceFile.getParentFile();
+        assertTrue(parent.mkdirs() || parent.isDirectory());
+        Files.write(sourceFile.toPath(), source.getBytes(StandardCharsets.UTF_8));
+
+        File classOutput = temporaryFolder.newFolder("generated-java17-classes");
+        StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, StandardCharsets.UTF_8);
+        try {
+            Iterable<? extends JavaFileObject> units = fileManager.getJavaFileObjectsFromFiles(Collections.singletonList(sourceFile));
+            List<String> options = Arrays.asList("--release", "17", "-d", classOutput.getAbsolutePath());
+            Boolean success = compiler.getTask(null, fileManager, null, options, null, units).call();
+            assertTrue("Generated source did not compile as Java 17:\n" + source, success.booleanValue());
+        } finally {
+            fileManager.close();
+        }
+    }
+
+    private static boolean supportsJavaSpecificationVersion(int minimumVersion) {
+        String version = System.getProperty("java.specification.version");
+        if (version == null) {
+            return false;
+        }
+        if (version.startsWith("1.")) {
+            version = version.substring(2);
+        }
+        int dot = version.indexOf('.');
+        if (dot >= 0) {
+            version = version.substring(0, dot);
+        }
+        try {
+            return Integer.parseInt(version) >= minimumVersion;
+        } catch (NumberFormatException ex) {
+            return false;
+        }
     }
 }

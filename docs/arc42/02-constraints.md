@@ -17,8 +17,8 @@
 
 ## 2.2 Organizational Constraints
 
-- Phase 1 is documentation-only.
-- Further source code, build-file, scaffolding, and test changes must be delegated to implementation or testing agents.
+- Documentation phases and documenter-delegated tasks are documentation-only.
+- Source code, build-file, scaffolding, and test changes must be delegated to implementation or testing agents.
 - Architectural decisions must be documented as ADRs when made.
 - Generated documentation must be written in English.
 
@@ -30,7 +30,7 @@
 - Reflection must be isolated behind compatibility boundaries to avoid accidental linkage to newer JDK APIs.
 - Configuration bootstrap hooks remain metadata until bootstrap execution is implemented; profile and formatter settings are active `run` selections with CLI overrides, while selected profiles are not deeply enforced during execution yet. Suite package prefixes are active naming-convention inputs for `describe`, `run`, discovery, spec/support generation, and MVP reflection execution.
 - The MVP CLI runner does not compile source or specification files itself; executable examples require compiled spec classes on the effective classloader, while source-only or unavailable spec classes are skipped.
-- Dry-run mode must not write files or prompt, and run-only controls must be rejected by `describe`/`desc`.
+- Dry-run mode must not write files or prompt, and run-only controls, including report options, must be rejected by `describe`/`desc`.
 - User-facing diagnostics should explain zero-dependency limitations clearly.
 
 ## 2.4 Compatibility Constraints

@@ -4,10 +4,10 @@ This plan defines the initial delivery path for javaspec, a Java 8-compatible, z
 
 ## Current Implementation Status — Implemented and Verified
 
-Phases 2 through 9 are complete and verified.
+Phases 2 through 11 are implemented and verified. Phase 12 compatibility and quality verification is fully complete through the Distrobox multi-JDK matrix for Java 8, 11, 17, 21, and 25.
 
 - Phase 2 implemented the Java 8 Maven project, zero-runtime-dependency guard, PHPSpec-style `describe`/`run` split, specification/support skeletons, and gated production type/method generation.
-- Phase 3 implemented Java LTS target profiles `java8`, `java11`, `java17`, `java21`, and `java25`, the profile catalog, API-symbol metadata, target-profile compatibility checks, and reflection-only API availability probes.
+- Phase 3 implemented Java LTS target profiles `java8`, `java11`, `java17`, and `java21`, plus the forward-looking `java25` profile, the profile catalog, API-symbol metadata, target-profile compatibility checks, and reflection-only API availability probes.
 - Phase 4 implemented the zero-runtime-dependency line-based configuration format, `--config <file>` and `--suite <name>` integration, suite-level spec/source directories, suite package prefixes, naming convention integration, and suite/class/example discovery filters.
 - The Phase 5/6 MVP implemented `org.javaspec.runner`, keeps `javaspec run` discovery/generation/update behavior, and executes filtered discovered examples when compiled spec classes are available on the effective classloader.
 - Runner behavior: existing `DiscoveredSpec`/`SpecExample` metadata remains the execution source, so suite/class/example filters remain effective; each example gets a fresh spec instance; optional public no-arg `let()` runs before each example and optional public no-arg `letGo()` runs after each example.
@@ -16,9 +16,14 @@ Phases 2 through 9 are complete and verified.
 - Phase 7 expanded `ObjectBehavior` direct convenience assertion methods that delegate through `match(actual)`, kept `MatcherRegistry` zero-dependency with a default negated-equality matcher, and updated `SpecDiscovery` so expanded chained matcher names participate in method-discovery/default-return inference where applicable.
 - Phase 8 added zero-runtime-dependency interface doubles under `org.javaspec.doubles` using JDK dynamic proxies. The MVP supports ordinary interface doubles, return-value stubbing by method name or exact arguments, null and array-content argument matching, call history, called/not-called/exact-count verification, deterministic `toString`/`equals`/`hashCode`, Java default returns for unstubbed methods, and `ObjectBehavior` double convenience APIs.
 - Phase 9 expanded `javaspec run` with run-only controls: `--dry-run`, `--stop-on-failure`, `--formatter <progress|pretty>`, `--profile <java8|java11|java17|java21|java25>`, and `--verbose`. Dry-run never writes or prompts and reports pending would-generate/would-update actions; stop-on-failure stops after the first FAILED or BROKEN executable example; progress output is concise and summary-oriented; pretty output prints per-example status lines plus details; CLI formatter/profile options override valid config/default selections; verbose output prints selected run settings.
-- Known limitations: the CLI runner does not compile source/spec files itself; source-only or otherwise unavailable spec classes are skipped/not executable. Selected profiles are validated and reported but not deeply enforced during execution yet. Count and emptiness checks on a generic `Iterable` consume the iterable and can hang on infinite iterables. Phase 8 doubles do not support concrete class/static/constructor/final-class doubles, primitives, arrays, annotations, enums, wildcard argument matchers, exception/callback stubbing, bytecode libraries, or default-interface-method invocation.
-- Verification completed on 2026-06-01 after the Phase 9 CLI expansion: `mvn verify` passed with 338 tests.
-- Runtime dependency verification completed on 2026-06-01 after the Phase 9 CLI expansion: `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+- Phase 10 implemented the current advanced code-generation increment for interface-style methods. Missing ordinary interface skeletons render discovered non-static method declarations and skip static descriptors; missing annotation skeletons render compatible no-arg non-static elements and skip incompatible descriptors; missing sealed-interface skeletons render root declarations plus nested permitted implementation bodies with Java default returns; existing ordinary interfaces and annotations can receive missing declarations/elements source-preservingly and idempotently; existing sealed-interface source updates are intentionally deferred.
+- Phase 11 implemented public zero-dependency run formatter contracts and deterministic built-in formatter registration, preserving compatible `progress` and `pretty` CLI output; added minimal programmatic extension contracts through `JavaspecExtension`/`Extension` and `ExtensionContext`; and added `javaspec run --report <file>` plus alias `--report-file <file>` for UTF-8 JSON runner reports with `schemaVersion` 1, summary counts, specs, examples, nullable failures, throwable class/message, and stack trace lines.
+- Phase 11 reporting behavior: `--report` is run-only and rejected by `describe`; `--verbose` prints the report path when specified; no-spec runs write a valid empty report; normal passing/failing/broken/skipped runs write the report after summary rendering; failed or broken executable examples still exit `1` after the report write; dry-run pending generation/update exits before execution and does not write a report; report write failures print I/O diagnostics and exit `70`.
+- Known limitations: the CLI runner does not compile source/spec files itself; source-only or otherwise unavailable spec classes are skipped/not executable. Selected profiles are validated and reported but not deeply enforced during execution yet. External extension discovery/loading is not implemented, so CLI formatter selection remains limited to built-in `progress` and `pretty` even though programmatic formatter registration APIs exist. JSON reporting is limited to schemaVersion 1 and has no config-level report destination or alternate machine-readable format. Count and emptiness checks on a generic `Iterable` consume the iterable and can hang on infinite iterables. Existing sealed-interface source updates are skipped until nested permitted implementations can be updated source-preservingly. Phase 8 doubles do not support concrete class/static/constructor/final-class doubles, primitives, arrays, annotations, enums, wildcard argument matchers, exception/callback stubbing, bytecode libraries, or default-interface-method invocation.
+- Phase 12 Distrobox multi-JDK verification completed on 2026-06-03 with Distrobox `1.8.2.5` and Podman `5.8.2`: Java 8 (`1.8.0_492`), Java 11 (`11.0.31`), Java 17 (`17.0.19`), Java 21 (`21.0.11 LTS`), and Java 25 (`25.0.3 LTS`) containers each passed `mvn clean` and `mvn verify` with 364 tests, 0 failures, 0 errors, and 0 skipped.
+- JDK 17+ matrix runs emitted only the expected `-source 8` / `-target 1.8` bootstrap/obsolete-option warnings.
+- Runtime dependency verification completed in `javaspec-jdk25-matrix`: `mvn dependency:tree -Dscope=runtime` passed and showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT` in runtime scope.
+- Java 25 Gatherer runtime verification completed in `javaspec-jdk25-matrix`: reflection probing passed for `java.util.stream.Gatherer`, `Gatherer$Downstream`, `Gatherer$Integrator`, `Gatherer$Integrator$Greedy`, and `java.util.stream.Gatherers`.
 
 ## ADR 0004 Correction Status — Implemented and Verified
 
@@ -41,7 +46,7 @@ Planner verification after ADR 0004 confirmed these source inputs:
 3. Construction semantics are implemented in `ObjectBehavior`: lazy subject construction, `beConstructedWith(...)`, `beConstructedThrough(...)`, `beConstructedNamed(...)`, `beConstructedThroughNamed(...)`, override-before-instantiation, failure on change after instantiation, and `shouldThrow(...).duringInstantiation()`.
 4. Generation distinguishes constructor and factory construction markers: `beConstructedWith(...)` remains constructor descriptor generation, while `beConstructedThrough("create", args...)`, `beConstructedNamed("named", args...)`, and `beConstructedThroughNamed("createNamed", args...)` discover/generate static factory method skeletons returning the described type. Factory names must be string literals and valid Java identifiers; non-string-literal names are ignored for generation instead of creating empty constructor markers.
 5. Typed proxy matcher syntax is supported through generated support classes, including calls such as `getRating().shouldReturn(5)`, `getTitle().shouldContain("Wizard")`, and `shouldThrow(IllegalArgumentException.class).duringSetRating(-3)`. Existing `match(value).should...` usage remains available.
-6. Method generation discovers typed proxy calls and can generate missing instance method skeletons with Java 8-compatible default returns. Generated typed spec support skips static factory descriptors because construction methods are not instance subject proxies. `run --generate` writes non-interactively; without `--generate`, `run` prompts before adding missing methods to an existing source file.
+6. Method generation discovers typed proxy calls and can generate missing instance method skeletons with Java 8-compatible default returns for body-bearing production kinds. Phase 10 extends the same descriptor flow to ordinary interface declarations, compatible annotation elements, and missing sealed-interface skeleton root/nested implementation methods. Generated typed spec support skips static factory descriptors because construction methods are not instance subject proxies. `run --generate` writes non-interactively; without `--generate`, `run` prompts before adding supported missing methods to an existing source file.
 7. The matcher subset now includes identity/equality aliases and negations (`shouldBe`, `shouldNotBe`, `shouldEqual`, `shouldNotEqual`, `shouldReturn`, `shouldNotReturn`, `shouldBeLike`, `shouldNotBeLike`, `shouldBeEqualTo`, `shouldNotBeEqualTo`), type/instance aliases (`shouldHaveType`, `shouldBeAnInstanceOf`, `shouldReturnAnInstanceOf`), `shouldImplement`, string containment/start/end/pattern checks and their negations, count/empty helpers for arrays/collections/maps/character sequences/iterables, map key/value helpers, and custom matchers that can evaluate null subjects.
 8. Known limitations remain: the MVP reflection runner executes only compiled, classloader-available spec classes and does not compile source/spec files itself; lifecycle support is limited to optional public no-arg `let()`/`letGo()`; source parsing/generation uses Java 8-compatible heuristics rather than a full Java parser; generated post-Java-8 source forms still require an appropriate JDK to compile.
 9. Verification passed: `mvn test` completed with 174 tests, and `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT` in runtime scope.
@@ -84,9 +89,9 @@ Implemented files/classes at a high level:
 - `src/main/java/org/javaspec/matcher/**` — zero-dependency matcher registry, `Matchable<T>` expectation wrapper, match results, and custom matcher support.
 - `src/main/java/org/javaspec/discovery/ClassExistenceChecker.java` / `ClassCheckResult.java` and `TypeExistenceChecker.java` / `TypeCheckResult.java` — source-root and classpath existence checks, including classpath kind detection for class-like types.
 - `src/main/java/org/javaspec/discovery/SpecDiscovery.java` and `DiscoveredSpec.java` — deterministic `*Spec.java` discovery, described-type inference from the `spec.` namespace, kind and relationship markers, constructor/factory construction markers, typed proxy matcher calls, throw-proxy calls, and method descriptor inference.
-- `src/main/java/org/javaspec/generation/ClassGenerationPlan.java`, `ClassSkeletonGenerator.java`, `ClassFileGenerator.java`, `TypeGenerationPlan.java`, `TypeSkeletonGenerator.java`, and `TypeFileGenerator.java` — production class-like skeleton planning and explicit file writing after prompt acceptance or `run --generate`, including inferred constructor, instance method, and static factory method skeletons.
+- `src/main/java/org/javaspec/generation/ClassGenerationPlan.java`, `ClassSkeletonGenerator.java`, `ClassFileGenerator.java`, `TypeGenerationPlan.java`, `TypeSkeletonGenerator.java`, and `TypeFileGenerator.java` — production class-like skeleton planning and explicit file writing after prompt acceptance or `run --generate`, including inferred constructor, method-body, interface-declaration, annotation-element, sealed-interface nested implementation, and static factory method skeletons.
 - `src/main/java/org/javaspec/generation/SpecGenerationPlan.java`, `SpecSkeletonGenerator.java`, `SpecFileGenerator.java`, and `SpecSupportFileGenerator.java` — PHPSpec-style specification and typed support skeleton planning/writing for `describe` and `run` support updates.
-- `src/main/java/org/javaspec/generation/ConstructorPolicy.java`, `ClassConstructorUpdater.java`, and `ClassMethodUpdater.java` — constructor policy handling and source-preserving instance/static method insertion for existing production sources.
+- `src/main/java/org/javaspec/generation/ConstructorPolicy.java`, `ClassConstructorUpdater.java`, and `ClassMethodUpdater.java` — constructor policy handling and source-preserving method-body/static-factory insertion plus ordinary-interface declaration and annotation-element insertion for existing production sources where supported.
 - `src/test/java/org/javaspec/**` — JUnit tests across model, discovery, generation, CLI, build, compatibility, matchers, and API behavior, including post-Java-8 source-form generation and ADR 0004 correction behavior.
 
 Verification summary:
@@ -113,7 +118,7 @@ Verification summary:
 - Initial Phase 3 tester verification reported `mvn test` BUILD SUCCESS with 212 tests run, 0 failures, 0 errors, and 0 skipped.
 - Stabilization verification after Phase 4 reported `mvn verify` BUILD SUCCESS with 301 tests run, 0 failures, 0 errors, and 0 skipped.
 - `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
-- Full multi-JDK runtime compatibility and bytecode/constant-pool audits remain Phase 12 quality-matrix work.
+- Phase 12 completed the Distrobox compatibility and quality matrix: Java 8, 11, 17, 21, and 25 containers all passed `mvn clean` and `mvn verify`; the Java 25 runtime Gatherer probe and runtime dependency audit also passed.
 
 ## Phase 4 Status
 
@@ -163,7 +168,7 @@ Known limitations:
 
 - The CLI runner does not compile source/spec files itself. Source-only or otherwise unavailable spec classes are skipped/not executable until an external build, IDE, or launcher puts compiled classes on the effective classloader.
 - Lifecycle support is intentionally minimal: public no-argument `let()` and `letGo()` only.
-- Pending examples, bootstrap execution, deep profile-aware execution, and richer reporting remain later work. Stop-on-failure and built-in progress/pretty formatter behavior are implemented in Phase 9.
+- Pending examples, bootstrap execution, deep profile-aware execution, and reporting beyond the Phase 11 JSON runner report remain later work. Stop-on-failure and built-in progress/pretty formatter behavior are implemented in Phase 9 and routed through formatter contracts in Phase 11.
 
 ## Phase 7 Matcher/Expectation Expansion Status — Implemented and Verified
 
@@ -201,7 +206,7 @@ Further implementation work must be delegated to the appropriate workflow agents
 
 | Requirement | Documentation artifact | Implementation status |
 |---|---|---|
-| Java 8-compatible binary | README, ARC42 constraints, ADR 0001 | Baseline implemented in Phase 2; compatibility matrix remains Phase 12 future work. |
+| Java 8-compatible binary | README, ARC42 constraints, ADR 0001, test report | Baseline implemented in Phase 2; Phase 12 Java 8 Distrobox verification passed on Temurin `1.8.0_492` with `mvn clean` and `mvn verify` running 364 tests, 0 failures, 0 errors, and 0 skipped. Supplemental compiler, bytecode, and constant-pool audits also preserved the Java 8 compatibility gate. |
 | Zero runtime dependencies | README, ARC42 constraints, ADR 0002 | Implemented in Phase 2 and must be preserved through later phases. |
 | Dependencies allowed only in test scope | README, ADR 0002 | Implemented in Phase 2 with JUnit in test scope only. |
 | PHPSpec-style describe/run generation split | ADR 0003, this plan, user manual | Implemented: `describe` writes only spec/support files; `run` owns production type, constructor, static factory, and instance method generation/update; prompts are used where required, and `run --generate` answers yes non-interactively. |
@@ -210,22 +215,24 @@ Further implementation work must be delegated to the appropriate workflow agents
 | Typed proxy matcher syntax | ADR 0004, verified PHPSpec matcher docs/source, this plan, user manual | Implemented: generated subject-specific support classes expose typed proxy methods and throw proxies while existing `match(value).should...` usage remains available. |
 | Phase 7 matcher/expectation expansion | README, user manual, ARC42 section 5, this plan | Implemented and verified: `Matchable` includes expanded equality/negation, type/instance, implementation, string, count/empty, and map key/value helpers; `ObjectBehavior` direct convenience methods delegate through `match(actual)`; `MatcherRegistry` keeps a zero-dependency default negated-equality matcher; `SpecDiscovery` recognizes expanded chained matcher names for method-discovery/default-return inference where applicable. Generic `Iterable` count/empty checks consume the iterable and can hang on infinite iterables. |
 | Phase 8 MVP collaborators/doubles | README, user manual, ARC42 section 5, ADR 0007, this plan | Implemented and verified: `org.javaspec.doubles` provides JDK-proxy ordinary-interface doubles, method-name and exact-argument return stubs, null and array-content argument matching, immutable call history, called/not-called/exact-count verification, deterministic object methods, Java default returns for unstubbed methods, and `ObjectBehavior` double conveniences. Limitations are explicit: no concrete class/static/constructor/final-class doubles, primitives, arrays, annotations, enums, wildcard matchers, exception/callback stubbing, bytecode libraries, or default-interface-method invocation. |
-| Method generation | ADR 0004, this plan, user manual | Implemented and verified: discovery from typed proxy/throw calls, direct subject/setter calls, static factory construction markers, and the expanded chained matcher names where applicable; Java 8-compatible instance method and static factory skeleton generation; static factory descriptors are skipped by generated support proxies; `--generate` writes non-interactively and interactive `run` prompts before updating existing source files. |
+| Method generation | ADR 0004, this plan, user manual | Implemented and verified: discovery from typed proxy/throw calls, direct subject/setter calls, static factory construction markers, and the expanded chained matcher names where applicable; Java 8-compatible method-body and static factory skeleton generation for class/final/sealed class/enum/record sources remains unchanged; static factory descriptors are skipped by generated support proxies; `--generate` writes non-interactively and interactive `run` prompts before updating existing source files. |
+| Phase 10 interface-style method generation | README, user manual, ARC42 section 5, this plan | Implemented and verified: missing ordinary interface skeletons render non-static method declarations and skip static descriptors; missing annotations render compatible no-arg non-static elements and skip incompatible descriptors; missing sealed interfaces render root method declarations and nested permitted implementations with Java default-return bodies; existing ordinary interfaces and annotations receive missing declarations/elements source-preservingly and idempotently; existing sealed-interface source updates remain deferred. |
 | Configuration model and inferred defaults | README, user manual, ARC42 section 5, ADR 0005, this plan | Implemented in Phase 4: `JavaspecConfiguration.defaults()` provides the default suite `default`, Maven-style spec/source roots, `spec` package prefix, empty production package prefix, `java8` profile, `progress` formatter, `comment` constructor policy, and empty bootstrap hooks when no config file is supplied. |
 | Constructor-policy config default | ADR 0004, ADR 0005, user manual, this plan | Implemented in Phase 4: config key `constructorPolicy`/`constructor-policy` accepts only `delete`, `preserve`, and `comment`; `comment` remains the inferred and config default, and `run --constructor-policy` overrides config explicitly. |
 | Explicit suites, paths, profile, and formatter config | README, user manual, ARC42 section 5, ADR 0005, this plan | Implemented in Phase 4 and expanded in Phase 9: `--config <file>` and `--suite <name>` select suite configuration; selected-suite `specDir`/`sourceDir` drive `describe`/`run` unless CLI path options override them; selected-suite `specPackagePrefix`/`packagePrefix` drive naming; config `profile` and `formatter` provide run defaults that valid CLI `--profile` and `--formatter` override. Profile selection is validated but not deeply enforced yet. |
 | Naming convention integration | README, user manual, ARC42 section 5, ADR 0005, this plan | Implemented in Phase 4: `SpecNamingConvention` maps production names to spec/support packages using configured suite package prefixes, validates naming metadata, and is used by describe, discovery, and support generation. |
 | Suite, class, and example filters | README, user manual, ARC42 section 5, this plan | Implemented in Phase 4 and reused by the Phase 5/6 MVP runner: `--suite` selects the configured suite; repeatable `--class` filters by described or spec class names; repeatable `--example` filters by example method name, display name, or source-order index; filtered `DiscoveredSpec`/`SpecExample` metadata controls both generation/update and reflection execution. |
 | Phase 5/6 MVP reflection runner | README, user manual, ARC42 section 5, ADR 0006, this plan | Implemented and verified: after discovery/generation/update, `javaspec run` executes examples when compiled spec classes are available on the effective classloader; each example uses a fresh spec instance with optional public no-arg `let()` and `letGo()`; results are `PASSED`, `FAILED`, `BROKEN`, or `SKIPPED`; CLI summary exits `1` for failed/broken executable examples; source-only/unavailable spec classes are skipped because the CLI does not compile them. Phase 9 adds `--stop-on-failure` to stop after the first FAILED or BROKEN executable example while the default remains executing all discovered metadata. |
-| Phase 9 CLI expansion | README, user manual, ARC42 section 5, this plan | Implemented and verified: `run --dry-run` performs no writes and no prompts, reports would-generate/would-update actions for related specs/support, support updates, constructors, methods, and missing production type generation, exits `1` when pending work exists, and exits `0` when no pending changes exist and examples pass or skip; `run --stop-on-failure` stops after the first FAILED or BROKEN executable example; `run --formatter <progress|pretty>` selects concise or per-example output and overrides config/default; `run --profile <java8|java11|java17|java21|java25>` validates/selects the profile and overrides config without deep enforcement yet; `run --verbose` prints selected run settings; all Phase 9 controls are rejected for `describe`. |
+| Phase 9 CLI expansion | README, user manual, ARC42 section 5, this plan | Implemented and verified: `run --dry-run` performs no writes and no prompts, reports would-generate/would-update actions for related specs/support, support updates, constructors, method bodies/declarations/elements, and missing production type generation, exits `1` when pending work exists, and exits `0` when no pending changes exist and examples pass or skip; `run --stop-on-failure` stops after the first FAILED or BROKEN executable example; `run --formatter <progress|pretty>` selects concise or per-example output and overrides config/default; `run --profile <java8|java11|java17|java21|java25>` validates/selects the profile and overrides config without deep enforcement yet; `run --verbose` prints selected run settings; all Phase 9 controls are rejected for `describe`. |
+| Phase 11 formatter/reporting/extension increment | README, user manual, ARC42 section 5, this plan | Implemented and verified: built-in output uses the public zero-dependency `RunFormatter` contract and deterministic `RunFormatterRegistry`; `progress` and `pretty` behavior remains compatible; `JavaspecExtension`/`Extension` and `ExtensionContext` allow programmatic run formatter registration; `javaspec run --report <file>` and alias `--report-file <file>` write UTF-8 JSON reports with `schemaVersion` 1, summary counts, specs, examples, nullable failure details, throwable class/message, and stack trace lines. Reports are run-only, rejected by `describe`, written for no-spec/passing/failing/broken/skipped runs after normal output, skipped for dry-run pending generation/update, and report write failures exit `70`. External extension discovery/loading is not implemented. |
 | Missing-class flow with config | User manual, this plan | Implemented in Phase 4: `run` uses inferred defaults without a config file and selected-suite paths/naming with explicit config, preserving the existing missing-production prompt and `--generate` non-interactive generation behavior. |
 | Maven implementation | This plan | Implemented in Phase 2. |
 | Package base `org.javaspec` | README, this plan | Implemented in Phase 2 and retained for future work. |
-| Target Java LTS profiles 8, 11, 17, 21, 25 | README, ARC42 section 5, ADR 0001, Java LTS research, this plan | Implemented in Phase 3: `TargetProfile` and `ProfileCatalog` encode `java8`, `java11`, `java17`, `java21`, and `java25`; full multi-JDK runtime matrix remains Phase 12. |
-| Post-Java 8 APIs as metadata/reflection | README, ARC42 section 5, ADR 0001, Java LTS research, this plan | Implemented in Phase 3: Java 11+ API symbols are stored as metadata strings and probed only through `ApiAvailabilityProbe`; no post-Java-8 direct production imports are required. Constant-pool audit remains Phase 12. |
+| Target Java LTS profiles 8, 11, 17, 21, 25 | README, ARC42 section 5, ADR 0001, Java LTS research, this plan, test report | Implemented in Phase 3: `TargetProfile` and `ProfileCatalog` encode `java8`, `java11`, `java17`, `java21`, and `java25`; Phase 12 executed the full Distrobox runtime matrix for Java 8, 11, 17, 21, and 25, and every profile container passed `mvn clean` and `mvn verify`. |
+| Post-Java 8 APIs as metadata/reflection | README, ARC42 section 5, ADR 0001, Java LTS research, this plan, test report | Implemented in Phase 3: Java 11+ API symbols are stored as metadata strings and probed only through `ApiAvailabilityProbe`; no post-Java-8 direct production imports are required. Phase 12 constant-pool audit passed with 0 direct post-Java-8 API references and 70 intentional metadata string hits. |
 | Java 8 data-structure list | README, ARC42 section 5, Java LTS research, this plan | Implemented in Phase 3: representative Java 8 collection, container, array, optional, atomic/reference, and stream symbols are cataloged and tested. |
-| Later LTS data-structure additions | README, ARC42 section 5, Java LTS research, this plan | Implemented in Phase 3: representative Java 11 collection factories/collectors/optional/stream additions, Java 17 stream/record/sealed metadata, Java 21 sequenced collections, and Java 25 stream-support metadata are cataloged. Ongoing synchronization with JDK docs remains future quality work. |
-| Java 25 stream-support metadata | README, ARC42 section 5, Java LTS research, this plan | Implemented in Phase 3: `STREAM_GATHERERS` and metadata for `java.util.stream.Gatherer`, nested gatherer types, and `java.util.stream.Gatherers` are present; runtime availability must still be probed reflectively. |
+| Later LTS data-structure additions | README, ARC42 section 5, Java LTS research, this plan, test report | Implemented in Phase 3: representative Java 11 collection factories/collectors/optional/stream additions, Java 17 stream/record/sealed metadata, Java 21 sequenced collections, and Java 25 stream-support metadata are cataloged. Phase 12 verified the Java 25 Gatherer symbols with a Java 25 runtime reflection probe; ongoing synchronization remains future maintenance work. |
+| Java 25 stream-support metadata | README, ARC42 section 5, Java LTS research, this plan, test report | Implemented in Phase 3: `STREAM_GATHERERS` and metadata for `java.util.stream.Gatherer`, nested gatherer types, and `java.util.stream.Gatherers` are present; Phase 12 Java 25 runtime reflection probing passed for `java.util.stream.Gatherer`, `Gatherer$Downstream`, `Gatherer$Integrator`, `Gatherer$Integrator$Greedy`, and `java.util.stream.Gatherers`. |
 | Complete phpspec feature inventory | phpspec research and ADR 0004 follow-up verification | Phase 1 research completed; construction and matcher details were re-verified for ADR 0004; the ADR 0004 correction track is implemented, while broader PHPSpec feature parity remains future phased work. |
 
 ## Implementation Principles
@@ -245,6 +252,9 @@ Further implementation work must be delegated to the appropriate workflow agents
 - Keep configuration parsing restricted, line-based, and zero-dependency; do not add YAML/TOML/JSON parser dependencies to runtime.
 - Treat missing config as `JavaspecConfiguration.defaults()` and apply command-line path/constructor-policy overrides over selected-suite values while keeping selected-suite package prefixes in the active naming convention.
 - Treat bootstrap hooks as parsed metadata until bootstrap execution is implemented; treat profile and formatter settings as active run selections, with CLI overrides over config/default values, while profile selection remains validation/reporting only until deep enforcement is implemented.
+- Keep built-in formatter rendering behind the zero-dependency `RunFormatter` contract and deterministic `RunFormatterRegistry`; keep CLI formatter selection limited to built-in names until external extension loading is explicitly implemented.
+- Keep run reports dependency-free and based on the immutable runner result model; write `--report` output only for run paths that reach no-spec handling or runner summary rendering, skip reports when dry-run exits before execution because pending work exists, and treat report write failures as exit `70` I/O failures.
+- Treat the Phase 11 extension API as programmatic registration only; do not imply config-driven loading, classpath scanning, `ServiceLoader`, or plugin activation until implemented and documented.
 - Use `DiscoveredSpec` and `SpecExample` as the execution selection source so suite, class, and example filters remain effective for the runner.
 - Treat the CLI runner as a classpath reflection executor, not an in-process compiler; source-only or unavailable spec classes are skipped/not executable until compiled classes are present on the effective classloader.
 - Prefer generated subject-specific typed support/proxy classes while keeping explicit `match(value)` style APIs available.
@@ -252,7 +262,7 @@ Further implementation work must be delegated to the appropriate workflow agents
 - Keep core doubles interface-only and JDK-proxy based unless a future ADR authorizes optional advanced integrations; reject unsupported double targets with clear diagnostics.
 - Preserve exact-argument double semantics for `null` values and array contents, and keep `ObjectBehavior` double convenience APIs synchronized with `org.javaspec.doubles` control behavior.
 - Document that count/empty checks on generic `Iterable` values consume the iterable and are unsafe for infinite iterables.
-- Insert generated methods source-preservingly, with confirmation or documented non-interactive behavior, and with Java 8-compatible default returns.
+- Insert generated class/final-class/sealed-class/enum/record method bodies, interface method declarations, and annotation elements source-preservingly where supported, with confirmation or documented non-interactive behavior; use Java default returns where generated method bodies are required, and keep existing sealed-interface source updates deferred until nested permitted implementations can also be updated safely.
 - Keep construction and matcher behavior aligned with the verified PHPSpec semantics for lazy construction, overrides before instantiation, negation, and exception matching.
 
 ## Phased Plan
@@ -303,8 +313,8 @@ Verification:
 
 Still out of scope after the ADR 0004 correction:
 
-- Complete PHPSpec-style runner lifecycle beyond the Phase 5/6 MVP reflection runner, including pending examples, bootstrap execution, deep profile-aware execution, and richer reporting. Stop-on-failure and built-in progress/pretty formatters are implemented in Phase 9.
-- Interface generation beyond minimal skeletons.
+- Complete PHPSpec-style runner lifecycle beyond the Phase 5/6 MVP reflection runner, including pending examples, bootstrap execution, deep profile-aware execution, and reporting beyond the Phase 11 JSON runner report. Stop-on-failure and built-in progress/pretty formatters are implemented in Phase 9 and routed through formatter contracts in Phase 11.
+- Broader interface and annotation generation beyond the supported Phase 10 method declarations/elements, plus enum generation beyond minimal skeletons.
 - Private constructor source generation and broader named-constructor customization beyond the current static factory skeleton support.
 - Template systems beyond the minimal class-like/spec/support skeleton need.
 - Return constant generation from expectations beyond Java 8-compatible default returns.
@@ -450,7 +460,7 @@ Implemented scope:
 
 Remaining tasks:
 
-1. Add pending examples, bootstrap execution, deep profile-aware execution, and richer reporting; stop-on-failure, verbosity, and built-in progress/pretty formatter behavior are implemented in Phase 9.
+1. Add pending examples, bootstrap execution, deep profile-aware execution, and reporting beyond the Phase 11 JSON runner report; stop-on-failure, verbosity, and built-in progress/pretty formatter behavior are implemented in Phase 9 and routed through formatter contracts in Phase 11.
 2. Expand source-location diagnostics for failed/broken examples where available.
 3. Continue to refine typed proxy matcher diagnostics and method-generation reporting without forcing eager subject construction.
 4. Keep ADR 0004 construction semantics stable as the runner grows beyond the MVP lifecycle.
@@ -539,7 +549,7 @@ Acceptance criteria status:
 Implementation summary:
 
 1. Preserved the existing `describe`/`desc` spec-only behavior and the `run` discovery/generation/update/execution flow.
-2. Added `javaspec run --dry-run`: no files are written, no prompts are shown, and the CLI reports would-generate/would-update actions for related specs/support, support updates, constructor changes, method skeletons, and missing production type generation.
+2. Added `javaspec run --dry-run`: no files are written, no prompts are shown, and the CLI reports would-generate/would-update actions for related specs/support, support updates, constructor changes, supported method bodies/declarations/elements, and missing production type generation.
 3. Defined dry-run exits: `1` when pending generation/update work exists; `0` when no pending changes exist and executable examples pass or are skipped-only; failed or broken executable examples still produce exit `1`.
 4. Added `javaspec run --stop-on-failure`: the runner stops after the first FAILED or BROKEN executable example. Without this flag, the default remains to process all discovered example metadata.
 5. Added `javaspec run --formatter <progress|pretty>`: `progress` is concise and summary-oriented; `pretty` prints per-example status lines plus failed/broken/skipped details. A valid CLI formatter overrides config; otherwise the configured formatter or default `progress` is used.
@@ -561,90 +571,163 @@ Acceptance criteria status:
 - `describe` preserves first-MVP spec-only behavior, while `run` preserves missing-production-class and missing-method suggestion behavior.
 - CLI generation-related actions remain gated by explicit confirmation, dry-run reporting, or documented non-interactive `--generate` behavior.
 
-### Phase 10 — Advanced Code Generation
+### Phase 10 — Advanced Code Generation (Completed Increment)
 
-**Owner later:** Java implementation agent.
+**Owner:** Java implementation agent.
 
-**Status note:** ADR 0004 and the follow-up factory construction generation work implemented the current MVP subset of support/proxy generation, constructor policy handling, instance method skeleton generation, and static factory skeleton generation. Broader advanced generation remains future work.
+**Status:** Implemented and verified for the current advanced code-generation increment focused on interface-style methods. Broader advanced generation remains future work.
 
-Tasks:
+Implementation summary:
 
-1. Maintain the ADR 0004 correction behavior in the first-MVP spec and production class-like skeleton generators.
-2. Maintain constructor handling with only `delete`, `preserve`, and `comment`; keep `comment` as the default for non-empty unmatched constructors; keep destructive deletion opt-in; and remove empty generated/no-op constructors only when safe and documented.
-3. Maintain subject-specific typed support/proxy classes, for example `CalculatorSpecSupport extends ObjectBehavior<Calculator>`, that concrete specs can extend for typed PHPSpec-like calls.
-4. Maintain and refine method discovery from generated typed proxy calls, static factory construction markers, and/or explicit missing-method diagnostics.
-5. Maintain and refine missing method skeleton/snippet generation with Java 8-compatible default returns, inferred return types where available, parameters, overload safety, confirmation/non-interactive behavior, static factories returning the described type, and source-preserving insertion without rewriting whole classes.
-6. Extend interface/enum/annotation generation beyond skeletons only after the production type skeleton flow is stable.
-7. Refine static factory/named-constructor generation and add private constructor generation only after the current construction and factory semantics remain stable.
-8. Provide templates for spec classes, support/proxy classes, examples, and generated production code where useful.
-9. Add return constant generation only after matcher and example semantics can justify it.
-10. Confirm before writing files unless a non-interactive flag or policy is provided.
-11. Keep generated Java source compatible with the configured target profile and Java 8 binary rules.
+1. Preserved the existing class, final-class, sealed-class, enum, and record method-body generation behavior.
+2. Updated missing production `INTERFACE` skeleton rendering so discovered non-static methods are emitted as declarations ending in `;`; static descriptors are skipped.
+3. Updated missing production `ANNOTATION` skeleton rendering so compatible no-argument non-static descriptors are emitted as annotation elements; incompatible descriptors are skipped.
+4. Updated missing production `SEALED_INTERFACE` skeleton rendering so root method declarations are emitted and generated nested permitted classes implement those methods with Java default-return bodies, keeping generated Java 17 source forms valid.
+5. Updated existing ordinary interface sources so missing method declarations can be inserted source-preservingly and idempotently.
+6. Updated existing annotation sources so compatible missing elements can be inserted source-preservingly and idempotently.
+7. Intentionally skipped existing sealed-interface source updates for now because source-preserving updates must also update nested permitted implementations safely.
+8. Production files changed: `src/main/java/org/javaspec/generation/TypeSkeletonGenerator.java` and `src/main/java/org/javaspec/generation/ClassMethodUpdater.java`.
+9. Test files changed: `src/test/java/org/javaspec/generation/TypeSkeletonGeneratorTest.java` and `src/test/java/org/javaspec/generation/ClassMethodUpdaterTest.java`.
 
-Acceptance criteria:
+Verification:
 
-- Generation is deterministic and reversible by review.
-- Constructor updates follow the exact ADR 0004 policy states and default.
-- Generated typed support/proxy classes compile and preserve PHPSpec-like Java syntax.
-- Missing class/method prompts are actionable and overload-safe.
-- Source-preserving insertion avoids whole-class rewrites.
-- Non-interactive CI mode does not block when an explicit policy is supplied.
+- `mvn -Dtest='org.javaspec.generation.*Test' test` passed with 84 generation tests.
+- `mvn verify` passed with 345 tests.
+- `mvn dependency:tree -Dscope=runtime` passed and showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT` in runtime scope.
+
+Known limitations:
+
+- Existing sealed-interface source updates are deferred until the updater can insert both root declarations and matching nested permitted implementation bodies source-preservingly.
+- Annotation element generation only emits descriptors that are valid Java annotation elements; descriptors with parameters, static descriptors, `void`, `Object`, or otherwise incompatible return types are ignored for annotation sources.
+- Source parsing and generation remain Java 8-compatible heuristics rather than a full Java parser.
+
+Remaining advanced-generation work:
+
+1. Keep the ADR 0004 correction behavior stable in spec/support/proxy generation, constructor policy handling, instance method skeleton generation, and static factory skeleton generation.
+2. Refine static factory/named-constructor generation and add private constructor generation only after current construction and factory semantics remain stable.
+3. Provide templates for spec classes, support/proxy classes, examples, and generated production code where useful.
+4. Add return constant generation only after matcher and example semantics can justify it.
+5. Extend enum generation and broader interface/annotation generation only when the production type skeleton flow remains stable and documented.
+6. Confirm before writing files unless a non-interactive flag or documented policy is provided.
+7. Keep generated Java source compatible with the configured target profile and Java 8 binary rules.
+
+Acceptance criteria status:
+
+- Generation remains deterministic and reviewable.
+- Existing constructor updates still follow the ADR 0004 policy states and defaults.
+- Generated typed support/proxy classes continue to preserve PHPSpec-like Java syntax.
+- Missing method prompts remain actionable and reuse the existing `--generate` non-interactive behavior.
+- Existing ordinary interface and annotation updates are source-preserving and idempotent.
 - Advanced generation features do not expand the zero-runtime-dependency surface.
 
-### Phase 11 — Formatters, Reporting, and Extensions
+### Phase 11 — Formatters, Reporting, and Extensions (Completed Increment)
 
-**Owner later:** Java implementation agent.
+**Owner:** Java implementation agent.
 
-Tasks:
+**Status:** Implemented and verified for the current formatter/reporting/extension increment. External extension loading and broader plugin behavior remain future work.
 
-1. Keep the Phase 9 built-in `progress` and `pretty` output stable while richer reporting is designed.
-2. Define formatter extension contracts.
-3. Add machine-readable reports only if they can be produced without runtime dependencies.
-4. Define extension registration and lifecycle hooks.
+Implementation summary:
 
-Acceptance criteria:
+1. Added the public zero-dependency `org.javaspec.formatter.RunFormatter` contract and deterministic `RunFormatterRegistry`.
+2. Moved built-in run output behind `ProgressRunFormatter`, `PrettyRunFormatter`, and `RunFormatterSupport`, preserving Phase 9-compatible `progress` and `pretty` CLI output.
+3. Added minimal extension lifecycle contracts under `org.javaspec.extension`: `JavaspecExtension`, short-name alias `Extension`, and `ExtensionContext`.
+4. `ExtensionContext` exposes the run formatter registry through `runFormatterRegistry()` and `runFormatters()` so extensions can register formatters programmatically.
+5. Added `org.javaspec.reporting.RunReportWriter`, a dependency-free UTF-8 JSON writer for immutable runner results.
+6. Added `javaspec run --report <file>` and alias `--report-file <file>`.
+7. JSON reports use `schemaVersion` 1 and include whole-run summary counts, specs, examples, nullable failure details, throwable class/message, and stack trace lines.
+8. `--report` is run-only and rejected by `describe`/`desc`; `--verbose` prints the report path when specified.
+9. No-spec runs with `--report` write a valid empty report. Passing, failing, broken, and skipped-only runs write reports after normal summary rendering; failed or broken executable examples still exit `1` after the report write.
+10. Dry-run pending generation/update exits before execution and does not write a report. Report write failures produce I/O diagnostics, include the report path, and exit `70`.
+11. No external extension loading is implemented yet: no config-driven activation, classpath scanning, `ServiceLoader`, plugin lookup, or CLI use of extension-provided formatter names.
 
-- Human-readable output remains clear for local use.
-- CI receives stable exit codes and optional machine-readable output.
-- Extensions can add matchers, formatters, generators, or lifecycle behavior without modifying core internals.
+Production files changed/added:
 
-### Phase 12 — Compatibility and Quality Matrix
+- `src/main/java/org/javaspec/cli/Main.java`
+- `src/main/java/org/javaspec/formatter/RunFormatter.java`
+- `src/main/java/org/javaspec/formatter/RunFormatterRegistry.java`
+- `src/main/java/org/javaspec/formatter/ProgressRunFormatter.java`
+- `src/main/java/org/javaspec/formatter/PrettyRunFormatter.java`
+- `src/main/java/org/javaspec/formatter/RunFormatterSupport.java`
+- `src/main/java/org/javaspec/extension/JavaspecExtension.java`
+- `src/main/java/org/javaspec/extension/Extension.java`
+- `src/main/java/org/javaspec/extension/ExtensionContext.java`
+- `src/main/java/org/javaspec/reporting/RunReportWriter.java`
 
-**Owner later:** Java tester/quality agents.
+Test files added:
 
-Tasks:
+- `src/test/java/org/javaspec/formatter/RunFormatterRegistryTest.java`
+- `src/test/java/org/javaspec/extension/ExtensionContextTest.java`
+- `src/test/java/org/javaspec/reporting/RunReportWriterTest.java`
+- `src/test/java/org/javaspec/cli/MainPhase11ReportCliTest.java`
 
-1. Run compilation and tests on Java 8.
-2. Run runtime compatibility tests on Java 8, 11, 17, 21, and 25 where available.
-3. Verify no runtime dependencies are packaged.
-4. Verify no Java 9+ symbols appear in Java 8 production bytecode constant-pool references except as intentional metadata strings.
-5. Re-validate Java 25 stream gatherer metadata against the target JDK 25 API documentation during quality-matrix work before relying on environment-specific behavior.
-6. Include first-MVP tests for existing type detection, missing type detection, prompt output for a missing type, class-like kind generation, and write gating.
-7. Maintain and expand ADR 0004 correction tests for constructor default/comment policy, CLI help/parser behavior, class update safety, PHPSpec construction override/lazy semantics, factory construction skeleton generation, generated typed proxy compilation, matcher semantics and negation, throw/during/duringInstantiation behavior, method generation for missing methods and default returns, and user-manual examples when those examples become testable.
-8. Maintain and expand Phase 4 configuration, naming, and filter tests for defaults, parser diagnostics, suite/path/package-prefix precedence, constructor-policy config defaults and overrides, class/example filters, and missing-class flow with inferred and explicit config.
-9. Maintain and expand Phase 8 doubles tests for supported interface doubles, unsupported target diagnostics, method-name and exact-argument stubbing, null and array argument matching, call history, verification helpers, default returns, object methods, and `ObjectBehavior` convenience APIs.
-10. Maintain and expand Phase 9 CLI tests for dry-run no-write/no-prompt behavior and exit codes, stop-on-failure, progress/pretty formatter selection, CLI-over-config profile/formatter precedence, verbose output, and rejection of run-only flags by `describe`.
+Verification:
 
-Acceptance criteria:
+- `mvn -q -Dtest=RunFormatterRegistryTest,ExtensionContextTest,RunReportWriterTest,MainPhase11ReportCliTest test` passed.
+- `mvn verify` passed with 364 tests, 0 failures, and 0 errors.
+- `mvn dependency:tree -Dscope=runtime` passed and showed only `org.javaspec:javaspec` in runtime scope.
 
-- Java 8 is a hard pass/fail gate.
-- Runtime dependency audit passes.
-- LTS profiles are tested or explicitly marked unavailable in the environment.
-- First-MVP generator behavior is covered by automated tests.
-- ADR 0004 correction behavior remains covered by automated tests before user-facing documentation is finalized or changed.
+Known limitations:
+
+- Formatter extension contracts are public and programmatic, but the CLI currently exposes only built-in `progress` and `pretty` because no external extension loading mechanism is implemented.
+- JSON reporting is limited to schemaVersion 1 runner results and has no config-level destination, alternate schemas, streaming mode, or additional report formats.
+- Reports are not written when dry-run exits before execution because pending generation/update work exists.
+
+Acceptance criteria status:
+
+- Human-readable output remains clear and compatible for local use.
+- CI receives stable exit codes and optional zero-dependency machine-readable JSON output.
+- Extensions can register run formatters programmatically without modifying core internals; broader extension capabilities remain future work.
+
+### Phase 12 — Compatibility and Quality Matrix (Completed via Distrobox Multi-JDK Matrix)
+
+**Owner:** Java tester/quality agents.
+
+**Status:** Completed and verified on 2026-06-03 through Distrobox `1.8.2.5` with Podman `5.8.2`. See [`docs/test-report.md`](docs/test-report.md) for the consolidated quality matrix.
+
+Verification summary:
+
+1. Distrobox/Podman container tooling was used to run the full Java 8, 11, 17, 21, and 25 matrix with Maven Temurin images.
+2. Each container executed `java -version`, `javac -version`, `mvn -version`, `mvn clean`, and `mvn verify` from `/home/paperboy/workspace/javaspec`.
+3. Java 8 (`1.8.0_492`), Java 11 (`11.0.31`), Java 17 (`17.0.19`), Java 21 (`21.0.11 LTS`), and Java 25 (`25.0.3 LTS`) all passed with 364 tests, 0 failures, 0 errors, and 0 skipped.
+4. Maven `3.9.16` was used in every matrix container.
+5. JDK 17+ emitted only expected `-source 8` / `-target 1.8` bootstrap/obsolete-option warnings.
+6. Java 25 runtime reflection probing passed for `java.util.stream.Gatherer`, `java.util.stream.Gatherer$Downstream`, `java.util.stream.Gatherer$Integrator`, `java.util.stream.Gatherer$Integrator$Greedy`, and `java.util.stream.Gatherers`.
+7. Runtime dependency auditing in `javaspec-jdk25-matrix` with `mvn dependency:tree -Dscope=runtime` passed and showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT` in runtime scope.
+8. Matrix containers were created and stopped, not removed: `javaspec-jdk8-matrix`, `javaspec-jdk11-matrix`, `javaspec-jdk17-matrix`, `javaspec-jdk21-matrix`, and `javaspec-jdk25-matrix`.
+9. Blockers: none.
+
+Distrobox JDK matrix:
+
+| JDK | Image | Container | Runtime | Maven | Phase 12 result |
+|---|---|---|---|---|---|
+| Java 8 | `docker.io/library/maven:3.9-eclipse-temurin-8` | `javaspec-jdk8-matrix` | `1.8.0_492` | `3.9.16` | PASS — 364 tests, 0 failures, 0 errors, 0 skipped |
+| Java 11 | `docker.io/library/maven:3.9-eclipse-temurin-11` | `javaspec-jdk11-matrix` | `11.0.31` | `3.9.16` | PASS — 364 tests, 0 failures, 0 errors, 0 skipped |
+| Java 17 | `docker.io/library/maven:3.9-eclipse-temurin-17` | `javaspec-jdk17-matrix` | `17.0.19` | `3.9.16` | PASS — 364 tests, 0 failures, 0 errors, 0 skipped |
+| Java 21 | `docker.io/library/maven:3.9-eclipse-temurin-21` | `javaspec-jdk21-matrix` | `21.0.11 LTS` | `3.9.16` | PASS — 364 tests, 0 failures, 0 errors, 0 skipped |
+| Java 25 | `docker.io/library/maven:3.9-eclipse-temurin-25` | `javaspec-jdk25-matrix` | `25.0.3 LTS` | `3.9.16` | PASS — 364 tests, 0 failures, 0 errors, 0 skipped |
+
+Acceptance criteria status:
+
+- Java 8 remains a hard compatibility gate and now has a passing native Java 8 Distrobox run in addition to the compiler, bytecode, and constant-pool compatibility evidence.
+- Runtime dependency audit passed with only the root project artifact in runtime scope.
+- LTS profiles were exercised across Java 8, 11, 17, 21, and 25 containers, and every matrix entry passed.
+- Java 25 stream Gatherer metadata was validated by runtime reflection on Java 25.
+- First-MVP, ADR 0004 correction, Phase 4 configuration/filter, Phase 8 doubles, Phase 9 CLI, Phase 10 generation, and Phase 11 formatter/reporting/extension behavior remain covered by the automated test suite summarized above.
 
 ### Phase 13 — Documentation Completion
 
-**Owner later:** documenter, with C4 delegated to c4model if requested.
+**Owner:** documenter, with C4 delegated to c4model if requested.
+
+**Status:** Completed documentation pass for ARC42 sections 5-12, ADR coverage, user manual navigation, PHPSpec-to-Java migration notes, and Phase 12 report references. No C4 diagrams were required.
 
 Tasks:
 
 1. Extend ARC42 sections 5-12 after implementation architecture stabilizes.
 2. Add ADRs for major design choices made during implementation.
-3. Integrate test and quality reports produced by tester agents.
+3. Maintain and extend integrated test and quality reports produced by tester agents; Phase 12 is captured in [`docs/test-report.md`](docs/test-report.md).
 4. Keep `docs/usermanual/Home.md` and `docs/usermanual/_Sidebar.md` synchronized after implementation begins.
 5. Add user guide and migration notes from PHPSpec concepts to Java concepts.
-6. Document configuration files, construction, constructor policy, typed matcher syntax, method generation, interface doubles, Phase 9 run controls, limitations, commands, examples, the first-MVP generator flow, and later advanced generator behavior according to what is implemented.
+6. Document configuration files, construction, constructor policy, typed matcher syntax, method generation including Phase 10 interface declarations and annotation elements, interface doubles, Phase 9 run controls, Phase 11 formatter/reporting/extension behavior, limitations, commands, examples, the first-MVP generator flow, and later advanced generator behavior according to what is implemented.
 
 Acceptance criteria:
 

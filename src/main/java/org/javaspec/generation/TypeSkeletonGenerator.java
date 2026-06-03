@@ -6,6 +6,7 @@ import org.javaspec.model.JavaTypeKind;
 import org.javaspec.model.MethodDescriptor;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -65,6 +66,10 @@ public final class TypeSkeletonGenerator {
             appendEnum(builder, describedType);
             return;
         }
+        if (JavaTypeKind.ANNOTATION.equals(kind)) {
+            appendAnnotation(builder, describedType);
+            return;
+        }
         builder.append("public ").append(kind.sourceKeyword()).append(" ").append(describedType.simpleName()).append(" { }\n");
     }
 
@@ -95,7 +100,30 @@ public final class TypeSkeletonGenerator {
     private static void appendInterface(StringBuilder builder, DescribedType describedType) {
         builder.append("public interface ").append(describedType.simpleName());
         appendInterfaceExtends(builder, describedType);
-        builder.append(" { }\n");
+        appendInterfaceBodyOrClose(builder, describedType);
+    }
+
+    private static void appendAnnotation(StringBuilder builder, DescribedType describedType) {
+        List<MethodDescriptor> elements = annotationElementMethods(describedType);
+        builder.append("public @interface ").append(describedType.simpleName());
+        if (elements.isEmpty()) {
+            builder.append(" { }\n");
+            return;
+        }
+        builder.append(" {\n");
+        appendAnnotationElements(builder, describedType, elements);
+        builder.append("}\n");
+    }
+
+    private static void appendInterfaceBodyOrClose(StringBuilder builder, DescribedType describedType) {
+        List<MethodDescriptor> methods = interfaceMethods(describedType);
+        if (methods.isEmpty()) {
+            builder.append(" { }\n");
+            return;
+        }
+        builder.append(" {\n");
+        appendMethodDeclarations(builder, describedType, methods);
+        builder.append("}\n");
     }
 
     private static void appendEnum(StringBuilder builder, DescribedType describedType) {
@@ -142,17 +170,28 @@ public final class TypeSkeletonGenerator {
     }
 
     private static void appendSealedInterface(StringBuilder builder, DescribedType describedType) {
+        List<MethodDescriptor> methods = interfaceMethods(describedType);
         builder.append("public sealed interface ").append(describedType.simpleName());
         appendInterfaceExtends(builder, describedType);
         if (describedType.hasPermittedTypes()) {
             builder.append(" permits ").append(nestedPermitsList(describedType)).append(" {\n");
-            appendNestedInterfacePermittedTypes(builder, describedType);
+            appendSealedInterfaceMethods(builder, describedType, methods);
+            appendNestedInterfacePermittedTypes(builder, describedType, methods);
             builder.append("}\n");
             return;
         }
         builder.append(" permits ").append(describedType.simpleName()).append(".Permitted {\n");
-        builder.append("    final class Permitted implements ").append(describedType.simpleName()).append(" { }\n");
+        appendSealedInterfaceMethods(builder, describedType, methods);
+        appendNestedInterfacePermittedType(builder, describedType, "Permitted", methods);
         builder.append("}\n");
+    }
+
+    private static void appendSealedInterfaceMethods(StringBuilder builder, DescribedType describedType, List<MethodDescriptor> methods) {
+        if (methods.isEmpty()) {
+            return;
+        }
+        appendMethodDeclarations(builder, describedType, methods);
+        builder.append("\n");
     }
 
     private static void appendClassExtends(StringBuilder builder, DescribedType describedType) {
@@ -185,12 +224,32 @@ public final class TypeSkeletonGenerator {
         return builder.toString();
     }
 
-    private static void appendNestedInterfacePermittedTypes(StringBuilder builder, DescribedType describedType) {
+    private static void appendNestedInterfacePermittedTypes(
+            StringBuilder builder,
+            DescribedType describedType,
+            List<MethodDescriptor> methods
+    ) {
         List<String> typeNames = describedType.permittedTypeNames();
         for (int i = 0; i < typeNames.size(); i++) {
-            builder.append("    final class ").append(simpleName(typeNames.get(i)))
-                    .append(" implements ").append(describedType.simpleName()).append(" { }\n");
+            appendNestedInterfacePermittedType(builder, describedType, simpleName(typeNames.get(i)), methods);
         }
+    }
+
+    private static void appendNestedInterfacePermittedType(
+            StringBuilder builder,
+            DescribedType describedType,
+            String simpleName,
+            List<MethodDescriptor> methods
+    ) {
+        builder.append("    final class ").append(simpleName)
+                .append(" implements ").append(describedType.simpleName());
+        if (methods.isEmpty()) {
+            builder.append(" { }\n");
+            return;
+        }
+        builder.append(" {\n");
+        appendMethods(builder, describedType, methods, "        ");
+        builder.append("    }\n");
     }
 
     private static String typeList(DescribedType describedType, List<String> typeNames) {
@@ -260,18 +319,191 @@ public final class TypeSkeletonGenerator {
     }
 
     private static void appendMethods(StringBuilder builder, DescribedType describedType) {
-        List<MethodDescriptor> methods = describedType.methods();
+        appendMethods(builder, describedType, describedType.methods(), "    ");
+    }
+
+    private static void appendMethods(
+            StringBuilder builder,
+            DescribedType describedType,
+            List<MethodDescriptor> methods,
+            String indent
+    ) {
         for (int mi = 0; mi < methods.size(); mi++) {
             MethodDescriptor method = methods.get(mi);
-            appendMethod(builder, describedType, method);
+            appendMethod(builder, describedType, method, indent);
             if (mi < methods.size() - 1) {
                 builder.append("\n");
             }
         }
     }
 
+    private static void appendMethodDeclarations(StringBuilder builder, DescribedType describedType, List<MethodDescriptor> methods) {
+        for (int mi = 0; mi < methods.size(); mi++) {
+            MethodDescriptor method = methods.get(mi);
+            appendMethodDeclaration(builder, describedType, method);
+            if (mi < methods.size() - 1) {
+                builder.append("\n");
+            }
+        }
+    }
+
+    private static void appendMethodDeclaration(StringBuilder builder, DescribedType owner, MethodDescriptor method) {
+        builder.append("    ").append(sourceTypeName(owner, method.returnType())).append(" ")
+                .append(method.methodName()).append("(");
+        appendParameters(builder, method.parameterTypes(), method.parameterNames());
+        builder.append(");\n");
+    }
+
+    private static void appendAnnotationElements(StringBuilder builder, DescribedType describedType, List<MethodDescriptor> methods) {
+        for (int mi = 0; mi < methods.size(); mi++) {
+            MethodDescriptor method = methods.get(mi);
+            builder.append("    ").append(sourceTypeName(describedType, method.returnType())).append(" ")
+                    .append(method.methodName()).append("();\n");
+            if (mi < methods.size() - 1) {
+                builder.append("\n");
+            }
+        }
+    }
+
+    private static List<MethodDescriptor> interfaceMethods(DescribedType describedType) {
+        List<MethodDescriptor> result = new ArrayList<MethodDescriptor>();
+        List<MethodDescriptor> methods = describedType.methods();
+        for (int i = 0; i < methods.size(); i++) {
+            MethodDescriptor method = methods.get(i);
+            if (!method.isStatic()) {
+                result.add(method);
+            }
+        }
+        return result;
+    }
+
+    private static List<MethodDescriptor> annotationElementMethods(DescribedType describedType) {
+        List<MethodDescriptor> result = new ArrayList<MethodDescriptor>();
+        List<MethodDescriptor> methods = describedType.methods();
+        for (int i = 0; i < methods.size(); i++) {
+            MethodDescriptor method = methods.get(i);
+            if (isCompatibleAnnotationElement(method)) {
+                result.add(method);
+            }
+        }
+        return result;
+    }
+
+    private static boolean isCompatibleAnnotationElement(MethodDescriptor method) {
+        return !method.isStatic()
+                && !method.hasParameters()
+                && isCompatibleAnnotationElementReturnType(method.returnType());
+    }
+
+    private static boolean isCompatibleAnnotationElementReturnType(String returnType) {
+        String normalized = returnType.trim().replace(" ", "");
+        int arrayDimensions = 0;
+        while (normalized.endsWith("[]")) {
+            arrayDimensions++;
+            normalized = normalized.substring(0, normalized.length() - 2);
+        }
+        if (arrayDimensions > 1
+                || "void".equals(normalized)
+                || isKnownInvalidAnnotationElementType(normalized)) {
+            return false;
+        }
+        if (isPrimitiveType(normalized)
+                || "String".equals(normalized)
+                || "java.lang.String".equals(normalized)
+                || "Class".equals(normalized)
+                || "java.lang.Class".equals(normalized)
+                || isClassElementType(normalized)) {
+            return true;
+        }
+        if (normalized.indexOf('<') >= 0 || normalized.indexOf('?') >= 0) {
+            return false;
+        }
+        return isQualifiedTypeName(normalized);
+    }
+
+    private static boolean isPrimitiveType(String typeName) {
+        return "boolean".equals(typeName)
+                || "byte".equals(typeName)
+                || "short".equals(typeName)
+                || "int".equals(typeName)
+                || "long".equals(typeName)
+                || "float".equals(typeName)
+                || "double".equals(typeName)
+                || "char".equals(typeName);
+    }
+
+    private static boolean isKnownInvalidAnnotationElementType(String typeName) {
+        return "Object".equals(typeName)
+                || "java.lang.Object".equals(typeName)
+                || "Void".equals(typeName)
+                || "java.lang.Void".equals(typeName)
+                || "Boolean".equals(typeName)
+                || "java.lang.Boolean".equals(typeName)
+                || "Byte".equals(typeName)
+                || "java.lang.Byte".equals(typeName)
+                || "Short".equals(typeName)
+                || "java.lang.Short".equals(typeName)
+                || "Integer".equals(typeName)
+                || "java.lang.Integer".equals(typeName)
+                || "Long".equals(typeName)
+                || "java.lang.Long".equals(typeName)
+                || "Float".equals(typeName)
+                || "java.lang.Float".equals(typeName)
+                || "Double".equals(typeName)
+                || "java.lang.Double".equals(typeName)
+                || "Character".equals(typeName)
+                || "java.lang.Character".equals(typeName);
+    }
+
+    private static boolean isClassElementType(String typeName) {
+        return (typeName.startsWith("Class<") || typeName.startsWith("java.lang.Class<"))
+                && typeName.endsWith(">");
+    }
+
+    private static boolean isQualifiedTypeName(String typeName) {
+        if (typeName.length() == 0) {
+            return false;
+        }
+        String[] parts = typeName.split("\\.");
+        for (int i = 0; i < parts.length; i++) {
+            if (!isJavaIdentifier(parts[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean isJavaIdentifier(String value) {
+        if (value.length() == 0) {
+            return false;
+        }
+        int index = 0;
+        int firstCodePoint = value.codePointAt(index);
+        if (!Character.isJavaIdentifierStart(firstCodePoint)) {
+            return false;
+        }
+        index += Character.charCount(firstCodePoint);
+        while (index < value.length()) {
+            int currentCodePoint = value.codePointAt(index);
+            if (!Character.isJavaIdentifierPart(currentCodePoint)) {
+                return false;
+            }
+            index += Character.charCount(currentCodePoint);
+        }
+        return true;
+    }
+
     static void appendMethod(StringBuilder builder, DescribedType owner, MethodDescriptor method) {
-        builder.append("    public ");
+        appendMethod(builder, owner, method, "    ");
+    }
+
+    private static void appendMethod(
+            StringBuilder builder,
+            DescribedType owner,
+            MethodDescriptor method,
+            String indent
+    ) {
+        builder.append(indent).append("public ");
         if (method.isStatic()) {
             builder.append("static ");
         }
@@ -280,9 +512,9 @@ public final class TypeSkeletonGenerator {
         appendParameters(builder, method.parameterTypes(), method.parameterNames());
         builder.append(") {\n");
         if (!method.isVoid()) {
-            builder.append("        ").append(defaultReturnStatement(owner, method)).append("\n");
+            builder.append(indent).append("    ").append(defaultReturnStatement(owner, method)).append("\n");
         }
-        builder.append("    }\n");
+        builder.append(indent).append("}\n");
     }
 
     private static String defaultReturnStatement(DescribedType owner, MethodDescriptor method) {

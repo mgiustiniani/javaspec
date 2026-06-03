@@ -21,10 +21,13 @@ import org.javaspec.generation.TypeGenerationPlan;
 import org.javaspec.generation.TypeSkeletonGenerator;
 import org.javaspec.model.DescribedClass;
 import org.javaspec.model.DescribedType;
+import org.javaspec.formatter.RunFormatter;
+import org.javaspec.formatter.RunFormatterRegistry;
 import org.javaspec.model.JavaTypeKind;
 import org.javaspec.profile.TargetProfile;
-import org.javaspec.runner.ExampleResult;
+import org.javaspec.reporting.RunReportWriter;
 import org.javaspec.runner.RunResult;
+import org.javaspec.runner.SpecResult;
 import org.javaspec.runner.SpecRunner;
 
 import java.io.BufferedReader;
@@ -37,6 +40,7 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
@@ -49,8 +53,7 @@ public final class Main {
 
     private static final String DEFAULT_SOURCE_ROOT = "src/main/java";
     private static final String DEFAULT_SPEC_ROOT = "src/test/java";
-    private static final String FORMATTER_PROGRESS = "progress";
-    private static final String FORMATTER_PRETTY = "pretty";
+    private static final RunFormatterRegistry RUN_FORMATTERS = RunFormatterRegistry.builtIn();
 
     private Main() {
     }
@@ -255,6 +258,9 @@ public final class Main {
 
         if (specs.size() == 0) {
             out.println("No specifications found in " + specRoot.getPath() + ".");
+            if (parsed.reportPath != null) {
+                return writeRunReport(emptyRunResult(), parsed, err);
+            }
             return EXIT_OK;
         }
 
@@ -442,10 +448,36 @@ public final class Main {
 
         RunResult runResult = SpecRunner.run(specs, effectiveClassLoader(), parsed.stopOnFailure);
         printRunnerSummary(runResult, out, parsed.effectiveFormatter);
+        if (parsed.reportPath != null) {
+            int reportExitCode = writeRunReport(runResult, parsed, err);
+            if (reportExitCode != EXIT_OK) {
+                return reportExitCode;
+            }
+        }
         if (runResult.hasFailures()) {
             return EXIT_EXAMPLES_FAILED;
         }
         return EXIT_OK;
+    }
+
+    private static RunResult emptyRunResult() {
+        return RunResult.of(Collections.<SpecResult>emptyList());
+    }
+
+    private static int writeRunReport(RunResult runResult, ParsedArguments parsed, PrintStream err) {
+        File reportFile = new File(parsed.reportPath);
+        try {
+            RunReportWriter.write(runResult, reportFile);
+            return EXIT_OK;
+        } catch (IOException ex) {
+            err.println("I/O error while writing run report: " + messageOf(ex));
+            err.println("Report path: " + reportFile.getPath());
+            return EXIT_IO_ERROR;
+        } catch (SecurityException ex) {
+            err.println("I/O error while writing run report: " + messageOf(ex));
+            err.println("Report path: " + reportFile.getPath());
+            return EXIT_IO_ERROR;
+        }
     }
 
     private static RelatedSpecCheckResult ensureRelatedSpecs(
@@ -600,61 +632,11 @@ public final class Main {
     }
 
     private static void printRunnerSummary(RunResult runResult, PrintStream out, String formatter) {
-        if (FORMATTER_PRETTY.equals(formatter)) {
-            printPrettyRunnerSummary(runResult, out);
-            return;
+        RunFormatter runFormatter = RUN_FORMATTERS.lookup(formatter);
+        if (runFormatter == null) {
+            runFormatter = RUN_FORMATTERS.lookup(RunFormatterRegistry.FORMATTER_PROGRESS);
         }
-        printProgressRunnerSummary(runResult, out);
-    }
-
-    private static void printProgressRunnerSummary(RunResult runResult, PrintStream out) {
-        printExampleSummary(runResult, out);
-        printExampleResults("Failed examples:", runResult.failedExamples(), out);
-        printExampleResults("Broken examples:", runResult.brokenExamples(), out);
-    }
-
-    private static void printPrettyRunnerSummary(RunResult runResult, PrintStream out) {
-        out.println("Example results:");
-        List<ExampleResult> examples = runResult.exampleResults();
-        for (int i = 0; i < examples.size(); i++) {
-            out.println(formatExampleResult(examples.get(i)));
-        }
-        printExampleSummary(runResult, out);
-        printExampleResults("Failed examples:", runResult.failedExamples(), out);
-        printExampleResults("Broken examples:", runResult.brokenExamples(), out);
-    }
-
-    private static void printExampleSummary(RunResult runResult, PrintStream out) {
-        out.println("Examples: " + runResult.totalCount()
-                + " total, " + runResult.passedCount() + " passed, "
-                + runResult.failedCount() + " failed, "
-                + runResult.brokenCount() + " broken, "
-                + runResult.skippedCount() + " skipped.");
-    }
-
-    private static void printExampleResults(String heading, List<ExampleResult> results, PrintStream out) {
-        if (results.isEmpty()) {
-            return;
-        }
-        out.println(heading);
-        for (int i = 0; i < results.size(); i++) {
-            out.println(formatExampleResult(results.get(i)));
-        }
-    }
-
-    private static String formatExampleResult(ExampleResult result) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("  ").append(result.status()).append(' ').append(result.fullName());
-        if (!result.displayName().equals(result.methodName())) {
-            builder.append(" (").append(result.displayName()).append(')');
-        }
-        if (result.detail().length() > 0) {
-            builder.append(": ").append(result.detail());
-        }
-        if (result.hasFailureDetail()) {
-            builder.append(" - ").append(result.failureDetail().summary());
-        }
-        return builder.toString();
+        runFormatter.format(runResult, out);
     }
 
     private static void printRunConfiguration(ParsedArguments parsed, PrintStream out) {
@@ -667,6 +649,9 @@ public final class Main {
         out.println("  Constructor policy: " + policyOptionName(resolveConstructorPolicy(parsed)));
         out.println("  Profile: " + parsed.effectiveProfile.key());
         out.println("  Formatter: " + parsed.effectiveFormatter);
+        if (parsed.reportPath != null) {
+            out.println("  Report path: " + parsed.reportPath);
+        }
         out.println("  Dry-run: " + parsed.dryRun);
         out.println("  Stop-on-failure: " + parsed.stopOnFailure);
     }
@@ -685,20 +670,35 @@ public final class Main {
     private static String formatterFromConfiguration(String formatter) {
         String normalized = normalizeFormatter(formatter);
         if (normalized == null) {
-            return FORMATTER_PROGRESS;
+            return RunFormatterRegistry.FORMATTER_PROGRESS;
         }
         return normalized;
     }
 
     private static String normalizeFormatter(String formatter) {
-        if (formatter == null) {
+        String normalized = RunFormatterRegistry.normalizeName(formatter);
+        if (normalized == null) {
             return null;
         }
-        String normalized = formatter.trim().toLowerCase(Locale.ROOT);
-        if (FORMATTER_PROGRESS.equals(normalized) || FORMATTER_PRETTY.equals(normalized)) {
+        if (RUN_FORMATTERS.contains(normalized)) {
             return normalized;
         }
         return null;
+    }
+
+    private static String validFormatterNames() {
+        return joinNames(RunFormatterRegistry.builtInFormatterNames());
+    }
+
+    private static String joinNames(List<String> names) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < names.size(); i++) {
+            if (i > 0) {
+                builder.append(", ");
+            }
+            builder.append(names.get(i));
+        }
+        return builder.toString();
     }
 
     private static String validProfileKeys() {
@@ -808,6 +808,19 @@ public final class Main {
             } else if ("--verbose".equals(arg)) {
                 parsed.verbose = true;
                 index++;
+            } else if ("--report".equals(arg) || "--report-file".equals(arg)) {
+                if (index + 1 >= args.length) {
+                    parsed.errorMessage = "Missing value for " + arg + ".";
+                    return parsed;
+                }
+                parsed.reportPath = args[index + 1];
+                parsed.reportOption = arg;
+                parsed.reportSpecified = true;
+                if (parsed.reportPath.length() == 0) {
+                    parsed.errorMessage = "Report file must not be empty.";
+                    return parsed;
+                }
+                index += 2;
             } else if ("--formatter".equals(arg)) {
                 if (index + 1 >= args.length) {
                     parsed.errorMessage = "Missing value for " + arg + ".";
@@ -974,6 +987,10 @@ public final class Main {
                 parsed.errorMessage = "The --verbose option belongs to run; describe does not discover specifications.";
                 return parsed;
             }
+            if (parsed.reportSpecified) {
+                parsed.errorMessage = "The " + parsed.reportOption + " option belongs to run; describe does not execute examples.";
+                return parsed;
+            }
             if (parsed.sourceRootSpecified) {
                 parsed.errorMessage = "The source directory is used by run; describe writes only to the spec directory.";
                 return parsed;
@@ -999,7 +1016,7 @@ public final class Main {
                 parsed.formatterOverride = normalizeFormatter(parsed.formatter);
                 if (parsed.formatterOverride == null) {
                     parsed.errorMessage = "Invalid formatter: " + parsed.formatter
-                            + ". Valid values: " + FORMATTER_PROGRESS + ", " + FORMATTER_PRETTY + ".";
+                            + ". Valid values: " + validFormatterNames() + ".";
                     return parsed;
                 }
             }
@@ -1036,7 +1053,7 @@ public final class Main {
         stream.println("Usage:");
         stream.println("  javaspec describe <ClassName> [--config <file>] [--suite <name>] [--spec-dir <dir>]");
         stream.println("  javaspec desc <ClassName> [--config <file>] [--suite <name>] [--spec-root <dir>]");
-        stream.println("  javaspec run [--config <file>] [--suite <name>] [--spec-dir <dir>] [--source-dir <dir>] [--generate] [--dry-run] [--stop-on-failure] [--formatter <progress|pretty>] [--profile <java8|java11|java17|java21|java25>] [--verbose] [--constructor-policy <delete|preserve|comment>] [--class <name>] [--example <name>]");
+        stream.println("  javaspec run [--config <file>] [--suite <name>] [--spec-dir <dir>] [--source-dir <dir>] [--generate] [--dry-run] [--stop-on-failure] [--formatter <progress|pretty>] [--profile <java8|java11|java17|java21|java25>] [--verbose] [--report <file>] [--constructor-policy <delete|preserve|comment>] [--class <name>] [--example <name>]");
         stream.println();
         stream.println("Commands:");
         stream.println("  describe <ClassName>  Create a PHPSpec-style specification skeleton; never creates production code.");
@@ -1056,6 +1073,8 @@ public final class Main {
         stream.println("  --formatter <value>   With run, choose example output formatter. Valid values: progress, pretty.");
         stream.println("  --profile <value>     With run, override target profile. Valid values: java8, java11, java17, java21, java25.");
         stream.println("  --verbose             With run, print effective run configuration before discovery.");
+        stream.println("  --report <file>       With run, write a UTF-8 JSON runner report.");
+        stream.println("  --report-file <file>  Alias for --report.");
         stream.println("  --constructor-policy  Constructor handling policy. Valid values: delete, preserve, comment (default: comment).");
         stream.println("  --class <name>        With run, filter specs by described class name (exact match, repeatable).");
         stream.println("  --example <name>      With run, filter examples by method name, display name, or order index (repeatable).");
@@ -1107,6 +1126,9 @@ public final class Main {
         private String errorMessage;
         private String configPath;
         private String suiteName;
+        private String reportPath;
+        private String reportOption;
+        private boolean reportSpecified;
         private String formatter;
         private boolean formatterSpecified;
         private String formatterOverride;

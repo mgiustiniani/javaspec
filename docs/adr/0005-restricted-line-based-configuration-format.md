@@ -31,3 +31,8 @@ Negative consequences:
 - Users do not get a general-purpose configuration language.
 - Nested structures, includes, quoting rules, environment interpolation, and inline comments are intentionally not supported.
 - Future richer configuration needs may require either compatible extensions to this format or optional integrations outside the core runtime.
+
+Implementation follow-up:
+
+- Phase 9 made configured `profile` and `formatter` active run selections with command-line overrides; selected profiles are still not deeply enforced during execution.
+- Phase 11 kept CLI formatter selection limited to built-in `progress` and `pretty`; config cannot select extension-provided formatter names because external extension loading is not implemented.
