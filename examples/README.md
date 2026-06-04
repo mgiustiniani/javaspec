@@ -30,4 +30,28 @@ Outputs:
 - `examples/gradle-basic/build/reports/javaspec/junit-report.xml`
 - `examples/junit-platform-basic/target/surefire-reports/`
 
+Specs can explicitly skip or mark examples pending without adding dependencies:
+
+```java
+import org.javaspec.api.Pending;
+import org.javaspec.api.Skip;
+
+public class PaymentSpec extends PaymentSpecSupport {
+    @Skip(reason = "requires external sandbox")
+    public void it_refunds_a_charge() {
+    }
+
+    @Pending("waiting for billing provider")
+    public void it_charges_a_card() {
+    }
+
+    public void it_can_stop_at_runtime() {
+        pending("replace stub with contract test");
+        // or: skip("requires test data")
+    }
+}
+```
+
+JSON reports include separate `pending` counts and `status: "PENDING"`. JUnit XML-compatible reports map pending examples to `<skipped message="Pending: ...">` and include pending in the testsuite `skipped` attribute.
+
 If Gradle is not available locally, set `JAVASPEC_SKIP_GRADLE_EXAMPLE=1` when running `scripts/verify-examples.sh`.

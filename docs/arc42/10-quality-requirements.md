@@ -5,11 +5,11 @@
 | Quality attribute | Scenario | Evidence / current status |
 |---|---|---|
 | Java 8 compatibility | The runtime artifact executes on Java 8 and does not link directly to Java 9+ APIs. | Phase 12 Java 8 Distrobox `mvn clean` and `mvn verify` passed; compiler source/target is 1.8; bytecode and constant-pool audits are summarized in [Test and Quality Report](../test-report.md). |
-| Zero runtime dependencies | Runtime dependency scope contains only the javaspec artifact for core; optional adapters do not leak dependencies into core. | Phase 12 Java 25 runtime dependency audit passed with only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`; Phase 15 root runtime audit passed with only `org.javaspec:javaspec`, and Maven plugin runtime audit passed with the plugin plus compile-scope core only; Phase 16 root runtime audit passed with only `org.javaspec:javaspec`, and Gradle plugin runtimeClasspath contained only `org.javaspec:javaspec:0.1.0-SNAPSHOT`; Phase 17 root runtime audit passed with only `org.javaspec:javaspec`, and JUnit Platform engine runtime dependencies stayed isolated to the optional engine artifact; Phase 18 root runtime audit passed with only `org.javaspec:javaspec` and adapter runtime summaries remained isolated; Phase 19 aggregate verification repeated the root and adapter runtime audits with the same isolation; Phase 20 root and adapter runtime audits preserved the same isolation; Phase 21 root and example runtime dependency checks stayed clean. |
-| Deterministic CLI/build-tool/engine behavior | Commands, options, prompts, output modes, explicit classpath handling, stable ids/source metadata, report writing, Maven/Gradle plugin adapter behavior, JUnit Platform engine mapping, aggregate verification, release-readiness checks, and exit codes/events are stable for local and CI usage. | CLI and optional Maven/Gradle/JUnit Platform adapter behavior are documented in the user manual; Phase 12 ran 364 tests per JDK across the matrix; Phase 15 standalone Maven plugin verification passed with 12 plugin tests; Phase 16 standalone Gradle plugin verification passed with 11 plugin tests using Gradle 8.8; Phase 17 standalone JUnit Platform engine verification passed with 12 tests; Phase 18 core and adapter verification passed with stable id/source/report assertions; Phase 19 `scripts/verify-all.sh` full aggregate verification passed locally; Phase 20 version alignment, release-artifact packaging, and full aggregate verification passed locally; Phase 21 schema/golden validation, standalone examples verification, and full aggregate verification with examples passed locally. |
+| Zero runtime dependencies | Runtime dependency scope contains only the javaspec artifact for core; optional adapters do not leak dependencies into core. | Phase 12 Java 25 runtime dependency audit passed with only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`; Phase 15 root runtime audit passed with only `org.javaspec:javaspec`, and Maven plugin runtime audit passed with the plugin plus compile-scope core only; Phase 16 root runtime audit passed with only `org.javaspec:javaspec`, and Gradle plugin runtimeClasspath contained only `org.javaspec:javaspec:0.1.0-SNAPSHOT`; Phase 17 root runtime audit passed with only `org.javaspec:javaspec`, and JUnit Platform engine runtime dependencies stayed isolated to the optional engine artifact; Phase 18 root runtime audit passed with only `org.javaspec:javaspec` and adapter runtime summaries remained isolated; Phase 19 aggregate verification repeated the root and adapter runtime audits with the same isolation; Phase 20 root and adapter runtime audits preserved the same isolation; Phase 21 root and example runtime dependency checks stayed clean; Phase 22 root/plugin/Gradle runtime audits preserved zero-dependency core and isolated optional-adapter dependencies. |
+| Deterministic CLI/build-tool/engine behavior | Commands, options, prompts, output modes, explicit classpath handling, stable ids/source metadata, report writing, Maven/Gradle plugin adapter behavior, JUnit Platform engine mapping, aggregate verification, release-readiness checks, and exit codes/events are stable for local and CI usage. | CLI and optional Maven/Gradle/JUnit Platform adapter behavior are documented in the user manual; Phase 12 ran 364 tests per JDK across the matrix; Phase 15 standalone Maven plugin verification passed with 12 plugin tests; Phase 16 standalone Gradle plugin verification passed with 11 plugin tests using Gradle 8.8; Phase 17 standalone JUnit Platform engine verification passed with 12 tests; Phase 18 core and adapter verification passed with stable id/source/report assertions; Phase 19 `scripts/verify-all.sh` full aggregate verification passed locally; Phase 20 version alignment, release-artifact packaging, and full aggregate verification passed locally; Phase 21 schema/golden validation, standalone examples verification, and full aggregate verification with examples passed locally; Phase 22 targeted changed tests, root `mvn -q test`, root `mvn -q verify`, standalone adapter verification, examples verification, and aggregate verification passed locally. |
 | Safe generation | Production source generation/update is gated by prompts, `--generate`, or `--dry-run` planning. | ADR 0003, ADR 0004, ADR 0008, and the user manual document generation ownership and policies. |
 | Accurate implemented-feature documentation | Docs do not overstate unsupported behavior. | Limitations are recorded in the user manual, README, ARC42 section 11, and ADR consequences. |
-| Extensibility without dependency cost | Formatter, extension, reporting, invocation contracts, optional adapters, release verification assets, release-readiness scaffolding, and adoption assets are public boundaries without adding libraries to the core runtime. | ADR 0010 documents programmatic-only extension behavior and lack of external CLI loading; ADR 0011 covers no-JUnit invocation and optional adapters; ADR 0012 covers aggregate release/CI verification without mandatory Maven multi-module conversion; ADR 0013 covers release-readiness scaffolding with resolved MIT license/maintainer metadata and postponed publishing/signing/portal decisions; ADR 0014 covers standalone adoption assets and examples-by-default verification; Phase 15 verifies the standalone Maven plugin boundary, Phase 16 verifies the standalone Gradle plugin boundary, Phase 17 verifies the standalone JUnit Platform engine boundary, Phase 19 verifies the aggregate script boundary, Phase 20 verifies the release-readiness boundary, and Phase 21 verifies the adoption-assets boundary. |
+| Extensibility without dependency cost | Formatter, extension, reporting, invocation contracts, optional adapters, release verification assets, release-readiness scaffolding, and adoption assets are public boundaries without adding libraries to the core runtime. | ADR 0010 documents programmatic-only extension behavior and lack of external CLI loading; ADR 0011 covers no-JUnit invocation and optional adapters; ADR 0012 covers aggregate release/CI verification without mandatory Maven multi-module conversion; ADR 0013 covers release-readiness scaffolding with resolved MIT license/maintainer metadata and postponed publishing/signing/portal decisions; ADR 0014 covers standalone adoption assets and examples-by-default verification; ADR 0015 covers explicit skipped/pending semantics without dependency cost; Phase 15 verifies the standalone Maven plugin boundary, Phase 16 verifies the standalone Gradle plugin boundary, Phase 17 verifies the standalone JUnit Platform engine boundary, Phase 19 verifies the aggregate script boundary, Phase 20 verifies the release-readiness boundary, Phase 21 verifies the adoption-assets boundary, and Phase 22 verifies the explicit skipped/pending/report-adapter boundary. |
 | LTS awareness | Java 8, 11, 17, 21, and 25 profiles are modeled and verified where runtime probing is relevant. | Phase 12 matrix passed; Java 25 Gatherer reflection probe passed. |
 
 ## 10.2 Quality Scenarios
@@ -37,21 +37,21 @@
 ### Execution Determinism
 
 - Discovery order, filter behavior, example selection, and result status mapping must remain deterministic.
-- `AssertionError` is FAILED; non-assertion throwables are BROKEN; non-loadable specs are SKIPPED.
+- `AssertionError` is FAILED; non-assertion throwables are BROKEN; non-loadable specs are SKIPPED; explicit pending examples are PENDING and counted separately from skipped.
 - `--stop-on-failure` stops after the first FAILED or BROKEN executable example.
-- Skipped-only runs remain successful; failed or broken executable examples exit `1`.
+- Skipped-only, pending-only, and skipped-plus-pending runs remain successful; failed or broken executable examples exit `1`.
 
 ### Reporting and CI
 
 - Built-in `progress` and `pretty` formatters must remain deterministic.
-- JSON report schemaVersion 1 must remain stable unless a future schema decision is made; additive stable id/source fields must preserve existing fields.
-- JUnit XML-compatible reports must be generated without JUnit or XML/reporting runtime dependencies, with testcase file/line attributes only when source data is available.
+- JSON report schemaVersion 1 must remain stable unless a future schema decision is made; additive stable id/source and pending fields must preserve existing fields.
+- JUnit XML-compatible reports must be generated without JUnit or XML/reporting runtime dependencies, with testcase file/line attributes only when source data is available and with both skipped and pending examples represented as `<skipped>` for compatibility.
 - JSON and JUnit XML-compatible reports can be requested together for no-spec and executed run paths.
 - Dry-run pending generation/update exits before execution and must not write reports.
 - Report write failures must include the report path and exit `70`.
 - Programmatic invocation must not call `System.exit` and must return structured results with deterministic exit-code mapping.
 - Test and quality claims must cite produced tester/quality reports rather than invented results.
-- Optional JUnit Platform engine execution must remain an adapter over canonical discovery and `JavaspecLauncher`, avoid `System.exit`, and map passed/failed/broken/skipped javaspec states to JUnit Platform events without requiring spec authoring changes.
+- Optional JUnit Platform engine execution must remain an adapter over canonical discovery and `JavaspecLauncher`, avoid `System.exit`, and map passed/failed/broken/skipped/pending javaspec states to JUnit Platform events without requiring spec authoring changes.
 - Aggregate release verification must keep root `mvn verify` core-only, verify standalone adapters explicitly after installing the current core snapshot, run standalone examples by default unless explicitly skipped, and fail clearly when a required local Gradle executable cannot be resolved.
 - CI documentation must distinguish configured/local-validated workflow YAML from actual remote GitHub Actions results and must state remote status by phase.
 - Release-readiness documentation must keep public publication postponed until GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval are resolved; local source/javadoc packaging and standalone examples must not be described as signing, staging, deployment, publication, or remote CI success.
@@ -91,7 +91,7 @@ Phase 14 is the current authoritative verification for no-JUnit invocation, expl
 Verified Phase 14 quality points:
 
 - `JavaspecLauncher` returns structured results and does not terminate the JVM with `System.exit`.
-- Exit-code mapping returns `0` for passing, skipped-only, and no-spec invocation paths, and `1` for failed or broken execution.
+- Exit-code mapping returns `0` for passing, skipped/pending-only, and no-spec invocation paths, and `1` for failed or broken execution.
 - `--classpath` and `--classpath-file` use explicit compiled-class entries for type existence checks and spec execution, with UTF-8 classpath files and comment/blank-line handling.
 - `--junit-xml` and `--junit-xml-file` write no-spec and normal run reports; failing/broken runs write reports before exit `1`; dry-run pending generation/update writes no reports; report I/O failures exit `70` with path diagnostics.
 - JSON `--report` / `--report-file` behavior remains compatible, and JSON plus JUnit XML-compatible reports can be requested together.
@@ -293,7 +293,41 @@ Verified Phase 21 quality points:
 
 See [Test and Quality Report](../test-report.md) for details.
 
-## 10.12 Quality Gates for Future Work
+## 10.12 Phase 22 Verification Summary
+
+Phase 22 is the current authoritative verification for explicit skipped/pending semantics:
+
+| Command / check | Result |
+|---|---|
+| Targeted changed tests | PASS — 78 tests |
+| `mvn -q test` | PASS — 399 tests |
+| `mvn -q verify` | PASS |
+| `mvn dependency:tree -Dscope=runtime` | PASS — root runtime only `org.javaspec:javaspec` |
+| `mvn -q -DskipTests install` | PASS |
+| Standalone Maven plugin `mvn -q -f javaspec-maven-plugin/pom.xml verify` | PASS — 13 tests |
+| Maven plugin runtime dependency tree | PASS — `org.javaspec:javaspec` only |
+| Standalone JUnit Platform engine `mvn -q -f javaspec-junit-platform-engine/pom.xml verify` | PASS — 13 tests |
+| JUnit Platform engine runtime dependency tree | PASS — core plus isolated `junit-platform-engine`, `opentest4j`, `junit-platform-commons`, and `apiguardian-api` |
+| Standalone Gradle plugin `/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin clean test build` | PASS — 12 tests; Java 8 obsolete source/target warnings only |
+| Gradle plugin runtimeClasspath | PASS — `org.javaspec:javaspec` only |
+| `JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-examples.sh` | PASS |
+| `JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-all.sh` | PASS |
+| Remote CI execution | NOT CLAIMED — Phase 22 local verification only |
+
+Verified Phase 22 quality points:
+
+- Public skip/pending API annotations, exceptions, helper methods, default messages, values, reasons, and precedence are covered.
+- Annotation-based skip/pending avoids spec instantiation and lifecycle/body execution.
+- Runtime skip/pending from examples, `ObjectBehavior`, and `let()` is covered, including `letGo()` failure becoming `BROKEN`.
+- `PENDING` is distinct from `SKIPPED`; `skippedCount()` remains skipped-only and `pendingCount()` is separate.
+- Exit success is preserved when only passed/skipped/pending examples exist.
+- Formatter/CLI JSON/JUnit XML/Maven/Gradle/JUnit Platform behavior is covered.
+- Root core remains zero-runtime-dependency and optional adapter dependency isolation is preserved.
+- No Phase 22 remote CI success is claimed.
+
+See [Test and Quality Report](../test-report.md) for details.
+
+## 10.13 Quality Gates for Future Work
 
 Future implementation phases should preserve these gates:
 

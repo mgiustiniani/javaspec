@@ -203,6 +203,70 @@ public class ObjectBehaviorTest {
                 new Object[] {map, "emerald"}, "to have key", "emerald");
     }
 
+    @Test
+    public void skipSignalsThrowPublicApiExceptionWithDefaultMessageAndNoReason() {
+        SkipSignalBehavior behavior = new SkipSignalBehavior();
+
+        SkipExampleException exception = (SkipExampleException) expect(SkipExampleException.class, new ThrowingCall() {
+            @Override
+            public void run() {
+                behavior.callSkip();
+            }
+        });
+
+        assertEquals("Skipped by javaspec.", exception.getMessage());
+        assertEquals("", exception.reason());
+        assertEquals("", exception.getReason());
+    }
+
+    @Test
+    public void skipSignalsThrowPublicApiExceptionWithExplicitReason() {
+        SkipSignalBehavior behavior = new SkipSignalBehavior();
+
+        SkipExampleException exception = (SkipExampleException) expect(SkipExampleException.class, new ThrowingCall() {
+            @Override
+            public void run() {
+                behavior.callSkip("not available on this platform");
+            }
+        });
+
+        assertEquals("not available on this platform", exception.getMessage());
+        assertEquals("not available on this platform", exception.reason());
+        assertEquals("not available on this platform", exception.getReason());
+    }
+
+    @Test
+    public void pendingSignalsThrowPublicApiExceptionWithDefaultMessageAndNoReason() {
+        SkipSignalBehavior behavior = new SkipSignalBehavior();
+
+        PendingExampleException exception = (PendingExampleException) expect(PendingExampleException.class, new ThrowingCall() {
+            @Override
+            public void run() {
+                behavior.callPending();
+            }
+        });
+
+        assertEquals("Pending by javaspec.", exception.getMessage());
+        assertEquals("", exception.reason());
+        assertEquals("", exception.getReason());
+    }
+
+    @Test
+    public void pendingSignalsThrowPublicApiExceptionWithExplicitReason() {
+        SkipSignalBehavior behavior = new SkipSignalBehavior();
+
+        PendingExampleException exception = (PendingExampleException) expect(PendingExampleException.class, new ThrowingCall() {
+            @Override
+            public void run() {
+                behavior.callPending("awaiting design feedback");
+            }
+        });
+
+        assertEquals("awaiting design feedback", exception.getMessage());
+        assertEquals("awaiting design feedback", exception.reason());
+        assertEquals("awaiting design feedback", exception.getReason());
+    }
+
     private static Throwable expect(Class<? extends Throwable> expectedType, ThrowingCall call) {
         try {
             call.run();
@@ -514,6 +578,24 @@ public class ObjectBehaviorTest {
     private static final class FailingFactoryBehavior extends ObjectBehavior<FailingFactorySubject> {
         FailingFactoryBehavior() {
             super(FailingFactorySubject.class);
+        }
+    }
+
+    private static final class SkipSignalBehavior extends ObjectBehavior<Object> {
+        void callSkip() {
+            skip();
+        }
+
+        void callSkip(String reason) {
+            skip(reason);
+        }
+
+        void callPending() {
+            pending();
+        }
+
+        void callPending(String reason) {
+            pending(reason);
         }
     }
 }

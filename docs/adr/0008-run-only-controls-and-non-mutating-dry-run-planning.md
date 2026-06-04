@@ -14,7 +14,7 @@ The implementation must preserve the PHPSpec-style split from ADR 0003, the Java
 
 Run controls are accepted only by `javaspec run`. `describe` and `desc` reject `--generate`, `--dry-run`, `--stop-on-failure`, `--formatter`, `--profile`, `--verbose`, `--report`, `--report-file`, `--constructor-policy`, `--class`, and `--example` because those options either mutate production code, control execution, or describe run output.
 
-`run --dry-run` performs discovery and planning without writes and without prompts. It reports pending related-spec/support generation, support updates, constructor changes, method bodies, ordinary-interface declarations, annotation elements, and missing production type generation. Dry-run exits `1` when pending generation/update work exists. If no pending work exists, execution proceeds according to the normal runner result semantics, so passing or skipped-only runs exit `0` and failed or broken executable examples exit `1`.
+`run --dry-run` performs discovery and planning without writes and without prompts. It reports pending related-spec/support generation, support updates, constructor changes, method bodies, ordinary-interface declarations, annotation elements, and missing production type generation. Dry-run exits `1` when pending generation/update work exists. If no pending generation/update work exists, execution proceeds according to the normal runner result semantics, so passing or skipped/pending-only runs exit `0` and failed or broken executable examples exit `1`.
 
 `run --stop-on-failure` stops reflection execution after the first FAILED or BROKEN executable example. Without the flag, the runner processes all discovered example metadata.
 

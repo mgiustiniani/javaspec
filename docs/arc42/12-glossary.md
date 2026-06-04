@@ -19,8 +19,8 @@
 | Effective classloader | The classloader visible to the CLI process. The runner can execute only spec classes available there unless an explicit classloader is selected. |
 | Explicit classpath | `run --classpath` or `--classpath-file` entries used to create the selected classloader for type existence checks and spec execution. Entries must point to already compiled classes or archives. |
 | Example | A public `void` Java spec method named `it_*` or `its_*`. |
-| Example status | Runtime outcome: `PASSED`, `FAILED`, `BROKEN`, or `SKIPPED`. |
-| GitHub Actions workflow | `.github/workflows/ci.yml`; Phase 19 CI configuration with a Java 8/11/17/21/25 core matrix and Java 21 full-verification job. Phase 19 remote success is user-/maintainer-confirmed for HEAD `4d30e63` on `develop`; Phase 20 and Phase 21 have no remote CI success claim in the current evidence. |
+| Example status | Runtime outcome: `PASSED`, `FAILED`, `BROKEN`, `SKIPPED`, or `PENDING`. |
+| GitHub Actions workflow | `.github/workflows/ci.yml`; Phase 19 CI configuration with a Java 8/11/17/21/25 core matrix and Java 21 full-verification job. Phase 19 remote success is user-/maintainer-confirmed for HEAD `4d30e63` on `develop`; Phase 20, Phase 21, and Phase 22 have no remote CI success claim in the current evidence. |
 | Stable id | Identifier exposed by discovery/result objects and reports. Spec ids derive from the spec qualified name; example ids use `<specQualifiedName>#<methodName>` and match `ExampleResult.fullName()`. |
 | Extension API | Programmatic contracts `JavaspecExtension`/`Extension` and `ExtensionContext`. External CLI extension discovery/loading is not implemented. |
 | Formatter | A `RunFormatter` implementation. The CLI supports built-in `progress` and `pretty` names. |
@@ -33,24 +33,26 @@
 | `JavaspecTestEngine` | Phase 17 optional JUnit Platform `TestEngine` implementation with engine id `javaspec`; it is registered through ServiceLoader, filters canonical discovery by JUnit Platform selectors/configuration parameters, and delegates execution to `JavaspecLauncher` without `System.exit`. |
 | JUnit Platform engine adapter | Standalone optional artifact `javaspec-junit-platform-engine/` packaging `org.javaspec:javaspec-junit-platform-engine:0.1.0-SNAPSHOT`; it is not a root Maven module and does not add JUnit Platform dependencies to the core runtime artifact. |
 | JUnit Platform selector | Class, package, method, or unique-id selector supplied by JUnit Platform and applied by the optional engine as a filter over canonical javaspec discovery results. |
-| JUnit XML-compatible report | Dependency-free UTF-8 XML report written by `run --junit-xml` / `--junit-xml-file`, Maven/Gradle plugin report settings, or core report writers from `RunResult`; it does not require JUnit. Phase 21 adds a golden passing XML report under `docs/examples/reports/`. |
+| JUnit XML-compatible report | Dependency-free UTF-8 XML report written by `run --junit-xml` / `--junit-xml-file`, Maven/Gradle plugin report settings, or core report writers from `RunResult`; it does not require JUnit. SKIPPED and PENDING both map to `<skipped>`, and the testsuite `skipped` attribute includes both. Phase 21 adds a golden passing XML report under `docs/examples/reports/`; Phase 22 adds a pending XML golden. |
 | LTS profile | Target Java profile key: `java8`, `java11`, `java17`, `java21`, or `java25`. |
 | Matchable | Fluent expectation wrapper returned by typed proxy methods and `match(actual)`. |
 | Maven plugin adapter | Standalone optional artifact `javaspec-maven-plugin/` packaging `org.javaspec:javaspec-maven-plugin:0.1.0-SNAPSHOT` as a Maven plugin with goal prefix `javaspec`. It is not a root module and does not require JUnit in projects under test. |
 | Maven test classpath | The compiled test-scope classpath supplied by Maven to the optional plugin and used as input to the canonical javaspec runner. |
 | Maven `release-artifacts` profile | Phase 20 Maven profile on root, Maven plugin, and JUnit Platform engine builds that creates local sources and javadocs only; it does not sign, stage, deploy, or publish. |
 | Missing sealed-interface skeleton | A generated sealed-interface source file that can include root method declarations and nested permitted implementation bodies. |
+| Pending example | An example intentionally marked as pending through `@Pending`, `PendingExampleException`, or `ObjectBehavior.pending(...)`. It is counted separately from skipped in core results and JSON, but maps to skipped in JUnit-compatible outputs. |
 | PHPSpec-inspired | Modeled after PHPSpec workflow concepts while adapted to Java packages, classes, static typing, compilation, and interfaces. |
 | Profile catalog | Metadata model for Java LTS profiles, feature flags, and API symbols under `org.javaspec.profile`. |
 | Reflection runner | Dependency-free runner that executes compiled spec examples by Java reflection after discovery/generation/update work. |
 | Release checklist | `RELEASING.md`; Phase 20 local release-readiness checklist that documents verification steps and explicit blockers before public publication. |
 | Publication blockers | Required decisions, credentials, or approvals that remain intentionally unresolved before public release: GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval. The MIT `LICENSE` and maintainer metadata are already confirmed. |
 | Report | Optional machine-readable output written by `run`, currently JSON via `--report` / `--report-file` and JUnit XML-compatible XML via `--junit-xml` / `--junit-xml-file`. |
-| Report schema | `docs/schemas/run-report-v1.schema.json`; Phase 21 JSON Schema documentation for `schemaVersion` 1 run reports. |
+| Report schema | `docs/schemas/run-report-v1.schema.json`; Phase 21 JSON Schema documentation for `schemaVersion` 1 run reports, updated in Phase 22 with optional additive `pending` counts and `PENDING` status. |
 | Standalone examples | Consumer projects under `examples/` for Maven plugin, Gradle plugin, and JUnit Platform engine adoption paths. They are not root modules and are verified by `scripts/verify-examples.sh` or by the default examples section in `scripts/verify-all.sh`. |
 | `run` | CLI command that discovers specs, owns production generation/update, can execute compiled examples, renders output, and can write reports. |
 | Sealed-interface update deferral | Intentional limitation: existing sealed-interface source updates are skipped until nested permitted implementation updates can be done safely. |
 | Source location metadata | Source file path and 1-based source line information captured from discovered specs/examples and propagated to runner results and reports where available. |
+| Skip annotation/signal | `@Skip`, `SkipExampleException`, or `ObjectBehavior.skip(...)`; explicitly marks an example skipped without adding dependencies. Annotation-based skip does not instantiate the spec or run lifecycle/body code. |
 | Source-only spec | A discovered spec source file whose compiled class is unavailable to the runner; examples are reported as skipped. |
 | Spec package prefix | Suite naming prefix for generated/discovered spec classes, default `spec`. |
 | Spec root | File-system root searched for specification sources, default `src/test/java`. |

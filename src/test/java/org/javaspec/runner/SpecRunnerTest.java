@@ -1,9 +1,14 @@
 package org.javaspec.runner;
 
 import org.javaspec.api.ObjectBehavior;
+import org.javaspec.api.Pending;
+import org.javaspec.api.PendingExampleException;
+import org.javaspec.api.Skip;
+import org.javaspec.api.SkipExampleException;
 import org.javaspec.discovery.DiscoveredSpec;
 import org.javaspec.discovery.SpecExample;
 import org.javaspec.doubles.InterfaceDouble;
+import org.javaspec.invocation.JavaspecExitCode;
 import org.javaspec.model.DescribedType;
 import org.junit.Test;
 
@@ -80,6 +85,162 @@ public class SpecRunnerTest {
         assertTrue(broken.failureDetail().summary().contains("unexpected boom"));
         assertEquals(Arrays.asList(failed), result.failedExamples());
         assertEquals(Arrays.asList(broken), result.brokenExamples());
+    }
+
+    @Test
+    public void annotationBasedSkipAndPendingResultsUseReasonsAndSkipPrecedence() {
+        RunResult result = run(
+                AnnotationSignalSpec.class,
+                "it_is_skipped_by_default",
+                "it_is_skipped_with_value",
+                "it_is_skipped_with_reason",
+                "it_is_pending_by_default",
+                "it_is_pending_with_value",
+                "it_is_pending_with_reason",
+                "it_prefers_skip_over_pending"
+        );
+
+        assertEquals(7, result.totalCount());
+        assertEquals(0, result.passedCount());
+        assertEquals(0, result.failedCount());
+        assertEquals(0, result.brokenCount());
+        assertEquals(4, result.skippedCount());
+        assertEquals(3, result.pendingCount());
+        assertEquals(7, result.skippedOrPendingCount());
+        assertTrue(result.isSuccessful());
+
+        assertExample(result.exampleResults().get(0), ExampleStatus.SKIPPED, "Skipped by javaspec.");
+        assertExample(result.exampleResults().get(1), ExampleStatus.SKIPPED, "skip value");
+        assertExample(result.exampleResults().get(2), ExampleStatus.SKIPPED, "skip reason");
+        assertExample(result.exampleResults().get(3), ExampleStatus.PENDING, "Pending by javaspec.");
+        assertExample(result.exampleResults().get(4), ExampleStatus.PENDING, "pending value");
+        assertExample(result.exampleResults().get(5), ExampleStatus.PENDING, "pending reason");
+        assertExample(result.exampleResults().get(6), ExampleStatus.SKIPPED, "skip wins");
+    }
+
+    @Test
+    public void annotationSkipAndPendingDoNotConstructSpecOrRunLifecycleOrExampleBody() {
+        AnnotationLifecycleSpec.reset();
+
+        RunResult result = run(
+                AnnotationLifecycleSpec.class,
+                "it_is_skipped_without_lifecycle",
+                "it_is_pending_without_lifecycle"
+        );
+
+        assertEquals(2, result.totalCount());
+        assertEquals(1, result.skippedCount());
+        assertEquals(1, result.pendingCount());
+        assertEquals(0, AnnotationLifecycleSpec.constructorCalls);
+        assertEquals(0, AnnotationLifecycleSpec.letCalls);
+        assertEquals(0, AnnotationLifecycleSpec.letGoCalls);
+        assertEquals(0, AnnotationLifecycleSpec.exampleCalls);
+    }
+
+    @Test
+    public void runtimeSkipAndPendingExceptionsFromExamplesAndConvenienceMethodsMapToNonExecutedResults() {
+        RunResult result = run(
+                RuntimeSignalSpec.class,
+                "it_skips_with_direct_exception",
+                "it_pends_with_direct_exception",
+                "it_skips_with_convenience_method",
+                "it_pends_with_convenience_method"
+        );
+
+        assertEquals(4, result.totalCount());
+        assertEquals(0, result.passedCount());
+        assertEquals(0, result.failedCount());
+        assertEquals(0, result.brokenCount());
+        assertEquals(2, result.skippedCount());
+        assertEquals(2, result.pendingCount());
+        assertTrue(result.isSuccessful());
+        assertFalse(result.hasFailures());
+        assertEquals(0, JavaspecExitCode.from(result));
+
+        assertExample(result.exampleResults().get(0), ExampleStatus.SKIPPED, "direct skip");
+        assertExample(result.exampleResults().get(1), ExampleStatus.PENDING, "direct pending");
+        assertExample(result.exampleResults().get(2), ExampleStatus.SKIPPED, "helper skip");
+        assertExample(result.exampleResults().get(3), ExampleStatus.PENDING, "helper pending");
+    }
+
+    @Test
+    public void runtimeSkipAndPendingFromLetStillRunLetGo() {
+        LetSkipSignalSpec.reset();
+        RunResult skipped = run(LetSkipSignalSpec.class, "it_never_reaches_example_body");
+
+        assertEquals(1, skipped.skippedCount());
+        assertEquals(0, skipped.pendingCount());
+        assertExample(skipped.exampleResults().get(0), ExampleStatus.SKIPPED, "skip in let");
+        assertEquals(Arrays.asList("let", "letGo"), LetSkipSignalSpec.events);
+
+        LetPendingSignalSpec.reset();
+        RunResult pending = run(LetPendingSignalSpec.class, "it_never_reaches_example_body");
+
+        assertEquals(0, pending.skippedCount());
+        assertEquals(1, pending.pendingCount());
+        assertExample(pending.exampleResults().get(0), ExampleStatus.PENDING, "pending in let");
+        assertEquals(Arrays.asList("let", "letGo"), LetPendingSignalSpec.events);
+    }
+
+    @Test
+    public void letGoFailureAfterSkipOrPendingSignalBecomesBroken() {
+        RunResult afterSkip = run(LetGoFailsAfterSkipSpec.class, "it_is_interrupted_by_let");
+        ExampleResult brokenAfterSkip = afterSkip.exampleResults().get(0);
+
+        assertEquals(1, afterSkip.brokenCount());
+        assertEquals(0, afterSkip.skippedCount());
+        assertEquals(0, afterSkip.pendingCount());
+        assertEquals(ExampleStatus.BROKEN, brokenAfterSkip.status());
+        assertEquals("letGo() failed after skipped example", brokenAfterSkip.detail());
+        assertNotNull(brokenAfterSkip.failureDetail());
+        assertEquals(IllegalStateException.class.getName(), brokenAfterSkip.failureDetail().throwableClassName());
+        assertEquals("teardown after skip", brokenAfterSkip.failureDetail().message());
+
+        RunResult afterPending = run(LetGoFailsAfterPendingSpec.class, "it_is_interrupted_by_let");
+        ExampleResult brokenAfterPending = afterPending.exampleResults().get(0);
+
+        assertEquals(1, afterPending.brokenCount());
+        assertEquals(0, afterPending.skippedCount());
+        assertEquals(0, afterPending.pendingCount());
+        assertEquals(ExampleStatus.BROKEN, brokenAfterPending.status());
+        assertEquals("letGo() failed after pending example", brokenAfterPending.detail());
+        assertNotNull(brokenAfterPending.failureDetail());
+        assertEquals(IllegalStateException.class.getName(), brokenAfterPending.failureDetail().throwableClassName());
+        assertEquals("teardown after pending", brokenAfterPending.failureDetail().message());
+    }
+
+    @Test
+    public void aggregateResultsKeepSkippedAndPendingCountsSeparateAndSuccessful() {
+        ExampleResult passed = ExampleResult.of("spec.example.AggregateSpec", "it_passes", "it_passes", 0,
+                ExampleStatus.PASSED, "", null);
+        ExampleResult skipped = ExampleResult.of("spec.example.AggregateSpec", "it_skips", "it skips", 1,
+                ExampleStatus.SKIPPED, "skip reason", null);
+        ExampleResult pending = ExampleResult.of("spec.example.AggregateSpec", "it_pends", "it pends", 2,
+                ExampleStatus.PENDING, "pending reason", null);
+        SpecResult specResult = SpecResult.of("spec.example.AggregateSpec", Arrays.asList(passed, skipped, pending));
+        RunResult runResult = RunResult.of(Arrays.asList(specResult));
+
+        assertEquals(3, specResult.totalCount());
+        assertEquals(1, specResult.passedCount());
+        assertEquals(1, specResult.skippedCount());
+        assertEquals(1, specResult.pendingCount());
+        assertEquals(2, specResult.skippedOrPendingCount());
+        assertEquals(Arrays.asList(skipped), specResult.skippedExamples());
+        assertEquals(Arrays.asList(pending), specResult.pendingExamples());
+        assertEquals(Arrays.asList(skipped, pending), specResult.skippedOrPendingExamples());
+        assertTrue(specResult.isSuccessful());
+
+        assertEquals(3, runResult.totalCount());
+        assertEquals(1, runResult.passedCount());
+        assertEquals(1, runResult.skippedCount());
+        assertEquals(1, runResult.pendingCount());
+        assertEquals(2, runResult.skippedOrPendingCount());
+        assertEquals(Arrays.asList(skipped), runResult.skippedExamples());
+        assertEquals(Arrays.asList(pending), runResult.pendingExamples());
+        assertEquals(Arrays.asList(skipped, pending), runResult.skippedOrPendingExamples());
+        assertTrue(runResult.isSuccessful());
+        assertFalse(runResult.hasFailures());
+        assertEquals(0, JavaspecExitCode.from(runResult));
     }
 
     @Test
@@ -228,6 +389,12 @@ public class SpecRunnerTest {
         return namedSpec(specClass.getName(), "example." + specClass.getSimpleName(), exampleNames);
     }
 
+    private static void assertExample(ExampleResult result, ExampleStatus status, String detail) {
+        assertEquals(status, result.status());
+        assertEquals(detail, result.detail());
+        assertFalse(result.hasFailureDetail());
+    }
+
     private static DiscoveredSpec namedSpec(String specQualifiedName, String describedQualifiedName, String... exampleNames) {
         List<SpecExample> examples = new ArrayList<SpecExample>();
         for (int i = 0; i < exampleNames.length; i++) {
@@ -308,6 +475,166 @@ public class SpecRunnerTest {
         String compose(String name);
 
         void publish(String message);
+    }
+
+    public static final class AnnotationSignalSpec {
+        @Skip
+        public void it_is_skipped_by_default() {
+            throw new AssertionError("annotation skip should not run the example body");
+        }
+
+        @Skip("skip value")
+        public void it_is_skipped_with_value() {
+            throw new AssertionError("annotation skip value should not run the example body");
+        }
+
+        @Skip(reason = "skip reason")
+        public void it_is_skipped_with_reason() {
+            throw new AssertionError("annotation skip reason should not run the example body");
+        }
+
+        @Pending
+        public void it_is_pending_by_default() {
+            throw new AssertionError("annotation pending should not run the example body");
+        }
+
+        @Pending("pending value")
+        public void it_is_pending_with_value() {
+            throw new AssertionError("annotation pending value should not run the example body");
+        }
+
+        @Pending(reason = "pending reason")
+        public void it_is_pending_with_reason() {
+            throw new AssertionError("annotation pending reason should not run the example body");
+        }
+
+        @Skip(reason = "skip wins")
+        @Pending(reason = "pending loses")
+        public void it_prefers_skip_over_pending() {
+            throw new AssertionError("skip must take precedence over pending");
+        }
+    }
+
+    public static final class AnnotationLifecycleSpec {
+        static int constructorCalls;
+        static int letCalls;
+        static int letGoCalls;
+        static int exampleCalls;
+
+        public AnnotationLifecycleSpec() {
+            constructorCalls++;
+        }
+
+        static void reset() {
+            constructorCalls = 0;
+            letCalls = 0;
+            letGoCalls = 0;
+            exampleCalls = 0;
+        }
+
+        public void let() {
+            letCalls++;
+        }
+
+        @Skip(reason = "not runnable")
+        public void it_is_skipped_without_lifecycle() {
+            exampleCalls++;
+        }
+
+        @Pending(reason = "not implemented")
+        public void it_is_pending_without_lifecycle() {
+            exampleCalls++;
+        }
+
+        public void letGo() {
+            letGoCalls++;
+        }
+    }
+
+    public static final class RuntimeSignalSpec extends ObjectBehavior<Object> {
+        public void it_skips_with_direct_exception() {
+            throw new SkipExampleException("direct skip");
+        }
+
+        public void it_pends_with_direct_exception() {
+            throw new PendingExampleException("direct pending");
+        }
+
+        public void it_skips_with_convenience_method() {
+            skip("helper skip");
+        }
+
+        public void it_pends_with_convenience_method() {
+            pending("helper pending");
+        }
+    }
+
+    public static final class LetSkipSignalSpec {
+        static List<String> events = new ArrayList<String>();
+
+        static void reset() {
+            events = new ArrayList<String>();
+        }
+
+        public void let() {
+            events.add("let");
+            throw new SkipExampleException("skip in let");
+        }
+
+        public void it_never_reaches_example_body() {
+            events.add("example");
+        }
+
+        public void letGo() {
+            events.add("letGo");
+        }
+    }
+
+    public static final class LetPendingSignalSpec {
+        static List<String> events = new ArrayList<String>();
+
+        static void reset() {
+            events = new ArrayList<String>();
+        }
+
+        public void let() {
+            events.add("let");
+            throw new PendingExampleException("pending in let");
+        }
+
+        public void it_never_reaches_example_body() {
+            events.add("example");
+        }
+
+        public void letGo() {
+            events.add("letGo");
+        }
+    }
+
+    public static final class LetGoFailsAfterSkipSpec {
+        public void let() {
+            throw new SkipExampleException("skip before teardown");
+        }
+
+        public void it_is_interrupted_by_let() {
+        }
+
+        public void letGo() {
+            throw new IllegalStateException("teardown after skip");
+        }
+    }
+
+    public static final class LetGoFailsAfterPendingSpec {
+        public void let() {
+            throw new PendingExampleException("pending before teardown");
+        }
+
+        public void it_is_interrupted_by_let() {
+        }
+
+        public void letGo() {
+            throw new IllegalStateException("teardown after pending");
+        }
     }
 
     public static final class MissingMethodSpec {

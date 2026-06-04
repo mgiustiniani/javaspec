@@ -47,7 +47,7 @@ public final class JUnitXmlReportWriter {
         builder.append("<testsuite name=\"javaspec\" tests=\"").append(runResult.totalCount())
                 .append("\" failures=\"").append(runResult.failedCount())
                 .append("\" errors=\"").append(runResult.brokenCount())
-                .append("\" skipped=\"").append(runResult.skippedCount())
+                .append("\" skipped=\"").append(runResult.skippedOrPendingCount())
                 .append("\" time=\"0\">\n");
         List<ExampleResult> examples = runResult.exampleResults();
         for (int i = 0; i < examples.size(); i++) {
@@ -81,7 +81,7 @@ public final class JUnitXmlReportWriter {
             appendFailureOrError(builder, "failure", example);
         } else if (example.isBroken()) {
             appendFailureOrError(builder, "error", example);
-        } else if (example.isSkipped()) {
+        } else if (example.isSkippedOrPending()) {
             appendSkipped(builder, example);
         }
         builder.append("  </testcase>\n");
@@ -102,13 +102,25 @@ public final class JUnitXmlReportWriter {
     }
 
     private static void appendSkipped(StringBuilder builder, ExampleResult example) {
+        String message = skippedMessage(example);
         builder.append("    <skipped");
-        if (example.detail().length() > 0) {
+        if (message.length() > 0) {
             builder.append(" message=\"");
-            appendXmlAttribute(builder, example.detail());
+            appendXmlAttribute(builder, message);
             builder.append("\"");
         }
         builder.append("/>\n");
+    }
+
+    private static String skippedMessage(ExampleResult example) {
+        String detail = example.detail();
+        if (!example.isPending()) {
+            return detail;
+        }
+        if (isBlank(detail) || "Pending by javaspec.".equals(detail)) {
+            return "Pending by javaspec.";
+        }
+        return "Pending: " + detail;
     }
 
     private static void appendFailureText(StringBuilder builder, ExampleResult example, FailureDetail failure) {
@@ -179,6 +191,10 @@ public final class JUnitXmlReportWriter {
                 appendUnicodeEscapeLiteral(builder, character);
             }
         }
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.trim().length() == 0;
     }
 
     private static boolean isXmlCharacter(char character) {

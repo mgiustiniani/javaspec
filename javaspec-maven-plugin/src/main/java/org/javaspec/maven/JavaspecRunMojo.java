@@ -305,7 +305,8 @@ public final class JavaspecRunMojo extends AbstractMojo {
                 + ", passed=" + runResult.passedCount()
                 + ", failed=" + runResult.failedCount()
                 + ", broken=" + runResult.brokenCount()
-                + ", skipped=" + runResult.skippedCount() + ".");
+                + ", skipped=" + runResult.skippedCount()
+                + ", pending=" + runResult.pendingCount() + ".");
         if (runResult.hasFailures()) {
             List<ExampleResult> failures = runResult.failures();
             for (int i = 0; i < failures.size(); i++) {

@@ -23,6 +23,7 @@ public final class SpecResult {
     private final int failedCount;
     private final int brokenCount;
     private final int skippedCount;
+    private final int pendingCount;
 
     private SpecResult(
             String specQualifiedName,
@@ -41,6 +42,7 @@ public final class SpecResult {
         this.failedCount = count(exampleResults, ExampleStatus.FAILED);
         this.brokenCount = count(exampleResults, ExampleStatus.BROKEN);
         this.skippedCount = count(exampleResults, ExampleStatus.SKIPPED);
+        this.pendingCount = count(exampleResults, ExampleStatus.PENDING);
     }
 
     public static SpecResult executable(DiscoveredSpec spec, List<ExampleResult> exampleResults) {
@@ -181,6 +183,18 @@ public final class SpecResult {
         return skippedCount;
     }
 
+    public int pendingCount() {
+        return pendingCount;
+    }
+
+    public int skippedOrPendingCount() {
+        return skippedCount + pendingCount;
+    }
+
+    public int nonExecutedCount() {
+        return skippedOrPendingCount();
+    }
+
     public boolean isSuccessful() {
         return failedCount == 0 && brokenCount == 0;
     }
@@ -205,6 +219,28 @@ public final class SpecResult {
 
     public List<ExampleResult> skippedExamples() {
         return examplesWithStatus(ExampleStatus.SKIPPED);
+    }
+
+    public List<ExampleResult> pendingExamples() {
+        return examplesWithStatus(ExampleStatus.PENDING);
+    }
+
+    public List<ExampleResult> skippedOrPendingExamples() {
+        List<ExampleResult> results = new ArrayList<ExampleResult>();
+        for (int i = 0; i < exampleResults.size(); i++) {
+            ExampleResult result = exampleResults.get(i);
+            if (result.isSkippedOrPending()) {
+                results.add(result);
+            }
+        }
+        if (results.isEmpty()) {
+            return EMPTY_RESULTS;
+        }
+        return Collections.unmodifiableList(results);
+    }
+
+    public List<ExampleResult> nonExecutedExamples() {
+        return skippedOrPendingExamples();
     }
 
     public List<ExampleResult> failedExamples() {

@@ -14,7 +14,7 @@
 | Restricted configuration parser | Configuration files must be parsed by an internal line-based parser; no YAML/TOML/JSON parser may be added to the runtime artifact. |
 | Java 25 stream metadata | Java 25 stream gatherer metadata is implemented from verified API-documentation research, but runtime availability must remain metadata/reflection-only and be re-validated during quality-matrix work. |
 | JDK proxy-only doubles | Core doubles must use Java 8 JDK dynamic proxies and therefore support ordinary interfaces only. |
-| No-JUnit core execution | Programmatic invocation, CLI execution, JSON reports, JUnit XML-compatible reports, and optional Maven/Gradle plugin execution must not add JUnit or third-party runtime dependencies to the core artifact or require JUnit in projects under test; the optional JUnit Platform engine must keep JUnit Platform dependencies isolated to its standalone artifact. |
+| No-JUnit core execution | Programmatic invocation, CLI execution, skipped/pending semantics, JSON reports, JUnit XML-compatible reports, and optional Maven/Gradle plugin execution must not add JUnit or third-party runtime dependencies to the core artifact or require JUnit in projects under test; the optional JUnit Platform engine must keep JUnit Platform dependencies isolated to its standalone artifact. |
 
 ## 2.2 Organizational Constraints
 
@@ -37,6 +37,7 @@
 - Aggregate release verification must use explicit scripts/CI workflow configuration rather than changing the root Maven reactor unless a future ADR decides otherwise.
 - Release-readiness scaffolding must stay local and non-publishing until explicit owner decisions provide GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval.
 - Standalone examples and report schema/golden docs are adoption assets only; they must not be treated as root build modules, public publication, deployment, signing, or remote CI proof.
+- Explicit skipped/pending semantics must preserve the zero-runtime-dependency core and Java 8 baseline; pending may be mapped to skipped only in JUnit-compatible formats that lack a distinct pending status.
 
 ## 2.4 Compatibility Constraints
 

@@ -19,6 +19,7 @@ public final class RunResult {
     private final int failedCount;
     private final int brokenCount;
     private final int skippedCount;
+    private final int pendingCount;
 
     private RunResult(List<SpecResult> specResults) {
         this.specResults = specResults;
@@ -28,6 +29,7 @@ public final class RunResult {
         this.failedCount = count(exampleResults, ExampleStatus.FAILED);
         this.brokenCount = count(exampleResults, ExampleStatus.BROKEN);
         this.skippedCount = count(exampleResults, ExampleStatus.SKIPPED);
+        this.pendingCount = count(exampleResults, ExampleStatus.PENDING);
     }
 
     public static RunResult of(List<SpecResult> specResults) {
@@ -78,6 +80,18 @@ public final class RunResult {
         return skippedCount;
     }
 
+    public int pendingCount() {
+        return pendingCount;
+    }
+
+    public int skippedOrPendingCount() {
+        return skippedCount + pendingCount;
+    }
+
+    public int nonExecutedCount() {
+        return skippedOrPendingCount();
+    }
+
     public boolean isSuccessful() {
         return failedCount == 0 && brokenCount == 0;
     }
@@ -112,6 +126,28 @@ public final class RunResult {
         return examplesWithStatus(ExampleStatus.SKIPPED);
     }
 
+    public List<ExampleResult> pendingExamples() {
+        return examplesWithStatus(ExampleStatus.PENDING);
+    }
+
+    public List<ExampleResult> skippedOrPendingExamples() {
+        List<ExampleResult> results = new ArrayList<ExampleResult>();
+        for (int i = 0; i < exampleResults.size(); i++) {
+            ExampleResult result = exampleResults.get(i);
+            if (result.isSkippedOrPending()) {
+                results.add(result);
+            }
+        }
+        if (results.isEmpty()) {
+            return EMPTY_EXAMPLE_RESULTS;
+        }
+        return Collections.unmodifiableList(results);
+    }
+
+    public List<ExampleResult> nonExecutedExamples() {
+        return skippedOrPendingExamples();
+    }
+
     @Override
     public boolean equals(Object other) {
         if (this == other) {
@@ -138,6 +174,7 @@ public final class RunResult {
                 ", failedCount=" + failedCount +
                 ", brokenCount=" + brokenCount +
                 ", skippedCount=" + skippedCount +
+                ", pendingCount=" + pendingCount +
                 '}';
     }
 

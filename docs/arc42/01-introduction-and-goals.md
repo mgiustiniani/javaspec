@@ -2,7 +2,7 @@
 
 ## 1.1 Requirements Overview
 
-javaspec is a Java 8-compatible, zero-runtime-dependency specification framework inspired by phpspec. It supports an implemented first-MVP specification/generation slice, reflection runner, matcher expansion, MVP interface doubles, Phase 9 run controls, Phase 10 interface-style method generation, Phase 11 formatter/reporting/programmatic extension contracts, the Phase 14 no-JUnit integration foundation for programmatic invocation, explicit classpath input, and JUnit XML-compatible reports, Phase 15 Maven, Phase 16 Gradle, and Phase 17 JUnit Platform standalone optional adapters, Phase 18 stable identifier/source-location/report polish, Phase 19 aggregate release/CI verification, Phase 20 release-readiness scaffolding, and Phase 21 standalone adoption examples plus report schema/golden documentation. Future backlog work can grow the specification-first workflow further while preserving the conservative compatibility baseline.
+javaspec is a Java 8-compatible, zero-runtime-dependency specification framework inspired by phpspec. It supports an implemented first-MVP specification/generation slice, reflection runner, matcher expansion, MVP interface doubles, Phase 9 run controls, Phase 10 interface-style method generation, Phase 11 formatter/reporting/programmatic extension contracts, the Phase 14 no-JUnit integration foundation for programmatic invocation, explicit classpath input, and JUnit XML-compatible reports, Phase 15 Maven, Phase 16 Gradle, and Phase 17 JUnit Platform standalone optional adapters, Phase 18 stable identifier/source-location/report polish, Phase 19 aggregate release/CI verification, Phase 20 release-readiness scaffolding, Phase 21 standalone adoption examples plus report schema/golden documentation, and Phase 22 explicit skipped/pending semantics. Future backlog work can grow the specification-first workflow further while preserving the conservative compatibility baseline.
 
 Core requirements:
 
@@ -13,9 +13,9 @@ Core requirements:
 - Model Java LTS target profiles for Java 8, 11, 17, 21, and 25 through a profile catalog, API-symbol metadata, compatibility checks, and reflection-only probes.
 - Avoid direct production-code references to APIs unavailable on Java 8.
 - Support zero-runtime-dependency line-based configuration with suite-level spec/source directories, package-prefix naming, and selected-suite discovery.
-- Execute discovered examples through a Java 8-compatible reflection runner when compiled spec classes are available on the effective or selected explicit classloader, with optional stop-on-failure.
+- Execute discovered examples through a Java 8-compatible reflection runner when compiled spec classes are available on the effective or selected explicit classloader, with optional stop-on-failure and explicit skipped/pending semantics.
 - Support zero-runtime-dependency interface doubles using JDK dynamic proxies, with explicit limitations for unsupported concrete/static/constructor scenarios.
-- Support run-only CLI controls for dry-run planning, stop-on-failure, progress/pretty output, profile selection, verbose diagnostics, explicit classpath input, optional JSON reports, optional JUnit XML-compatible reports, stable identifiers, and source metadata where available.
+- Support run-only CLI controls for dry-run planning, stop-on-failure, progress/pretty output, profile selection, verbose diagnostics, explicit classpath input, optional JSON reports, optional JUnit XML-compatible reports, stable identifiers, separate pending counts, and source metadata where available.
 - Expose no-`System.exit` invocation, formatter/reporting, and minimal programmatic extension contracts without external CLI extension loading in the current implementation.
 - Provide Maven, Gradle, and JUnit Platform integrations only as standalone optional adapters over the canonical runner, not as core runtime dependencies.
 - Keep repository-root Maven verification core-only while providing explicit aggregate release/CI verification, release-readiness checks, and standalone adoption examples verification for standalone adapters.
@@ -51,5 +51,6 @@ Core requirements:
 - No existing sealed-interface source updates until nested permitted implementations can be updated source-preservingly.
 - No Maven multi-module conversion, runtime dependency additions, publishing, signing, secrets, portal credentials, final release tag/version, or final publish approval in the Phase 20 release-readiness or Phase 21 adoption-assets increments; the MIT license and confirmed maintainer metadata are resolved.
 - Phase 21 examples are standalone consumer projects, not root modules or public-publication evidence.
+- Phase 22 has local verification only in the current evidence; no remote CI success is claimed for it.
 - No remote CI success claim for Phase 20 or Phase 21 in the current evidence; Phase 19 remote GitHub Actions success is only user-/maintainer-confirmed for HEAD `4d30e63` on `develop`.
 - No C4 diagrams are currently generated.

@@ -7,7 +7,8 @@ public enum ExampleStatus {
     PASSED,
     FAILED,
     BROKEN,
-    SKIPPED;
+    SKIPPED,
+    PENDING;
 
     public boolean isPassed() {
         return PASSED.equals(this);
@@ -23,6 +24,18 @@ public enum ExampleStatus {
 
     public boolean isSkipped() {
         return SKIPPED.equals(this);
+    }
+
+    public boolean isPending() {
+        return PENDING.equals(this);
+    }
+
+    public boolean isSkippedOrPending() {
+        return isSkipped() || isPending();
+    }
+
+    public boolean isNonExecuted() {
+        return isSkippedOrPending();
     }
 
     public boolean isFailure() {

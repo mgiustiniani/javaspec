@@ -54,7 +54,7 @@ public class JavaspecGradlePluginTest {
 
         assertEquals(TaskOutcome.SUCCESS, result.task(":javaspecRun").getOutcome());
         assertContains(result.getOutput(), "javaspec: no specifications found.");
-        assertContains(result.getOutput(), "javaspec: Examples: 0 total, 0 passed, 0 failed, 0 broken, 0 skipped.");
+        assertContains(result.getOutput(), "javaspec: Examples: 0 total, 0 passed, 0 failed, 0 broken, 0 skipped, 0 pending.");
     }
 
     @Test
@@ -87,7 +87,7 @@ public class JavaspecGradlePluginTest {
 
         assertEquals(TaskOutcome.SUCCESS, result.task(":javaspecRun").getOutcome());
         assertContains(result.getOutput(), "javaspec: found 1 specification(s).");
-        assertContains(result.getOutput(), "javaspec: Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped.");
+        assertContains(result.getOutput(), "javaspec: Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped, 0 pending.");
         File specFile = new File(projectDir, "src/test/java/spec/com/example/GreeterSpec.java");
         String json = readFile(new File(projectDir, "build/reports/javaspec/passing.json"));
         assertContains(json, "\"total\": 1");
@@ -96,6 +96,50 @@ public class JavaspecGradlePluginTest {
         String xml = readFile(new File(projectDir, "build/reports/javaspec/passing.xml"));
         assertContains(xml, "<testsuite name=\"javaspec\" tests=\"1\" failures=\"0\" errors=\"0\" skipped=\"0\" time=\"0\">");
         assertGradleTestcaseHasSource(xml, specFile, "it_uses_main_output_on_default_test_runtime_classpath", 4);
+        assertParsesAsXml(xml);
+    }
+
+    @Test
+    public void pendingExamplesDoNotFailBuildAndAreWrittenToReports() throws Exception {
+        File projectDir = newProject("pending-example");
+        writeBuildFile(projectDir, javaPluginBuild(
+                "javaspec {\n" +
+                        "    jsonReportFile = file('build/reports/javaspec/pending.json')\n" +
+                        "    junitXmlReportFile = file('build/reports/javaspec/pending.xml')\n" +
+                        "}\n"
+        ));
+        writeJavaSource(projectDir, "src/test/java/spec/com/example/PendingSpec.java",
+                "package spec.com.example;\n\n" +
+                        "public class PendingSpec {\n" +
+                        "    public void it_is_pending() {\n" +
+                        "        throw pending(\"gradle pending\");\n" +
+                        "    }\n" +
+                        "\n" +
+                        "    private static RuntimeException pending(String reason) {\n" +
+                        "        try {\n" +
+                        "            Class<?> type = Class.forName(\"org.javaspec.api.PendingExampleException\");\n" +
+                        "            return (RuntimeException) type.getConstructor(String.class).newInstance(reason);\n" +
+                        "        } catch (RuntimeException ex) {\n" +
+                        "            throw ex;\n" +
+                        "        } catch (Exception ex) {\n" +
+                        "            throw new RuntimeException(ex);\n" +
+                        "        }\n" +
+                        "    }\n" +
+                        "}\n");
+
+        BuildResult result = runGradle(projectDir, "javaspecRun");
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":javaspecRun").getOutcome());
+        assertContains(result.getOutput(), "javaspec: Examples: 1 total, 0 passed, 0 failed, 0 broken, 0 skipped, 1 pending.");
+        assertContains(result.getOutput(), "javaspec: Pending examples:");
+        assertContains(result.getOutput(), "javaspec:   PENDING spec.com.example.PendingSpec#it_is_pending (it is pending): gradle pending");
+        String json = readFile(new File(projectDir, "build/reports/javaspec/pending.json"));
+        assertContains(json, "\"pending\": 1");
+        assertContains(json, "\"status\": \"PENDING\"");
+        assertContains(json, "\"detail\": \"gradle pending\"");
+        String xml = readFile(new File(projectDir, "build/reports/javaspec/pending.xml"));
+        assertContains(xml, "<testsuite name=\"javaspec\" tests=\"1\" failures=\"0\" errors=\"0\" skipped=\"1\" time=\"0\">");
+        assertContains(xml, "<skipped message=\"Pending: gradle pending\"/>");
         assertParsesAsXml(xml);
     }
 
@@ -206,7 +250,7 @@ public class JavaspecGradlePluginTest {
         assertEquals(TaskOutcome.SUCCESS, result.task(":javaspecRun").getOutcome());
         assertContains(result.getOutput(), "javaspec: running suite 'selected'");
         assertContains(result.getOutput(), "javaspec: found 1 specification(s).");
-        assertContains(result.getOutput(), "javaspec: Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped.");
+        assertContains(result.getOutput(), "javaspec: Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped, 0 pending.");
         assertFalse(result.getOutput().contains("filter ignored"));
         assertFalse(result.getOutput().contains("suite selection ignored"));
     }
@@ -235,7 +279,7 @@ public class JavaspecGradlePluginTest {
 
         assertEquals(TaskOutcome.SUCCESS, result.task(":javaspecRun").getOutcome());
         assertContains(result.getOutput(), "javaspec: found 1 specification(s).");
-        assertContains(result.getOutput(), "javaspec: Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped.");
+        assertContains(result.getOutput(), "javaspec: Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped, 0 pending.");
     }
 
     @Test

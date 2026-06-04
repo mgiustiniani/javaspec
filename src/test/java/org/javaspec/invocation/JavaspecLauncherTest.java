@@ -50,6 +50,11 @@ public class JavaspecLauncherTest {
                 "com.example.MissingExecutable",
                 "it_is_skipped"
         ));
+        assertInvocationExit(0, 1, 0, 0, 0, 0, 1, spec(
+                "spec.org.javaspec.fixtures.cli.FailingSubjectSpec",
+                "org.javaspec.fixtures.cli.FailingSubject",
+                "it_is_pending"
+        ));
         JavaspecInvocationResult noSpecResult = JavaspecLauncher.run(
                 JavaspecInvocation.forSpecs(Collections.<DiscoveredSpec>emptyList(), currentClassLoader())
         );
@@ -98,6 +103,20 @@ public class JavaspecLauncherTest {
             int expectedSkipped,
             DiscoveredSpec spec
     ) {
+        assertInvocationExit(expectedExitCode, expectedTotal, expectedPassed, expectedFailed, expectedBroken,
+                expectedSkipped, 0, spec);
+    }
+
+    private static void assertInvocationExit(
+            int expectedExitCode,
+            int expectedTotal,
+            int expectedPassed,
+            int expectedFailed,
+            int expectedBroken,
+            int expectedSkipped,
+            int expectedPending,
+            DiscoveredSpec spec
+    ) {
         List<DiscoveredSpec> specs = new ArrayList<DiscoveredSpec>();
         specs.add(spec);
 
@@ -114,6 +133,7 @@ public class JavaspecLauncherTest {
         assertEquals(expectedFailed, runResult.failedCount());
         assertEquals(expectedBroken, runResult.brokenCount());
         assertEquals(expectedSkipped, runResult.skippedCount());
+        assertEquals(expectedPending, runResult.pendingCount());
         assertEquals(expectedExitCode, JavaspecExitCode.from(runResult));
     }
 

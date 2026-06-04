@@ -27,6 +27,7 @@ public class RunReportWriterTest {
                         "    \"failed\": 0,\n" +
                         "    \"broken\": 0,\n" +
                         "    \"skipped\": 0,\n" +
+                        "    \"pending\": 0,\n" +
                         "    \"successful\": true\n" +
                         "  },\n" +
                         "  \"specs\": []\n" +
@@ -75,6 +76,47 @@ public class RunReportWriterTest {
     }
 
     @Test
+    public void pendingRunResultJsonIncludesRunAndSpecPendingCountsAndPendingStatus() {
+        String specName = "spec.example.PendingSpec";
+        ExampleResult skipped = ExampleResult.of(
+                specName,
+                "it_is_skipped",
+                "is skipped",
+                0,
+                ExampleStatus.SKIPPED,
+                "skipped temporarily",
+                null
+        );
+        ExampleResult pending = ExampleResult.of(
+                specName,
+                "it_is_pending",
+                "is pending",
+                1,
+                ExampleStatus.PENDING,
+                "awaiting implementation",
+                null
+        );
+
+        String json = RunReportWriter.toJson(RunResult.of(Collections.singletonList(
+                SpecResult.of(specName, Arrays.asList(skipped, pending))
+        )));
+
+        assertContains(json, "\"summary\": {\n    \"total\": 2");
+        assertContains(json, "\"passed\": 0");
+        assertContains(json, "\"failed\": 0");
+        assertContains(json, "\"broken\": 0");
+        assertContains(json, "\"skipped\": 1");
+        assertContains(json, "\"pending\": 1");
+        assertContains(json, "\"successful\": true");
+        assertContains(json, "\"summary\": {\n        \"total\": 2");
+        assertContains(json, "\"status\": \"SKIPPED\"");
+        assertContains(json, "\"detail\": \"skipped temporarily\"");
+        assertContains(json, "\"status\": \"PENDING\"");
+        assertContains(json, "\"detail\": \"awaiting implementation\"");
+        assertContains(json, "\"failure\": null");
+    }
+
+    @Test
     public void failedAndBrokenRunResultJsonIncludesExamplesFailuresAndEscapedStrings() {
         String emoji = "\uD83D\uDE00";
         AssertionError assertion = new AssertionError("expected \"quoted\" \\ newline\ncontrol " + '\u0003' + " unicode ☃ surrogate " + emoji);
@@ -114,6 +156,7 @@ public class RunReportWriterTest {
         assertContains(json, "\"passed\": 0");
         assertContains(json, "\"failed\": 1");
         assertContains(json, "\"broken\": 1");
+        assertContains(json, "\"pending\": 0");
         assertContains(json, "\"successful\": false");
         assertContains(json, "\"name\": \"spec.example.Report\\\"Spec\\\\Name\\nControl\\u0001\\ud83d\\ude00\"");
         assertContains(json, "\"method\": \"it_\\\"fails\\\\now\"");

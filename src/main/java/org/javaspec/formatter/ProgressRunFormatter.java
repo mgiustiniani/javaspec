@@ -19,5 +19,6 @@ public final class ProgressRunFormatter implements RunFormatter {
         RunFormatterSupport.printExampleSummary(runResult, out);
         RunFormatterSupport.printExampleResults("Failed examples:", runResult.failedExamples(), out);
         RunFormatterSupport.printExampleResults("Broken examples:", runResult.brokenExamples(), out);
+        RunFormatterSupport.printExampleResults("Pending examples:", runResult.pendingExamples(), out);
     }
 }

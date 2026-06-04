@@ -63,6 +63,10 @@ public final class ExampleResult {
         return of(spec, example, ExampleStatus.SKIPPED, detail, null);
     }
 
+    public static ExampleResult pending(DiscoveredSpec spec, SpecExample example, String detail) {
+        return of(spec, example, ExampleStatus.PENDING, detail, null);
+    }
+
     public static ExampleResult of(
             DiscoveredSpec spec,
             SpecExample example,
@@ -284,6 +288,18 @@ public final class ExampleResult {
 
     public boolean isSkipped() {
         return ExampleStatus.SKIPPED.equals(status);
+    }
+
+    public boolean isPending() {
+        return ExampleStatus.PENDING.equals(status);
+    }
+
+    public boolean isSkippedOrPending() {
+        return isSkipped() || isPending();
+    }
+
+    public boolean isNonExecuted() {
+        return isSkippedOrPending();
     }
 
     public boolean isFailure() {

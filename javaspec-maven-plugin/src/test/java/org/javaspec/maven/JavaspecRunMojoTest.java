@@ -50,7 +50,7 @@ public class JavaspecRunMojoTest {
         assertTrue(log.containsDebug("javaspec: using 1 Maven test classpath element(s)."));
         assertTrue(log.containsInfo("javaspec: running suite 'default' from " + fixture.specRoot.getPath() + "."));
         assertTrue(log.containsInfo("javaspec: found 1 specification(s)."));
-        assertTrue(log.containsInfo("javaspec: examples total=1, passed=1, failed=0, broken=0, skipped=0."));
+        assertTrue(log.containsInfo("javaspec: examples total=1, passed=1, failed=0, broken=0, skipped=0, pending=0."));
         assertTrue(log.warnMessages.isEmpty());
         assertTrue(jsonFile.getParentFile().isDirectory());
         assertTrue(xmlFile.getParentFile().isDirectory());
@@ -79,7 +79,7 @@ public class JavaspecRunMojoTest {
         mojo.execute();
 
         assertTrue(log.containsInfo("javaspec: no specifications found."));
-        assertTrue(log.containsInfo("javaspec: examples total=0, passed=0, failed=0, broken=0, skipped=0."));
+        assertTrue(log.containsInfo("javaspec: examples total=0, passed=0, failed=0, broken=0, skipped=0, pending=0."));
         assertTrue(log.warnMessages.isEmpty());
     }
 
@@ -98,8 +98,33 @@ public class JavaspecRunMojoTest {
         mojo.execute();
 
         assertTrue(log.containsInfo("javaspec: found 1 specification(s)."));
-        assertTrue(log.containsInfo("javaspec: examples total=1, passed=0, failed=0, broken=0, skipped=1."));
+        assertTrue(log.containsInfo("javaspec: examples total=1, passed=0, failed=0, broken=0, skipped=1, pending=0."));
         assertTrue(log.warnMessages.isEmpty());
+    }
+
+    @Test
+    public void pendingOnlyRunDoesNotFailBuildAndWritesPendingReports() throws Exception {
+        CompiledSpecFixture fixture = compiledPendingFixture("PluginPendingSubject");
+        File jsonFile = new File(temporaryFolder.getRoot(), "reports/json/pending-result.json");
+        File xmlFile = new File(temporaryFolder.getRoot(), "reports/xml/pending-result.xml");
+        CapturingLog log = new CapturingLog();
+        JavaspecRunMojo mojo = mojo(fixture.basedir, fixture.specRoot, fixture.classesDirectory, log);
+        set(mojo, "jsonReportFile", jsonFile);
+        set(mojo, "junitXmlReportFile", xmlFile);
+
+        mojo.execute();
+
+        assertTrue(log.containsInfo("javaspec: found 1 specification(s)."));
+        assertTrue(log.containsInfo("javaspec: examples total=1, passed=0, failed=0, broken=0, skipped=0, pending=1."));
+        assertTrue(log.warnMessages.isEmpty());
+        String json = readFile(jsonFile);
+        assertContains(json, "\"pending\": 1");
+        assertContains(json, "\"status\": \"PENDING\"");
+        assertContains(json, "\"detail\": \"plugin pending\"");
+        String xml = readFile(xmlFile);
+        assertContains(xml, "<testsuite name=\"javaspec\" tests=\"1\" failures=\"0\" errors=\"0\" skipped=\"1\" time=\"0\">");
+        assertContains(xml, "<skipped message=\"Pending: plugin pending\"/>");
+        assertParsesAsXml(xml);
     }
 
     @Test
@@ -119,7 +144,7 @@ public class JavaspecRunMojoTest {
             assertContains(expected.getMessage(), "failed=1, broken=1");
         }
 
-        assertTrue(log.containsInfo("javaspec: examples total=2, passed=0, failed=1, broken=1, skipped=0."));
+        assertTrue(log.containsInfo("javaspec: examples total=2, passed=0, failed=1, broken=1, skipped=0, pending=0."));
         assertTrue(jsonFile.isFile());
         assertTrue(xmlFile.isFile());
         String json = readFile(jsonFile);
@@ -143,7 +168,7 @@ public class JavaspecRunMojoTest {
 
         mojo.execute();
 
-        assertTrue(log.containsInfo("javaspec: examples total=2, passed=0, failed=1, broken=1, skipped=0."));
+        assertTrue(log.containsInfo("javaspec: examples total=2, passed=0, failed=1, broken=1, skipped=0, pending=0."));
         assertTrue(log.containsWarn("javaspec: failed spec.com.example.PluginWarnOnlySubjectSpec#it_fails - Assertion failed"));
         assertTrue(log.containsWarn("javaspec: broken spec.com.example.PluginWarnOnlySubjectSpec#it_breaks - Example method threw an unexpected throwable"));
         assertTrue(log.containsWarn("javaspec found failed or broken examples: failed=1, broken=1."));
@@ -202,7 +227,7 @@ public class JavaspecRunMojoTest {
 
         assertTrue(log.containsInfo("javaspec: running suite 'selected' from " + specRoot.getPath() + "."));
         assertTrue(log.containsInfo("javaspec: found 1 specification(s)."));
-        assertTrue(log.containsInfo("javaspec: examples total=1, passed=1, failed=0, broken=0, skipped=0."));
+        assertTrue(log.containsInfo("javaspec: examples total=1, passed=1, failed=0, broken=0, skipped=0, pending=0."));
         assertTrue(log.warnMessages.isEmpty());
     }
 
@@ -319,6 +344,30 @@ public class JavaspecRunMojoTest {
                         "    }\n" +
                         "}\n");
         compile(classesDirectory, productionSource, specSource);
+        return new CompiledSpecFixture(basedir, specRoot, classesDirectory);
+    }
+
+    private CompiledSpecFixture compiledPendingFixture(String describedSimpleName) throws Exception {
+        File basedir = temporaryFolder.newFolder(describedSimpleName + "-project");
+        File specRoot = new File(basedir, "specs");
+        File classesDirectory = new File(basedir, "classes");
+        assertTrue(classesDirectory.mkdirs());
+        File specSource = writeSpec(specRoot, "spec.com.example." + describedSimpleName + "Spec",
+                "    public void it_is_pending() {\n" +
+                        "        throw pending(\"plugin pending\");\n" +
+                        "    }\n" +
+                        "\n" +
+                        "    private static RuntimeException pending(String reason) {\n" +
+                        "        try {\n" +
+                        "            Class<?> type = Class.forName(\"org.javaspec.api.PendingExampleException\");\n" +
+                        "            return (RuntimeException) type.getConstructor(String.class).newInstance(reason);\n" +
+                        "        } catch (RuntimeException ex) {\n" +
+                        "            throw ex;\n" +
+                        "        } catch (Exception ex) {\n" +
+                        "            throw new RuntimeException(ex);\n" +
+                        "        }\n" +
+                        "    }\n");
+        compile(classesDirectory, specSource);
         return new CompiledSpecFixture(basedir, specRoot, classesDirectory);
     }
 

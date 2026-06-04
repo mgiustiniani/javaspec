@@ -29,13 +29,14 @@ public class JUnitXmlReportWriterTest {
                 example("it_passes", ExampleStatus.PASSED, "", null),
                 example("it_fails", ExampleStatus.FAILED, "Assertion failed", failure(new AssertionError("expected five"))),
                 example("it_breaks", ExampleStatus.BROKEN, "Example method threw an unexpected throwable", failure(new IllegalStateException("boom"))),
-                example("it_is_pending", ExampleStatus.SKIPPED, "pending implementation", null)
+                example("it_is_skipped", ExampleStatus.SKIPPED, "skipped temporarily", null),
+                example("it_is_pending", ExampleStatus.PENDING, "pending implementation", null)
         );
 
         String xml = JUnitXmlReportWriter.toXml(runResult);
 
         assertEquals("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-                "<testsuite name=\"javaspec\" tests=\"4\" failures=\"1\" errors=\"1\" skipped=\"1\" time=\"0\">\n" +
+                "<testsuite name=\"javaspec\" tests=\"5\" failures=\"1\" errors=\"1\" skipped=\"2\" time=\"0\">\n" +
                 "  <testcase classname=\"spec.example.CalculatorSpec\" name=\"it_passes\" time=\"0\"/>\n" +
                 "  <testcase classname=\"spec.example.CalculatorSpec\" name=\"it_fails\" time=\"0\">\n" +
                 "    <failure type=\"java.lang.AssertionError\" message=\"expected five\">Assertion failed\n" +
@@ -45,10 +46,24 @@ public class JUnitXmlReportWriterTest {
                 "    <error type=\"java.lang.IllegalStateException\" message=\"boom\">Example method threw an unexpected throwable\n" +
                 "java.lang.IllegalStateException: boom</error>\n" +
                 "  </testcase>\n" +
+                "  <testcase classname=\"spec.example.CalculatorSpec\" name=\"it_is_skipped\" time=\"0\">\n" +
+                "    <skipped message=\"skipped temporarily\"/>\n" +
+                "  </testcase>\n" +
                 "  <testcase classname=\"spec.example.CalculatorSpec\" name=\"it_is_pending\" time=\"0\">\n" +
-                "    <skipped message=\"pending implementation\"/>\n" +
+                "    <skipped message=\"Pending: pending implementation\"/>\n" +
                 "  </testcase>\n" +
                 "</testsuite>\n", xml);
+        assertParsesAsXml(xml);
+    }
+
+    @Test
+    public void pendingWithDefaultReasonMapsToSkippedWithPendingMessage() throws Exception {
+        String xml = JUnitXmlReportWriter.toXml(runResult(
+                example("it_is_pending", ExampleStatus.PENDING, "Pending by javaspec.", null)
+        ));
+
+        assertContains(xml, "<testsuite name=\"javaspec\" tests=\"1\" failures=\"0\" errors=\"0\" skipped=\"1\" time=\"0\">");
+        assertContains(xml, "<skipped message=\"Pending by javaspec.\"/>");
         assertParsesAsXml(xml);
     }
 

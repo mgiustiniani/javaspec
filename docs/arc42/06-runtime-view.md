@@ -1,6 +1,6 @@
 # 6. Runtime View
 
-This section describes the implemented runtime and verification scenarios without C4 diagrams. The runtime is a Java 8-compatible CLI and library surface with no third-party runtime dependencies, including Phase 14 no-JUnit invocation, explicit classpath execution, JUnit XML-compatible reporting, the Phase 15 standalone optional Maven plugin adapter, the Phase 16 standalone optional Gradle plugin adapter, the Phase 17 standalone optional JUnit Platform engine adapter, the Phase 18 stable identifier/source-location/report polish increment, the Phase 19 aggregate release/CI verification workflow, the Phase 20 release-readiness scaffolding, and the Phase 21 standalone adoption examples/report documentation assets.
+This section describes the implemented runtime and verification scenarios without C4 diagrams. The runtime is a Java 8-compatible CLI and library surface with no third-party runtime dependencies, including Phase 14 no-JUnit invocation, explicit classpath execution, JUnit XML-compatible reporting, the Phase 15 standalone optional Maven plugin adapter, the Phase 16 standalone optional Gradle plugin adapter, the Phase 17 standalone optional JUnit Platform engine adapter, the Phase 18 stable identifier/source-location/report polish increment, the Phase 19 aggregate release/CI verification workflow, the Phase 20 release-readiness scaffolding, the Phase 21 standalone adoption examples/report documentation assets, and the Phase 22 explicit skipped/pending semantics.
 
 ## 6.1 `describe` Scenario
 
@@ -25,8 +25,9 @@ Important runtime invariant: `describe` is specification/support generation only
 8. If `--generate` is active, supported missing generation/update work is written non-interactively. Otherwise `run` prompts before production generation/update where required.
 9. After generation/update work completes without a declined or unavailable prompt, the reflection runner attempts to load compiled spec classes from the effective or selected explicit classloader.
 10. Loadable specs execute filtered examples. Source-only or otherwise unavailable specs are marked `SKIPPED` because the CLI does not compile source/spec files itself.
-11. Built-in output is rendered through the selected run formatter. Optional JSON and JUnit XML-compatible reports are written after no-spec output or runner summary rendering when the run reaches reportable execution/no-spec handling; reports include stable ids and source metadata where available.
-12. The process exits with the documented code: `0`, `1`, `64`, or `70`.
+11. Explicit `@Skip`/`@Pending` annotations or runtime skip/pending signals may mark examples `SKIPPED` or `PENDING`; pending is distinct from skipped in core results.
+12. Built-in output is rendered through the selected run formatter. Optional JSON and JUnit XML-compatible reports are written after no-spec output or runner summary rendering when the run reaches reportable execution/no-spec handling; reports include stable ids, source metadata, and pending counts/statuses where available.
+13. The process exits with the documented code: `0`, `1`, `64`, or `70`.
 
 ## 6.3 Example Execution Scenario
 
@@ -35,13 +36,15 @@ The reflection runner uses source-discovered metadata as the execution source of
 1. For each filtered `DiscoveredSpec`, the runner attempts to load the compiled spec class.
 2. A non-loadable spec yields skipped examples.
 3. For each executable example, a fresh spec instance is created through the spec class no-argument constructor.
-4. Optional public no-argument `let()` runs before the example.
-5. The public no-argument example method runs.
-6. Optional public no-argument `letGo()` runs after the example, including after failures.
-7. `AssertionError` is reported as `FAILED`.
-8. Non-assertion throwables from lifecycle, example body, instantiation, or reflection are reported as `BROKEN`.
-9. Missing reflected example methods are reported as `SKIPPED`.
-10. With `--stop-on-failure`, execution stops after the first FAILED or BROKEN executable example.
+4. If the example method has `@Skip` or `@Pending`, the runner returns the skipped/pending result without constructing the spec or running lifecycle/body code; `@Skip` takes precedence when both annotations are present.
+5. Optional public no-argument `let()` runs before the executable example.
+6. The public no-argument example method runs.
+7. Optional public no-argument `letGo()` runs after the example, including after failures or runtime skip/pending signals.
+8. `AssertionError` is reported as `FAILED`.
+9. Non-assertion throwables from lifecycle, example body, instantiation, or reflection are reported as `BROKEN`.
+10. Runtime `SkipExampleException` or `PendingExampleException` from `let()` or the example marks the example after successful `letGo()`; `letGo()` failure after such a signal is `BROKEN`.
+11. Missing reflected example methods are reported as `SKIPPED`.
+12. With `--stop-on-failure`, execution stops after the first FAILED or BROKEN executable example.
 
 ## 6.4 Construction and Typed Matcher Scenario
 
@@ -86,10 +89,10 @@ Unsupported target kinds fail fast with diagnostics rather than using bytecode l
 ## 6.7 Reporting and Extension Runtime Scenario
 
 - Built-in CLI output is selected from `progress` or `pretty` and rendered through `RunFormatter` implementations registered in `RunFormatterRegistry`.
-- `--report` and `--report-file` write UTF-8 JSON reports with `schemaVersion` 1 from the immutable runner result model, including stable spec/example ids and source file/line fields where available.
-- `--junit-xml` and `--junit-xml-file` write UTF-8 JUnit XML-compatible reports from the same `RunResult` without JUnit dependencies; testcase `file` and `line` attributes are included when source data is available.
+- `--report` and `--report-file` write UTF-8 JSON reports with `schemaVersion` 1 from the immutable runner result model, including stable spec/example ids, source file/line fields where available, separate `pending` counts, and `PENDING` example statuses.
+- `--junit-xml` and `--junit-xml-file` write UTF-8 JUnit XML-compatible reports from the same `RunResult` without JUnit dependencies; testcase `file` and `line` attributes are included when source data is available. Both `SKIPPED` and `PENDING` map to `<skipped>`, the testsuite skipped attribute includes skipped plus pending, and pending messages use `Pending: <reason>` or `Pending by javaspec.`.
 - JSON and JUnit XML-compatible reports can be requested together.
-- No-spec, passing, failing, broken, and skipped-only runs write requested reports after normal output. Dry-run pending generation/update exits before execution and does not write reports.
+- No-spec, passing, failing, broken, skipped-only, and pending-only runs write requested reports after normal output. Dry-run pending generation/update exits before execution and does not write reports.
 - Report write failures are I/O failures and exit `70` with path diagnostics.
 - `JavaspecExtension`/`Extension` and `ExtensionContext` support programmatic formatter registration. External CLI extension discovery/loading is not implemented.
 
@@ -107,7 +110,7 @@ Unsupported target kinds fail fast with diagnostics rather than using bytecode l
 1. A host process creates `JavaspecInvocation` from either a `SpecDiscoveryRequest` or pre-discovered `DiscoveredSpec` values and supplies a `ClassLoader`.
 2. `JavaspecLauncher` runs canonical discovery when needed and delegates execution to `SpecRunner`.
 3. The launcher returns `JavaspecInvocationResult` with discovered specs, `RunResult`, and an exit code, without calling `System.exit`.
-4. `JavaspecExitCode` maps passing, skipped-only, and no-spec runs to `0`, and failed or broken runs to `1`.
+4. `JavaspecExitCode` maps passing, skipped/pending-only, and no-spec runs to `0`, and failed or broken runs to `1`.
 5. The invocation API remains classpath-based and does not compile source/spec files itself.
 
 ## 6.10 Optional Maven Plugin Runtime Scenario
@@ -138,7 +141,7 @@ Unsupported target kinds fail fast with diagnostics rather than using bytecode l
 4. The engine builds canonical `SpecDiscoveryRequest` input and runs `SpecDiscovery`. JUnit Platform class, package, method, and unique-id selectors are applied as filters over canonical discovery results.
 5. Descriptors use UniqueId segments `[engine:javaspec]`, `[spec:<specQualifiedName>]`, and `[example:<methodName>]`; Phase 18 retains this stable shape and MethodSource behavior while aligning descriptor reporting to stable ids.
 6. Execution delegates to canonical no-JUnit `JavaspecLauncher` using discovered specs and avoids `System.exit`.
-7. javaspec result states are mapped to JUnit Platform listener events: passed to successful, failed assertion results to failed assertion-style throwables, broken results to failed/error-style throwables, and skipped or non-loadable results to skipped.
+7. javaspec result states are mapped to JUnit Platform listener events: passed to successful, failed assertion results to failed assertion-style throwables, broken results to failed/error-style throwables, and skipped, pending, or non-loadable results to `executionSkipped`; pending reasons are prefixed with `Pending:`.
 8. The engine does not require changes to javaspec spec authoring style and remains an optional IDE/CI adapter only.
 
 Projects that do not opt into the engine still use CLI, programmatic invocation, Maven plugin, or Gradle plugin no-JUnit execution paths without adding a JUnit dependency.
@@ -167,7 +170,7 @@ Current limitation: profile selection is visible and validated but not deeply en
 10. Optional local release-artifact checks use Maven `-Prelease-artifacts -DskipTests package` for root, Maven plugin, and JUnit Platform engine main/sources/javadoc jars, plus the Gradle plugin `clean test build` for Gradle main/sources/javadoc jars.
 11. `CHANGELOG.md` and `RELEASING.md` document release changes, local checks, and public-publication blockers.
 
-The GitHub Actions workflow also has a separate core matrix job for Java 8, 11, 17, 21, and 25 that runs root core verification and root runtime dependency audit. The workflow has no publishing/signing steps and uses no secrets. Phase 19 remote GitHub Actions success is user-/maintainer-confirmed for HEAD `4d30e63` on `develop`; Phase 20 and Phase 21 have local verification only in the current evidence. The MIT license and maintainer metadata are resolved, but public publication remains postponed until GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval are resolved.
+The GitHub Actions workflow also has a separate core matrix job for Java 8, 11, 17, 21, and 25 that runs root core verification and root runtime dependency audit. The workflow has no publishing/signing steps and uses no secrets. Phase 19 remote GitHub Actions success is user-/maintainer-confirmed for HEAD `4d30e63` on `develop`; Phase 20, Phase 21, and Phase 22 have local verification only in the current evidence. The MIT license and maintainer metadata are resolved, but public publication remains postponed until GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval are resolved.
 
 ## 6.15 Standalone Examples and Report Documentation Scenario
 
@@ -175,5 +178,5 @@ The GitHub Actions workflow also has a separate core matrix job for Java 8, 11, 
 2. The example builds consume local snapshots because public artifacts are not published yet.
 3. Maven and Gradle examples run a simple `CalculatorSpec` and write JSON plus JUnit XML-compatible reports to their own generated output directories.
 4. The JUnit Platform example runs through Maven Surefire configured for `*Spec` and the optional engine.
-5. Report tooling authors can validate against `docs/schemas/run-report-v1.schema.json` and compare with golden reports under `docs/examples/reports/`.
+5. Report tooling authors can validate against `docs/schemas/run-report-v1.schema.json` and compare with passing and pending golden reports under `docs/examples/reports/`.
 6. Generated example `target/`, `build/`, and `.gradle/` outputs remain ignored and are not source-controlled artifacts.

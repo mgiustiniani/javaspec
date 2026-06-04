@@ -105,7 +105,7 @@ public class MainPhase9CliTest {
 
         assertEquals(0, passingResult.exitCode);
         assertTrue(passingResult.out.contains("Dry-run found no pending generation/update work."));
-        assertTrue(passingResult.out.contains("Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped."));
+        assertTrue(passingResult.out.contains("Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped, 0 pending."));
         assertEquals("", passingResult.err);
 
         File skipSpecRoot = temporaryFolder.newFolder("dry-run-skip-spec-root");
@@ -125,7 +125,7 @@ public class MainPhase9CliTest {
 
         assertEquals(0, skippedResult.exitCode);
         assertTrue(skippedResult.out.contains("Dry-run found no pending generation/update work."));
-        assertTrue(skippedResult.out.contains("Examples: 1 total, 0 passed, 0 failed, 0 broken, 1 skipped."));
+        assertTrue(skippedResult.out.contains("Examples: 1 total, 0 passed, 0 failed, 0 broken, 1 skipped, 0 pending."));
         assertEquals("", skippedResult.err);
     }
 
@@ -143,7 +143,7 @@ public class MainPhase9CliTest {
         );
 
         assertEquals(1, stopAfterFailureResult.exitCode);
-        assertTrue(stopAfterFailureResult.out.contains("Examples: 1 total, 0 passed, 1 failed, 0 broken, 0 skipped."));
+        assertTrue(stopAfterFailureResult.out.contains("Examples: 1 total, 0 passed, 1 failed, 0 broken, 0 skipped, 0 pending."));
         assertTrue(stopAfterFailureResult.out.contains("FAILED spec.org.javaspec.fixtures.cli.Phase9FailureStopSubjectSpec#it_fails_first"));
         assertFalse(stopAfterFailureResult.out.contains("it_passes_after_failure"));
         assertFalse(stopAfterFailureResult.out.contains("it_is_broken_after_failure"));
@@ -158,7 +158,7 @@ public class MainPhase9CliTest {
         );
 
         assertEquals(1, defaultFailureResult.exitCode);
-        assertTrue(defaultFailureResult.out.contains("Examples: 3 total, 1 passed, 1 failed, 1 broken, 0 skipped."));
+        assertTrue(defaultFailureResult.out.contains("Examples: 3 total, 1 passed, 1 failed, 1 broken, 0 skipped, 0 pending."));
         assertTrue(defaultFailureResult.out.contains("FAILED spec.org.javaspec.fixtures.cli.Phase9FailureStopSubjectSpec#it_fails_first"));
         assertTrue(defaultFailureResult.out.contains("PASSED spec.org.javaspec.fixtures.cli.Phase9FailureStopSubjectSpec#it_passes_after_failure"));
         assertTrue(defaultFailureResult.out.contains("BROKEN spec.org.javaspec.fixtures.cli.Phase9FailureStopSubjectSpec#it_is_broken_after_failure"));
@@ -174,7 +174,7 @@ public class MainPhase9CliTest {
         );
 
         assertEquals(1, stopAfterBrokenResult.exitCode);
-        assertTrue(stopAfterBrokenResult.out.contains("Examples: 1 total, 0 passed, 0 failed, 1 broken, 0 skipped."));
+        assertTrue(stopAfterBrokenResult.out.contains("Examples: 1 total, 0 passed, 0 failed, 1 broken, 0 skipped, 0 pending."));
         assertTrue(stopAfterBrokenResult.out.contains("BROKEN spec.org.javaspec.fixtures.cli.Phase9BrokenStopSubjectSpec#it_breaks_first"));
         assertFalse(stopAfterBrokenResult.out.contains("it_passes_after_broken"));
         assertEquals("", stopAfterBrokenResult.err);
@@ -193,7 +193,7 @@ public class MainPhase9CliTest {
         );
 
         assertEquals(0, progressResult.exitCode);
-        assertTrue(progressResult.out.contains("Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped."));
+        assertTrue(progressResult.out.contains("Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped, 0 pending."));
         assertFalse(progressResult.out.contains("Example results:"));
         assertFalse(progressResult.out.contains("PASSED spec.org.javaspec.fixtures.cli.FailingSubjectSpec#it_passes"));
         assertEquals("", progressResult.err);
@@ -211,7 +211,7 @@ public class MainPhase9CliTest {
         assertEquals(0, prettyResult.exitCode);
         assertTrue(prettyResult.out.contains("Example results:"));
         assertTrue(prettyResult.out.contains("PASSED spec.org.javaspec.fixtures.cli.FailingSubjectSpec#it_passes"));
-        assertTrue(prettyResult.out.contains("Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped."));
+        assertTrue(prettyResult.out.contains("Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped, 0 pending."));
         assertEquals("", prettyResult.err);
     }
 

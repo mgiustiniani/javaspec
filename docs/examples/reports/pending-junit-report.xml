@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="javaspec" tests="1" failures="0" errors="0" skipped="1" time="0">
+  <testcase classname="spec.com.example.PaymentSpec" name="it_charges_a_card" time="0" file="src/test/java/spec/com/example/PaymentSpec.java" line="12">
+    <skipped message="Pending: waiting for billing provider"/>
+  </testcase>
+</testsuite>

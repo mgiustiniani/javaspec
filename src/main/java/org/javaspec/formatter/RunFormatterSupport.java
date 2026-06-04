@@ -15,7 +15,8 @@ final class RunFormatterSupport {
                 + " total, " + runResult.passedCount() + " passed, "
                 + runResult.failedCount() + " failed, "
                 + runResult.brokenCount() + " broken, "
-                + runResult.skippedCount() + " skipped.");
+                + runResult.skippedCount() + " skipped, "
+                + runResult.pendingCount() + " pending.");
     }
 
     static void printExampleResults(String heading, List<ExampleResult> results, PrintStream out) {

@@ -10,8 +10,8 @@ The core runtime depends only on the JDK. This affects every feature:
 
 - Configuration uses a restricted internal line-based parser instead of YAML/TOML/JSON libraries.
 - Doubles use JDK dynamic proxies instead of bytecode libraries.
-- JSON reports are written by an internal UTF-8 writer instead of a JSON library, including stable id/source fields added in Phase 18.
-- JUnit XML-compatible reports are written internally instead of using JUnit or XML/reporting libraries, with testcase file/line attributes when source data is available.
+- JSON reports are written by an internal UTF-8 writer instead of a JSON library, including stable id/source fields added in Phase 18 and pending counts/statuses added in Phase 22.
+- JUnit XML-compatible reports are written internally instead of using JUnit or XML/reporting libraries, with testcase file/line attributes when source data is available and skipped-element mapping for both skipped and pending examples.
 - CLI parsing, explicit classpath handling, formatting, matchers, invocation APIs, and extension contracts are implemented with JDK APIs.
 - Optional adapters stay outside the core runtime; the Phase 15 Maven plugin uses Maven APIs as plugin-provided/build-tool dependencies, the Phase 16 Gradle plugin uses Gradle plugin APIs in its standalone artifact, and the Phase 17 JUnit Platform engine uses JUnit Platform APIs in its standalone artifact. Phase 19 release/CI verification assets, Phase 20 release-readiness scaffolding, and Phase 21 adoption/report assets invoke, package, or verify those standalone artifacts explicitly instead of adding their dependencies to the core runtime. Projects that do not opt into the JUnit Platform engine keep no-JUnit execution paths.
 
@@ -24,7 +24,7 @@ javaspec keeps the PHPSpec workflow shape but adapts it to Java:
 | `describe` command | `javaspec describe` / `desc` creates Java spec/support skeletons only. |
 | Subject as `$this` | `ObjectBehavior<T>` lazy subject plus generated typed support methods and explicit `subject()`. |
 | PHP namespaces | Java packages plus configurable spec and production package prefixes. |
-| Examples | Public `void` Java methods named `it_*` or `its_*`. |
+| Examples | Public `void` Java methods named `it_*` or `its_*`; explicit `@Skip`/`@Pending` annotations or runtime signals can mark examples skipped or pending. |
 | Construction customization | `beConstructedWith(...)`, `beConstructedThrough(...)`, `beConstructedNamed(...)`, and `beConstructedThroughNamed(...)` before subject instantiation. |
 | Matcher syntax | `getValue().shouldReturn(...)`, `match(value).should...`, and direct `ObjectBehavior` convenience assertions. |
 | Collaborator doubles | Interface-only JDK-proxy doubles in the zero-dependency core. |
@@ -88,12 +88,15 @@ Source parsing/generation uses Java 8-compatible heuristics rather than a full J
 The runner result model separates discovery and execution from output and process termination:
 
 - `SpecRunner` produces immutable `RunResult`, `SpecResult`, and `ExampleResult` data.
+- Explicit `@Skip`/`@Pending` annotations are resolved before instantiation/lifecycle/body execution; `@Skip` takes precedence over `@Pending`.
+- Runtime `SkipExampleException`/`PendingExampleException` from `let()` or an example mark the example skipped/pending after successful `letGo()`; `letGo()` failure after such a signal is `BROKEN`.
+- `PENDING` is a distinct `ExampleStatus`; `skippedCount()` remains skipped-only, `pendingCount()` is separate, and skipped-plus-pending helpers support JUnit-compatible report adapters.
 - `DiscoveredSpec`, `SpecResult`, and `ExampleResult` expose stable id aliases; example stable ids use `<specQualifiedName>#<methodName>` and match `fullName()`.
 - `SpecExample`, `SpecResult`, and `ExampleResult` carry source metadata where discovery supplied it.
 - `JavaspecLauncher` returns `JavaspecInvocationResult` for no-`System.exit` programmatic callers while reusing canonical discovery and `SpecRunner` semantics.
-- Built-in `progress` and `pretty` output render results through `RunFormatter` implementations.
-- JSON reports with `schemaVersion` 1 are written from the same results and include additive stable id/source fields.
-- JUnit XML-compatible reports are also written from `RunResult`, mapping FAILED to failures, BROKEN to errors, and SKIPPED to skipped test cases, with testcase file/line attributes when source data is available.
+- Built-in `progress` and `pretty` output render results through `RunFormatter` implementations and include pending counts/details.
+- JSON reports with `schemaVersion` 1 are written from the same results and include additive stable id/source fields plus pending counts and `PENDING` statuses.
+- JUnit XML-compatible reports are also written from `RunResult`, mapping FAILED to failures, BROKEN to errors, and SKIPPED/PENDING to skipped test cases, with testcase file/line attributes when source data is available. The testsuite skipped attribute includes skipped plus pending and pending messages use `Pending: <reason>` or `Pending by javaspec.`.
 - Report failures are I/O failures and exit `70` for CLI runs.
 
 Source-only or non-loadable compiled spec classes produce skipped examples because javaspec is not an in-process compiler. CLI `--classpath` / `--classpath-file` and programmatic invocation classloaders can supply compiled classes explicitly, but the entries must already be compiled.
@@ -118,11 +121,11 @@ Phase 14 makes no-JUnit execution first-class without changing compilation owner
 - `--classpath-file` reads UTF-8 non-empty, non-comment entries.
 - The selected classloader is used for type existence checks and spec execution.
 - `org.javaspec.invocation` allows host processes to provide a discovery request or pre-discovered specs and a classloader, then receive structured results.
-- Passing, skipped-only, and no-spec invocation paths map to exit code `0`; failed or broken paths map to `1`.
+- Passing, skipped/pending-only, and no-spec invocation paths map to exit code `0`; failed or broken paths map to `1`.
 - Neither CLI nor programmatic invocation compiles source/spec files.
 - `JavaspecRunMojo` delegates to `JavaspecLauncher` with Maven's test classpath and does not call `System.exit`.
 - `JavaspecRunTask` delegates to `JavaspecLauncher` with the Gradle classpath, manages a `URLClassLoader` and thread context classloader, and does not call `System.exit`.
-- `JavaspecTestEngine` delegates to `JavaspecLauncher` with discovered specs, applies JUnit Platform selectors as filters over canonical discovery, keeps the stable unique-id shape and MethodSource behavior, aligns descriptor reporting to stable ids, maps results to listener events, and does not call `System.exit`.
+- `JavaspecTestEngine` delegates to `JavaspecLauncher` with discovered specs, applies JUnit Platform selectors as filters over canonical discovery, keeps the stable unique-id shape and MethodSource behavior, aligns descriptor reporting to stable ids, maps results to listener events, maps pending to `executionSkipped` with a `Pending:` reason, and does not call `System.exit`.
 
 ## 8.12 Optional Maven Plugin Boundary
 
@@ -167,7 +170,7 @@ The engine boundary principles are:
 
 ## 8.15 Release/CI Verification and Publication Boundary
 
-Phase 19 keeps release verification non-disruptive, Phase 20 adds release-readiness scaffolding without public publication, and Phase 21 adds adoption examples/report documentation without core runtime changes:
+Phase 19 keeps release verification non-disruptive, Phase 20 adds release-readiness scaffolding without public publication, Phase 21 adds adoption examples/report documentation without core runtime changes, and Phase 22 keeps skipped/pending semantics zero-dependency while updating docs/schema/goldens:
 
 - Root `mvn verify` remains the core-only build and runtime dependency gate.
 - `scripts/check-version-alignment.sh` verifies root Maven, standalone Maven plugin, standalone JUnit Platform engine, Gradle plugin `version`, and Gradle plugin `javaspecCoreVersion` alignment.
@@ -179,8 +182,8 @@ Phase 19 keeps release verification non-disruptive, Phase 20 adds release-readin
 - `CHANGELOG.md` and `RELEASING.md` document release notes, checks, and blockers.
 - Maven `release-artifacts` profiles and the Gradle plugin build provide local source/javadoc jar readiness checks only; they do not sign, stage, deploy, or publish.
 - Safe URL, SCM, GitHub Issues, MIT license, and confirmed maintainer/developer metadata can be present.
-- Standalone examples under `examples/`, `scripts/verify-examples.sh`, `docs/schemas/run-report-v1.schema.json`, and golden reports under `docs/examples/reports/` are adoption assets, not root modules or publication evidence.
-- No publishing, signing, secrets, mandatory Maven multi-module conversion, portal publication/credentials, final release version/tag, final publish approval, or Phase 20/Phase 21 remote CI success claim is part of the implemented increments.
+- Standalone examples under `examples/`, `scripts/verify-examples.sh`, `docs/schemas/run-report-v1.schema.json`, and golden reports under `docs/examples/reports/` are adoption assets, not root modules or publication evidence; Phase 22 keeps those schema/goldens synchronized with pending-aware report output.
+- No publishing, signing, secrets, mandatory Maven multi-module conversion, portal publication/credentials, final release version/tag, final publish approval, or Phase 20/Phase 21/Phase 22 remote CI success claim is part of the implemented increments.
 - Public publication remains postponed until GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval are resolved.
 
 ## 8.16 Extension Boundary

@@ -183,6 +183,10 @@ public final class JavaspecTestEngine implements TestEngine {
             JavaspecExampleDescriptor exampleDescriptor,
             ExampleResult exampleResult
     ) {
+        if (exampleResult.isPending()) {
+            listener.executionSkipped(exampleDescriptor, pendingReason(exampleResult.detail()));
+            return;
+        }
         if (exampleResult.isSkipped()) {
             listener.executionSkipped(exampleDescriptor, skipReason(exampleResult.detail()));
             return;
@@ -248,6 +252,13 @@ public final class JavaspecTestEngine implements TestEngine {
             return "Skipped by javaspec.";
         }
         return reason;
+    }
+
+    private static String pendingReason(String reason) {
+        if (isBlank(reason) || "Pending by javaspec.".equals(reason)) {
+            return "Pending by javaspec.";
+        }
+        return "Pending: " + reason;
     }
 
     private static StackTraceElement[] stackTraceFrom(FailureDetail failureDetail) {

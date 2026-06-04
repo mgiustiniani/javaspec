@@ -127,6 +127,31 @@ class JavaspecTestEnginePhase17Test {
     }
 
     @Test
+    void pendingExamplesMapToSkippedEventsWithPendingReasonAndNoFailure(@TempDir Path temp) throws Exception {
+        Path specRoot = temp.resolve("specs");
+        Path source = writeSpec(specRoot, "phase17.pending", "PendingSpec",
+                "    @org.javaspec.api.Pending(reason = \"engine pending\")\n" +
+                "    public void it_is_pending() {\n" +
+                "        throw new AssertionError(\"pending example should not run\");\n" +
+                "    }\n");
+
+        try (URLClassLoader classLoader = compileToClassLoader(temp.resolve("classes"), source)) {
+            RunOutcome outcome = execute(
+                    requestBuilder().configurationParameter("javaspec.specRoot", specRoot.toString()).build(),
+                    classLoader
+            );
+
+            assertEquals(1, outcome.summary().getTestsFoundCount());
+            assertEquals(0, outcome.summary().getTestsSucceededCount());
+            assertEquals(0, outcome.summary().getTestsFailedCount());
+            assertEquals(1, outcome.summary().getTestsSkippedCount());
+            assertEquals(0, outcome.recorder().failedEvents().size());
+            SkippedEvent skipped = skippedEventFor(outcome.recorder(), "it_is_pending");
+            assertEquals("Pending: engine pending", skipped.reason());
+        }
+    }
+
+    @Test
     void sourceOnlyNonLoadableSpecsAreReportedAsSkipped(@TempDir Path temp) throws Exception {
         Path specRoot = temp.resolve("specs");
         writeSpec(specRoot, "phase17.sourceonly", "SourceOnlySpec",

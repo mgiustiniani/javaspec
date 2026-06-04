@@ -1,5 +1,80 @@
 # Test and Quality Report
 
+## Phase 22 verification update
+
+Date: 2026-06-04
+
+This report records the completed Phase 22 verification results provided by the Java tester for explicit skipped/pending semantics. Phase 22 added zero-dependency public skip/pending annotations, unchecked skip/pending signals, `ObjectBehavior` helpers, distinct `PENDING` result status/counts, pending-aware formatter/report/adapter behavior, and schema/golden documentation updates. No production Java changes were made by the tester, no blockers were reported, and no Phase 22 remote CI success is claimed.
+
+## Phase 22 executive summary
+
+| Area | Result | Notes |
+|---|---|---|
+| Tester production Java modifications | PASS | Tester reported no production Java changes made by tester. |
+| Public API coverage | PASS | Coverage includes `@Skip`, `@Pending`, `SkipExampleException`, `PendingExampleException`, `ObjectBehavior.skip(...)`, and `ObjectBehavior.pending(...)` messages/reasons. |
+| Annotation semantics | PASS | Defaults, `value()`, `reason()`, `reason()` precedence, `@Skip` precedence over `@Pending`, and annotation no-instantiation/no-lifecycle/body execution are covered. |
+| Runtime signal semantics | PASS | Runtime skip/pending from example methods, `ObjectBehavior` helpers, and `let()` are covered; successful `letGo()` preserves SKIPPED/PENDING, while `letGo()` failure after a signal is BROKEN. |
+| Result counts and exits | PASS | `PENDING` is distinct from `SKIPPED`; `skippedCount()` remains skipped-only; `pendingCount()` is separate; skipped-plus-pending helpers exist for JUnit XML use; runs with only passed/skipped/pending examples remain successful. |
+| Formatter/CLI/report behavior | PASS | Built-in summaries include pending counts and print pending examples; skipped examples are printed deterministically; JSON reports include pending counts and `status: "PENDING"`; JUnit XML-compatible reports map skipped and pending to `<skipped>` with skipped attribute including both. |
+| Maven/Gradle adapters | PASS | Maven summary logging includes `pending=`; Gradle inherits pending summary/report behavior through core formatter/reporters. |
+| JUnit Platform adapter | PASS | Pending maps to `executionSkipped` with `Pending:` reason; unique IDs/descriptors are unchanged. |
+| Targeted changed tests | PASS | 78 tests passed. |
+| Root tests | PASS | `mvn -q test`: 399 tests passed. |
+| Root verification | PASS | `mvn -q verify` passed. |
+| Root runtime dependency audit | PASS | `mvn dependency:tree -Dscope=runtime`: root has no runtime dependencies beyond itself. |
+| Core install | PASS | `mvn -q -DskipTests install` passed. |
+| Maven plugin verification | PASS | `mvn -q -f javaspec-maven-plugin/pom.xml verify`: 13 tests passed. Runtime tree: `org.javaspec:javaspec` only. |
+| JUnit Platform engine verification | PASS | `mvn -q -f javaspec-junit-platform-engine/pom.xml verify`: 13 tests passed. Runtime tree: `org.javaspec:javaspec`, `junit-platform-engine`, `opentest4j`, `junit-platform-commons`, `apiguardian-api`. |
+| Gradle plugin verification | PASS | `/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin clean test build`: 12 tests passed; Java 8 obsolete source/target warnings only. Runtime classpath: `org.javaspec:javaspec` only. |
+| Examples verification | PASS | `JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-examples.sh` passed. |
+| Aggregate verification | PASS | `JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-all.sh` passed. |
+| Remote CI execution | NOT CLAIMED | Phase 22 has local verification only in this report. Phase 19 remote GitHub Actions success remains user-/maintainer-confirmed for HEAD `4d30e63` on `develop`; Phase 20 and Phase 21 also have local-only evidence here. |
+| Blockers | PASS | None reported. |
+
+## Phase 22 verified commands
+
+```bash
+# Targeted changed tests across core, CLI, reporting, invocation, Maven plugin, Gradle plugin, and JUnit Platform engine: 78 tests passed
+mvn -q test
+mvn -q verify
+mvn dependency:tree -Dscope=runtime
+mvn -q -DskipTests install
+mvn -q -f javaspec-maven-plugin/pom.xml verify
+mvn -f javaspec-maven-plugin/pom.xml dependency:tree -Dscope=runtime
+mvn -q -f javaspec-junit-platform-engine/pom.xml verify
+mvn -f javaspec-junit-platform-engine/pom.xml dependency:tree -Dscope=runtime
+/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin clean test build
+/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin dependencies --configuration runtimeClasspath
+JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-examples.sh
+JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-all.sh
+```
+
+## Phase 22 verification details
+
+- Phase 22 implements explicit skipped/pending semantics while preserving the zero-runtime-dependency policy.
+- Tester verification covered updated tests across core, CLI, reporting, invocation, Maven plugin, Gradle plugin, and JUnit Platform engine areas.
+- New public API markers under `org.javaspec.api` are runtime method annotations `@Skip` and `@Pending`, unchecked signals `SkipExampleException` and `PendingExampleException`, and `ObjectBehavior.skip()`/`skip(String)`/`pending()`/`pending(String)` helpers.
+- `@Skip` takes precedence over `@Pending` when both annotations are present.
+- Annotation-based skip/pending does not instantiate the spec and does not run `let()`, the example body, or `letGo()`.
+- Runtime skip/pending signals from `let()` or an example mark the example SKIPPED/PENDING after successful `letGo()`; `letGo()` failure after a skip/pending signal is BROKEN.
+- `ExampleStatus.PENDING` is distinct from `SKIPPED`; skipped-only and pending-only counts are separate, with skipped-plus-pending helpers for JUnit XML-compatible reports.
+- Exit code remains success when only passed/skipped/pending examples exist.
+- JSON reports add `pending` counts to run/spec summaries and use `status: "PENDING"` for pending examples while preserving existing fields.
+- JUnit XML-compatible reports map both skipped and pending examples to `<skipped>` and include both in the testsuite `skipped` attribute. Pending messages use `Pending: <reason>` or `Pending by javaspec.`.
+- Maven plugin summary logging includes `pending=`; Gradle plugin behavior is inherited through core formatter/reporters.
+- JUnit Platform pending examples map to `executionSkipped` with `Pending:` reason and unchanged unique IDs/descriptors.
+- No Phase 22 remote CI success is claimed.
+- Public publishing remains postponed and was not part of this verification.
+
+## Phase 22 dependency summary
+
+| Artifact / area | Runtime dependency summary |
+|---|---|
+| Core runtime | No external runtime dependencies; root runtime tree contains only `org.javaspec:javaspec`. |
+| Maven plugin runtime | `org.javaspec:javaspec` only. |
+| JUnit Platform engine runtime | `org.javaspec:javaspec`, `junit-platform-engine`, `opentest4j`, `junit-platform-commons`, `apiguardian-api`. |
+| Gradle plugin runtime | `org.javaspec:javaspec` only. |
+
 ## Phase 21 verification update
 
 Date: 2026-06-04
@@ -483,7 +558,7 @@ mvn dependency:tree -Dscope=runtime
 ## Phase 14 verification details
 
 - Programmatic no-JUnit invocation under `org.javaspec.invocation` returns structured `JavaspecInvocationResult` values and does not call `System.exit`.
-- `JavaspecExitCode` maps passing, skipped-only, and no-spec runs to exit code `0`, and failed or broken runs to exit code `1`.
+- `JavaspecExitCode` maps passing, skipped/pending-only, and no-spec runs to exit code `0`, and failed or broken runs to exit code `1`.
 - `javaspec run --classpath <path-list>` uses `File.pathSeparator` entries, and `--classpath-file <file>` reads UTF-8 non-empty, non-comment entries; explicit entries are used for type existence checks and spec execution.
 - `describe` rejects classpath and JUnit XML report options as run-only usage.
 - `org.javaspec.reporting.JUnitXmlReportWriter` writes dependency-free UTF-8 JUnit XML-compatible reports from `RunResult`.

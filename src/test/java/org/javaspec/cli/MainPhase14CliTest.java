@@ -50,7 +50,7 @@ public class MainPhase14CliTest {
         assertContains(result.out, "    " + unusedEntry.getAbsolutePath());
         assertContains(result.out, "    " + fixture.classesDirectory.getAbsolutePath());
         assertContains(result.out, "Classpath: present");
-        assertContains(result.out, "Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped.");
+        assertContains(result.out, "Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped, 0 pending.");
         assertEquals("", result.err);
     }
 
@@ -70,7 +70,7 @@ public class MainPhase14CliTest {
 
         assertEquals(0, result.exitCode);
         assertContains(result.out, "Classpath: present");
-        assertContains(result.out, "Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped.");
+        assertContains(result.out, "Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped, 0 pending.");
         assertEquals("", result.err);
     }
 
@@ -159,7 +159,7 @@ public class MainPhase14CliTest {
         );
 
         assertEquals(0, result.exitCode);
-        assertContains(result.out, "Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped.");
+        assertContains(result.out, "Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped, 0 pending.");
         assertEquals("", result.err);
         String xml = readFile(xmlFile);
         assertContains(xml, "<testsuite name=\"javaspec\" tests=\"1\" failures=\"0\" errors=\"0\" skipped=\"0\" time=\"0\">");
@@ -182,7 +182,7 @@ public class MainPhase14CliTest {
         );
 
         assertEquals(1, result.exitCode);
-        assertContains(result.out, "Examples: 1 total, 0 passed, 1 failed, 0 broken, 0 skipped.");
+        assertContains(result.out, "Examples: 1 total, 0 passed, 1 failed, 0 broken, 0 skipped, 0 pending.");
         assertEquals("", result.err);
         String xml = readFile(xmlFile);
         assertContains(xml, "<testsuite name=\"javaspec\" tests=\"1\" failures=\"1\" errors=\"0\" skipped=\"0\" time=\"0\">");
@@ -261,6 +261,47 @@ public class MainPhase14CliTest {
         assertContains(result.out, "Dry-run found pending generation/update work; no files were written.");
         assertEquals("", result.err);
         assertFalse(xmlFile.exists());
+    }
+
+    @Test
+    public void jsonAndJunitXmlReportsIncludeSkippedAndPendingExamples() throws Exception {
+        File sourceRoot = temporaryFolder.newFolder("skipped-pending-report-source-root");
+        File jsonFile = new File(temporaryFolder.getRoot(), "skipped-pending-report.json");
+        File xmlFile = new File(temporaryFolder.getRoot(), "skipped-pending-report.xml");
+
+        CommandResult result = run(
+                "run",
+                "--spec-dir", testJavaRoot().getAbsolutePath(),
+                "--source-dir", sourceRoot.getAbsolutePath(),
+                "--class", "org.javaspec.fixtures.cli.FailingSubject",
+                "--example", "it_is_skipped",
+                "--example", "it_is_pending",
+                "--formatter", "pretty",
+                "--report", jsonFile.getAbsolutePath(),
+                "--junit-xml", xmlFile.getAbsolutePath()
+        );
+
+        assertEquals(0, result.exitCode);
+        assertContains(result.out, "Examples: 2 total, 0 passed, 0 failed, 0 broken, 1 skipped, 1 pending.");
+        assertContains(result.out, "SKIPPED spec.org.javaspec.fixtures.cli.FailingSubjectSpec#it_is_skipped (it is skipped): cli skip");
+        assertContains(result.out, "PENDING spec.org.javaspec.fixtures.cli.FailingSubjectSpec#it_is_pending (it is pending): cli pending");
+        assertEquals("", result.err);
+        String json = readFile(jsonFile);
+        assertContains(json, "\"total\": 2");
+        assertContains(json, "\"skipped\": 1");
+        assertContains(json, "\"pending\": 1");
+        assertContains(json, "\"successful\": true");
+        assertContains(json, "\"method\": \"it_is_skipped\"");
+        assertContains(json, "\"status\": \"SKIPPED\"");
+        assertContains(json, "\"detail\": \"cli skip\"");
+        assertContains(json, "\"method\": \"it_is_pending\"");
+        assertContains(json, "\"status\": \"PENDING\"");
+        assertContains(json, "\"detail\": \"cli pending\"");
+        String xml = readFile(xmlFile);
+        assertContains(xml, "<testsuite name=\"javaspec\" tests=\"2\" failures=\"0\" errors=\"0\" skipped=\"2\" time=\"0\">");
+        assertContains(xml, "<skipped message=\"cli skip\"/>");
+        assertContains(xml, "<skipped message=\"Pending: cli pending\"/>");
+        assertParsesAsXml(xml);
     }
 
     @Test

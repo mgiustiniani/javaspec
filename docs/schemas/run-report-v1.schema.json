@@ -26,6 +26,7 @@
       "type": "object",
       "required": ["total", "passed", "failed", "broken", "skipped", "successful"],
       "additionalProperties": true,
+      "description": "Summary counts for a run or spec. The Phase 22 writer emits pending for all summaries; pending remains optional in schemaVersion 1 so older additive-compatible reports without this field still validate.",
       "properties": {
         "total": {
           "type": "integer",
@@ -46,6 +47,11 @@
         "skipped": {
           "type": "integer",
           "minimum": 0
+        },
+        "pending": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Examples marked pending. This count is separate from skipped; JUnit XML-compatible reports may combine skipped and pending for the testsuite skipped attribute."
         },
         "successful": {
           "type": "boolean"
@@ -162,7 +168,7 @@
         },
         "status": {
           "type": "string",
-          "enum": ["PASSED", "FAILED", "BROKEN", "SKIPPED"]
+          "enum": ["PASSED", "FAILED", "BROKEN", "SKIPPED", "PENDING"]
         },
         "detail": {
           "type": "string"

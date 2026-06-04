@@ -14,9 +14,9 @@ The implementation also needs to avoid overstating plugin behavior. Public exten
 
 javaspec exposes `org.javaspec.formatter.RunFormatter` and a deterministic `RunFormatterRegistry` as zero-dependency public contracts. Built-in CLI formatter names are `progress` and `pretty`; they preserve the Phase 9 output behavior while moving rendering out of the CLI adapter.
 
-javaspec writes optional run reports through `org.javaspec.reporting.RunReportWriter`. Reports are UTF-8 JSON generated without a JSON runtime dependency. The current schema is `schemaVersion` 1 and contains summary counts, specs, examples, nullable failure details, throwable class/message, and stack trace lines. Phase 18 adds stable spec/example ids and source file/line metadata additively while preserving the existing fields.
+javaspec writes optional run reports through `org.javaspec.reporting.RunReportWriter`. Reports are UTF-8 JSON generated without a JSON runtime dependency. The current schema is `schemaVersion` 1 and contains summary counts, specs, examples, nullable failure details, throwable class/message, and stack trace lines. Phase 18 adds stable spec/example ids and source file/line metadata additively while preserving the existing fields; Phase 22 adds pending counts and `PENDING` statuses additively while preserving schemaVersion 1.
 
-`javaspec run --report <file>` and `--report-file <file>` are run-only. No-spec, passing, failing, broken, and skipped-only runs write reports after normal output. Failed or broken executable examples still exit `1` after the report is written. Dry-run pending generation/update exits before execution and does not write a report. Report write failures are I/O failures and exit `70`.
+`javaspec run --report <file>` and `--report-file <file>` are run-only. No-spec, passing, failing, broken, skipped-only, and pending-only runs write reports after normal output. Failed or broken executable examples still exit `1` after the report is written. Dry-run pending generation/update exits before execution and does not write a report. Report write failures are I/O failures and exit `70`.
 
 javaspec exposes minimal programmatic extension contracts through `JavaspecExtension`, the short-name alias `Extension`, and `ExtensionContext`. Extensions can register run formatters programmatically through the context registry. External CLI extension discovery/loading is not implemented: there is no configuration-driven activation, classpath scanning, `ServiceLoader` integration, plugin lookup, or CLI use of extension-provided formatter names in this increment.
 
@@ -32,7 +32,7 @@ Positive consequences:
 Negative consequences and limitations:
 
 - CLI formatter selection remains limited to built-in `progress` and `pretty`.
-- Reports remain schemaVersion 1 with additive Phase 18 identifier/source fields; there is no config-level report destination, alternate report format, or streaming report mode.
+- Reports remain schemaVersion 1 with additive Phase 18 identifier/source fields and Phase 22 pending fields/statuses; there is no config-level report destination, alternate report format, or streaming report mode.
 - Extension APIs are useful only when code can configure the registry programmatically; end-user plugin loading remains future work and will need its own design decision before implementation.
 - The JSON writer must maintain correct escaping and deterministic output internally because no JSON library is used at runtime.
 

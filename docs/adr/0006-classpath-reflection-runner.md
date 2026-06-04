@@ -41,7 +41,7 @@ Negative consequences and limitations:
 - The CLI runner does not compile source or spec files itself. Source-only or otherwise unavailable specification classes are skipped rather than executed.
 - Lifecycle support is intentionally minimal: public no-argument `let()` and `letGo()` only.
 - Missing reflected example methods are skipped because the source-discovered metadata and compiled class can diverge.
-- Full runner features such as pending examples, stop-on-failure, bootstrap execution, active formatter selection, richer reporting, and profile-aware execution remain future work.
+- Full runner features such as stop-on-failure, bootstrap execution, active formatter selection, richer reporting, and profile-aware execution were outside the original MVP. Stop-on-failure/formatter/reporting and explicit skipped/pending semantics are now covered by later ADRs and phases.
 
 Verification:
 
@@ -52,4 +52,5 @@ Implementation follow-up:
 
 - Phase 9 implemented stop-on-failure, dry-run planning, active built-in formatter selection, profile selection, and verbose diagnostics; see [ADR 0008](0008-run-only-controls-and-non-mutating-dry-run-planning.md).
 - Phase 11 implemented optional JSON runner reports and public formatter contracts; see [ADR 0010](0010-zero-dependency-formatter-reporting-and-programmatic-extension-boundary.md).
-- Pending examples, bootstrap execution, and deep profile-aware execution remain future work.
+- Phase 22 implemented explicit skipped/pending semantics; see [ADR 0015](0015-explicit-skipped-and-pending-semantics.md).
+- Bootstrap execution and deep profile-aware execution remain future work.

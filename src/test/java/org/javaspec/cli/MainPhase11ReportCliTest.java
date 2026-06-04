@@ -36,7 +36,7 @@ public class MainPhase11ReportCliTest {
         );
 
         assertEquals(0, result.exitCode);
-        assertTrue(result.out.contains("Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped."));
+        assertTrue(result.out.contains("Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped, 0 pending."));
         assertEquals("", result.err);
         assertTrue(reportFile.isFile());
         String json = readFile(reportFile);
@@ -77,7 +77,7 @@ public class MainPhase11ReportCliTest {
         );
 
         assertEquals(1, result.exitCode);
-        assertTrue(result.out.contains("Examples: 1 total, 0 passed, 1 failed, 0 broken, 0 skipped."));
+        assertTrue(result.out.contains("Examples: 1 total, 0 passed, 1 failed, 0 broken, 0 skipped, 0 pending."));
         assertEquals("", result.err);
         assertTrue(reportFile.isFile());
         String json = readFile(reportFile);
@@ -220,6 +220,7 @@ public class MainPhase11ReportCliTest {
                 "    \"failed\": 0,\n" +
                 "    \"broken\": 0,\n" +
                 "    \"skipped\": 0,\n" +
+                "    \"pending\": 0,\n" +
                 "    \"successful\": true\n" +
                 "  },\n" +
                 "  \"specs\": []\n" +

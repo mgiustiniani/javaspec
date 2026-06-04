@@ -33,7 +33,7 @@ public class MainRunnerIntegrationTest {
         assertEquals(1, result.exitCode);
         assertTrue(result.out.contains("Found 1 specification(s) in " + specRoot.getAbsolutePath() + "."));
         assertTrue(result.out.contains("spec.org.javaspec.fixtures.cli.FailingSubjectSpec describes org.javaspec.fixtures.cli.FailingSubject; class exists."));
-        assertTrue(result.out.contains("Examples: 1 total, 0 passed, 1 failed, 0 broken, 0 skipped."));
+        assertTrue(result.out.contains("Examples: 1 total, 0 passed, 1 failed, 0 broken, 0 skipped, 0 pending."));
         assertTrue(result.out.contains("Failed examples:"));
         assertTrue(result.out.contains("FAILED spec.org.javaspec.fixtures.cli.FailingSubjectSpec#it_fails"));
         assertTrue(result.out.contains("Assertion failed"));

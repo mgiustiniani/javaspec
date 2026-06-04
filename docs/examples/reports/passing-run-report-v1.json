@@ -6,6 +6,7 @@
     "failed": 0,
     "broken": 0,
     "skipped": 0,
+    "pending": 0,
     "successful": true
   },
   "specs": [
@@ -22,6 +23,7 @@
         "failed": 0,
         "broken": 0,
         "skipped": 0,
+        "pending": 0,
         "successful": true
       },
       "examples": [

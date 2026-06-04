@@ -55,6 +55,7 @@ public final class RunReportWriter {
                 runResult.failedCount(),
                 runResult.brokenCount(),
                 runResult.skippedCount(),
+                runResult.pendingCount(),
                 runResult.isSuccessful(),
                 "  ");
         builder.append(",\n");
@@ -104,6 +105,7 @@ public final class RunReportWriter {
                 spec.failedCount(),
                 spec.brokenCount(),
                 spec.skippedCount(),
+                spec.pendingCount(),
                 spec.isSuccessful(),
                 "      ");
         builder.append(",\n");
@@ -216,6 +218,7 @@ public final class RunReportWriter {
             int failed,
             int broken,
             int skipped,
+            int pending,
             boolean successful,
             String indent
     ) {
@@ -225,6 +228,7 @@ public final class RunReportWriter {
         builder.append(indent).append("  \"failed\": ").append(failed).append(",\n");
         builder.append(indent).append("  \"broken\": ").append(broken).append(",\n");
         builder.append(indent).append("  \"skipped\": ").append(skipped).append(",\n");
+        builder.append(indent).append("  \"pending\": ").append(pending).append(",\n");
         builder.append(indent).append("  \"successful\": ").append(successful).append("\n");
         builder.append(indent).append("}");
     }

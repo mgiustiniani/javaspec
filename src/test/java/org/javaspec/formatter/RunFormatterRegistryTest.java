@@ -69,14 +69,16 @@ public class RunFormatterRegistryTest {
     public void progressFormatterProducesCurrentConciseCliOutput() {
         String output = format(new ProgressRunFormatter(), mixedRunResult());
 
-        assertTrue(output.contains("Examples: 4 total, 1 passed, 1 failed, 1 broken, 1 skipped."));
+        assertTrue(output.contains("Examples: 5 total, 1 passed, 1 failed, 1 broken, 1 skipped, 1 pending."));
         assertTrue(output.contains("Failed examples:"));
         assertTrue(output.contains("  FAILED spec.example.CalculatorSpec#it_fails (fails cleanly): Assertion failed - java.lang.AssertionError: expected sum"));
         assertTrue(output.contains("Broken examples:"));
         assertTrue(output.contains("  BROKEN spec.example.CalculatorSpec#it_breaks (breaks loudly): Example method threw an unexpected throwable - java.lang.IllegalStateException: boom"));
+        assertTrue(output.contains("Pending examples:"));
+        assertTrue(output.contains("  PENDING spec.example.CalculatorSpec#it_is_pending (is pending): pending implementation"));
         assertFalse(output.contains("Example results:"));
         assertFalse(output.contains("PASSED spec.example.CalculatorSpec#it_passes"));
-        assertFalse(output.contains("SKIPPED spec.example.CalculatorSpec#it_is_pending"));
+        assertFalse(output.contains("SKIPPED spec.example.CalculatorSpec#it_is_skipped"));
     }
 
     @Test
@@ -87,10 +89,12 @@ public class RunFormatterRegistryTest {
         assertTrue(output.contains("  PASSED spec.example.CalculatorSpec#it_passes"));
         assertTrue(output.contains("  FAILED spec.example.CalculatorSpec#it_fails (fails cleanly): Assertion failed - java.lang.AssertionError: expected sum"));
         assertTrue(output.contains("  BROKEN spec.example.CalculatorSpec#it_breaks (breaks loudly): Example method threw an unexpected throwable - java.lang.IllegalStateException: boom"));
-        assertTrue(output.contains("  SKIPPED spec.example.CalculatorSpec#it_is_pending (is pending): pending implementation"));
-        assertTrue(output.contains("Examples: 4 total, 1 passed, 1 failed, 1 broken, 1 skipped."));
+        assertTrue(output.contains("  SKIPPED spec.example.CalculatorSpec#it_is_skipped (is skipped): skipped temporarily"));
+        assertTrue(output.contains("  PENDING spec.example.CalculatorSpec#it_is_pending (is pending): pending implementation"));
+        assertTrue(output.contains("Examples: 5 total, 1 passed, 1 failed, 1 broken, 1 skipped, 1 pending."));
         assertTrue(output.contains("Failed examples:"));
         assertTrue(output.contains("Broken examples:"));
+        assertTrue(output.contains("Pending examples:"));
     }
 
     private static String format(RunFormatter formatter, RunResult runResult) {
@@ -129,16 +133,25 @@ public class RunFormatterRegistryTest {
         );
         ExampleResult skipped = ExampleResult.of(
                 "spec.example.CalculatorSpec",
-                "it_is_pending",
-                "is pending",
+                "it_is_skipped",
+                "is skipped",
                 3,
                 ExampleStatus.SKIPPED,
+                "skipped temporarily",
+                null
+        );
+        ExampleResult pending = ExampleResult.of(
+                "spec.example.CalculatorSpec",
+                "it_is_pending",
+                "is pending",
+                4,
+                ExampleStatus.PENDING,
                 "pending implementation",
                 null
         );
         return RunResult.of(Collections.singletonList(SpecResult.of(
                 "spec.example.CalculatorSpec",
-                Arrays.asList(passed, failed, broken, skipped)
+                Arrays.asList(passed, failed, broken, skipped, pending)
         )));
     }
 }

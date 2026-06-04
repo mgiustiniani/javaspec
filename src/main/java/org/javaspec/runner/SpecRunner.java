@@ -1,5 +1,9 @@
 package org.javaspec.runner;
 
+import org.javaspec.api.Pending;
+import org.javaspec.api.PendingExampleException;
+import org.javaspec.api.Skip;
+import org.javaspec.api.SkipExampleException;
 import org.javaspec.discovery.DiscoveredSpec;
 import org.javaspec.discovery.SpecExample;
 
@@ -100,6 +104,16 @@ public final class SpecRunner {
             return ExampleResult.broken(spec, example, "Could not inspect example method: " + example.methodName(), unwrap(ex));
         }
 
+        ExampleSignal annotationSignal;
+        try {
+            annotationSignal = annotationSignalFor(exampleMethod);
+        } catch (Throwable ex) {
+            return ExampleResult.broken(spec, example, "Could not inspect example method annotations: " + example.methodName(), unwrap(ex));
+        }
+        if (annotationSignal != null) {
+            return resultForSignal(spec, example, annotationSignal);
+        }
+
         Method letMethod;
         Method letGoMethod;
         try {
@@ -119,13 +133,16 @@ public final class SpecRunner {
         Throwable letFailure = null;
         Throwable exampleFailure = null;
         Throwable letGoFailure = null;
+        ExampleSignal runtimeSignal = null;
 
         try {
             if (letMethod != null) {
                 letFailure = invoke(letMethod, instance);
+                runtimeSignal = signalFor(letFailure);
             }
-            if (letFailure == null) {
+            if (letFailure == null && runtimeSignal == null) {
                 exampleFailure = invoke(exampleMethod, instance);
+                runtimeSignal = signalFor(exampleFailure);
             }
         } finally {
             if (letGoMethod != null) {
@@ -135,6 +152,11 @@ public final class SpecRunner {
 
         if (letGoFailure != null) {
             Throwable primary = letGoFailure;
+            if (runtimeSignal != null) {
+                primary = suppress(primary, runtimeSignal.throwable());
+                return ExampleResult.broken(spec, example,
+                        "letGo() failed after " + runtimeSignal.label() + " example", primary);
+            }
             if (letFailure != null) {
                 primary = suppress(primary, letFailure);
                 return ExampleResult.broken(spec, example, "letGo() failed after let() failure", primary);
@@ -146,6 +168,9 @@ public final class SpecRunner {
             return ExampleResult.broken(spec, example, "letGo() failed", primary);
         }
 
+        if (runtimeSignal != null) {
+            return resultForSignal(spec, example, runtimeSignal);
+        }
         if (letFailure != null) {
             return ExampleResult.broken(spec, example, "let() failed", letFailure);
         }
@@ -156,6 +181,70 @@ public final class SpecRunner {
             return ExampleResult.broken(spec, example, "Example method threw an unexpected throwable", exampleFailure);
         }
         return ExampleResult.passed(spec, example);
+    }
+
+    private static ExampleSignal annotationSignalFor(Method exampleMethod) {
+        Skip skip = exampleMethod.getAnnotation(Skip.class);
+        if (skip != null) {
+            // Deterministic precedence: @Skip wins over @Pending when both markers are present.
+            return ExampleSignal.skipped(annotationReason(skip.value(), skip.reason(), "Skipped by javaspec."), null);
+        }
+        Pending pending = exampleMethod.getAnnotation(Pending.class);
+        if (pending != null) {
+            return ExampleSignal.pending(annotationReason(pending.value(), pending.reason(), "Pending by javaspec."), null);
+        }
+        return null;
+    }
+
+    private static ExampleSignal signalFor(Throwable throwable) {
+        if (throwable instanceof SkipExampleException) {
+            return ExampleSignal.skipped(exceptionReason((SkipExampleException) throwable, "Skipped by javaspec."), throwable);
+        }
+        if (throwable instanceof PendingExampleException) {
+            return ExampleSignal.pending(exceptionReason((PendingExampleException) throwable, "Pending by javaspec."), throwable);
+        }
+        return null;
+    }
+
+    private static ExampleResult resultForSignal(DiscoveredSpec spec, SpecExample example, ExampleSignal signal) {
+        if (signal.isSkipped()) {
+            return ExampleResult.skipped(spec, example, signal.detail());
+        }
+        return ExampleResult.pending(spec, example, signal.detail());
+    }
+
+    private static String annotationReason(String value, String reason, String defaultReason) {
+        if (!isBlank(reason)) {
+            return reason;
+        }
+        if (!isBlank(value)) {
+            return value;
+        }
+        return defaultReason;
+    }
+
+    private static String exceptionReason(SkipExampleException exception, String defaultReason) {
+        if (!isBlank(exception.reason())) {
+            return exception.reason();
+        }
+        if (!isBlank(exception.getMessage())) {
+            return exception.getMessage();
+        }
+        return defaultReason;
+    }
+
+    private static String exceptionReason(PendingExampleException exception, String defaultReason) {
+        if (!isBlank(exception.reason())) {
+            return exception.reason();
+        }
+        if (!isBlank(exception.getMessage())) {
+            return exception.getMessage();
+        }
+        return defaultReason;
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.trim().length() == 0;
     }
 
     private static Object newSpecInstance(Class<?> specClass) throws Throwable {
@@ -228,5 +317,44 @@ public final class SpecRunner {
             return throwable.getClass().getName();
         }
         return throwable.getClass().getName() + ": " + message;
+    }
+
+    private static final class ExampleSignal {
+        private final ExampleStatus status;
+        private final String detail;
+        private final Throwable throwable;
+
+        private ExampleSignal(ExampleStatus status, String detail, Throwable throwable) {
+            this.status = status;
+            this.detail = detail;
+            this.throwable = throwable;
+        }
+
+        static ExampleSignal skipped(String detail, Throwable throwable) {
+            return new ExampleSignal(ExampleStatus.SKIPPED, detail, throwable);
+        }
+
+        static ExampleSignal pending(String detail, Throwable throwable) {
+            return new ExampleSignal(ExampleStatus.PENDING, detail, throwable);
+        }
+
+        boolean isSkipped() {
+            return ExampleStatus.SKIPPED.equals(status);
+        }
+
+        String label() {
+            if (isSkipped()) {
+                return "skipped";
+            }
+            return "pending";
+        }
+
+        String detail() {
+            return detail;
+        }
+
+        Throwable throwable() {
+            return throwable;
+        }
     }
 }
