@@ -57,6 +57,146 @@ public class MainConfigurationIntegrationTest {
     }
 
     @Test
+    public void runUsesConfiguredReportDestinationsWhenCliOptionsAreAbsent() throws Exception {
+        File specRoot = temporaryFolder.newFolder("configured-report-spec");
+        File sourceRoot = temporaryFolder.newFolder("configured-report-source");
+        File jsonReport = new File(temporaryFolder.getRoot(), "configured-report.json");
+        File junitXmlReport = new File(temporaryFolder.getRoot(), "configured-junit.xml");
+        File configFile = writeConfig("configured-reports.conf",
+                suiteConfig("custom", specRoot, sourceRoot) +
+                        "report = " + jsonReport.getAbsolutePath() + "\n" +
+                        "junitXml = " + junitXmlReport.getAbsolutePath() + "\n");
+
+        CommandResult result = run("run", "--config", configFile.getAbsolutePath(), "--suite", "custom", "--verbose");
+
+        assertEquals(0, result.exitCode);
+        assertContains(result.out, "Run configuration:");
+        assertContains(result.out, "  Report path: " + jsonReport.getAbsolutePath());
+        assertContains(result.out, "  JUnit XML path: " + junitXmlReport.getAbsolutePath());
+        assertContains(result.out, "No specifications found in " + specRoot.getAbsolutePath() + ".");
+        assertEquals("", result.err);
+        assertTrue(jsonReport.isFile());
+        assertTrue(junitXmlReport.isFile());
+        assertEquals(emptyReportJson(), readFile(jsonReport));
+        assertEquals(emptyJUnitXml(), readFile(junitXmlReport));
+    }
+
+    @Test
+    public void commandLineReportOptionsOverrideConfiguredReportDestinations() throws Exception {
+        File specRoot = temporaryFolder.newFolder("override-report-spec");
+        File sourceRoot = temporaryFolder.newFolder("override-report-source");
+        File configuredJsonReport = new File(temporaryFolder.getRoot(), "configured-override-report.json");
+        File configuredJunitXmlReport = new File(temporaryFolder.getRoot(), "configured-override-junit.xml");
+        File cliJsonReport = new File(temporaryFolder.getRoot(), "cli-override-report.json");
+        File cliJunitXmlReport = new File(temporaryFolder.getRoot(), "cli-override-junit.xml");
+        File configFile = writeConfig("override-reports.conf",
+                suiteConfig("custom", specRoot, sourceRoot) +
+                        "jsonReportFile = " + configuredJsonReport.getAbsolutePath() + "\n" +
+                        "junitXmlReportFile = " + configuredJunitXmlReport.getAbsolutePath() + "\n");
+
+        CommandResult result = run(
+                "run",
+                "--config", configFile.getAbsolutePath(),
+                "--suite", "custom",
+                "--report", cliJsonReport.getAbsolutePath(),
+                "--junit-xml", cliJunitXmlReport.getAbsolutePath()
+        );
+
+        assertEquals(0, result.exitCode);
+        assertEquals("", result.err);
+        assertTrue(cliJsonReport.isFile());
+        assertTrue(cliJunitXmlReport.isFile());
+        assertFalse(configuredJsonReport.exists());
+        assertFalse(configuredJunitXmlReport.exists());
+        assertEquals(emptyReportJson(), readFile(cliJsonReport));
+        assertEquals(emptyJUnitXml(), readFile(cliJunitXmlReport));
+    }
+
+    @Test
+    public void describeAcceptsConfiguredReportDestinationsWithoutWritingReports() throws Exception {
+        File specRoot = temporaryFolder.newFolder("describe-report-config-spec");
+        File sourceRoot = temporaryFolder.newFolder("describe-report-config-source");
+        File jsonReport = new File(temporaryFolder.getRoot(), "describe-config-report.json");
+        File junitXmlReport = new File(temporaryFolder.getRoot(), "describe-config-junit.xml");
+        File configFile = writeConfig("describe-report-config.conf",
+                suiteConfig("custom", specRoot, sourceRoot) +
+                        "reportFile = " + jsonReport.getAbsolutePath() + "\n" +
+                        "junit-xml-file = " + junitXmlReport.getAbsolutePath() + "\n");
+
+        CommandResult result = run("describe", "com.example.ReportConfigured", "--config", configFile.getAbsolutePath(), "--suite", "custom");
+
+        assertEquals(0, result.exitCode);
+        assertContains(result.out, "Generated specification:");
+        assertEquals("", result.err);
+        assertFalse(jsonReport.exists());
+        assertFalse(junitXmlReport.exists());
+        assertTrue(new File(specRoot, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "ReportConfiguredSpec.java").isFile());
+    }
+
+    @Test
+    public void describeStillRejectsCommandLineReportOptionsWhenConfigurationHasReportDestinations() throws Exception {
+        File specRoot = temporaryFolder.newFolder("describe-reject-config-report-spec");
+        File sourceRoot = temporaryFolder.newFolder("describe-reject-config-report-source");
+        File configuredJsonReport = new File(temporaryFolder.getRoot(), "describe-reject-config-report.json");
+        File configuredJunitXmlReport = new File(temporaryFolder.getRoot(), "describe-reject-config-junit.xml");
+        File cliJsonReport = new File(temporaryFolder.getRoot(), "describe-cli-report.json");
+        File cliJunitXmlReport = new File(temporaryFolder.getRoot(), "describe-cli-junit.xml");
+        File configFile = writeConfig("describe-reject-report-config.conf",
+                suiteConfig("custom", specRoot, sourceRoot) +
+                        "json-report-file = " + configuredJsonReport.getAbsolutePath() + "\n" +
+                        "junit-xml-report-file = " + configuredJunitXmlReport.getAbsolutePath() + "\n");
+
+        CommandResult jsonResult = run(
+                "describe",
+                "com.example.JsonRejected",
+                "--config", configFile.getAbsolutePath(),
+                "--suite", "custom",
+                "--report", cliJsonReport.getAbsolutePath()
+        );
+        CommandResult xmlResult = run(
+                "describe",
+                "com.example.XmlRejected",
+                "--config", configFile.getAbsolutePath(),
+                "--suite", "custom",
+                "--junit-xml", cliJunitXmlReport.getAbsolutePath()
+        );
+
+        assertEquals(64, jsonResult.exitCode);
+        assertEquals("", jsonResult.out);
+        assertContains(jsonResult.err, "The --report option belongs to run; describe does not execute examples.");
+        assertEquals(64, xmlResult.exitCode);
+        assertEquals("", xmlResult.out);
+        assertContains(xmlResult.err, "The --junit-xml option belongs to run; describe does not execute examples.");
+        assertFalse(configuredJsonReport.exists());
+        assertFalse(configuredJunitXmlReport.exists());
+        assertFalse(cliJsonReport.exists());
+        assertFalse(cliJunitXmlReport.exists());
+        assertEquals(0, countFiles(specRoot));
+    }
+
+    @Test
+    public void dryRunWithPendingGenerationDoesNotWriteConfiguredReports() throws Exception {
+        File specRoot = temporaryFolder.newFolder("dry-run-config-report-spec");
+        File sourceRoot = temporaryFolder.newFolder("dry-run-config-report-source");
+        File jsonReport = new File(temporaryFolder.getRoot(), "dry-run-config-report.json");
+        File junitXmlReport = new File(temporaryFolder.getRoot(), "dry-run-config-junit.xml");
+        File configFile = writeConfig("dry-run-config-reports.conf",
+                suiteConfig("custom", specRoot, sourceRoot) +
+                        "jsonReport = " + jsonReport.getAbsolutePath() + "\n" +
+                        "junitXmlReportFile = " + junitXmlReport.getAbsolutePath() + "\n");
+        writeSpec(specRoot, "spec.com.example.DryRunConfiguredReportSpec");
+
+        CommandResult result = run("run", "--config", configFile.getAbsolutePath(), "--suite", "custom", "--dry-run");
+
+        assertEquals(1, result.exitCode);
+        assertContains(result.out, "Would generate class skeleton:");
+        assertContains(result.out, "Dry-run found pending generation/update work; no files were written.");
+        assertEquals("", result.err);
+        assertFalse(jsonReport.exists());
+        assertFalse(junitXmlReport.exists());
+    }
+
+    @Test
     public void commandLineDirectoriesOverrideConfiguredSuiteDirectories() throws Exception {
         File configuredSpecRoot = temporaryFolder.newFolder("configured-spec-root");
         File configuredSourceRoot = temporaryFolder.newFolder("configured-source-root");
@@ -210,6 +350,28 @@ public class MainConfigurationIntegrationTest {
                 "suite." + suiteName + ".sourceDir=" + sourceRoot.getAbsolutePath() + "\n";
     }
 
+    private static String emptyReportJson() {
+        return "{\n" +
+                "  \"schemaVersion\": 1,\n" +
+                "  \"summary\": {\n" +
+                "    \"total\": 0,\n" +
+                "    \"passed\": 0,\n" +
+                "    \"failed\": 0,\n" +
+                "    \"broken\": 0,\n" +
+                "    \"skipped\": 0,\n" +
+                "    \"pending\": 0,\n" +
+                "    \"successful\": true\n" +
+                "  },\n" +
+                "  \"specs\": []\n" +
+                "}\n";
+    }
+
+    private static String emptyJUnitXml() {
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<testsuite name=\"javaspec\" tests=\"0\" failures=\"0\" errors=\"0\" skipped=\"0\" time=\"0\">\n" +
+                "</testsuite>\n";
+    }
+
     private static File writeSpec(File specRoot, String specQualifiedName) throws Exception {
         int lastDot = specQualifiedName.lastIndexOf('.');
         String packageName = lastDot < 0 ? "" : specQualifiedName.substring(0, lastDot);
@@ -287,6 +449,10 @@ public class MainConfigurationIntegrationTest {
 
     private static String readFile(File file) throws Exception {
         return new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+    }
+
+    private static void assertContains(String value, String expected) {
+        assertTrue("Expected to contain: " + expected + "\nActual value:\n" + value, value.contains(expected));
     }
 
     private static int countFiles(File root) {

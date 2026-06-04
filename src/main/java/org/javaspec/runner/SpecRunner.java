@@ -61,16 +61,13 @@ public final class SpecRunner {
         try {
             specClass = Class.forName(spec.specQualifiedName(), false, classLoader);
         } catch (ClassNotFoundException ex) {
-            return skippedSpec(spec, "Specification class not found: " + spec.specQualifiedName());
+            return skippedSpec(spec, specClassNotFoundReason(spec));
         } catch (NoClassDefFoundError ex) {
-            return skippedSpec(spec, "Specification class could not be loaded: " + spec.specQualifiedName()
-                    + " (" + throwableSummary(ex) + ")");
+            return skippedSpec(spec, specClassCouldNotLoadReason(spec, ex));
         } catch (LinkageError ex) {
-            return skippedSpec(spec, "Specification class could not be loaded: " + spec.specQualifiedName()
-                    + " (" + throwableSummary(ex) + ")");
+            return skippedSpec(spec, specClassCouldNotLoadReason(spec, ex));
         } catch (SecurityException ex) {
-            return skippedSpec(spec, "Specification class could not be loaded: " + spec.specQualifiedName()
-                    + " (" + throwableSummary(ex) + ")");
+            return skippedSpec(spec, specClassCouldNotLoadReason(spec, ex));
         }
 
         List<ExampleResult> results = new ArrayList<ExampleResult>();
@@ -83,6 +80,21 @@ public final class SpecRunner {
             }
         }
         return SpecResult.executable(spec, results);
+    }
+
+    private static String specClassNotFoundReason(DiscoveredSpec spec) {
+        return "Specification class not found: " + spec.specQualifiedName()
+                + ". The specification source was discovered, but the compiled specification class is not available "
+                + "to the runner classloader. Compile the spec/test sources and add the compiled output and "
+                + "required dependencies to the javaspec classpath.";
+    }
+
+    private static String specClassCouldNotLoadReason(DiscoveredSpec spec, Throwable throwable) {
+        return "Specification class could not be loaded: " + spec.specQualifiedName()
+                + " (" + throwableSummary(throwable) + "). The specification source was discovered, but the "
+                + "compiled specification class or one of its dependencies is not available to the runner "
+                + "classloader. Compile the spec/test sources and add the compiled output and required "
+                + "dependencies to the javaspec classpath.";
     }
 
     private static SpecResult skippedSpec(DiscoveredSpec spec, String reason) {
@@ -99,7 +111,7 @@ public final class SpecRunner {
         try {
             exampleMethod = publicNoArgMethod(specClass, example.methodName());
         } catch (NoSuchMethodException ex) {
-            return ExampleResult.skipped(spec, example, "Example method not found or not public no-arg: " + example.methodName());
+            return ExampleResult.skipped(spec, example, exampleMethodNotFoundReason(example));
         } catch (Throwable ex) {
             return ExampleResult.broken(spec, example, "Could not inspect example method: " + example.methodName(), unwrap(ex));
         }
@@ -181,6 +193,13 @@ public final class SpecRunner {
             return ExampleResult.broken(spec, example, "Example method threw an unexpected throwable", exampleFailure);
         }
         return ExampleResult.passed(spec, example);
+    }
+
+    private static String exampleMethodNotFoundReason(SpecExample example) {
+        return "Example method not found or not public no-arg: " + example.methodName()
+                + ". The discovered specification source may not match the compiled specification class available "
+                + "to the runner. Recompile test/spec sources so the compiled class contains a public "
+                + "no-argument example method.";
     }
 
     private static ExampleSignal annotationSignalFor(Method exampleMethod) {

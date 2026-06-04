@@ -3,6 +3,7 @@ package org.javaspec.cli;
 import org.javaspec.config.ConfigurationException;
 import org.javaspec.config.JavaspecConfiguration;
 import org.javaspec.config.JavaspecSuiteConfiguration;
+import org.javaspec.diagnostics.RunDiagnostics;
 import org.javaspec.discovery.DiscoveredSpec;
 import org.javaspec.discovery.SpecDiscovery;
 import org.javaspec.discovery.SpecDiscoveryRequest;
@@ -149,6 +150,14 @@ public final class Main {
         parsed.effectiveFormatter = parsed.formatterOverride == null
                 ? formatterFromConfiguration(configuration.formatter())
                 : parsed.formatterOverride;
+        if ("run".equals(parsed.command)) {
+            if (!parsed.reportSpecified && configuration.jsonReportFile() != null) {
+                parsed.reportPath = configuration.jsonReportFile();
+            }
+            if (!parsed.junitXmlSpecified && configuration.junitXmlReportFile() != null) {
+                parsed.junitXmlPath = configuration.junitXmlReportFile();
+            }
+        }
         try {
             parsed.namingConvention = SpecNamingConvention.from(selectedSuite);
         } catch (IllegalArgumentException ex) {
@@ -456,6 +465,7 @@ public final class Main {
 
         RunResult runResult = SpecRunner.run(specs, selectedClassLoader, parsed.stopOnFailure);
         printRunnerSummary(runResult, out, parsed.effectiveFormatter);
+        printExecutionDiagnostics(runResult, out, classpathSelection);
         int reportExitCode = writeRequestedReports(runResult, parsed, err);
         if (reportExitCode != EXIT_OK) {
             return reportExitCode;
@@ -760,6 +770,29 @@ public final class Main {
             runFormatter = RUN_FORMATTERS.lookup(RunFormatterRegistry.FORMATTER_PROGRESS);
         }
         runFormatter.format(runResult, out);
+    }
+
+    private static void printExecutionDiagnostics(
+            RunResult runResult,
+            PrintStream out,
+            ClasspathSelection classpathSelection
+    ) {
+        List<String> lines = RunDiagnostics.executionAvailabilityLines(runResult);
+        if (lines.isEmpty()) {
+            return;
+        }
+        out.println("Execution diagnostics:");
+        for (int i = 0; i < lines.size(); i++) {
+            out.println("  - " + lines.get(i));
+        }
+        if (classpathSelection.hasExplicitEntries()) {
+            out.println("  - Explicit classpath entries provided: " + classpathSelection.entries().size()
+                    + ". Verify these entries contain compiled spec classes and required dependencies.");
+        } else {
+            out.println("  - No explicit classpath entries were provided; javaspec used the current process classloader. "
+                    + "Use --classpath or --classpath-file with compiled test/spec output and dependencies "
+                    + "(for Maven, include target/test-classes and target/classes).");
+        }
     }
 
     private static void printRunConfiguration(ParsedArguments parsed, PrintStream out, ClasspathSelection classpathSelection) {

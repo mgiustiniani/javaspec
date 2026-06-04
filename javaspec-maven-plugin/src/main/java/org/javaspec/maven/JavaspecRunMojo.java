@@ -10,6 +10,7 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.javaspec.config.ConfigurationException;
 import org.javaspec.config.JavaspecConfiguration;
 import org.javaspec.config.JavaspecSuiteConfiguration;
+import org.javaspec.diagnostics.RunDiagnostics;
 import org.javaspec.discovery.SpecDiscoveryRequest;
 import org.javaspec.discovery.SpecNamingConvention;
 import org.javaspec.invocation.JavaspecInvocation;
@@ -128,7 +129,8 @@ public final class JavaspecRunMojo extends AbstractMojo {
             RunResult runResult = invocationResult.runResult();
 
             logSummary(invocationResult);
-            writeReports(runResult);
+            logExecutionDiagnostics(runResult);
+            writeReports(runResult, configuration);
             handleFailures(runResult);
         } catch (MojoExecutionException ex) {
             throw ex;
@@ -320,15 +322,54 @@ public final class JavaspecRunMojo extends AbstractMojo {
         }
     }
 
-    private void writeReports(RunResult runResult) throws MojoExecutionException {
-        writeJsonReportIfRequested(runResult, reportFile);
-        if (!sameFileParameter(reportFile, jsonReportFile)) {
-            writeJsonReportIfRequested(runResult, jsonReportFile);
+    private void logExecutionDiagnostics(RunResult runResult) {
+        List<String> lines = RunDiagnostics.executionAvailabilityLines(runResult);
+        if (lines.isEmpty()) {
+            return;
         }
-        writeJUnitXmlReportIfRequested(runResult, junitXmlReportFile);
-        if (!sameFileParameter(junitXmlReportFile, junitXmlFile)) {
-            writeJUnitXmlReportIfRequested(runResult, junitXmlFile);
+        getLog().warn("javaspec: Execution diagnostics:");
+        for (int i = 0; i < lines.size(); i++) {
+            getLog().warn("javaspec: - " + lines.get(i));
         }
+        getLog().warn("javaspec: Maven test classpath contains " + testClasspathElementCount()
+                + " element(s); javaspec:run needs compiled test/spec classes and dependencies "
+                + "on the Maven test classpath.");
+    }
+
+    private int testClasspathElementCount() {
+        if (testClasspathElements == null) {
+            return 0;
+        }
+        return testClasspathElements.size();
+    }
+
+    private void writeReports(RunResult runResult, JavaspecConfiguration configuration) throws MojoExecutionException {
+        File effectiveReportFile = reportFile;
+        File effectiveJsonReportFile = jsonReportFile;
+        if (effectiveReportFile == null && effectiveJsonReportFile == null) {
+            effectiveReportFile = configurationFileOrNull(configuration.jsonReportFile());
+        }
+        writeJsonReportIfRequested(runResult, effectiveReportFile);
+        if (!sameFileParameter(effectiveReportFile, effectiveJsonReportFile)) {
+            writeJsonReportIfRequested(runResult, effectiveJsonReportFile);
+        }
+
+        File effectiveJunitXmlReportFile = junitXmlReportFile;
+        File effectiveJunitXmlFile = junitXmlFile;
+        if (effectiveJunitXmlReportFile == null && effectiveJunitXmlFile == null) {
+            effectiveJunitXmlReportFile = configurationFileOrNull(configuration.junitXmlReportFile());
+        }
+        writeJUnitXmlReportIfRequested(runResult, effectiveJunitXmlReportFile);
+        if (!sameFileParameter(effectiveJunitXmlReportFile, effectiveJunitXmlFile)) {
+            writeJUnitXmlReportIfRequested(runResult, effectiveJunitXmlFile);
+        }
+    }
+
+    private File configurationFileOrNull(String path) {
+        if (path == null) {
+            return null;
+        }
+        return new File(path);
     }
 
     private void writeJsonReportIfRequested(RunResult runResult, File configuredFile) throws MojoExecutionException {

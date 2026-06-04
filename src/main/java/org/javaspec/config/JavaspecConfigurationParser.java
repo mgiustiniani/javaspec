@@ -115,6 +115,22 @@ public final class JavaspecConfigurationParser {
         if ("constructorPolicy".equals(key) || "constructor-policy".equals(key)) {
             return ParsedKey.topLevel(key, KeyKind.CONSTRUCTOR_POLICY, "constructorPolicy");
         }
+        if ("report".equals(key)
+                || "reportFile".equals(key)
+                || "report-file".equals(key)
+                || "jsonReport".equals(key)
+                || "jsonReportFile".equals(key)
+                || "json-report-file".equals(key)) {
+            return ParsedKey.topLevel(key, KeyKind.JSON_REPORT_FILE, "jsonReportFile");
+        }
+        if ("junitXml".equals(key)
+                || "junit-xml".equals(key)
+                || "junitXmlFile".equals(key)
+                || "junit-xml-file".equals(key)
+                || "junitXmlReportFile".equals(key)
+                || "junit-xml-report-file".equals(key)) {
+            return ParsedKey.topLevel(key, KeyKind.JUNIT_XML_REPORT_FILE, "junitXmlReportFile");
+        }
         if ("defaultSuite".equals(key) || "default-suite".equals(key)) {
             return ParsedKey.topLevel(key, KeyKind.DEFAULT_SUITE, "defaultSuite");
         }
@@ -212,6 +228,14 @@ public final class JavaspecConfigurationParser {
         }
         if (parsedKey.kind() == KeyKind.CONSTRUCTOR_POLICY) {
             draft.constructorPolicy = parseConstructorPolicy(value, lineNumber);
+            return;
+        }
+        if (parsedKey.kind() == KeyKind.JSON_REPORT_FILE) {
+            draft.jsonReportFile = requiredValue("jsonReportFile", value, lineNumber);
+            return;
+        }
+        if (parsedKey.kind() == KeyKind.JUNIT_XML_REPORT_FILE) {
+            draft.junitXmlReportFile = requiredValue("junitXmlReportFile", value, lineNumber);
             return;
         }
         if (parsedKey.kind() == KeyKind.DEFAULT_SUITE) {
@@ -314,6 +338,8 @@ public final class JavaspecConfigurationParser {
         PROFILE,
         FORMATTER,
         CONSTRUCTOR_POLICY,
+        JSON_REPORT_FILE,
+        JUNIT_XML_REPORT_FILE,
         DEFAULT_SUITE,
         BOOTSTRAP,
         SUITE_SPEC_DIRECTORY,
@@ -366,6 +392,8 @@ public final class JavaspecConfigurationParser {
         private String formatter = JavaspecConfiguration.DEFAULT_FORMATTER;
         private ConstructorPolicy constructorPolicy = ConstructorPolicy.defaultPolicy();
         private String defaultSuiteName = JavaspecSuiteConfiguration.DEFAULT_SUITE_NAME;
+        private String jsonReportFile;
+        private String junitXmlReportFile;
         private List<String> bootstrapHooks = Collections.unmodifiableList(new ArrayList<String>());
         private final Map<String, SuiteDraft> suites = new LinkedHashMap<String, SuiteDraft>();
 
@@ -393,7 +421,9 @@ public final class JavaspecConfigurationParser {
                     constructorPolicy,
                     defaultSuiteName,
                     bootstrapHooks,
-                    suiteConfigurations
+                    suiteConfigurations,
+                    jsonReportFile,
+                    junitXmlReportFile
             );
         }
     }

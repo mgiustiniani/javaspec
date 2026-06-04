@@ -58,6 +58,101 @@ public class JavaspecGradlePluginTest {
     }
 
     @Test
+    public void configurationReportDestinationsAreUsedWhenTaskAndExtensionReportsAreAbsent() throws Exception {
+        File projectDir = newProject("config-report-destinations");
+        writeBuildFile(projectDir, javaPluginBuild(
+                "javaspec {\n" +
+                        "    configFile = file('javaspec.conf')\n" +
+                        "}\n"
+        ));
+        writeFile(new File(projectDir, "javaspec.conf"),
+                "suite.default.specDir = src/test/java\n" +
+                        "report = build/reports/javaspec/configured.json\n" +
+                        "junitXml = build/reports/javaspec/configured.xml\n");
+
+        BuildResult result = runGradle(projectDir, "javaspecRun");
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":javaspecRun").getOutcome());
+        assertContains(result.getOutput(), "javaspec: no specifications found.");
+        File jsonReport = new File(projectDir, "build/reports/javaspec/configured.json");
+        File junitXmlReport = new File(projectDir, "build/reports/javaspec/configured.xml");
+        assertTrue(jsonReport.isFile());
+        assertTrue(junitXmlReport.isFile());
+        assertContains(readFile(jsonReport), "\"total\": 0");
+        assertContains(readFile(junitXmlReport), "tests=\"0\" failures=\"0\" errors=\"0\"");
+    }
+
+    @Test
+    public void extensionReportSettingsOverrideConfiguredReportDestinations() throws Exception {
+        File projectDir = newProject("extension-report-overrides-config");
+        writeBuildFile(projectDir, javaPluginBuild(
+                "javaspec {\n" +
+                        "    configFile = file('javaspec.conf')\n" +
+                        "    jsonReportFile = file('build/reports/javaspec/extension.json')\n" +
+                        "    junitXmlReportFile = file('build/reports/javaspec/extension.xml')\n" +
+                        "}\n"
+        ));
+        writeFile(new File(projectDir, "javaspec.conf"),
+                "suite.default.specDir = src/test/java\n" +
+                        "jsonReportFile = build/reports/javaspec/configured.json\n" +
+                        "junitXmlReportFile = build/reports/javaspec/configured.xml\n");
+
+        BuildResult result = runGradle(projectDir, "javaspecRun");
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":javaspecRun").getOutcome());
+        assertTrue(new File(projectDir, "build/reports/javaspec/extension.json").isFile());
+        assertTrue(new File(projectDir, "build/reports/javaspec/extension.xml").isFile());
+        assertFalse(new File(projectDir, "build/reports/javaspec/configured.json").exists());
+        assertFalse(new File(projectDir, "build/reports/javaspec/configured.xml").exists());
+    }
+
+    @Test
+    public void taskReportSettingsOverrideExtensionAndConfiguredReportDestinations() throws Exception {
+        File projectDir = newProject("task-report-overrides-extension");
+        writeBuildFile(projectDir, javaPluginBuild(
+                "javaspec {\n" +
+                        "    configFile = file('javaspec.conf')\n" +
+                        "    reportFile = file('build/reports/javaspec/extension.json')\n" +
+                        "    junitXmlFile = file('build/reports/javaspec/extension.xml')\n" +
+                        "}\n" +
+                        "tasks.named('javaspecRun') {\n" +
+                        "    reportFile = file('build/reports/javaspec/task.json')\n" +
+                        "    junitXmlFile = file('build/reports/javaspec/task.xml')\n" +
+                        "}\n"
+        ));
+        writeFile(new File(projectDir, "javaspec.conf"),
+                "suite.default.specDir = src/test/java\n" +
+                        "report = build/reports/javaspec/configured.json\n" +
+                        "junit-xml = build/reports/javaspec/configured.xml\n");
+
+        BuildResult result = runGradle(projectDir, "javaspecRun");
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":javaspecRun").getOutcome());
+        assertTrue(new File(projectDir, "build/reports/javaspec/task.json").isFile());
+        assertTrue(new File(projectDir, "build/reports/javaspec/task.xml").isFile());
+        assertFalse(new File(projectDir, "build/reports/javaspec/extension.json").exists());
+        assertFalse(new File(projectDir, "build/reports/javaspec/extension.xml").exists());
+        assertFalse(new File(projectDir, "build/reports/javaspec/configured.json").exists());
+        assertFalse(new File(projectDir, "build/reports/javaspec/configured.xml").exists());
+    }
+
+    @Test
+    public void duplicateReportAliasesInConfigurationFailGradleTask() throws Exception {
+        assertDuplicateReportAliasFailsGradleBuild(
+                "duplicate-json-report-alias",
+                "report = build/reports/one.json\n" +
+                        "jsonReportFile = build/reports/two.json\n",
+                "jsonReportFile"
+        );
+        assertDuplicateReportAliasFailsGradleBuild(
+                "duplicate-junit-report-alias",
+                "junitXml = build/reports/one.xml\n" +
+                        "junitXmlReportFile = build/reports/two.xml\n",
+                "junitXmlReportFile"
+        );
+    }
+
+    @Test
     public void compiledPassingSpecRunsThroughDefaultTestSourceSetRuntimeClasspathAndWritesReports() throws Exception {
         File projectDir = newProject("passing-default-classpath");
         writeBuildFile(projectDir, javaPluginBuild(
@@ -97,6 +192,33 @@ public class JavaspecGradlePluginTest {
         assertContains(xml, "<testsuite name=\"javaspec\" tests=\"1\" failures=\"0\" errors=\"0\" skipped=\"0\" time=\"0\">");
         assertGradleTestcaseHasSource(xml, specFile, "it_uses_main_output_on_default_test_runtime_classpath", 4);
         assertParsesAsXml(xml);
+    }
+
+    @Test
+    public void uncompiledSpecSourceLogsExecutionDiagnosticsForDefaultTestRuntimeClasspath() throws Exception {
+        File projectDir = newProject("uncompiled-spec-diagnostics");
+        writeBuildFile(projectDir, javaPluginBuild(
+                "javaspec {\n" +
+                        "    specDir = file('specifications')\n" +
+                        "}\n"
+        ));
+        writeJavaSource(projectDir, "specifications/spec/com/example/UncompiledSpec.java",
+                "package spec.com.example;\n\n" +
+                        "public class UncompiledSpec {\n" +
+                        "    public void it_is_discovered_but_not_compiled() {\n" +
+                        "    }\n" +
+                        "}\n");
+
+        BuildResult result = runGradle(projectDir, "javaspecRun");
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":javaspecRun").getOutcome());
+        assertContains(result.getOutput(), "javaspec: found 1 specification(s).");
+        assertContains(result.getOutput(), "javaspec: Examples: 1 total, 0 passed, 0 failed, 0 broken, 1 skipped, 0 pending.");
+        assertContains(result.getOutput(), "javaspec: Execution diagnostics:");
+        assertContains(result.getOutput(), "Specification spec.com.example.UncompiledSpec is not executable");
+        assertContains(result.getOutput(), "Specification class not found: spec.com.example.UncompiledSpec");
+        assertContains(result.getOutput(), "Gradle classpath contains");
+        assertContains(result.getOutput(), "element(s); this task needs compiled spec classes and dependencies on its configured/default test runtime classpath.");
     }
 
     @Test
@@ -326,6 +448,23 @@ public class JavaspecGradlePluginTest {
         assertContains(source, "import org.javaspec.invocation.JavaspecLauncher;");
         assertContains(source, "JavaspecLauncher.run(invocation)");
         assertFalse(source.contains("System.exit"));
+    }
+
+    private void assertDuplicateReportAliasFailsGradleBuild(String projectName, String reportConfiguration, String duplicateKey) throws Exception {
+        File projectDir = newProject(projectName);
+        writeBuildFile(projectDir, javaPluginBuild(
+                "javaspec {\n" +
+                        "    configFile = file('javaspec.conf')\n" +
+                        "}\n"
+        ));
+        writeFile(new File(projectDir, "javaspec.conf"),
+                "suite.default.specDir = src/test/java\n" + reportConfiguration);
+
+        BuildResult result = runGradleAndFail(projectDir, "javaspecRun");
+
+        assertEquals(TaskOutcome.FAILED, result.task(":javaspecRun").getOutcome());
+        assertContains(result.getOutput(), "Invalid javaspec configuration:");
+        assertContains(result.getOutput(), "Duplicate configuration key '" + duplicateKey + "'");
     }
 
     private File failingExamplesProject(String projectName, String extraJavaspecConfiguration) throws Exception {

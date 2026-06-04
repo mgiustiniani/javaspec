@@ -46,4 +46,6 @@ Discovery uses canonical `SpecDiscovery` / `SpecDiscoveryRequest`. Supported con
 
 Class, package, method, and unique-id selectors are supported as filters over canonical discovery results. UniqueId segments use `[engine:javaspec]`, `[spec:<specQualifiedName>]`, and `[example:<methodName>]`; Phase 18 retains this stable shape and MethodSource behavior while aligning descriptor reporting to stable ids.
 
-Execution delegates to canonical no-JUnit `JavaspecLauncher`, avoids `System.exit`, and does not require changes to javaspec spec authoring style. Result mapping is: passed -> successful, failed assertion results -> failed assertion-style throwable, broken results -> failed/error-style throwable, and skipped/non-loadable -> skipped.
+Execution delegates to canonical no-JUnit `JavaspecLauncher`, avoids `System.exit`, and does not require changes to javaspec spec authoring style. Result mapping is: passed -> successful, failed assertion results -> failed assertion-style throwable, broken results -> failed/error-style throwable, and skipped/non-loadable/pending -> skipped.
+
+The engine relies on the JUnit Platform test runtime classpath supplied by the IDE, CI job, or build launcher. It does not compile source/spec files itself; ensure compiled spec classes, production classes, and dependencies are present when source-discovered specs are reported as skipped or non-loadable.

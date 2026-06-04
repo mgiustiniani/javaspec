@@ -166,6 +166,8 @@ class JavaspecTestEnginePhase17Test {
         assertEquals(1, outcome.summary().getTestsSkippedCount());
         SkippedEvent skipped = skippedEventFor(outcome.recorder(), "it_is_discovered_but_not_loadable");
         assertTrue(skipped.reason().contains("Specification class not found"), skipped.reason());
+        assertTrue(skipped.reason().contains("Compile the spec/test sources"), skipped.reason());
+        assertTrue(skipped.reason().contains("javaspec classpath"), skipped.reason());
     }
 
     @Test

@@ -36,3 +36,4 @@ Implementation follow-up:
 
 - Phase 9 made configured `profile` and `formatter` active run selections with command-line overrides; selected profiles are still not deeply enforced during execution.
 - Phase 11 kept CLI formatter selection limited to built-in `progress` and `pretty`; config cannot select extension-provided formatter names because external extension loading is not implemented.
+- Phase 24 extends the fixed top-level key set with optional JSON and JUnit XML-compatible report destinations while preserving the same restricted line-based parser and zero-runtime-dependency configuration boundary.

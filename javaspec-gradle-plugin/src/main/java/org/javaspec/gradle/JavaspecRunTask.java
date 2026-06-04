@@ -9,6 +9,7 @@ import org.gradle.api.tasks.TaskAction;
 import org.javaspec.config.ConfigurationException;
 import org.javaspec.config.JavaspecConfiguration;
 import org.javaspec.config.JavaspecSuiteConfiguration;
+import org.javaspec.diagnostics.RunDiagnostics;
 import org.javaspec.discovery.SpecDiscoveryRequest;
 import org.javaspec.discovery.SpecNamingConvention;
 import org.javaspec.formatter.RunFormatter;
@@ -379,8 +380,9 @@ public class JavaspecRunTask extends DefaultTask {
 
             logDiscoverySummary(invocationResult);
             renderFormattedSummary(runResult, effectiveFormatter);
+            logExecutionDiagnostics(runResult, classpathEntries.size());
             logFailureWarnings(runResult);
-            writeReports(runResult);
+            writeReports(runResult, configuration);
             handleFailures(runResult, effectiveFailOnFailure);
         } catch (GradleException ex) {
             throw ex;
@@ -571,6 +573,20 @@ public class JavaspecRunTask extends DefaultTask {
         }
     }
 
+    private void logExecutionDiagnostics(RunResult runResult, int classpathElementCount) {
+        List<String> lines = RunDiagnostics.executionAvailabilityLines(runResult);
+        if (lines.isEmpty()) {
+            return;
+        }
+        getLogger().warn("javaspec: Execution diagnostics:");
+        for (int i = 0; i < lines.size(); i++) {
+            getLogger().warn("javaspec: - " + lines.get(i));
+        }
+        getLogger().warn("javaspec: Gradle classpath contains " + classpathElementCount
+                + " element(s); this task needs compiled spec classes and dependencies on its configured/default "
+                + "test runtime classpath.");
+    }
+
     private void logFailureWarnings(RunResult runResult) {
         if (!runResult.hasFailures()) {
             return;
@@ -586,9 +602,12 @@ public class JavaspecRunTask extends DefaultTask {
         }
     }
 
-    private void writeReports(RunResult runResult) {
+    private void writeReports(RunResult runResult, JavaspecConfiguration configuration) {
         File report = reportFile();
         File jsonReport = jsonReportFile();
+        if (report == null && jsonReport == null) {
+            report = configurationFileOrNull(configuration.jsonReportFile());
+        }
         writeJsonReportIfRequested(runResult, report);
         if (!sameFileParameter(report, jsonReport)) {
             writeJsonReportIfRequested(runResult, jsonReport);
@@ -596,10 +615,20 @@ public class JavaspecRunTask extends DefaultTask {
 
         File junitXmlReport = junitXmlReportFile();
         File junitXml = junitXmlFile();
+        if (junitXmlReport == null && junitXml == null) {
+            junitXmlReport = configurationFileOrNull(configuration.junitXmlReportFile());
+        }
         writeJUnitXmlReportIfRequested(runResult, junitXmlReport);
         if (!sameFileParameter(junitXmlReport, junitXml)) {
             writeJUnitXmlReportIfRequested(runResult, junitXml);
         }
+    }
+
+    private File configurationFileOrNull(String path) {
+        if (path == null) {
+            return null;
+        }
+        return getProject().file(path);
     }
 
     private void writeJsonReportIfRequested(RunResult runResult, File configuredFile) {

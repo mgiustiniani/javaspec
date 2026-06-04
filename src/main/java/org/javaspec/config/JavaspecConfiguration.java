@@ -25,6 +25,8 @@ public final class JavaspecConfiguration {
     private final String formatter;
     private final ConstructorPolicy constructorPolicy;
     private final String defaultSuiteName;
+    private final String jsonReportFile;
+    private final String junitXmlReportFile;
     private final List<String> bootstrapHooks;
     private final Map<String, JavaspecSuiteConfiguration> suites;
 
@@ -33,6 +35,8 @@ public final class JavaspecConfiguration {
             String formatter,
             ConstructorPolicy constructorPolicy,
             String defaultSuiteName,
+            String jsonReportFile,
+            String junitXmlReportFile,
             List<String> bootstrapHooks,
             List<JavaspecSuiteConfiguration> suites
     ) {
@@ -40,6 +44,8 @@ public final class JavaspecConfiguration {
         this.formatter = validateRequiredValue("formatter", formatter);
         this.constructorPolicy = Objects.requireNonNull(constructorPolicy, "constructorPolicy must not be null");
         this.defaultSuiteName = validateRequiredValue("defaultSuite", defaultSuiteName);
+        this.jsonReportFile = validateOptionalValue("jsonReportFile", jsonReportFile);
+        this.junitXmlReportFile = validateOptionalValue("junitXmlReportFile", junitXmlReportFile);
         this.bootstrapHooks = immutableBootstrapHooks(bootstrapHooks);
         this.suites = immutableSuites(suites, this.defaultSuiteName);
     }
@@ -56,11 +62,35 @@ public final class JavaspecConfiguration {
             List<String> bootstrapHooks,
             List<JavaspecSuiteConfiguration> suites
     ) {
+        return of(
+                profile,
+                formatter,
+                constructorPolicy,
+                defaultSuiteName,
+                bootstrapHooks,
+                suites,
+                null,
+                null
+        );
+    }
+
+    public static JavaspecConfiguration of(
+            TargetProfile profile,
+            String formatter,
+            ConstructorPolicy constructorPolicy,
+            String defaultSuiteName,
+            List<String> bootstrapHooks,
+            List<JavaspecSuiteConfiguration> suites,
+            String jsonReportFile,
+            String junitXmlReportFile
+    ) {
         return new JavaspecConfiguration(
                 profile,
                 formatter,
                 constructorPolicy,
                 defaultSuiteName,
+                jsonReportFile,
+                junitXmlReportFile,
                 bootstrapHooks,
                 suites
         );
@@ -104,6 +134,74 @@ public final class JavaspecConfiguration {
 
     public String getDefaultSuiteName() {
         return defaultSuiteName;
+    }
+
+    public String report() {
+        return jsonReportFile;
+    }
+
+    public String getReport() {
+        return jsonReportFile;
+    }
+
+    public String reportFile() {
+        return jsonReportFile;
+    }
+
+    public String getReportFile() {
+        return jsonReportFile;
+    }
+
+    public String jsonReport() {
+        return jsonReportFile;
+    }
+
+    public String getJsonReport() {
+        return jsonReportFile;
+    }
+
+    public String jsonReportFile() {
+        return jsonReportFile;
+    }
+
+    public String getJsonReportFile() {
+        return jsonReportFile;
+    }
+
+    public String junitXml() {
+        return junitXmlReportFile;
+    }
+
+    public String getJunitXml() {
+        return junitXmlReportFile;
+    }
+
+    public String getJUnitXml() {
+        return junitXmlReportFile;
+    }
+
+    public String junitXmlFile() {
+        return junitXmlReportFile;
+    }
+
+    public String getJunitXmlFile() {
+        return junitXmlReportFile;
+    }
+
+    public String getJUnitXmlFile() {
+        return junitXmlReportFile;
+    }
+
+    public String junitXmlReportFile() {
+        return junitXmlReportFile;
+    }
+
+    public String getJunitXmlReportFile() {
+        return junitXmlReportFile;
+    }
+
+    public String getJUnitXmlReportFile() {
+        return junitXmlReportFile;
     }
 
     public JavaspecSuiteConfiguration defaultSuite() {
@@ -169,6 +267,8 @@ public final class JavaspecConfiguration {
                 && formatter.equals(that.formatter)
                 && constructorPolicy == that.constructorPolicy
                 && defaultSuiteName.equals(that.defaultSuiteName)
+                && Objects.equals(jsonReportFile, that.jsonReportFile)
+                && Objects.equals(junitXmlReportFile, that.junitXmlReportFile)
                 && bootstrapHooks.equals(that.bootstrapHooks)
                 && suites.equals(that.suites);
     }
@@ -179,6 +279,8 @@ public final class JavaspecConfiguration {
         result = 31 * result + formatter.hashCode();
         result = 31 * result + constructorPolicy.hashCode();
         result = 31 * result + defaultSuiteName.hashCode();
+        result = 31 * result + (jsonReportFile == null ? 0 : jsonReportFile.hashCode());
+        result = 31 * result + (junitXmlReportFile == null ? 0 : junitXmlReportFile.hashCode());
         result = 31 * result + bootstrapHooks.hashCode();
         result = 31 * result + suites.hashCode();
         return result;
@@ -191,6 +293,8 @@ public final class JavaspecConfiguration {
                 + ", formatter='" + formatter + '\''
                 + ", constructorPolicy=" + constructorPolicy
                 + ", defaultSuiteName='" + defaultSuiteName + '\''
+                + ", jsonReportFile='" + jsonReportFile + '\''
+                + ", junitXmlReportFile='" + junitXmlReportFile + '\''
                 + ", bootstrapHooks=" + bootstrapHooks
                 + ", suites=" + suites
                 + '}';
@@ -204,6 +308,8 @@ public final class JavaspecConfiguration {
                 DEFAULT_FORMATTER,
                 ConstructorPolicy.defaultPolicy(),
                 JavaspecSuiteConfiguration.DEFAULT_SUITE_NAME,
+                null,
+                null,
                 EMPTY_BOOTSTRAP_HOOKS,
                 suites
         );
@@ -211,6 +317,17 @@ public final class JavaspecConfiguration {
 
     private static String validateRequiredValue(String fieldName, String value) {
         Objects.requireNonNull(value, fieldName + " must not be null");
+        String trimmed = value.trim();
+        if (trimmed.length() == 0) {
+            throw new ConfigurationException(fieldName + " must not be blank.");
+        }
+        return trimmed;
+    }
+
+    private static String validateOptionalValue(String fieldName, String value) {
+        if (value == null) {
+            return null;
+        }
         String trimmed = value.trim();
         if (trimmed.length() == 0) {
             throw new ConfigurationException(fieldName + " must not be blank.");

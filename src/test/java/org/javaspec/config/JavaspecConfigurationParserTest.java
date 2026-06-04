@@ -56,6 +56,54 @@ public class JavaspecConfigurationParserTest {
     }
 
     @Test
+    public void parsesReportDestinationAliasesAndTrimsValues() {
+        String[] jsonAliases = new String[] {
+                "report",
+                "reportFile",
+                "report-file",
+                "jsonReport",
+                "jsonReportFile",
+                "json-report-file"
+        };
+        for (int i = 0; i < jsonAliases.length; i++) {
+            String reportPath = "reports/" + jsonAliases[i] + ".json";
+            JavaspecConfiguration configuration = JavaspecConfigurationParser.parse(jsonAliases[i] + " =   " + reportPath + "   \n");
+
+            assertEquals(reportPath, configuration.report());
+            assertEquals(reportPath, configuration.getReport());
+            assertEquals(reportPath, configuration.reportFile());
+            assertEquals(reportPath, configuration.getReportFile());
+            assertEquals(reportPath, configuration.jsonReport());
+            assertEquals(reportPath, configuration.getJsonReport());
+            assertEquals(reportPath, configuration.jsonReportFile());
+            assertEquals(reportPath, configuration.getJsonReportFile());
+        }
+
+        String[] junitAliases = new String[] {
+                "junitXml",
+                "junit-xml",
+                "junitXmlFile",
+                "junit-xml-file",
+                "junitXmlReportFile",
+                "junit-xml-report-file"
+        };
+        for (int i = 0; i < junitAliases.length; i++) {
+            String reportPath = "reports/" + junitAliases[i] + ".xml";
+            JavaspecConfiguration configuration = JavaspecConfigurationParser.parse(junitAliases[i] + " :   " + reportPath + "   \n");
+
+            assertEquals(reportPath, configuration.junitXml());
+            assertEquals(reportPath, configuration.getJunitXml());
+            assertEquals(reportPath, configuration.getJUnitXml());
+            assertEquals(reportPath, configuration.junitXmlFile());
+            assertEquals(reportPath, configuration.getJunitXmlFile());
+            assertEquals(reportPath, configuration.getJUnitXmlFile());
+            assertEquals(reportPath, configuration.junitXmlReportFile());
+            assertEquals(reportPath, configuration.getJunitXmlReportFile());
+            assertEquals(reportPath, configuration.getJUnitXmlReportFile());
+        }
+    }
+
+    @Test
     public void parsesKebabAliasesMultipleSuitesAndSelectedDefaultSuite() {
         String content =
                 "profile=java17\n" +
@@ -109,6 +157,22 @@ public class JavaspecConfigurationParserTest {
         assertRejected("suite.default.specPackagePrefix= \n", "Line 1", "specPackagePrefix", "blank");
         assertRejected("formatter= \n", "Line 1", "formatter", "blank");
         assertRejected("defaultSuite= \n", "Line 1", "defaultSuite", "blank");
+        assertRejected("report= \n", "Line 1", "jsonReportFile", "blank");
+        assertRejected("junitXml= \n", "Line 1", "junitXmlReportFile", "blank");
+    }
+
+    @Test
+    public void rejectsDuplicateCanonicalReportDestinationAliases() {
+        assertRejected(
+                "report=reports/one.json\n" +
+                        "jsonReportFile=reports/two.json\n",
+                "Line 2", "Duplicate", "jsonReportFile", "line 1"
+        );
+        assertRejected(
+                "junitXml=reports/one.xml\n" +
+                        "junitXmlReportFile=reports/two.xml\n",
+                "Line 2", "Duplicate", "junitXmlReportFile", "line 1"
+        );
     }
 
     @Test

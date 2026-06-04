@@ -84,7 +84,7 @@ public class JavaspecRunMojoTest {
     }
 
     @Test
-    public void skippedOnlyRunDoesNotFailBuild() throws Exception {
+    public void skippedOnlyRunDoesNotFailBuildAndWarnsAboutExecutionAvailability() throws Exception {
         File basedir = temporaryFolder.newFolder("skipped-only-project");
         File specRoot = new File(basedir, "specs");
         File classesDirectory = new File(basedir, "classes");
@@ -99,7 +99,12 @@ public class JavaspecRunMojoTest {
 
         assertTrue(log.containsInfo("javaspec: found 1 specification(s)."));
         assertTrue(log.containsInfo("javaspec: examples total=1, passed=0, failed=0, broken=0, skipped=1, pending=0."));
-        assertTrue(log.warnMessages.isEmpty());
+        assertTrue(log.containsWarn("javaspec: Execution diagnostics:"));
+        assertTrue(log.containsWarn("Specification spec.com.example.MissingCompiledSubjectSpec is not executable"));
+        assertTrue(log.containsWarn("Specification class not found: spec.com.example.MissingCompiledSubjectSpec"));
+        assertTrue(log.containsWarn("Maven test classpath contains 1 element(s)"));
+        assertTrue(log.containsWarn("compiled test/spec classes and dependencies"));
+        assertTrue(log.containsWarn("Maven test classpath"));
     }
 
     @Test
@@ -229,6 +234,81 @@ public class JavaspecRunMojoTest {
         assertTrue(log.containsInfo("javaspec: found 1 specification(s)."));
         assertTrue(log.containsInfo("javaspec: examples total=1, passed=1, failed=0, broken=0, skipped=0, pending=0."));
         assertTrue(log.warnMessages.isEmpty());
+    }
+
+    @Test
+    public void configurationReportDestinationsAreUsedWhenPluginReportParametersAreAbsent() throws Exception {
+        File basedir = temporaryFolder.newFolder("configured-report-project");
+        File specRoot = new File(basedir, "specs");
+        File classesDirectory = new File(basedir, "classes");
+        assertTrue(specRoot.mkdirs());
+        assertTrue(classesDirectory.mkdirs());
+        File configFile = new File(basedir, "javaspec.conf");
+        File jsonReport = new File(basedir, "build/javaspec/configured-report.json");
+        File junitXmlReport = new File(basedir, "build/javaspec/configured-report.xml");
+        writeFile(configFile,
+                "suite.default.specDir=specs\n" +
+                        "report=build/javaspec/configured-report.json\n" +
+                        "junitXml=build/javaspec/configured-report.xml\n");
+        CapturingLog log = new CapturingLog();
+        JavaspecRunMojo mojo = mojo(basedir, null, classesDirectory, log);
+        set(mojo, "configFile", configFile);
+
+        mojo.execute();
+
+        assertTrue(log.containsInfo("javaspec: no specifications found."));
+        assertTrue(log.containsInfo("javaspec: wrote JSON report to " + jsonReport.getPath() + "."));
+        assertTrue(log.containsInfo("javaspec: wrote JUnit XML report to " + junitXmlReport.getPath() + "."));
+        assertTrue(jsonReport.isFile());
+        assertTrue(junitXmlReport.isFile());
+        assertContains(readFile(jsonReport), "\"total\": 0");
+        assertContains(readFile(junitXmlReport), "tests=\"0\" failures=\"0\" errors=\"0\"");
+    }
+
+    @Test
+    public void explicitReportParametersOverrideConfiguredReportDestinations() throws Exception {
+        File basedir = temporaryFolder.newFolder("explicit-report-override-project");
+        File specRoot = new File(basedir, "specs");
+        File classesDirectory = new File(basedir, "classes");
+        assertTrue(specRoot.mkdirs());
+        assertTrue(classesDirectory.mkdirs());
+        File configFile = new File(basedir, "javaspec.conf");
+        File configuredJsonReport = new File(basedir, "build/javaspec/configured-override-report.json");
+        File configuredJunitXmlReport = new File(basedir, "build/javaspec/configured-override-report.xml");
+        File explicitJsonReport = new File(basedir, "build/javaspec/explicit-report.json");
+        File explicitJunitXmlReport = new File(basedir, "build/javaspec/explicit-report.xml");
+        writeFile(configFile,
+                "suite.default.specDir=specs\n" +
+                        "jsonReportFile=build/javaspec/configured-override-report.json\n" +
+                        "junitXmlReportFile=build/javaspec/configured-override-report.xml\n");
+        CapturingLog log = new CapturingLog();
+        JavaspecRunMojo mojo = mojo(basedir, null, classesDirectory, log);
+        set(mojo, "configFile", configFile);
+        set(mojo, "reportFile", explicitJsonReport);
+        set(mojo, "junitXmlFile", explicitJunitXmlReport);
+
+        mojo.execute();
+
+        assertTrue(explicitJsonReport.isFile());
+        assertTrue(explicitJunitXmlReport.isFile());
+        assertFalse(configuredJsonReport.exists());
+        assertFalse(configuredJunitXmlReport.exists());
+        assertTrue(log.containsInfo("javaspec: wrote JSON report to " + explicitJsonReport.getPath() + "."));
+        assertTrue(log.containsInfo("javaspec: wrote JUnit XML report to " + explicitJunitXmlReport.getPath() + "."));
+    }
+
+    @Test
+    public void duplicateReportAliasesInConfigurationThrowMojoExecutionException() throws Exception {
+        assertDuplicateReportAliasRejected(
+                "report=build/reports/one.json\n" +
+                        "jsonReportFile=build/reports/two.json\n",
+                "jsonReportFile"
+        );
+        assertDuplicateReportAliasRejected(
+                "junitXml=build/reports/one.xml\n" +
+                        "junitXmlReportFile=build/reports/two.xml\n",
+                "junitXmlReportFile"
+        );
     }
 
     @Test
@@ -386,6 +466,25 @@ public class JavaspecRunMojoTest {
                         "    }\n");
         compile(classesDirectory, specSource);
         return new CompiledSpecFixture(basedir, specRoot, classesDirectory);
+    }
+
+    private void assertDuplicateReportAliasRejected(String reportConfiguration, String duplicateKey) throws Exception {
+        File basedir = temporaryFolder.newFolder("duplicate-" + duplicateKey + "-project");
+        File classesDirectory = new File(basedir, "classes");
+        assertTrue(classesDirectory.mkdirs());
+        File configFile = new File(basedir, "javaspec.conf");
+        writeFile(configFile, "suite.default.specDir=specs\n" + reportConfiguration);
+        CapturingLog log = new CapturingLog();
+        JavaspecRunMojo mojo = mojo(basedir, null, classesDirectory, log);
+        set(mojo, "configFile", configFile);
+
+        try {
+            mojo.execute();
+            fail("Expected duplicate report alias to throw MojoExecutionException");
+        } catch (MojoExecutionException expected) {
+            assertContains(expected.getMessage(), "Invalid javaspec configuration:");
+            assertContains(expected.getMessage(), "Duplicate configuration key '" + duplicateKey + "'");
+        }
     }
 
     private static JavaspecRunMojo mojo(File basedir, File specRoot, File classesDirectory, CapturingLog log) throws Exception {

@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -22,6 +24,23 @@ public class JavaspecConfigurationTest {
         assertEquals("progress", configuration.formatter());
         assertSame(ConstructorPolicy.COMMENT, configuration.constructorPolicy());
         assertEquals("default", configuration.defaultSuiteName());
+        assertNull(configuration.report());
+        assertNull(configuration.getReport());
+        assertNull(configuration.reportFile());
+        assertNull(configuration.getReportFile());
+        assertNull(configuration.jsonReport());
+        assertNull(configuration.getJsonReport());
+        assertNull(configuration.jsonReportFile());
+        assertNull(configuration.getJsonReportFile());
+        assertNull(configuration.junitXml());
+        assertNull(configuration.getJunitXml());
+        assertNull(configuration.getJUnitXml());
+        assertNull(configuration.junitXmlFile());
+        assertNull(configuration.getJunitXmlFile());
+        assertNull(configuration.getJUnitXmlFile());
+        assertNull(configuration.junitXmlReportFile());
+        assertNull(configuration.getJunitXmlReportFile());
+        assertNull(configuration.getJUnitXmlReportFile());
         assertTrue(configuration.bootstrapHooks().isEmpty());
         assertEquals(1, configuration.suites().size());
         assertEquals(1, configuration.suiteNames().size());
@@ -76,6 +95,119 @@ public class JavaspecConfigurationTest {
         assertUnmodifiableList(configuration.suiteNames());
         assertUnmodifiableMap(configuration.suites());
         assertUnmodifiableList(configuration.suite("custom").bootstrapHooks());
+    }
+
+    @Test
+    public void reportDestinationsAreTrimmedExposedAndParticipateInValueSemantics() {
+        List<JavaspecSuiteConfiguration> suites = new ArrayList<JavaspecSuiteConfiguration>();
+        suites.add(JavaspecSuiteConfiguration.defaults());
+        List<String> bootstrapHooks = new ArrayList<String>();
+
+        JavaspecConfiguration configuration = JavaspecConfiguration.of(
+                TargetProfile.JAVA17,
+                "pretty",
+                ConstructorPolicy.PRESERVE,
+                "default",
+                bootstrapHooks,
+                suites,
+                "  reports/run.json  ",
+                "  reports/junit.xml  "
+        );
+        JavaspecConfiguration same = JavaspecConfiguration.of(
+                TargetProfile.JAVA17,
+                "pretty",
+                ConstructorPolicy.PRESERVE,
+                "default",
+                bootstrapHooks,
+                suites,
+                "reports/run.json",
+                "reports/junit.xml"
+        );
+        JavaspecConfiguration differentJsonReport = JavaspecConfiguration.of(
+                TargetProfile.JAVA17,
+                "pretty",
+                ConstructorPolicy.PRESERVE,
+                "default",
+                bootstrapHooks,
+                suites,
+                "reports/other.json",
+                "reports/junit.xml"
+        );
+        JavaspecConfiguration differentJunitXmlReport = JavaspecConfiguration.of(
+                TargetProfile.JAVA17,
+                "pretty",
+                ConstructorPolicy.PRESERVE,
+                "default",
+                bootstrapHooks,
+                suites,
+                "reports/run.json",
+                "reports/other.xml"
+        );
+
+        assertEquals("reports/run.json", configuration.report());
+        assertEquals("reports/run.json", configuration.getReport());
+        assertEquals("reports/run.json", configuration.reportFile());
+        assertEquals("reports/run.json", configuration.getReportFile());
+        assertEquals("reports/run.json", configuration.jsonReport());
+        assertEquals("reports/run.json", configuration.getJsonReport());
+        assertEquals("reports/run.json", configuration.jsonReportFile());
+        assertEquals("reports/run.json", configuration.getJsonReportFile());
+        assertEquals("reports/junit.xml", configuration.junitXml());
+        assertEquals("reports/junit.xml", configuration.getJunitXml());
+        assertEquals("reports/junit.xml", configuration.getJUnitXml());
+        assertEquals("reports/junit.xml", configuration.junitXmlFile());
+        assertEquals("reports/junit.xml", configuration.getJunitXmlFile());
+        assertEquals("reports/junit.xml", configuration.getJUnitXmlFile());
+        assertEquals("reports/junit.xml", configuration.junitXmlReportFile());
+        assertEquals("reports/junit.xml", configuration.getJunitXmlReportFile());
+        assertEquals("reports/junit.xml", configuration.getJUnitXmlReportFile());
+        assertEquals(same, configuration);
+        assertEquals(same.hashCode(), configuration.hashCode());
+        assertFalse(configuration.equals(differentJsonReport));
+        assertFalse(configuration.equals(differentJunitXmlReport));
+        assertTrue(configuration.toString().contains("jsonReportFile='reports/run.json'"));
+        assertTrue(configuration.toString().contains("junitXmlReportFile='reports/junit.xml'"));
+    }
+
+    @Test
+    public void blankReportDestinationsAreRejectedByConfigurationModel() {
+        List<JavaspecSuiteConfiguration> suites = new ArrayList<JavaspecSuiteConfiguration>();
+        suites.add(JavaspecSuiteConfiguration.defaults());
+        List<String> bootstrapHooks = new ArrayList<String>();
+
+        try {
+            JavaspecConfiguration.of(
+                    TargetProfile.JAVA8,
+                    "progress",
+                    ConstructorPolicy.COMMENT,
+                    "default",
+                    bootstrapHooks,
+                    suites,
+                    "   ",
+                    null
+            );
+            fail("Expected blank JSON report destination to be rejected");
+        } catch (ConfigurationException expected) {
+            assertTrue(expected.getMessage().contains("jsonReportFile"));
+            assertTrue(expected.getMessage().contains("blank"));
+        }
+
+        try {
+            JavaspecConfiguration.of(
+                    TargetProfile.JAVA8,
+                    "progress",
+                    ConstructorPolicy.COMMENT,
+                    "default",
+                    bootstrapHooks,
+                    suites,
+                    null,
+                    "\t"
+            );
+            fail("Expected blank JUnit XML report destination to be rejected");
+        } catch (ConfigurationException expected) {
+            assertTrue(expected.getMessage().contains("junitXmlReportFile"));
+            assertTrue(expected.getMessage().contains("blank"));
+        }
     }
 
     @Test

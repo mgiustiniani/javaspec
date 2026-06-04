@@ -312,41 +312,40 @@ public class SpecRunnerTest {
     }
 
     @Test
-    public void skipsNonLoadableSpecClassAndMissingReflectedExampleMethod() {
+    public void skipsNonLoadableSpecClassAndMissingReflectedExampleMethodsWithActionableReasons() {
         DiscoveredSpec nonLoadableSpec = namedSpec(
                 "missing.runner.NonLoadableSpec",
                 "missing.runner.NonLoadable",
                 "it_is_skipped"
         );
         DiscoveredSpec missingMethodSpec = spec(MissingMethodSpec.class, "it_is_missing");
+        DiscoveredSpec nonPublicMethodSpec = spec(NonPublicMethodSpec.class, "it_is_not_public");
+        DiscoveredSpec noArgMismatchSpec = spec(NoArgMismatchSpec.class, "it_requires_argument");
 
         RunResult result = SpecRunner.run(
-                Arrays.asList(nonLoadableSpec, missingMethodSpec),
+                Arrays.asList(nonLoadableSpec, missingMethodSpec, nonPublicMethodSpec, noArgMismatchSpec),
                 SpecRunnerTest.class.getClassLoader()
         );
 
-        assertEquals(2, result.totalCount());
+        assertEquals(4, result.totalCount());
         assertEquals(0, result.passedCount());
         assertEquals(0, result.failedCount());
         assertEquals(0, result.brokenCount());
-        assertEquals(2, result.skippedCount());
+        assertEquals(4, result.skippedCount());
         assertTrue(result.isSuccessful());
         assertFalse(result.hasFailures());
 
         SpecResult nonLoadableResult = result.specResults().get(0);
         assertFalse(nonLoadableResult.isExecutable());
-        assertTrue(nonLoadableResult.notExecutableReason().contains("Specification class not found"));
+        assertNotExecutableReasonIsActionable(nonLoadableResult.notExecutableReason());
         ExampleResult nonLoadableExample = nonLoadableResult.exampleResults().get(0);
         assertEquals(ExampleStatus.SKIPPED, nonLoadableExample.status());
-        assertTrue(nonLoadableExample.detail().contains("Specification class not found"));
+        assertNotExecutableReasonIsActionable(nonLoadableExample.detail());
         assertFalse(nonLoadableExample.hasFailureDetail());
 
-        SpecResult missingMethodResult = result.specResults().get(1);
-        assertTrue(missingMethodResult.isExecutable());
-        ExampleResult missingMethodExample = missingMethodResult.exampleResults().get(0);
-        assertEquals(ExampleStatus.SKIPPED, missingMethodExample.status());
-        assertTrue(missingMethodExample.detail().contains("Example method not found"));
-        assertFalse(missingMethodExample.hasFailureDetail());
+        assertReflectedMethodSkip(result.specResults().get(1), "it_is_missing");
+        assertReflectedMethodSkip(result.specResults().get(2), "it_is_not_public");
+        assertReflectedMethodSkip(result.specResults().get(3), "it_requires_argument");
     }
 
     @Test
@@ -393,6 +392,24 @@ public class SpecRunnerTest {
         assertEquals(status, result.status());
         assertEquals(detail, result.detail());
         assertFalse(result.hasFailureDetail());
+    }
+
+    private static void assertNotExecutableReasonIsActionable(String reason) {
+        assertTrue(reason.contains("Specification class not found"));
+        assertTrue(reason.contains("compiled specification class is not available"));
+        assertTrue(reason.contains("Compile the spec/test sources"));
+        assertTrue(reason.contains("javaspec classpath"));
+    }
+
+    private static void assertReflectedMethodSkip(SpecResult specResult, String methodName) {
+        assertTrue(specResult.isExecutable());
+        ExampleResult example = specResult.exampleResults().get(0);
+        assertEquals(ExampleStatus.SKIPPED, example.status());
+        assertTrue(example.detail().contains("Example method not found or not public no-arg: " + methodName));
+        assertTrue(example.detail().contains("discovered specification source may not match the compiled specification class"));
+        assertTrue(example.detail().contains("Recompile test/spec sources"));
+        assertTrue(example.detail().contains("public no-argument example method"));
+        assertFalse(example.hasFailureDetail());
     }
 
     private static DiscoveredSpec namedSpec(String specQualifiedName, String describedQualifiedName, String... exampleNames) {
@@ -639,6 +656,16 @@ public class SpecRunnerTest {
 
     public static final class MissingMethodSpec {
         public void it_present() {
+        }
+    }
+
+    public static final class NonPublicMethodSpec {
+        private void it_is_not_public() {
+        }
+    }
+
+    public static final class NoArgMismatchSpec {
+        public void it_requires_argument(String value) {
         }
     }
 

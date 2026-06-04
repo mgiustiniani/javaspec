@@ -32,8 +32,10 @@ Positive consequences:
 Negative consequences and limitations:
 
 - CLI formatter selection remains limited to built-in `progress` and `pretty`.
-- Reports remain schemaVersion 1 with additive Phase 18 identifier/source fields and Phase 22 pending fields/statuses; there is no config-level report destination, alternate report format, or streaming report mode.
+- Reports remain schemaVersion 1 with additive Phase 18 identifier/source fields and Phase 22 pending fields/statuses; Phase 24 adds config-level report destinations only, with no alternate report format or streaming report mode.
 - Extension APIs are useful only when code can configure the registry programmatically; end-user plugin loading remains future work and will need its own design decision before implementation.
 - The JSON writer must maintain correct escaping and deterministic output internally because no JSON library is used at runtime.
+
+Related decision: [ADR 0017](0017-configuration-level-report-destinations.md) extends report destination configuration without changing report schemas or writers.
 
 Related ARC42 sections: [5. Building Block View](../arc42/05-building-block-view.md), [6. Runtime View](../arc42/06-runtime-view.md), [7. Deployment View](../arc42/07-deployment-view.md), [8. Concepts](../arc42/08-concepts.md), and [10. Quality Requirements](../arc42/10-quality-requirements.md).
