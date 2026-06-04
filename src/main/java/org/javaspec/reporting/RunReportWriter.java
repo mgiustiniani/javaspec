@@ -84,6 +84,15 @@ public final class RunReportWriter {
         builder.append("      \"name\": ");
         appendJsonString(builder, spec.specQualifiedName());
         builder.append(",\n");
+        builder.append("      \"id\": ");
+        appendJsonString(builder, spec.stableId());
+        builder.append(",\n");
+        builder.append("      \"stableId\": ");
+        appendJsonString(builder, spec.stableId());
+        builder.append(",\n");
+        builder.append("      \"sourceFile\": ");
+        appendNullableJsonString(builder, spec.hasSourceFile() ? spec.sourceFilePath() : null);
+        builder.append(",\n");
         builder.append("      \"executable\": ").append(spec.executable()).append(",\n");
         builder.append("      \"notExecutableReason\": ");
         appendJsonString(builder, spec.notExecutableReason());
@@ -124,6 +133,15 @@ public final class RunReportWriter {
         builder.append("          \"specName\": ");
         appendJsonString(builder, example.specQualifiedName());
         builder.append(",\n");
+        builder.append("          \"id\": ");
+        appendJsonString(builder, example.stableId());
+        builder.append(",\n");
+        builder.append("          \"stableId\": ");
+        appendJsonString(builder, example.stableId());
+        builder.append(",\n");
+        builder.append("          \"fullName\": ");
+        appendJsonString(builder, example.fullName());
+        builder.append(",\n");
         builder.append("          \"method\": ");
         appendJsonString(builder, example.methodName());
         builder.append(",\n");
@@ -131,6 +149,9 @@ public final class RunReportWriter {
         appendJsonString(builder, example.displayName());
         builder.append(",\n");
         builder.append("          \"sourceOrderIndex\": ").append(example.sourceOrderIndex()).append(",\n");
+        builder.append("          \"source\": ");
+        appendSourceLocation(builder, example);
+        builder.append(",\n");
         builder.append("          \"status\": ");
         appendJsonString(builder, example.status().name());
         builder.append(",\n");
@@ -141,6 +162,33 @@ public final class RunReportWriter {
         appendFailure(builder, example.failureDetail());
         builder.append("\n");
         builder.append("        }");
+    }
+
+    private static void appendSourceLocation(StringBuilder builder, ExampleResult example) {
+        if (!example.hasSourceLocation()) {
+            builder.append("null");
+            return;
+        }
+        builder.append("{\n");
+        boolean wroteField = false;
+        if (example.hasSourceFile()) {
+            builder.append("            \"file\": ");
+            appendJsonString(builder, example.sourceFilePath());
+            wroteField = true;
+        }
+        if (example.hasSourceLine()) {
+            if (wroteField) {
+                builder.append(",\n            ");
+            } else {
+                builder.append("            ");
+            }
+            builder.append("\"line\": ").append(example.sourceLine());
+            wroteField = true;
+        }
+        if (wroteField) {
+            builder.append("\n");
+        }
+        builder.append("          }");
     }
 
     private static void appendFailure(StringBuilder builder, FailureDetail failure) {
@@ -196,6 +244,14 @@ public final class RunReportWriter {
         }
         builder.append("\n");
         builder.append(indent).append("]");
+    }
+
+    private static void appendNullableJsonString(StringBuilder builder, String value) {
+        if (value == null) {
+            builder.append("null");
+            return;
+        }
+        appendJsonString(builder, value);
     }
 
     private static void appendJsonString(StringBuilder builder, String value) {

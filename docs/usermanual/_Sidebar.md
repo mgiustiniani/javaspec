@@ -2,6 +2,7 @@
 
 - [Home](Home.md)
 - [Quick start](Home.md#quick-start)
+- [Release and CI verification](Home.md#release-and-ci-verification)
 - [Commands](Home.md#commands)
 - [Configuration files](Home.md#configuration-files)
   - [Syntax](Home.md#syntax)
@@ -64,5 +65,5 @@
 - [Exit codes](Home.md#exit-codes)
 - [Dependency policy](Home.md#dependency-policy)
 - [Verification](Home.md#verification)
-- [Future integration roadmap](Home.md#future-integration-roadmap-not-implemented-yet)
+- [Future backlog](Home.md#future-backlog)
 - [Current MVP limitations](Home.md#current-mvp-limitations)

@@ -44,8 +44,20 @@ public class MainPhase11ReportCliTest {
         assertContains(json, "\"total\": 1");
         assertContains(json, "\"passed\": 1");
         assertContains(json, "\"successful\": true");
+        String specName = "spec.org.javaspec.fixtures.cli.FailingSubjectSpec";
+        String exampleId = specName + "#it_passes";
+        String specFilePath = failingSubjectSpecFile().getPath();
         assertContains(json, "\"name\": \"spec.org.javaspec.fixtures.cli.FailingSubjectSpec\"");
+        assertContains(json, "\"id\": " + jsonString(specName));
+        assertContains(json, "\"stableId\": " + jsonString(specName));
+        assertContains(json, "\"sourceFile\": " + jsonString(specFilePath));
+        assertContains(json, "\"id\": " + jsonString(exampleId));
+        assertContains(json, "\"stableId\": " + jsonString(exampleId));
+        assertContains(json, "\"fullName\": " + jsonString(exampleId));
         assertContains(json, "\"method\": \"it_passes\"");
+        assertContains(json, "\"source\": {");
+        assertContains(json, "\"file\": " + jsonString(specFilePath));
+        assertContains(json, "\"line\": 4");
         assertContains(json, "\"status\": \"PASSED\"");
         assertContains(json, "\"failure\": null");
     }
@@ -216,6 +228,14 @@ public class MainPhase11ReportCliTest {
 
     private static File testJavaRoot() {
         return new File(System.getProperty("user.dir"), "src/test/java");
+    }
+
+    private static File failingSubjectSpecFile() {
+        return sourceFileFor(testJavaRoot(), "spec.org.javaspec.fixtures.cli.FailingSubjectSpec");
+    }
+
+    private static String jsonString(String value) {
+        return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
     }
 
     private static File writeSpec(File specRoot, String specQualifiedName, String body) throws Exception {

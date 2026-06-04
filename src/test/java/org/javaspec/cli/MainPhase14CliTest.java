@@ -17,6 +17,10 @@ import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertFalse;
@@ -159,7 +163,7 @@ public class MainPhase14CliTest {
         assertEquals("", result.err);
         String xml = readFile(xmlFile);
         assertContains(xml, "<testsuite name=\"javaspec\" tests=\"1\" failures=\"0\" errors=\"0\" skipped=\"0\" time=\"0\">");
-        assertContains(xml, "<testcase classname=\"spec.org.javaspec.fixtures.cli.FailingSubjectSpec\" name=\"it_passes\" time=\"0\"/>");
+        assertFailingSubjectTestcaseHasSource(xml, "it_passes", 4);
         assertParsesAsXml(xml);
     }
 
@@ -182,6 +186,7 @@ public class MainPhase14CliTest {
         assertEquals("", result.err);
         String xml = readFile(xmlFile);
         assertContains(xml, "<testsuite name=\"javaspec\" tests=\"1\" failures=\"1\" errors=\"0\" skipped=\"0\" time=\"0\">");
+        assertFailingSubjectTestcaseHasSource(xml, "it_fails", 7);
         assertContains(xml, "<failure type=\"java.lang.AssertionError\" message=\"cli failure\">Assertion failed");
         assertParsesAsXml(xml);
     }
@@ -278,9 +283,12 @@ public class MainPhase14CliTest {
         assertEquals("", result.err);
         assertTrue(jsonFile.isFile());
         assertTrue(xmlFile.isFile());
-        assertContains(readFile(jsonFile), "\"status\": \"PASSED\"");
-        assertContains(readFile(xmlFile), "<testcase classname=\"spec.org.javaspec.fixtures.cli.FailingSubjectSpec\" name=\"it_passes\" time=\"0\"/>");
-        assertParsesAsXml(readFile(xmlFile));
+        String json = readFile(jsonFile);
+        String xml = readFile(xmlFile);
+        assertContains(json, "\"status\": \"PASSED\"");
+        assertFailingSubjectJsonMetadata(json, "it_passes", 4);
+        assertFailingSubjectTestcaseHasSource(xml, "it_passes", 4);
+        assertParsesAsXml(xml);
     }
 
     private CompiledSpecFixture compiledSpecFixture(String describedSimpleName, String exampleMethodName) throws Exception {
@@ -385,9 +393,52 @@ public class MainPhase14CliTest {
     }
 
     private static void assertParsesAsXml(String xml) throws Exception {
-        DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(
+        parseXml(xml);
+    }
+
+    private static void assertFailingSubjectTestcaseHasSource(String xml, String methodName, int lineNumber) throws Exception {
+        Element testcase = singleTestcase(xml);
+        assertEquals("spec.org.javaspec.fixtures.cli.FailingSubjectSpec", testcase.getAttribute("classname"));
+        assertEquals(methodName, testcase.getAttribute("name"));
+        assertEquals("0", testcase.getAttribute("time"));
+        assertEquals(failingSubjectSpecFile().getPath(), testcase.getAttribute("file"));
+        assertEquals(String.valueOf(lineNumber), testcase.getAttribute("line"));
+    }
+
+    private static Element singleTestcase(String xml) throws Exception {
+        Document document = parseXml(xml);
+        NodeList testcases = document.getElementsByTagName("testcase");
+        assertEquals(1, testcases.getLength());
+        return (Element) testcases.item(0);
+    }
+
+    private static Document parseXml(String xml) throws Exception {
+        return DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(
                 new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8))
         );
+    }
+
+    private static void assertFailingSubjectJsonMetadata(String json, String methodName, int lineNumber) {
+        String specName = "spec.org.javaspec.fixtures.cli.FailingSubjectSpec";
+        String exampleId = specName + "#" + methodName;
+        String specFilePath = failingSubjectSpecFile().getPath();
+        assertContains(json, "\"id\": " + jsonString(specName));
+        assertContains(json, "\"stableId\": " + jsonString(specName));
+        assertContains(json, "\"sourceFile\": " + jsonString(specFilePath));
+        assertContains(json, "\"id\": " + jsonString(exampleId));
+        assertContains(json, "\"stableId\": " + jsonString(exampleId));
+        assertContains(json, "\"fullName\": " + jsonString(exampleId));
+        assertContains(json, "\"source\": {");
+        assertContains(json, "\"file\": " + jsonString(specFilePath));
+        assertContains(json, "\"line\": " + lineNumber);
+    }
+
+    private static File failingSubjectSpecFile() {
+        return sourceFileFor(testJavaRoot(), "spec.org.javaspec.fixtures.cli.FailingSubjectSpec");
+    }
+
+    private static String jsonString(String value) {
+        return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
     }
 
     private static CommandResult run(String... args) {

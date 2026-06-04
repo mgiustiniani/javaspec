@@ -9,10 +9,14 @@ import java.util.Objects;
  * Immutable result for one discovered example method.
  */
 public final class ExampleResult {
+    public static final int UNKNOWN_SOURCE_LINE = 0;
+
     private final String specQualifiedName;
     private final String methodName;
     private final String displayName;
     private final int sourceOrderIndex;
+    private final String sourceFilePath;
+    private final int sourceLine;
     private final ExampleStatus status;
     private final String detail;
     private final FailureDetail failureDetail;
@@ -22,6 +26,8 @@ public final class ExampleResult {
             String methodName,
             String displayName,
             int sourceOrderIndex,
+            String sourceFilePath,
+            int sourceLine,
             ExampleStatus status,
             String detail,
             FailureDetail failureDetail
@@ -30,6 +36,8 @@ public final class ExampleResult {
         this.methodName = methodName;
         this.displayName = displayName;
         this.sourceOrderIndex = sourceOrderIndex;
+        this.sourceFilePath = sourceFilePath;
+        this.sourceLine = sourceLine;
         this.status = status;
         this.detail = detail;
         this.failureDetail = failureDetail;
@@ -71,7 +79,9 @@ public final class ExampleResult {
                 example.sourceOrderIndex(),
                 status,
                 detail,
-                failureDetail
+                failureDetail,
+                spec.sourceFilePath(),
+                example.sourceLine()
         );
     }
 
@@ -84,8 +94,35 @@ public final class ExampleResult {
             String detail,
             FailureDetail failureDetail
     ) {
+        return of(
+                specQualifiedName,
+                methodName,
+                displayName,
+                sourceOrderIndex,
+                status,
+                detail,
+                failureDetail,
+                "",
+                UNKNOWN_SOURCE_LINE
+        );
+    }
+
+    public static ExampleResult of(
+            String specQualifiedName,
+            String methodName,
+            String displayName,
+            int sourceOrderIndex,
+            ExampleStatus status,
+            String detail,
+            FailureDetail failureDetail,
+            String sourceFilePath,
+            int sourceLine
+    ) {
         if (sourceOrderIndex < 0) {
             throw new IllegalArgumentException("sourceOrderIndex must not be negative: " + sourceOrderIndex);
+        }
+        if (sourceLine < UNKNOWN_SOURCE_LINE) {
+            throw new IllegalArgumentException("sourceLine must not be negative: " + sourceLine);
         }
         ExampleStatus validatedStatus = Objects.requireNonNull(status, "status must not be null");
         if ((ExampleStatus.FAILED.equals(validatedStatus) || ExampleStatus.BROKEN.equals(validatedStatus))
@@ -97,6 +134,8 @@ public final class ExampleResult {
                 validateText("methodName", methodName),
                 validateText("displayName", displayName),
                 sourceOrderIndex,
+                safeSourceFilePath(sourceFilePath),
+                sourceLine,
                 validatedStatus,
                 safeDetail(detail),
                 failureDetail
@@ -145,6 +184,54 @@ public final class ExampleResult {
 
     public int getSourceOrderIndex() {
         return sourceOrderIndex;
+    }
+
+    public String sourceFilePath() {
+        return sourceFilePath;
+    }
+
+    public String sourceFile() {
+        return sourceFilePath;
+    }
+
+    public String getSourceFilePath() {
+        return sourceFilePath;
+    }
+
+    public String getSourceFile() {
+        return sourceFilePath;
+    }
+
+    public boolean hasSourceFile() {
+        return sourceFilePath.length() > 0;
+    }
+
+    public int sourceLine() {
+        return sourceLine;
+    }
+
+    public int sourceLineNumber() {
+        return sourceLine;
+    }
+
+    public int lineNumber() {
+        return sourceLine;
+    }
+
+    public int getSourceLine() {
+        return sourceLine;
+    }
+
+    public int getLineNumber() {
+        return sourceLine;
+    }
+
+    public boolean hasSourceLine() {
+        return sourceLine > UNKNOWN_SOURCE_LINE;
+    }
+
+    public boolean hasSourceLocation() {
+        return hasSourceFile() || hasSourceLine();
     }
 
     public ExampleStatus status() {
@@ -207,6 +294,26 @@ public final class ExampleResult {
         return specQualifiedName + "#" + methodName;
     }
 
+    public String id() {
+        return fullName();
+    }
+
+    public String stableId() {
+        return fullName();
+    }
+
+    public String getId() {
+        return fullName();
+    }
+
+    public String getStableId() {
+        return fullName();
+    }
+
+    public String getFullName() {
+        return fullName();
+    }
+
     @Override
     public boolean equals(Object other) {
         if (this == other) {
@@ -244,6 +351,8 @@ public final class ExampleResult {
                 ", methodName='" + methodName + '\'' +
                 ", displayName='" + displayName + '\'' +
                 ", sourceOrderIndex=" + sourceOrderIndex +
+                ", sourceFilePath='" + sourceFilePath + '\'' +
+                ", sourceLine=" + sourceLine +
                 ", status=" + status +
                 ", detail='" + detail + '\'' +
                 ", failureDetail=" + failureDetail +
@@ -273,5 +382,12 @@ public final class ExampleResult {
             return "";
         }
         return detail;
+    }
+
+    private static String safeSourceFilePath(String sourceFilePath) {
+        if (sourceFilePath == null || sourceFilePath.trim().length() == 0) {
+            return "";
+        }
+        return sourceFilePath;
     }
 }

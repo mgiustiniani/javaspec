@@ -62,6 +62,14 @@ public final class JUnitXmlReportWriter {
         builder.append("\" name=\"");
         appendXmlAttribute(builder, example.methodName());
         builder.append("\" time=\"0\"");
+        if (example.hasSourceFile()) {
+            builder.append(" file=\"");
+            appendXmlAttribute(builder, example.sourceFilePath());
+            builder.append("\"");
+        }
+        if (example.hasSourceLine()) {
+            builder.append(" line=\"").append(example.sourceLine()).append("\"");
+        }
 
         if (example.isPassed()) {
             builder.append("/>\n");

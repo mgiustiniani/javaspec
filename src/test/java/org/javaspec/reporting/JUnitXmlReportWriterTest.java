@@ -14,6 +14,10 @@ import java.util.Collections;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -45,6 +49,37 @@ public class JUnitXmlReportWriterTest {
                 "    <skipped message=\"pending implementation\"/>\n" +
                 "  </testcase>\n" +
                 "</testsuite>\n", xml);
+        assertParsesAsXml(xml);
+    }
+
+    @Test
+    public void writesSourceFileAndLineAttributesWhenAvailable() throws Exception {
+        String sourceFile = "src/test/java/spec/example/Calculator&Spec<One>\"Quote.java";
+        ExampleResult sourced = ExampleResult.of(
+                "spec.example.CalculatorSpec",
+                "it_has_source",
+                "it has source",
+                0,
+                ExampleStatus.PASSED,
+                "",
+                null,
+                sourceFile,
+                19
+        );
+        RunResult runResult = RunResult.of(Arrays.asList(SpecResult.of(
+                "spec.example.CalculatorSpec",
+                sourceFile,
+                Arrays.asList(sourced)
+        )));
+
+        String xml = JUnitXmlReportWriter.toXml(runResult);
+
+        Element testcase = singleTestcase(xml);
+        assertEquals("spec.example.CalculatorSpec", testcase.getAttribute("classname"));
+        assertEquals("it_has_source", testcase.getAttribute("name"));
+        assertEquals("0", testcase.getAttribute("time"));
+        assertEquals(sourceFile, testcase.getAttribute("file"));
+        assertEquals("19", testcase.getAttribute("line"));
         assertParsesAsXml(xml);
     }
 
@@ -111,7 +146,18 @@ public class JUnitXmlReportWriterTest {
     }
 
     private static void assertParsesAsXml(String xml) throws Exception {
-        DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(
+        parseXml(xml);
+    }
+
+    private static Element singleTestcase(String xml) throws Exception {
+        Document document = parseXml(xml);
+        NodeList testcases = document.getElementsByTagName("testcase");
+        assertEquals(1, testcases.getLength());
+        return (Element) testcases.item(0);
+    }
+
+    private static Document parseXml(String xml) throws Exception {
+        return DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(
                 new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8))
         );
     }

@@ -2,17 +2,23 @@
 
 Wiki home for the current javaspec MVP.
 
-javaspec is a Java 8-compatible, zero-runtime-dependency specification tool inspired by PHPSpec. The current MVP supports the first spec-first loop plus the ADR 0004 correction work, follow-up factory construction generation, the Phase 7 matcher/expectation expansion, Phase 8 MVP collaborators/doubles, the completed Phase 9 CLI expansion, the Phase 10 advanced code-generation increment, the Phase 11 formatter/reporting/extension increment, the Phase 14 no-JUnit integration foundation, the Phase 15 optional Maven plugin adapter, the Phase 16 optional Gradle plugin adapter, and the Phase 17 optional JUnit Platform engine adapter: specification/support generation, production type discovery and generation, constructor and static factory construction generation, typed proxy matcher support, direct `ObjectBehavior` convenience assertions, method skeleton/declaration/element generation, Phase 3 Java LTS profiles/catalog/API-symbol metadata/compatibility probes, Phase 4 configuration, naming, suite selection, discovery filters, the Phase 5/6 MVP reflection runner, JDK-proxy interface doubles, run-only controls for dry-run planning, stop-on-failure, progress/pretty formatting, profile selection, verbose diagnostics, UTF-8 JSON run reports, dependency-free JUnit XML-compatible reports, explicit classpath input, public formatter contracts, minimal programmatic extension contracts, a no-`System.exit` programmatic invocation API, standalone optional Maven `javaspec:run` execution, standalone optional Gradle `javaspecRun` execution, and standalone optional JUnit Platform engine execution. Phase 12 compatibility/quality verification is complete through the Distrobox multi-JDK matrix for Java 8, 11, 17, 21, and 25, and Phase 17 verification passed for the core and standalone optional JUnit Platform engine.
+javaspec is a Java 8-compatible, zero-runtime-dependency specification tool inspired by PHPSpec. The current MVP supports the first spec-first loop plus the ADR 0004 correction work, follow-up factory construction generation, the Phase 7 matcher/expectation expansion, Phase 8 MVP collaborators/doubles, the completed Phase 9 CLI expansion, the Phase 10 advanced code-generation increment, the Phase 11 formatter/reporting/extension increment, the Phase 14 no-JUnit integration foundation, the Phase 15 optional Maven plugin adapter, the Phase 16 optional Gradle plugin adapter, the Phase 17 optional JUnit Platform engine adapter, the Phase 18 stable identifier/source-location/report polish increment, and Phase 19 post-roadmap release/CI hardening: specification/support generation, production type discovery and generation, constructor and static factory construction generation, typed proxy matcher support, direct `ObjectBehavior` convenience assertions, method skeleton/declaration/element generation, Phase 3 Java LTS profiles/catalog/API-symbol metadata/compatibility probes, Phase 4 configuration, naming, suite selection, discovery filters, the Phase 5/6 MVP reflection runner, JDK-proxy interface doubles, run-only controls for dry-run planning, stop-on-failure, progress/pretty formatting, profile selection, verbose diagnostics, UTF-8 JSON run reports, dependency-free JUnit XML-compatible reports, explicit classpath input, public formatter contracts, minimal programmatic extension contracts, a no-`System.exit` programmatic invocation API, standalone optional Maven `javaspec:run` execution, standalone optional Gradle `javaspecRun` execution, standalone optional JUnit Platform engine execution, stable ids/source metadata for IDE/CI consumers, aggregate local verification through `scripts/verify-all.sh`, and a GitHub Actions workflow. Phase 12 compatibility/quality verification is complete through the Distrobox multi-JDK matrix for Java 8, 11, 17, 21, and 25, and Phase 19 local aggregate verification passed for the core and standalone optional adapters.
 
-> Current status: `describe` writes specification/support files only. `javaspec run` keeps discovery, generation, and source updates, then executes discovered examples when the compiled spec classes are available on the effective classloader or the selected explicit classloader. It reuses `DiscoveredSpec`/`SpecExample` metadata, so suite, class, and example filters remain effective. The matcher set includes expanded negation, type/instance, count/empty, string, and map key/value helpers while preserving zero runtime dependencies. Interface doubles are available for ordinary interfaces through JDK dynamic proxies, with method-name/exact-argument stubbing, call history, and verification helpers. Run controls are active: `--dry-run` reports pending work without writes or prompts, `--stop-on-failure` stops after the first FAILED or BROKEN executable example, `--formatter` selects built-in `progress` or `pretty` through the public formatter contract/registry, `--profile` validates/selects an LTS profile without deep enforcement yet, `--verbose` prints selected run settings, `--classpath` / `--classpath-file` supplies explicit compiled-class classpath entries, `--report` / `--report-file` writes a UTF-8 JSON runner report, and `--junit-xml` / `--junit-xml-file` writes a UTF-8 JUnit XML-compatible report. The `org.javaspec.invocation` API exposes no-JUnit, no-`System.exit` programmatic invocation around canonical discovery and `SpecRunner`. The standalone optional Maven plugin at `javaspec-maven-plugin/` provides `javaspec:run`; the standalone optional Gradle plugin at `javaspec-gradle-plugin/` provides plugin id `org.javaspec`, extension `javaspec`, and task `javaspecRun`; both use build-tool classpaths and delegate to `JavaspecLauncher` without requiring JUnit in projects under test. The standalone optional JUnit Platform engine at `javaspec-junit-platform-engine/` provides engine id `javaspec`, ServiceLoader registration, canonical discovery and `JavaspecLauncher` execution, JUnit Platform selector/filter integration, and javaspec-to-JUnit listener event mapping; it is an optional IDE/CI adapter only and does not require changes to javaspec spec authoring style. These adapters are intentionally standalone and not root Maven modules. Projects that do not opt into the JUnit Platform engine still have no JUnit dependency and can keep CLI/programmatic/Maven/Gradle no-JUnit execution paths. Phase 10 interface-style generation is active for missing ordinary interfaces, missing annotations, missing sealed interfaces, and source-preserving existing ordinary interface/annotation updates; existing sealed-interface source updates are intentionally deferred. Bootstrap hooks remain parsed metadata and are not executed yet. The Phase 11 extension API is programmatic only; external extension discovery/loading is not implemented yet. Phase 12 verification passed across the Distrobox Java 8, 11, 17, 21, and 25 matrix; Phase 17 verification passed root Maven install/verify/dependency audit plus standalone JUnit Platform engine targeted/full tests and runtime dependency audit.
+> Current status: `describe` writes specification/support files only. `javaspec run` keeps discovery, generation, and source updates, then executes discovered examples when the compiled spec classes are available on the effective classloader or the selected explicit classloader. It reuses `DiscoveredSpec`/`SpecExample` metadata, so suite, class, and example filters remain effective; these objects/results now expose stable ids and source metadata where available. The matcher set includes expanded negation, type/instance, count/empty, string, and map key/value helpers while preserving zero runtime dependencies. Interface doubles are available for ordinary interfaces through JDK dynamic proxies, with method-name/exact-argument stubbing, call history, and verification helpers. Run controls are active: `--dry-run` reports pending work without writes or prompts, `--stop-on-failure` stops after the first FAILED or BROKEN executable example, `--formatter` selects built-in `progress` or `pretty` through the public formatter contract/registry, `--profile` validates/selects an LTS profile without deep enforcement yet, `--verbose` prints selected run settings, `--classpath` / `--classpath-file` supplies explicit compiled-class classpath entries, `--report` / `--report-file` writes a UTF-8 JSON runner report, and `--junit-xml` / `--junit-xml-file` writes a UTF-8 JUnit XML-compatible report. JSON reports include stable spec/example ids and source file/line fields where available; JUnit XML-compatible testcase elements include file/line attributes when source data is available. The `org.javaspec.invocation` API exposes no-JUnit, no-`System.exit` programmatic invocation around canonical discovery and `SpecRunner`. The standalone optional Maven plugin at `javaspec-maven-plugin/` provides `javaspec:run`; the standalone optional Gradle plugin at `javaspec-gradle-plugin/` provides plugin id `org.javaspec`, extension `javaspec`, and task `javaspecRun`; both use build-tool classpaths and delegate to `JavaspecLauncher` without requiring JUnit in projects under test. The standalone optional JUnit Platform engine at `javaspec-junit-platform-engine/` provides engine id `javaspec`, ServiceLoader registration, canonical discovery and `JavaspecLauncher` execution, JUnit Platform selector/filter integration, stable unique-id shape with MethodSource behavior, and javaspec-to-JUnit listener event mapping; it is an optional IDE/CI adapter only and does not require changes to javaspec spec authoring style. These adapters are intentionally standalone and not root Maven modules. Repository-root `mvn verify` remains core-only; `scripts/verify-all.sh` is the aggregate local release check for core plus standalone adapters. Projects that do not opt into the JUnit Platform engine still have no JUnit dependency and can keep CLI/programmatic/Maven/Gradle no-JUnit execution paths. Phase 10 interface-style generation is active for missing ordinary interfaces, missing annotations, missing sealed interfaces, and source-preserving existing ordinary interface/annotation updates; existing sealed-interface source updates are intentionally deferred. Bootstrap hooks remain parsed metadata and are not executed yet. The Phase 11 extension API is programmatic only; external extension discovery/loading is not implemented yet. Phase 12 verification passed across the Distrobox Java 8, 11, 17, 21, and 25 matrix; Phase 19 local aggregate verification passed root Maven verify/install/dependency audit plus standalone Maven plugin, Gradle plugin, and JUnit Platform engine verification. The GitHub Actions workflow is configured and locally YAML-parsed, but remote CI execution is not claimed here.
 
 ## Quick start
 
-From the repository root:
+From the repository root, core verification remains:
 
 ```sh
 mvn verify
 mvn dependency:tree -Dscope=runtime
+```
+
+Repository-root `mvn verify` is intentionally core-only. For local aggregate release verification of the core plus standalone optional adapters, run:
+
+```sh
+scripts/verify-all.sh
 ```
 
 The optional Maven plugin is standalone and intentionally not a root module. To verify it locally, install the current core first, then run the plugin build:
@@ -49,6 +55,40 @@ Short form used in the examples below:
 ```sh
 javaspec='java -jar target/javaspec-0.1.0-SNAPSHOT.jar'
 ```
+
+## Release and CI verification
+
+Phase 19 adds a non-disruptive aggregate verification path. The repository was not converted to Maven multi-module: root `mvn verify` continues to verify and audit only the zero-runtime-dependency core artifact, while the optional Maven plugin, Gradle plugin, and JUnit Platform engine remain standalone artifacts.
+
+Run the aggregate local release check from the repository root, or invoke the script by its full/relative path from elsewhere:
+
+```sh
+scripts/verify-all.sh
+# or: /path/to/javaspec/scripts/verify-all.sh
+```
+
+The script resolves the repository root from its own location and runs these checks in order:
+
+1. root `mvn -q verify`;
+2. root `mvn dependency:tree -Dscope=runtime`;
+3. root `mvn -q -DskipTests install` to refresh the local core snapshot;
+4. standalone Maven plugin `verify` and runtime dependency audit;
+5. standalone JUnit Platform engine `verify` and runtime dependency audit;
+6. standalone Gradle plugin `clean test build` and `runtimeClasspath` audit.
+
+Environment variables:
+
+| Variable | Meaning |
+|---|---|
+| `MAVEN_BIN` | Maven executable to use; defaults to `mvn`. |
+| `JAVASPEC_GRADLE_BIN` | Explicit Gradle executable to use for the standalone Gradle plugin checks. |
+| `JAVASPEC_SKIP_GRADLE=1` | Explicitly skip Gradle adapter verification. Use only when that skip is intentional. |
+
+When `JAVASPEC_GRADLE_BIN` is not set and Gradle is not skipped, resolution order is repository `./gradlew` if executable, `/tmp/gradle-8.8/bin/gradle`, then `gradle` on `PATH`. If none is found, the script fails with a clear diagnostic.
+
+The GitHub Actions workflow at `.github/workflows/ci.yml` triggers on `push`, `pull_request`, and `workflow_dispatch`. It defines a core job matrix over Java 8, 11, 17, 21, and 25 using Temurin and Maven cache, running root `mvn -q verify` plus the root runtime dependency audit. It also defines a Java 21 `full-verification` job with Maven cache and Gradle 8.8 setup that runs `scripts/verify-all.sh` with `JAVASPEC_GRADLE_BIN=gradle`. The workflow performs no publishing and uses no secrets.
+
+Documentation only claims local validation so far: the workflow YAML was parsed locally with PyYAML, and the aggregate script passed locally with `JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle`. Remote GitHub Actions execution is not claimed until the workflow actually runs remotely.
 
 ## Commands
 
@@ -182,8 +222,8 @@ A missing or unreadable config file exits with I/O error (`70`) and prints the c
 - Bootstrap hooks are parsed as strings but are not executed yet.
 - `profile` is selected and validated from config or `--profile`, but deep profile-aware execution/enforcement is not implemented yet.
 - `formatter` is selected from config or `--formatter` and controls the built-in `progress` or `pretty` CLI output through the public formatter contract/registry; config cannot select extension-provided names because external extension loading is not implemented yet.
-- Package-prefix naming is implemented for describe/run discovery, generation, MVP reflection execution, JSON report contents, and JUnit XML-compatible report test case class names; future runner/reporting layers may add richer diagnostics and source locations.
-- The runner lifecycle is intentionally minimal in the MVP: fresh spec instance per example plus optional public no-arg `let()` and `letGo()`. Pending examples, bootstrap execution, deeper profile enforcement, and richer reporting beyond the Phase 11 JSON report and Phase 14 JUnit XML-compatible report remain future work.
+- Package-prefix naming is implemented for describe/run discovery, generation, MVP reflection execution, JSON report contents, and JUnit XML-compatible report test case class names; Phase 18 adds stable ids and source file/line metadata where available.
+- The runner lifecycle is intentionally minimal in the MVP: fresh spec instance per example plus optional public no-arg `let()` and `letGo()`. Pending examples, bootstrap execution, deeper profile enforcement, and broader reporting beyond the implemented JSON/JUnit XML-compatible outputs remain future work.
 
 ## Suite naming and filters
 
@@ -288,12 +328,14 @@ $javaspec run --report target/javaspec-report.json
 $javaspec run --report-file target/javaspec-report.json --verbose
 ```
 
-The report schema is versioned with `"schemaVersion": 1`. The top-level object contains:
+The report schema is versioned with `"schemaVersion": 1`. Phase 18 adds identifier/source fields additively while preserving the existing fields. The top-level object contains:
 
 - `summary`: total, passed, failed, broken, skipped, and successful counts for the whole run.
-- `specs`: one entry per discovered spec result, with the spec name, executable flag, not-executable reason, per-spec summary, and examples.
-- `examples`: spec name, method, display name, source-order index, status, detail, and `failure`.
+- `specs`: one entry per discovered spec result, with the spec name, `id`, `stableId`, optional `sourceFile`, executable flag, not-executable reason, per-spec summary, and examples.
+- `examples`: spec name, method, display name, source-order index, status, detail, `id`, `stableId`, `fullName`, optional `source { file, line }`, and `failure`.
 - `failure`: `null` when no throwable was captured; otherwise throwable class name, message, and stack trace lines.
+
+Stable example ids use `<specQualifiedName>#<methodName>`, matching `ExampleResult.fullName()`.
 
 A no-spec run with `--report` writes a valid empty report with zero summary counts and an empty `specs` array. Passing, failing, broken, and skipped-only runs write the report after summary rendering. Failed or broken executable examples still exit `1` after the report is written. Dry-run with pending generation/update work exits before execution and does not write a report. Report write failures print I/O diagnostics, include the report path, and exit `70`. JSON and JUnit XML-compatible reports can be requested together.
 
@@ -323,7 +365,7 @@ $javaspec run --junit-xml target/javaspec-report.xml
 $javaspec run --report target/javaspec-report.json --junit-xml target/javaspec-report.xml
 ```
 
-The report uses a single `<testsuite name="javaspec">` element with `tests`, `failures`, `errors`, `skipped`, and `time="0"` attributes. Each example becomes a `<testcase>` whose `classname` is the spec qualified name and whose `name` is the example method name. `FAILED` examples become `<failure>`, `BROKEN` examples become `<error>`, and `SKIPPED` examples become `<skipped>`. A no-spec run writes a valid empty test suite.
+The report uses a single `<testsuite name="javaspec">` element with `tests`, `failures`, `errors`, `skipped`, and `time="0"` attributes. Each example becomes a `<testcase>` whose `classname` is the spec qualified name and whose `name` is the example method name; `file` and `line` attributes are included when source data is available. `FAILED` examples become `<failure>`, `BROKEN` examples become `<error>`, and `SKIPPED` examples become `<skipped>`. A no-spec run writes a valid empty test suite.
 
 Minimal empty JUnit XML report example:
 
@@ -368,7 +410,7 @@ int exitCode = result.exitCode();
 RunResult runResult = result.runResult();
 ```
 
-The launcher does not call `System.exit`, so the host process can inspect the structured result and decide how to continue. It is still a classpath-based executor: callers must provide a classloader that can load compiled production/spec classes, or skipped results will be produced for non-loadable specs.
+The launcher does not call `System.exit`, so the host process can inspect the structured result and decide how to continue. `DiscoveredSpec`, `SpecResult`, and `ExampleResult` expose stable id aliases (`id`/`stableId` getter styles), and runner results carry source metadata where discovery supplied it. It is still a classpath-based executor: callers must provide a classloader that can load compiled production/spec classes, or skipped results will be produced for non-loadable specs.
 
 ## Optional Maven plugin
 
@@ -459,7 +501,7 @@ Discovery uses canonical `SpecDiscovery` / `SpecDiscoveryRequest`. Supported con
 | `javaspec.exampleFilters` / `javaspec.exampleFilter` / `javaspec.example` | Apply example filters over canonical discovery results. |
 | `javaspec.stopOnFailure` | Stop after the first failed or broken executable example. |
 
-Class, package, method, and unique-id selectors are supported as filters over canonical discovery results. UniqueId segments use `[engine:javaspec]`, `[spec:<specQualifiedName>]`, and `[example:<methodName>]`.
+Class, package, method, and unique-id selectors are supported as filters over canonical discovery results. UniqueId segments use `[engine:javaspec]`, `[spec:<specQualifiedName>]`, and `[example:<methodName>]`; Phase 18 retains this stable shape and MethodSource behavior while aligning descriptor reporting to stable ids.
 
 Execution delegates to canonical no-JUnit `JavaspecLauncher` using discovered specs. Result mapping to JUnit Platform listener events is: passed -> successful, failed assertion results -> failed assertion-style throwable, broken results -> failed/error-style throwable, and skipped or non-loadable results -> skipped. The engine avoids `System.exit` and does not require changes to javaspec spec authoring style.
 
@@ -474,8 +516,9 @@ The runner is reflection-based and dependency-free. It does not compile source o
 
 Execution uses the existing discovery metadata:
 
-- `DiscoveredSpec` selects the spec class and described type.
-- `SpecExample` selects public `void` `it_*`/`its_*` examples, display names, and source-order indexes.
+- `DiscoveredSpec` selects the spec class and described type and exposes stable id aliases derived from the spec qualified name.
+- `SpecExample` selects public `void` `it_*`/`its_*` examples, display names, source-order indexes, and 1-based source lines.
+- `ExampleResult` stable ids use `<specQualifiedName>#<methodName>` and match `fullName()`; `SpecResult` stable ids derive from the spec qualified name.
 - Suite, class, and example filters affect execution because they filter that metadata before the runner sees it.
 
 Lifecycle behavior:
@@ -657,7 +700,7 @@ Practical migration guidance:
 8. Use the restricted line-based config format instead of PHPSpec YAML-style configuration. Bootstrap entries are parsed metadata only and are not executed yet.
 9. Use `--dry-run` in CI to detect pending generated work without modifying the workspace.
 10. Use `--classpath` or `--classpath-file` after an external build has compiled production/spec classes.
-11. Use `--report` for the implemented JSON runner report, `--junit-xml` for dependency-free JUnit XML-compatible output, or both after execution/no-spec handling.
+11. Use `--report` for the implemented JSON runner report, `--junit-xml` for dependency-free JUnit XML-compatible output, or both after execution/no-spec handling. Both report paths include stable identifiers and source metadata where available after the Phase 18 polish increment.
 
 ## Construction semantics
 
@@ -1420,9 +1463,10 @@ Expected root output contains only the project artifact:
 org.javaspec:javaspec:jar:0.1.0-SNAPSHOT
 ```
 
-Check the standalone optional adapters separately when needed:
+Check the standalone optional adapters through the aggregate script or separately when needed:
 
 ```sh
+scripts/verify-all.sh
 mvn -f javaspec-maven-plugin/pom.xml dependency:tree -Dscope=runtime
 gradle -p javaspec-gradle-plugin dependencies --configuration runtimeClasspath
 mvn -f javaspec-junit-platform-engine/pom.xml dependency:tree -Dscope=runtime
@@ -1432,35 +1476,33 @@ Expected Maven plugin runtime scope contains the plugin plus compile-scope core 
 
 ## Verification
 
-Current verification after Phase 17:
+Current verification after Phase 19:
 
-- `mvn -q -DskipTests install` passed.
-- `mvn -q verify` passed; root Surefire reported 382 tests, 0 failures, 0 errors, and 0 skipped.
-- `mvn -q -f javaspec-junit-platform-engine/pom.xml -Dtest=JavaspecTestEnginePhase17Test test` passed with 12 tests, 0 failures, 0 errors, and 0 skipped.
-- `mvn -q -f javaspec-junit-platform-engine/pom.xml verify` passed with 12 tests, 0 failures, 0 errors, and 0 skipped.
-- `mvn dependency:tree -Dscope=runtime` passed; root runtime tree contained only `org.javaspec:javaspec`.
-- `mvn -f javaspec-junit-platform-engine/pom.xml dependency:tree -Dscope=runtime` passed; runtime dependencies were core `org.javaspec:javaspec`, `org.junit.platform:junit-platform-engine`, `opentest4j`, `junit-platform-commons`, and `apiguardian-api`, with no runtime `junit-jupiter`, `junit-platform-launcher`, or `junit-platform-testkit`.
-- Phase 17 test coverage includes ServiceLoader engine id discovery, empty/no-spec discovery and execution, compiled passing spec success, assertion failure mapping, non-assertion throwable mapping, source-only/non-loadable spec skipped, config/suite/specRoot/specDir/class/example filters, class/package/method/unique-id selectors, stop-on-failure skip behavior, and canonical launcher/no-`System.exit`/no-CLI-adapter source guard.
-- Phase 16 Gradle plugin verification remains recorded in the test report, including Gradle 8.8 plugin test/build/dependency audits with 11 plugin tests and the cached Gradle 7.4.2/JDK21 environment blocker.
-- Phase 15 Maven plugin verification remains recorded in the test report: root `mvn -q verify`, root `mvn -q -DskipTests install`, targeted and full standalone Maven plugin verification, root runtime audit, and Maven plugin runtime audit passed.
-- The Phase 12 Distrobox multi-JDK matrix remains the current cross-JDK evidence: Distrobox `1.8.2.5` with Podman `5.8.2` ran Maven `3.9.16` Temurin containers for Java 8, 11, 17, 21, and 25; every container executed `mvn clean` and `mvn verify` and passed with 364 tests, 0 failures, 0 errors, and 0 skipped.
+- `bash -n scripts/verify-all.sh` passed, and the script is executable.
+- `.github/workflows/ci.yml` was parsed locally with PyYAML as a valid YAML mapping containing top-level keys `name`, `on`, and `jobs`, with jobs `core` and `full-verification`. actionlint/yamllint/yq were unavailable.
+- `git diff --check`, `git diff --cached --check`, and a temp-index whitespace check including untracked `.github/` and `scripts/` passed.
+- `JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-all.sh` passed using Gradle 8.8.
+- Script-executed results: root `mvn -q verify` passed with 386 tests, 0 failures, 0 errors, and 0 skipped; root runtime audit contained only `org.javaspec:javaspec`; root `mvn -q -DskipTests install` passed; standalone Maven plugin `verify` passed with 12 tests and runtime audit showing the plugin plus core; standalone JUnit Platform engine `verify` passed with 12 tests and runtime audit showing core plus isolated JUnit Platform engine dependencies; standalone Gradle plugin `clean test build` passed with 11 tests and runtimeClasspath audit showing only `org.javaspec:javaspec:0.1.0-SNAPSHOT`.
+- The GitHub Actions workflow is configured but remote CI execution is not claimed here.
+- Phase 18 tests asserted stable ids/source metadata in discovery, runner results, JSON reports, JUnit XML reports, CLI reports, Maven plugin reports, and Gradle plugin reports.
+- Phase 12 remains the current cross-JDK evidence: Distrobox `1.8.2.5` with Podman `5.8.2` ran Maven `3.9.16` Temurin containers for Java 8, 11, 17, 21, and 25; every container executed `mvn clean` and `mvn verify` and passed with 364 tests, 0 failures, 0 errors, and 0 skipped.
 - Matrix runtimes: Java `1.8.0_492`, `11.0.31`, `17.0.19`, `21.0.11 LTS`, and `25.0.3 LTS`.
 - The Java 25 runtime reflection probe and Java 25 runtime dependency audit passed.
-- Blockers: none for Phase 17.
+- Blockers: none for Phase 19.
 
 See [`../test-report.md`](../test-report.md) for the consolidated test and quality report.
 
-## Future integration roadmap (not implemented yet)
+## Future backlog
 
-The Phase 14 no-JUnit foundation, Phase 15 optional Maven plugin, Phase 16 optional Gradle plugin, and Phase 17 optional JUnit Platform engine are implemented. The remaining future roadmap work is broader Phase 18 IDE/CI polish and should not be documented as completed.
+The original numbered roadmap is complete through Phase 18. Phase 19 adds post-roadmap release/CI hardening without Maven multi-module conversion. Future feature work should be tracked as new roadmap/backlog items and should distinguish implemented Phase 18 stable identifier/source-location/report polish and Phase 19 aggregate verification/CI workflow setup from broader IDE/CI or release ideas that are not implemented.
 
-1. **IDE/CI polish:** stabilize test IDs across CLI, programmatic invocation, Maven, Gradle, JUnit Platform, JSON reports, and JUnit XML-compatible reports; enrich reports and failure locations; map pending/skipped states consistently; and document all modes with no-JUnit paths first.
+Potential backlog items include pending examples, bootstrap execution, deeper profile-aware enforcement, external extension loading, advanced double integrations, richer failure-location diagnostics, broader classpath diagnostics, publishing/signing, and any future multi-module conversion decision. No-JUnit CLI/programmatic/Maven/Gradle paths remain first-class; the JUnit Platform engine remains an optional adapter.
 
 ## Current MVP limitations
 
-- javaspec does not compile source or spec files itself; source-only or otherwise unavailable spec classes are skipped/not executable until compiled classes are present on the effective classloader, selected explicit classloader, build-tool adapter classpath, or JUnit Platform engine runtime classpath. `--classpath`, `--classpath-file`, and adapter-supplied entries must point to already compiled classes or archives. The optional Maven plugin, Gradle plugin, and JUnit Platform engine supply integration paths but remain standalone artifacts that are not covered by repository-root `mvn verify`; verify them separately after installing the current core.
+- javaspec does not compile source or spec files itself; source-only or otherwise unavailable spec classes are skipped/not executable until compiled classes are present on the effective classloader, selected explicit classloader, build-tool adapter classpath, or JUnit Platform engine runtime classpath. `--classpath`, `--classpath-file`, and adapter-supplied entries must point to already compiled classes or archives. The optional Maven plugin, Gradle plugin, and JUnit Platform engine supply integration paths but remain standalone artifacts that are not covered by repository-root `mvn verify`; verify them through `scripts/verify-all.sh` or separately after installing the current core.
 - The runner lifecycle is an MVP: fresh spec instance per example plus optional public no-arg `let()` and `letGo()`. Pending examples, bootstrap execution, and deep profile-aware execution/enforcement remain future work.
-- JSON reporting is limited to the Phase 11 `schemaVersion` 1 runner report, and Phase 14 JUnit XML-compatible reporting is intentionally minimal. There is no config-level report destination, and dry-run pending generation/update exits before execution without writing reports.
+- JSON reporting remains the Phase 11 `schemaVersion` 1 runner report with Phase 18 additive stable id/source fields, and Phase 14 JUnit XML-compatible reporting remains intentionally minimal with Phase 18 additive testcase `file`/`line` attributes when source data is available. There is no config-level report destination, and dry-run pending generation/update exits before execution without writing reports.
 - Configuration files currently drive selected suite paths, package-prefix naming, constructor-policy defaults, profile and formatter defaults, and run class/example filters; bootstrap hooks remain metadata until later runner features are implemented.
 - The extension API is minimal and programmatic: extensions can receive `ExtensionContext` and register run formatters, but external extension discovery/loading is not implemented, so CLI formatter selection remains limited to built-in `progress` and `pretty`.
 - Source parsing and generation use Java 8-compatible heuristics, not a full Java parser.

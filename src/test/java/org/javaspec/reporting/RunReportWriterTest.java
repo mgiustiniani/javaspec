@@ -36,6 +36,45 @@ public class RunReportWriterTest {
     }
 
     @Test
+    public void runResultJsonIncludesStableIdsAndSourceMetadataAlongsideExistingFields() {
+        String specName = "spec.example.MetadataSpec";
+        String sourceFile = "src/test/java/spec/example/MetadataSpec.java";
+        ExampleResult passed = ExampleResult.of(
+                specName,
+                "it_has_metadata",
+                "it has metadata",
+                7,
+                ExampleStatus.PASSED,
+                "",
+                null,
+                sourceFile,
+                42
+        );
+
+        String json = RunReportWriter.toJson(RunResult.of(Collections.singletonList(
+                SpecResult.of(specName, sourceFile, Collections.singletonList(passed))
+        )));
+
+        assertContains(json, "\"schemaVersion\": 1");
+        assertContains(json, "\"name\": \"spec.example.MetadataSpec\"");
+        assertContains(json, "\"id\": \"spec.example.MetadataSpec\"");
+        assertContains(json, "\"stableId\": \"spec.example.MetadataSpec\"");
+        assertContains(json, "\"sourceFile\": \"src/test/java/spec/example/MetadataSpec.java\"");
+        assertContains(json, "\"specName\": \"spec.example.MetadataSpec\"");
+        assertContains(json, "\"id\": \"spec.example.MetadataSpec#it_has_metadata\"");
+        assertContains(json, "\"stableId\": \"spec.example.MetadataSpec#it_has_metadata\"");
+        assertContains(json, "\"fullName\": \"spec.example.MetadataSpec#it_has_metadata\"");
+        assertContains(json, "\"method\": \"it_has_metadata\"");
+        assertContains(json, "\"displayName\": \"it has metadata\"");
+        assertContains(json, "\"sourceOrderIndex\": 7");
+        assertContains(json, "\"source\": {");
+        assertContains(json, "\"file\": \"src/test/java/spec/example/MetadataSpec.java\"");
+        assertContains(json, "\"line\": 42");
+        assertContains(json, "\"status\": \"PASSED\"");
+        assertContains(json, "\"failure\": null");
+    }
+
+    @Test
     public void failedAndBrokenRunResultJsonIncludesExamplesFailuresAndEscapedStrings() {
         String emoji = "\uD83D\uDE00";
         AssertionError assertion = new AssertionError("expected \"quoted\" \\ newline\ncontrol " + '\u0003' + " unicode ☃ surrogate " + emoji);

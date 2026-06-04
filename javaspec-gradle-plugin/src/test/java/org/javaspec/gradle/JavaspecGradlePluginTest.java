@@ -18,6 +18,10 @@ import java.nio.file.Files;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -84,12 +88,14 @@ public class JavaspecGradlePluginTest {
         assertEquals(TaskOutcome.SUCCESS, result.task(":javaspecRun").getOutcome());
         assertContains(result.getOutput(), "javaspec: found 1 specification(s).");
         assertContains(result.getOutput(), "javaspec: Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped.");
+        File specFile = new File(projectDir, "src/test/java/spec/com/example/GreeterSpec.java");
         String json = readFile(new File(projectDir, "build/reports/javaspec/passing.json"));
         assertContains(json, "\"total\": 1");
         assertContains(json, "\"status\": \"PASSED\"");
+        assertGradleReportJsonMetadata(json, specFile, "it_uses_main_output_on_default_test_runtime_classpath", 4);
         String xml = readFile(new File(projectDir, "build/reports/javaspec/passing.xml"));
         assertContains(xml, "<testsuite name=\"javaspec\" tests=\"1\" failures=\"0\" errors=\"0\" skipped=\"0\" time=\"0\">");
-        assertContains(xml, "<testcase classname=\"spec.com.example.GreeterSpec\" name=\"it_uses_main_output_on_default_test_runtime_classpath\" time=\"0\"/>");
+        assertGradleTestcaseHasSource(xml, specFile, "it_uses_main_output_on_default_test_runtime_classpath", 4);
         assertParsesAsXml(xml);
     }
 
@@ -370,9 +376,47 @@ public class JavaspecGradlePluginTest {
     }
 
     private static void assertParsesAsXml(String xml) throws Exception {
-        DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(
+        parseXml(xml);
+    }
+
+    private static void assertGradleTestcaseHasSource(String xml, File specFile, String methodName, int lineNumber) throws Exception {
+        Element testcase = singleTestcase(xml);
+        assertEquals("spec.com.example.GreeterSpec", testcase.getAttribute("classname"));
+        assertEquals(methodName, testcase.getAttribute("name"));
+        assertEquals("0", testcase.getAttribute("time"));
+        assertEquals(specFile.getPath(), testcase.getAttribute("file"));
+        assertEquals(String.valueOf(lineNumber), testcase.getAttribute("line"));
+    }
+
+    private static Element singleTestcase(String xml) throws Exception {
+        Document document = parseXml(xml);
+        NodeList testcases = document.getElementsByTagName("testcase");
+        assertEquals(1, testcases.getLength());
+        return (Element) testcases.item(0);
+    }
+
+    private static Document parseXml(String xml) throws Exception {
+        return DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(
                 new java.io.ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8))
         );
+    }
+
+    private static void assertGradleReportJsonMetadata(String json, File specFile, String methodName, int lineNumber) {
+        String specName = "spec.com.example.GreeterSpec";
+        String exampleId = specName + "#" + methodName;
+        assertContains(json, "\"id\": " + jsonString(specName));
+        assertContains(json, "\"stableId\": " + jsonString(specName));
+        assertContains(json, "\"sourceFile\": " + jsonString(specFile.getPath()));
+        assertContains(json, "\"id\": " + jsonString(exampleId));
+        assertContains(json, "\"stableId\": " + jsonString(exampleId));
+        assertContains(json, "\"fullName\": " + jsonString(exampleId));
+        assertContains(json, "\"source\": {");
+        assertContains(json, "\"file\": " + jsonString(specFile.getPath()));
+        assertContains(json, "\"line\": " + lineNumber);
+    }
+
+    private static String jsonString(String value) {
+        return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
     }
 
     private static void assertContains(String value, String expected) {

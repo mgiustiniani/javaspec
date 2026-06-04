@@ -1,6 +1,6 @@
 # 6. Runtime View
 
-This section describes the implemented runtime scenarios without C4 diagrams. The runtime is a Java 8-compatible CLI and library surface with no third-party runtime dependencies, including Phase 14 no-JUnit invocation, explicit classpath execution, JUnit XML-compatible reporting, the Phase 15 standalone optional Maven plugin adapter, the Phase 16 standalone optional Gradle plugin adapter, and the Phase 17 standalone optional JUnit Platform engine adapter.
+This section describes the implemented runtime and verification scenarios without C4 diagrams. The runtime is a Java 8-compatible CLI and library surface with no third-party runtime dependencies, including Phase 14 no-JUnit invocation, explicit classpath execution, JUnit XML-compatible reporting, the Phase 15 standalone optional Maven plugin adapter, the Phase 16 standalone optional Gradle plugin adapter, the Phase 17 standalone optional JUnit Platform engine adapter, the Phase 18 stable identifier/source-location/report polish increment, and the Phase 19 aggregate release/CI verification workflow.
 
 ## 6.1 `describe` Scenario
 
@@ -18,14 +18,14 @@ Important runtime invariant: `describe` is specification/support generation only
 1. The user runs `javaspec run` with optional config, suite, path overrides, explicit classpath input, generation flags, filters, run controls, or report paths.
 2. The CLI loads inferred defaults or the configured suite. `--constructor-policy`, `--profile`, and `--formatter` override valid configured/default values when supplied. `--classpath` and `--classpath-file` build a selected explicit classloader when present.
 3. `SpecDiscovery` scans the selected spec root using the active naming convention and filters by suite, class filters, and example filters.
-4. Discovery extracts described production type metadata, kind markers, relationship markers, construction markers, factory construction markers, typed proxy/throw proxy calls, direct subject/setter calls, and public `void` `it_*`/`its_*` example metadata.
+4. Discovery extracts described production type metadata, kind markers, relationship markers, construction markers, factory construction markers, typed proxy/throw proxy calls, direct subject/setter calls, and public `void` `it_*`/`its_*` example metadata including method declaration source lines.
 5. Existence checks inspect the source root and effective or selected explicit classloader for described production types and related types.
 6. Generation planning determines missing or updatable work: related specs/support, production type skeletons, support updates, constructors, static factory skeletons, class-like method bodies, ordinary-interface declarations, annotation elements, and missing sealed-interface skeleton declarations plus nested implementation bodies.
 7. If `--dry-run` is active, the CLI reports pending work without writing files or prompting. Pending work exits `1`; if no pending work exists, execution may proceed.
 8. If `--generate` is active, supported missing generation/update work is written non-interactively. Otherwise `run` prompts before production generation/update where required.
 9. After generation/update work completes without a declined or unavailable prompt, the reflection runner attempts to load compiled spec classes from the effective or selected explicit classloader.
 10. Loadable specs execute filtered examples. Source-only or otherwise unavailable specs are marked `SKIPPED` because the CLI does not compile source/spec files itself.
-11. Built-in output is rendered through the selected run formatter. Optional JSON and JUnit XML-compatible reports are written after no-spec output or runner summary rendering when the run reaches reportable execution/no-spec handling.
+11. Built-in output is rendered through the selected run formatter. Optional JSON and JUnit XML-compatible reports are written after no-spec output or runner summary rendering when the run reaches reportable execution/no-spec handling; reports include stable ids and source metadata where available.
 12. The process exits with the documented code: `0`, `1`, `64`, or `70`.
 
 ## 6.3 Example Execution Scenario
@@ -86,8 +86,8 @@ Unsupported target kinds fail fast with diagnostics rather than using bytecode l
 ## 6.7 Reporting and Extension Runtime Scenario
 
 - Built-in CLI output is selected from `progress` or `pretty` and rendered through `RunFormatter` implementations registered in `RunFormatterRegistry`.
-- `--report` and `--report-file` write UTF-8 JSON reports with `schemaVersion` 1 from the immutable runner result model.
-- `--junit-xml` and `--junit-xml-file` write UTF-8 JUnit XML-compatible reports from the same `RunResult` without JUnit dependencies.
+- `--report` and `--report-file` write UTF-8 JSON reports with `schemaVersion` 1 from the immutable runner result model, including stable spec/example ids and source file/line fields where available.
+- `--junit-xml` and `--junit-xml-file` write UTF-8 JUnit XML-compatible reports from the same `RunResult` without JUnit dependencies; testcase `file` and `line` attributes are included when source data is available.
 - JSON and JUnit XML-compatible reports can be requested together.
 - No-spec, passing, failing, broken, and skipped-only runs write requested reports after normal output. Dry-run pending generation/update exits before execution and does not write reports.
 - Report write failures are I/O failures and exit `70` with path diagnostics.
@@ -136,7 +136,7 @@ Unsupported target kinds fail fast with diagnostics rather than using bytecode l
 2. JUnit Platform discovers `org.javaspec.junit.platform.JavaspecTestEngine` through `META-INF/services/org.junit.platform.engine.TestEngine`; the engine id is `javaspec`.
 3. The engine reads supported configuration parameters: `javaspec.configFile`, `javaspec.suite`, `javaspec.specDir`/`javaspec.specRoot`, `javaspec.classFilters`/`classFilter`/`class`, `javaspec.exampleFilters`/`exampleFilter`/`example`, and `javaspec.stopOnFailure`.
 4. The engine builds canonical `SpecDiscoveryRequest` input and runs `SpecDiscovery`. JUnit Platform class, package, method, and unique-id selectors are applied as filters over canonical discovery results.
-5. Descriptors use UniqueId segments `[engine:javaspec]`, `[spec:<specQualifiedName>]`, and `[example:<methodName>]`.
+5. Descriptors use UniqueId segments `[engine:javaspec]`, `[spec:<specQualifiedName>]`, and `[example:<methodName>]`; Phase 18 retains this stable shape and MethodSource behavior while aligning descriptor reporting to stable ids.
 6. Execution delegates to canonical no-JUnit `JavaspecLauncher` using discovered specs and avoids `System.exit`.
 7. javaspec result states are mapped to JUnit Platform listener events: passed to successful, failed assertion results to failed assertion-style throwables, broken results to failed/error-style throwables, and skipped or non-loadable results to skipped.
 8. The engine does not require changes to javaspec spec authoring style and remains an optional IDE/CI adapter only.
@@ -152,3 +152,15 @@ Projects that do not opt into the engine still use CLI, programmatic invocation,
 5. Post-Java-8 APIs are never imported directly by production code.
 
 Current limitation: profile selection is visible and validated but not deeply enforced during example execution.
+
+## 6.14 Aggregate Verification Scenario
+
+1. A maintainer runs `scripts/verify-all.sh` locally, or GitHub Actions is configured to run it in the Java 21 `full-verification` job with `JAVASPEC_GRADLE_BIN=gradle`.
+2. The script resolves the repository root from its own path and uses `MAVEN_BIN` or default `mvn` for Maven commands.
+3. Root `mvn -q verify` and root `mvn dependency:tree -Dscope=runtime` verify the zero-runtime-dependency core artifact only.
+4. Root `mvn -q -DskipTests install` refreshes the local core snapshot for standalone adapters.
+5. The script verifies and audits the standalone Maven plugin and standalone JUnit Platform engine with their own Maven POMs.
+6. Unless `JAVASPEC_SKIP_GRADLE=1` is set, the script resolves Gradle through explicit `JAVASPEC_GRADLE_BIN`, repository `./gradlew`, `/tmp/gradle-8.8/bin/gradle`, or `gradle` on `PATH`, then runs the standalone Gradle plugin `clean test build` and `runtimeClasspath` audit.
+7. If Gradle is required but unavailable, the script fails with a clear diagnostic rather than silently skipping adapter verification.
+
+The GitHub Actions workflow also has a separate core matrix job for Java 8, 11, 17, 21, and 25 that runs root core verification and root runtime dependency audit. The workflow has no publishing/signing steps and uses no secrets. Local documentation claims only local YAML parsing and local script execution until remote GitHub Actions runs are available.

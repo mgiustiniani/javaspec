@@ -6,27 +6,42 @@ import java.util.Objects;
  * Immutable metadata for one executable example method in a specification.
  */
 public final class SpecExample {
+    public static final int UNKNOWN_SOURCE_LINE = 0;
+
     private final String methodName;
     private final String displayName;
     private final int sourceOrderIndex;
+    private final int sourceLine;
 
-    private SpecExample(String methodName, String displayName, int sourceOrderIndex) {
+    private SpecExample(String methodName, String displayName, int sourceOrderIndex, int sourceLine) {
         this.methodName = methodName;
         this.displayName = displayName;
         this.sourceOrderIndex = sourceOrderIndex;
+        this.sourceLine = sourceLine;
     }
 
     public static SpecExample of(String methodName, int sourceOrderIndex) {
-        return of(methodName, displayNameFor(methodName), sourceOrderIndex);
+        return of(methodName, displayNameFor(methodName), sourceOrderIndex, UNKNOWN_SOURCE_LINE);
+    }
+
+    public static SpecExample of(String methodName, int sourceOrderIndex, int sourceLine) {
+        return of(methodName, displayNameFor(methodName), sourceOrderIndex, sourceLine);
     }
 
     public static SpecExample of(String methodName, String displayName, int sourceOrderIndex) {
+        return of(methodName, displayName, sourceOrderIndex, UNKNOWN_SOURCE_LINE);
+    }
+
+    public static SpecExample of(String methodName, String displayName, int sourceOrderIndex, int sourceLine) {
         String validatedMethodName = validateMethodName(methodName);
         String validatedDisplayName = validateDisplayName(displayName);
         if (sourceOrderIndex < 0) {
             throw new IllegalArgumentException("sourceOrderIndex must not be negative: " + sourceOrderIndex);
         }
-        return new SpecExample(validatedMethodName, validatedDisplayName, sourceOrderIndex);
+        if (sourceLine < UNKNOWN_SOURCE_LINE) {
+            throw new IllegalArgumentException("sourceLine must not be negative: " + sourceLine);
+        }
+        return new SpecExample(validatedMethodName, validatedDisplayName, sourceOrderIndex, sourceLine);
     }
 
     public static boolean isExampleMethodName(String methodName) {
@@ -65,6 +80,38 @@ public final class SpecExample {
         return sourceOrderIndex;
     }
 
+    public int sourceLine() {
+        return sourceLine;
+    }
+
+    public int sourceLineNumber() {
+        return sourceLine;
+    }
+
+    public int lineNumber() {
+        return sourceLine;
+    }
+
+    public int getSourceLine() {
+        return sourceLine;
+    }
+
+    public int getLineNumber() {
+        return sourceLine;
+    }
+
+    public boolean hasSourceLine() {
+        return sourceLine > UNKNOWN_SOURCE_LINE;
+    }
+
+    public String stableId(String specQualifiedName) {
+        return validateSpecQualifiedName(specQualifiedName) + "#" + methodName;
+    }
+
+    public String fullName(String specQualifiedName) {
+        return stableId(specQualifiedName);
+    }
+
     @Override
     public boolean equals(Object other) {
         if (this == other) {
@@ -93,7 +140,16 @@ public final class SpecExample {
                 "methodName='" + methodName + '\'' +
                 ", displayName='" + displayName + '\'' +
                 ", sourceOrderIndex=" + sourceOrderIndex +
+                ", sourceLine=" + sourceLine +
                 '}';
+    }
+
+    private static String validateSpecQualifiedName(String specQualifiedName) {
+        Objects.requireNonNull(specQualifiedName, "specQualifiedName must not be null");
+        if (specQualifiedName.trim().length() == 0) {
+            throw new IllegalArgumentException("specQualifiedName must not be blank");
+        }
+        return specQualifiedName;
     }
 
     private static String validateMethodName(String methodName) {

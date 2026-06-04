@@ -13,11 +13,12 @@ mvn -q -DskipTests install
 gradle -p javaspec-gradle-plugin build
 ```
 
-Phase 16 verification on the installed Java 21 runtime used Gradle 8.8 downloaded to `/tmp/gradle-8.8` and not committed:
+Phase 16 verification on the installed Java 21 runtime used Gradle 8.8 downloaded to `/tmp/gradle-8.8` and not committed. Phase 18 verification reused `/tmp/gradle-8.8` and passed `clean test build` with 11 tests plus the `runtimeClasspath` audit.
 
 ```sh
 /tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin test
 /tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin build
+/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin clean test build
 /tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin dependencies --configuration runtimeClasspath
 /tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin dependencies --configuration testRuntimeClasspath
 ```
@@ -49,6 +50,6 @@ tasks.named('javaspecRun') {
 
 The plugin registers extension `javaspec` and task `javaspecRun` in Gradle's `verification` group. When the Gradle Java plugin/source sets are present, `javaspecRun` defaults to the `test` source set runtime classpath and depends on `testClasses`.
 
-Supported task/extension options include `skip`, `failOnFailure` (default `true`), `stopOnFailure`, `configFile`, `suite`, `specDir`/`specRoot`, class filters, example filters, formatter `progress` or `pretty`, JSON report aliases (`reportFile`, `jsonReportFile`), and JUnit XML-compatible report aliases (`junitXmlReportFile`, `junitXmlFile`).
+Supported task/extension options include `skip`, `failOnFailure` (default `true`), `stopOnFailure`, `configFile`, `suite`, `specDir`/`specRoot`, class filters, example filters, formatter `progress` or `pretty`, JSON report aliases (`reportFile`, `jsonReportFile`), and JUnit XML-compatible report aliases (`junitXmlReportFile`, `junitXmlFile`). JSON and JUnit XML-compatible reports are produced by core writers and include Phase 18 stable id/source metadata where available.
 
 The task delegates to canonical no-JUnit `org.javaspec.invocation.JavaspecLauncher` without `System.exit`. Projects under test do not need JUnit; JUnit is only a plugin test dependency.

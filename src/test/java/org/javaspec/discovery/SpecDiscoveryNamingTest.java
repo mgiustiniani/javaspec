@@ -243,6 +243,36 @@ public class SpecDiscoveryNamingTest {
     }
 
     @Test
+    public void exampleMetadataIncludesSourceLineNumbers() throws Exception {
+        File specRoot = temporaryFolder.newFolder("example-line-root");
+        writeFile(specRoot, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "BookSpec.java",
+                "package spec.com.example;\n" +
+                "\n" +
+                "public class BookSpec {\n" +
+                "    // comments and blank lines should not disturb source line extraction\n" +
+                "\n" +
+                "    public void it_first() {\n" +
+                "    }\n" +
+                "\n" +
+                "    public void it_second() {\n" +
+                "    }\n" +
+                "}\n");
+
+        List<DiscoveredSpec> specs = SpecDiscovery.discover(specRoot);
+
+        assertEquals(1, specs.size());
+        List<SpecExample> examples = specs.get(0).examples();
+        assertEquals(2, examples.size());
+        assertEquals("it_first", examples.get(0).methodName());
+        assertEquals(6, examples.get(0).sourceLine());
+        assertEquals(6, examples.get(0).lineNumber());
+        assertTrue(examples.get(0).hasSourceLine());
+        assertEquals("it_second", examples.get(1).methodName());
+        assertEquals(9, examples.get(1).sourceLine());
+        assertEquals("spec.com.example.BookSpec#it_second", examples.get(1).stableId("spec.com.example.BookSpec"));
+    }
+
+    @Test
     public void exampleDisplayNameReplacesUnderscoresWithSpaces() throws Exception {
         File specRoot = temporaryFolder.newFolder("example-display-root");
         writeFile(specRoot, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "BookSpec.java",

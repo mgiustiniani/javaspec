@@ -210,7 +210,7 @@ public final class JavaspecTestEngine implements TestEngine {
         List<ExampleResult> exampleResults = runResult.exampleResults();
         for (int i = 0; i < exampleResults.size(); i++) {
             ExampleResult result = exampleResults.get(i);
-            results.put(result.fullName(), result);
+            results.put(result.stableId(), result);
         }
         return results;
     }
@@ -235,7 +235,7 @@ public final class JavaspecTestEngine implements TestEngine {
         String detail = result.detail();
         String summary = failureDetail == null ? "" : failureDetail.summary();
         if (isBlank(detail)) {
-            return isBlank(summary) ? result.fullName() : summary;
+            return isBlank(summary) ? result.stableId() : summary;
         }
         if (isBlank(summary)) {
             return detail;
@@ -737,7 +737,7 @@ public final class JavaspecTestEngine implements TestEngine {
         private final int order;
 
         private JavaspecExampleDescriptor(UniqueId uniqueId, String specQualifiedName, SpecExample example, int order) {
-            super(uniqueId, specQualifiedName + "#" + example.methodName(),
+            super(uniqueId, stableExampleId(specQualifiedName, example),
                     MethodSource.from(specQualifiedName, example.methodName()));
             this.specQualifiedName = specQualifiedName;
             this.example = example;
@@ -749,7 +749,7 @@ public final class JavaspecTestEngine implements TestEngine {
         }
 
         public String getLegacyReportingName() {
-            return fullName();
+            return stableId();
         }
 
         int order() {
@@ -761,7 +761,15 @@ public final class JavaspecTestEngine implements TestEngine {
         }
 
         String fullName() {
-            return specQualifiedName + "#" + example.methodName();
+            return stableId();
+        }
+
+        String stableId() {
+            return stableExampleId(specQualifiedName, example);
+        }
+
+        private static String stableExampleId(String specQualifiedName, SpecExample example) {
+            return example.stableId(specQualifiedName);
         }
     }
 

@@ -83,6 +83,36 @@ public class SpecRunnerTest {
     }
 
     @Test
+    public void exampleResultsPropagateStableIdsAndSourceLocationFromDiscoveredMetadata() {
+        File specFile = new File("src/test/java/spec/example/MetadataSpec.java");
+        SpecExample example = SpecExample.of("it_reports_metadata", 2, 37);
+        DiscoveredSpec spec = DiscoveredSpec.of(
+                specFile,
+                "spec.example.MetadataSpec",
+                DescribedType.of("example.Metadata"),
+                Arrays.asList(example)
+        );
+
+        ExampleResult result = ExampleResult.passed(spec, example);
+        SpecResult specResult = SpecResult.executable(spec, Arrays.asList(result));
+
+        assertEquals("spec.example.MetadataSpec#it_reports_metadata", result.fullName());
+        assertEquals(result.fullName(), result.id());
+        assertEquals(result.fullName(), result.stableId());
+        assertEquals(specFile.getPath(), result.sourceFilePath());
+        assertEquals(specFile.getPath(), result.sourceFile());
+        assertTrue(result.hasSourceFile());
+        assertEquals(37, result.sourceLine());
+        assertEquals(37, result.lineNumber());
+        assertTrue(result.hasSourceLine());
+        assertTrue(result.hasSourceLocation());
+        assertEquals("spec.example.MetadataSpec", specResult.id());
+        assertEquals("spec.example.MetadataSpec", specResult.stableId());
+        assertEquals(specFile.getPath(), specResult.sourceFilePath());
+        assertTrue(specResult.hasSourceFile());
+    }
+
+    @Test
     public void executesCompiledObjectBehaviorSpecUsingExpandedMatchers() {
         RunResult result = run(
                 Phase7MatcherSpec.class,

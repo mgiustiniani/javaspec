@@ -10,10 +10,10 @@ The core runtime depends only on the JDK. This affects every feature:
 
 - Configuration uses a restricted internal line-based parser instead of YAML/TOML/JSON libraries.
 - Doubles use JDK dynamic proxies instead of bytecode libraries.
-- JSON reports are written by an internal UTF-8 writer instead of a JSON library.
-- JUnit XML-compatible reports are written internally instead of using JUnit or XML/reporting libraries.
+- JSON reports are written by an internal UTF-8 writer instead of a JSON library, including stable id/source fields added in Phase 18.
+- JUnit XML-compatible reports are written internally instead of using JUnit or XML/reporting libraries, with testcase file/line attributes when source data is available.
 - CLI parsing, explicit classpath handling, formatting, matchers, invocation APIs, and extension contracts are implemented with JDK APIs.
-- Optional adapters stay outside the core runtime; the Phase 15 Maven plugin uses Maven APIs as plugin-provided/build-tool dependencies, the Phase 16 Gradle plugin uses Gradle plugin APIs in its standalone artifact, and the Phase 17 JUnit Platform engine uses JUnit Platform APIs in its standalone artifact. Projects that do not opt into the JUnit Platform engine keep no-JUnit execution paths.
+- Optional adapters stay outside the core runtime; the Phase 15 Maven plugin uses Maven APIs as plugin-provided/build-tool dependencies, the Phase 16 Gradle plugin uses Gradle plugin APIs in its standalone artifact, and the Phase 17 JUnit Platform engine uses JUnit Platform APIs in its standalone artifact. Phase 19 release/CI verification assets invoke those standalone artifacts explicitly instead of adding their dependencies to the core runtime. Projects that do not opt into the JUnit Platform engine keep no-JUnit execution paths.
 
 ## 8.3 PHPSpec-Inspired Java Workflow
 
@@ -88,10 +88,12 @@ Source parsing/generation uses Java 8-compatible heuristics rather than a full J
 The runner result model separates discovery and execution from output and process termination:
 
 - `SpecRunner` produces immutable `RunResult`, `SpecResult`, and `ExampleResult` data.
+- `DiscoveredSpec`, `SpecResult`, and `ExampleResult` expose stable id aliases; example stable ids use `<specQualifiedName>#<methodName>` and match `fullName()`.
+- `SpecExample`, `SpecResult`, and `ExampleResult` carry source metadata where discovery supplied it.
 - `JavaspecLauncher` returns `JavaspecInvocationResult` for no-`System.exit` programmatic callers while reusing canonical discovery and `SpecRunner` semantics.
 - Built-in `progress` and `pretty` output render results through `RunFormatter` implementations.
-- JSON reports with `schemaVersion` 1 are written from the same results.
-- JUnit XML-compatible reports are also written from `RunResult`, mapping FAILED to failures, BROKEN to errors, and SKIPPED to skipped test cases.
+- JSON reports with `schemaVersion` 1 are written from the same results and include additive stable id/source fields.
+- JUnit XML-compatible reports are also written from `RunResult`, mapping FAILED to failures, BROKEN to errors, and SKIPPED to skipped test cases, with testcase file/line attributes when source data is available.
 - Report failures are I/O failures and exit `70` for CLI runs.
 
 Source-only or non-loadable compiled spec classes produce skipped examples because javaspec is not an in-process compiler. CLI `--classpath` / `--classpath-file` and programmatic invocation classloaders can supply compiled classes explicitly, but the entries must already be compiled.
@@ -120,7 +122,7 @@ Phase 14 makes no-JUnit execution first-class without changing compilation owner
 - Neither CLI nor programmatic invocation compiles source/spec files.
 - `JavaspecRunMojo` delegates to `JavaspecLauncher` with Maven's test classpath and does not call `System.exit`.
 - `JavaspecRunTask` delegates to `JavaspecLauncher` with the Gradle classpath, manages a `URLClassLoader` and thread context classloader, and does not call `System.exit`.
-- `JavaspecTestEngine` delegates to `JavaspecLauncher` with discovered specs, applies JUnit Platform selectors as filters over canonical discovery, maps results to listener events, and does not call `System.exit`.
+- `JavaspecTestEngine` delegates to `JavaspecLauncher` with discovered specs, applies JUnit Platform selectors as filters over canonical discovery, keeps the stable unique-id shape and MethodSource behavior, aligns descriptor reporting to stable ids, maps results to listener events, and does not call `System.exit`.
 
 ## 8.12 Optional Maven Plugin Boundary
 
@@ -159,11 +161,23 @@ The engine boundary principles are:
 - `JavaspecTestEngine` is registered by ServiceLoader with engine id `javaspec`.
 - Runtime dependencies are isolated to the engine artifact: core `org.javaspec:javaspec`, `org.junit.platform:junit-platform-engine`, `opentest4j`, `junit-platform-commons`, and `apiguardian-api`.
 - Discovery uses canonical `SpecDiscovery` / `SpecDiscoveryRequest`, with configuration parameters and class/package/method/unique-id selectors acting as filters over canonical discovery results.
-- UniqueId segments are `[engine:javaspec]`, `[spec:<specQualifiedName>]`, and `[example:<methodName>]`.
+- UniqueId segments are `[engine:javaspec]`, `[spec:<specQualifiedName>]`, and `[example:<methodName>]`; Phase 18 retains this shape and MethodSource behavior while aligning descriptor reporting to stable ids.
 - Execution delegates to canonical no-JUnit `JavaspecLauncher`, avoids `System.exit`, maps javaspec outcomes to JUnit Platform listener events, and does not require changes to javaspec spec authoring style.
 - Projects that do not opt into the engine still have no JUnit dependency and can keep CLI/programmatic/Maven/Gradle no-JUnit execution paths.
 
-## 8.15 Extension Boundary
+## 8.15 Release/CI Verification Boundary
+
+Phase 19 keeps release verification non-disruptive:
+
+- Root `mvn verify` remains the core-only build and runtime dependency gate.
+- `scripts/verify-all.sh` is the aggregate local release check for core plus standalone adapters.
+- The script installs the current core snapshot locally before verifying standalone adapters.
+- The script verifies Maven plugin and JUnit Platform engine artifacts through their own POMs and verifies the Gradle plugin with a resolved Gradle executable.
+- `MAVEN_BIN`, `JAVASPEC_GRADLE_BIN`, and explicit `JAVASPEC_SKIP_GRADLE=1` make tool selection explicit.
+- `.github/workflows/ci.yml` defines a Java 8/11/17/21/25 core matrix and a Java 21 full-verification job that runs the aggregate script with Gradle 8.8.
+- No publishing, signing, secrets, mandatory Maven multi-module conversion, or remote CI success claim is part of the implemented increment.
+
+## 8.16 Extension Boundary
 
 The current extension API is programmatic. `JavaspecExtension`/`Extension` can configure an `ExtensionContext`, and the context exposes the run formatter registry.
 

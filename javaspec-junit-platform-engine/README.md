@@ -23,6 +23,8 @@ mvn -q -DskipTests install
 mvn -q -f javaspec-junit-platform-engine/pom.xml verify
 ```
 
+Phase 18 verification passed standalone engine `verify` with 12 tests after refreshing the local core snapshot.
+
 Optional runtime dependency audit:
 
 ```sh
@@ -42,6 +44,6 @@ Discovery uses canonical `SpecDiscovery` / `SpecDiscoveryRequest`. Supported con
 - `javaspec.exampleFilters` / `javaspec.exampleFilter` / `javaspec.example`
 - `javaspec.stopOnFailure`
 
-Class, package, method, and unique-id selectors are supported as filters over canonical discovery results. UniqueId segments use `[engine:javaspec]`, `[spec:<specQualifiedName>]`, and `[example:<methodName>]`.
+Class, package, method, and unique-id selectors are supported as filters over canonical discovery results. UniqueId segments use `[engine:javaspec]`, `[spec:<specQualifiedName>]`, and `[example:<methodName>]`; Phase 18 retains this stable shape and MethodSource behavior while aligning descriptor reporting to stable ids.
 
 Execution delegates to canonical no-JUnit `JavaspecLauncher`, avoids `System.exit`, and does not require changes to javaspec spec authoring style. Result mapping is: passed -> successful, failed assertion results -> failed assertion-style throwable, broken results -> failed/error-style throwable, and skipped/non-loadable -> skipped.

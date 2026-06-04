@@ -522,11 +522,28 @@ public final class SpecDiscovery {
             String methodName = methodMatcher.group(1);
             String paramsGroup = methodMatcher.group(2).trim();
             if (paramsGroup.length() == 0 && SpecExample.isExampleMethodName(methodName)) {
-                examples.add(SpecExample.of(methodName, orderIndex));
+                examples.add(SpecExample.of(methodName, orderIndex, lineNumberAt(source, methodMatcher.start())));
                 orderIndex++;
             }
         }
         return examples;
+    }
+
+    private static int lineNumberAt(String source, int position) {
+        int safePosition = Math.max(0, Math.min(position, source.length()));
+        int lineNumber = 1;
+        for (int i = 0; i < safePosition; i++) {
+            char character = source.charAt(i);
+            if (character == '\n') {
+                lineNumber++;
+            } else if (character == '\r') {
+                lineNumber++;
+                if (i + 1 < safePosition && source.charAt(i + 1) == '\n') {
+                    i++;
+                }
+            }
+        }
+        return lineNumber;
     }
 
     private static Map<String, MethodParameterInfo> parseMethods(String source, Map<String, String> imports, String describedPackageName) {

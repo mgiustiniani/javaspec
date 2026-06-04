@@ -57,7 +57,43 @@ public final class DiscoveredSpec {
         return specFile;
     }
 
+    public String sourceFilePath() {
+        return specFile.getPath();
+    }
+
+    public String sourceFile() {
+        return sourceFilePath();
+    }
+
+    public String getSourceFilePath() {
+        return sourceFilePath();
+    }
+
+    public String getSourceFile() {
+        return sourceFilePath();
+    }
+
+    public boolean hasSourceFile() {
+        return sourceFilePath().length() > 0;
+    }
+
     public String specQualifiedName() {
+        return specQualifiedName;
+    }
+
+    public String id() {
+        return specQualifiedName;
+    }
+
+    public String stableId() {
+        return specQualifiedName;
+    }
+
+    public String getId() {
+        return specQualifiedName;
+    }
+
+    public String getStableId() {
         return specQualifiedName;
     }
 

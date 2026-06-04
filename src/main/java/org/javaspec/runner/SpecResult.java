@@ -14,6 +14,7 @@ public final class SpecResult {
     private static final List<ExampleResult> EMPTY_RESULTS = Collections.unmodifiableList(new ArrayList<ExampleResult>());
 
     private final String specQualifiedName;
+    private final String sourceFilePath;
     private final boolean executable;
     private final String notExecutableReason;
     private final List<ExampleResult> exampleResults;
@@ -23,8 +24,15 @@ public final class SpecResult {
     private final int brokenCount;
     private final int skippedCount;
 
-    private SpecResult(String specQualifiedName, boolean executable, String notExecutableReason, List<ExampleResult> exampleResults) {
+    private SpecResult(
+            String specQualifiedName,
+            String sourceFilePath,
+            boolean executable,
+            String notExecutableReason,
+            List<ExampleResult> exampleResults
+    ) {
         this.specQualifiedName = specQualifiedName;
+        this.sourceFilePath = sourceFilePath;
         this.executable = executable;
         this.notExecutableReason = notExecutableReason;
         this.exampleResults = exampleResults;
@@ -37,25 +45,40 @@ public final class SpecResult {
 
     public static SpecResult executable(DiscoveredSpec spec, List<ExampleResult> exampleResults) {
         Objects.requireNonNull(spec, "spec must not be null");
-        return of(spec.specQualifiedName(), true, "", exampleResults);
+        return of(spec.specQualifiedName(), spec.sourceFilePath(), true, "", exampleResults);
     }
 
     public static SpecResult notExecutable(DiscoveredSpec spec, String reason, List<ExampleResult> exampleResults) {
         Objects.requireNonNull(spec, "spec must not be null");
-        return of(spec.specQualifiedName(), false, reason, exampleResults);
+        return of(spec.specQualifiedName(), spec.sourceFilePath(), false, reason, exampleResults);
     }
 
     public static SpecResult of(String specQualifiedName, List<ExampleResult> exampleResults) {
         return of(specQualifiedName, true, "", exampleResults);
     }
 
+    public static SpecResult of(String specQualifiedName, String sourceFilePath, List<ExampleResult> exampleResults) {
+        return of(specQualifiedName, sourceFilePath, true, "", exampleResults);
+    }
+
     public static SpecResult of(String specQualifiedName, boolean executable, String notExecutableReason, List<ExampleResult> exampleResults) {
+        return of(specQualifiedName, "", executable, notExecutableReason, exampleResults);
+    }
+
+    public static SpecResult of(
+            String specQualifiedName,
+            String sourceFilePath,
+            boolean executable,
+            String notExecutableReason,
+            List<ExampleResult> exampleResults
+    ) {
         String validatedReason = safeReason(notExecutableReason);
         if (!executable && validatedReason.length() == 0) {
             throw new IllegalArgumentException("notExecutableReason is required when executable is false");
         }
         return new SpecResult(
                 validateText("specQualifiedName", specQualifiedName),
+                safeSourceFilePath(sourceFilePath),
                 executable,
                 validatedReason,
                 immutableResults(exampleResults)
@@ -68,6 +91,42 @@ public final class SpecResult {
 
     public String getSpecQualifiedName() {
         return specQualifiedName;
+    }
+
+    public String id() {
+        return specQualifiedName;
+    }
+
+    public String stableId() {
+        return specQualifiedName;
+    }
+
+    public String getId() {
+        return specQualifiedName;
+    }
+
+    public String getStableId() {
+        return specQualifiedName;
+    }
+
+    public String sourceFilePath() {
+        return sourceFilePath;
+    }
+
+    public String sourceFile() {
+        return sourceFilePath;
+    }
+
+    public String getSourceFilePath() {
+        return sourceFilePath;
+    }
+
+    public String getSourceFile() {
+        return sourceFilePath;
+    }
+
+    public boolean hasSourceFile() {
+        return sourceFilePath.length() > 0;
     }
 
     public boolean isExecutable() {
@@ -184,6 +243,7 @@ public final class SpecResult {
     public String toString() {
         return "SpecResult{" +
                 "specQualifiedName='" + specQualifiedName + '\'' +
+                ", sourceFilePath='" + sourceFilePath + '\'' +
                 ", executable=" + executable +
                 ", notExecutableReason='" + notExecutableReason + '\'' +
                 ", exampleResults=" + exampleResults +
@@ -239,5 +299,12 @@ public final class SpecResult {
             return "";
         }
         return reason;
+    }
+
+    private static String safeSourceFilePath(String sourceFilePath) {
+        if (sourceFilePath == null || sourceFilePath.trim().length() == 0) {
+            return "";
+        }
+        return sourceFilePath;
     }
 }

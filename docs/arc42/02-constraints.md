@@ -7,7 +7,7 @@
 | Java 8 baseline | Production code must compile with Java 8 source/target compatibility and run on a Java 8 runtime. |
 | No runtime dependencies | The core runtime artifact must depend only on the JDK; optional adapter artifacts must not leak third-party dependencies into core. |
 | Core test-scope dependencies only | External dependencies are allowed in the core build only for tests or build-time verification and must not leak into the core runtime artifact; standalone optional adapters may have their own isolated dependencies. |
-| Maven | The project uses Maven while preserving Java 8 bytecode compatibility; standalone optional Maven, Gradle, and JUnit Platform adapter artifacts are intentionally not root Maven modules. |
+| Maven | The project uses Maven while preserving Java 8 bytecode compatibility; repository-root `mvn verify` is intentionally core-only, and standalone optional Maven, Gradle, and JUnit Platform adapter artifacts are intentionally not root Maven modules. |
 | Package base | Production code uses package base `org.javaspec`. |
 | Post-Java 8 APIs | APIs introduced after Java 8 must be represented as metadata, strings, or reflected conditionally; production source must not import them directly. |
 | LTS profiles | The system must model Java LTS profiles for 8, 11, 17, 21, and 25. |
@@ -33,6 +33,7 @@
 - The MVP CLI runner, programmatic invocation API, and optional adapters do not compile source or specification files themselves; executable examples require compiled spec classes on the effective, selected explicit, build-tool, programmatic, or JUnit Platform launcher classloader, while source-only or unavailable spec classes are skipped. The optional Maven plugin, Gradle plugin, and JUnit Platform engine supply host classpath integration as adapters over the same canonical runner.
 - Dry-run mode must not write files or prompt, and run-only controls, including explicit classpath and report options, must be rejected by `describe`/`desc`.
 - User-facing diagnostics should explain zero-dependency limitations clearly.
+- Aggregate release verification must use explicit scripts/CI workflow configuration rather than changing the root Maven reactor unless a future ADR decides otherwise.
 
 ## 2.4 Compatibility Constraints
 

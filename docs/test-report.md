@@ -1,5 +1,148 @@
 # Test and Quality Report
 
+## Phase 19 verification update
+
+Date: 2026-06-04
+
+This report records the completed Phase 19 verification results provided by the Java tester for the post-roadmap release/CI hardening increment. Phase 19 added local aggregate verification and a GitHub Actions workflow without converting the repository to Maven multi-module. Phase 18 stable identifier/source-location/report evidence, Phase 17 JUnit Platform engine evidence, Phase 16 Gradle plugin evidence, Phase 15 Maven plugin evidence, Phase 14 no-JUnit invocation evidence, and Phase 12 Distrobox multi-JDK evidence remain below.
+
+## Phase 19 executive summary
+
+| Area | Result | Notes |
+|---|---|---|
+| Tester file modifications | PASS | Tester reported no file modifications. |
+| Aggregate script syntax/executable bit | PASS | `bash -n scripts/verify-all.sh` passed; script is executable. |
+| GitHub Actions YAML local parse | PASS | actionlint/yamllint/yq were unavailable; PyYAML parsed `.github/workflows/ci.yml` as a valid YAML mapping with top-level keys `name`, `on`, and `jobs`, including jobs `core` and `full-verification`. |
+| Whitespace checks | PASS | `git diff --check`, `git diff --cached --check`, and a temp-index whitespace check including untracked `.github/` and `scripts/` passed. |
+| Full aggregate verification | PASS | `JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-all.sh` passed using Gradle 8.8. |
+| Root core verification | PASS | Script ran `mvn -q verify`; root tests 386, 0 failures, 0 errors, 0 skipped. |
+| Root runtime dependency audit | PASS | Runtime tree contained only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`. |
+| Core install for standalone adapters | PASS | Script ran `mvn -q -DskipTests install`. |
+| Maven plugin verification/audit | PASS | Plugin `verify` passed with 12 tests; runtime audit showed `org.javaspec:javaspec-maven-plugin` plus `org.javaspec:javaspec`. |
+| JUnit Platform engine verification/audit | PASS | Engine `verify` passed with 12 tests; runtime audit showed core plus `junit-platform-engine`, `opentest4j`, `junit-platform-commons`, and `apiguardian-api`. |
+| Gradle plugin verification/audit | PASS | Gradle plugin `clean test build` passed with 11 tests; runtimeClasspath audit showed `org.javaspec:javaspec:0.1.0-SNAPSHOT`; non-blocking Java 8 source/target obsolete warnings occurred on JDK 21. |
+| Remote CI execution | NOT CLAIMED | Workflow was locally parsed only; no remote GitHub Actions run is claimed in this report. |
+| Blockers | PASS | None reported. |
+
+## Phase 19 verified commands
+
+```bash
+bash -n scripts/verify-all.sh
+# PyYAML parse of .github/workflows/ci.yml; actionlint/yamllint/yq unavailable
+git diff --check
+git diff --cached --check
+# Temp-index whitespace check including untracked .github/ and scripts/
+JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-all.sh
+```
+
+Commands executed by `scripts/verify-all.sh` during the passing aggregate run:
+
+```bash
+mvn -q verify
+mvn dependency:tree -Dscope=runtime
+mvn -q -DskipTests install
+mvn -q -f javaspec-maven-plugin/pom.xml verify
+mvn -f javaspec-maven-plugin/pom.xml dependency:tree -Dscope=runtime
+mvn -q -f javaspec-junit-platform-engine/pom.xml verify
+mvn -f javaspec-junit-platform-engine/pom.xml dependency:tree -Dscope=runtime
+/tmp/gradle-8.8/bin/gradle clean test build
+/tmp/gradle-8.8/bin/gradle dependencies --configuration runtimeClasspath
+```
+
+## Phase 19 verification details
+
+- Phase 19 is a non-disruptive release/CI hardening increment.
+- The repository was not converted to Maven multi-module.
+- Repository-root `mvn verify` remains a core-only verification and runtime-audit path for the zero-runtime-dependency core artifact.
+- `javaspec-maven-plugin/`, `javaspec-gradle-plugin/`, and `javaspec-junit-platform-engine/` remain standalone optional artifacts outside the root Maven reactor.
+- `scripts/verify-all.sh` resolves the repository root from the script path and verifies the core and standalone adapters after refreshing the local core snapshot.
+- The script supports `MAVEN_BIN`, `JAVASPEC_GRADLE_BIN`, and explicit `JAVASPEC_SKIP_GRADLE=1`.
+- Without `JAVASPEC_GRADLE_BIN`, Gradle resolution order is repository `./gradlew`, `/tmp/gradle-8.8/bin/gradle`, then `gradle` on `PATH`; if none are found and Gradle is not explicitly skipped, the script fails clearly.
+- `.github/workflows/ci.yml` triggers on `push`, `pull_request`, and `workflow_dispatch`.
+- The workflow core job runs a Temurin Java 8, 11, 17, 21, and 25 matrix with Maven cache, root `mvn -q verify`, and root runtime dependency audit.
+- The workflow full-verification job runs on Java 21 with Maven cache and Gradle setup using Gradle 8.8, then runs `scripts/verify-all.sh` with `JAVASPEC_GRADLE_BIN=gradle`.
+- The workflow adds no publishing, signing, secrets, or deployment behavior.
+- Remote GitHub Actions execution has not been claimed; only local YAML parse and local full aggregate verification are recorded.
+
+## Phase 19 dependency summary
+
+| Artifact / area | Runtime dependency summary |
+|---|---|
+| Core runtime | No external runtime dependencies; root runtime tree contains only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`. |
+| Maven plugin runtime | `org.javaspec:javaspec-maven-plugin` plus `org.javaspec:javaspec`. |
+| JUnit Platform engine runtime | `org.javaspec:javaspec`, `junit-platform-engine`, `opentest4j`, `junit-platform-commons`, `apiguardian-api`. |
+| Gradle plugin runtime | `org.javaspec:javaspec:0.1.0-SNAPSHOT`. |
+
+## Phase 18 verification update
+
+Date: 2026-06-04
+
+This report records the completed Phase 18 verification results provided by the Java tester for the stable identifier, source-location, and report-consistency polish increment. Phase 17 JUnit Platform engine evidence, Phase 16 Gradle plugin evidence, Phase 15 Maven plugin evidence, Phase 14 no-JUnit invocation evidence, and Phase 12 Distrobox multi-JDK evidence remain below.
+
+## Phase 18 executive summary
+
+| Area | Result | Notes |
+|---|---|---|
+| Targeted changed core tests | PASS | `mvn -q -Dtest=SpecDiscoveryNamingTest,SpecRunnerTest,RunReportWriterTest,JUnitXmlReportWriterTest,MainPhase11ReportCliTest,MainPhase14CliTest test` passed. |
+| Core Maven tests | PASS | `mvn -q test` passed with 386 tests, 0 failures, 0 errors, and 0 skipped. |
+| Core Maven verification | PASS | `mvn -q verify` passed with 386 tests, 0 failures, 0 errors, and 0 skipped. |
+| Core runtime dependency audit | PASS | `mvn dependency:tree -Dscope=runtime` passed; root runtime tree contained only `org.javaspec:javaspec`. |
+| Core install for standalone adapters | PASS | `mvn -q install` passed and refreshed the local core snapshot. |
+| Maven plugin verification | PASS | `mvn -q -f javaspec-maven-plugin/pom.xml verify` passed with 12 tests. |
+| JUnit Platform engine verification | PASS | `mvn -q -f javaspec-junit-platform-engine/pom.xml verify` passed with 12 tests. |
+| Gradle plugin verification | PASS | `/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin clean test build` passed with 11 tests. |
+| Gradle plugin runtimeClasspath audit | PASS | `/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin dependencies --configuration runtimeClasspath` passed. |
+| Blockers | PASS | None reported. |
+
+## Phase 18 verified commands
+
+```bash
+mvn -q -Dtest=SpecDiscoveryNamingTest,SpecRunnerTest,RunReportWriterTest,JUnitXmlReportWriterTest,MainPhase11ReportCliTest,MainPhase14CliTest test
+mvn -q test
+mvn -q verify
+mvn dependency:tree -Dscope=runtime
+mvn -q install
+mvn -q -f javaspec-maven-plugin/pom.xml verify
+mvn -q -f javaspec-junit-platform-engine/pom.xml verify
+/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin clean test build
+/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin dependencies --configuration runtimeClasspath
+```
+
+## Phase 18 verification details
+
+- Phase 18 implemented an incremental IDE/CI polish focused on stable identifiers, source locations, and report consistency.
+- Stable id aliases were added to `ExampleResult`, `SpecResult`, and `DiscoveredSpec`.
+- `ExampleResult.id()` / `stableId()` / `getId()` / `getStableId()` use `<specQualifiedName>#<methodName>` semantics matching existing `fullName()`.
+- `SpecResult.id()` / `stableId()` / `getId()` / `getStableId()` are derived from the spec qualified name.
+- `DiscoveredSpec.id()` / `stableId()` / `getId()` / `getStableId()` are derived from the spec qualified name.
+- `SpecExample` carries a 1-based `sourceLine`.
+- `SpecDiscovery.extractExamples` computes the method declaration line for discovered example methods.
+- `ExampleResult` carries `sourceFilePath` and `sourceLine` when created from discovered specs/examples.
+- `SpecResult` carries the spec source file path.
+- JSON `RunReportWriter` includes spec `id`, `stableId`, and `sourceFile` plus example `id`, `stableId`, `fullName`, and `source { file, line }` while preserving existing fields.
+- JUnit XML `JUnitXmlReportWriter` includes `file` and `line` attributes on `<testcase>` when source data is available while preserving dependency-free JUnit XML-compatible output.
+- The optional JUnit Platform engine retained stable unique-id shape and MethodSource behavior, with descriptor reporting aligned to stable ids.
+- Changed tests asserted stable ids/source metadata in discovery, runner results, JSON reports, JUnit XML reports, CLI reports, Maven plugin reports, and Gradle plugin reports.
+- Changed test files were:
+  - `src/test/java/org/javaspec/discovery/SpecDiscoveryNamingTest.java`
+  - `src/test/java/org/javaspec/runner/SpecRunnerTest.java`
+  - `src/test/java/org/javaspec/reporting/RunReportWriterTest.java`
+  - `src/test/java/org/javaspec/reporting/JUnitXmlReportWriterTest.java`
+  - `src/test/java/org/javaspec/cli/MainPhase11ReportCliTest.java`
+  - `src/test/java/org/javaspec/cli/MainPhase14CliTest.java`
+  - `javaspec-maven-plugin/src/test/java/org/javaspec/maven/JavaspecRunMojoTest.java`
+  - `javaspec-gradle-plugin/src/test/java/org/javaspec/gradle/JavaspecGradlePluginTest.java`
+- Unrelated Phase 18 items were not implemented: external extension loading, pending examples, deep profile enforcement, or broad new classpath diagnostics.
+
+## Phase 18 dependency summary
+
+| Artifact / area | Runtime dependency summary |
+|---|---|
+| Core runtime | No external runtime dependencies; root runtime tree contains only `org.javaspec:javaspec`. |
+| Maven plugin runtime | `org.javaspec:javaspec`. |
+| JUnit Platform engine runtime | `org.javaspec:javaspec`, `junit-platform-engine`, `opentest4j`, `junit-platform-commons`, `apiguardian-api`. |
+| Gradle plugin runtime | `org.javaspec:javaspec`. |
+
 ## Phase 17 verification update
 
 Date: 2026-06-04
@@ -266,8 +409,8 @@ The Java 25 runtime reflection probe passed in `javaspec-jdk25-matrix` for all e
 
 - [ARC42 quality requirements](arc42/10-quality-requirements.md) summarize the quality scenarios backed by this report.
 - [ARC42 risks and technical debt](arc42/11-risks-and-technical-debt.md) records remaining limitations that are not test failures.
-- [README](../README.md) and the [user manual](usermanual/Home.md) reference the Phase 17 verification, Phase 16 verification, Phase 15 verification, Phase 14 verification, and Phase 12 matrix for user-facing verification claims.
+- [README](../README.md) and the [user manual](usermanual/Home.md) reference the Phase 19 verification, Phase 18 verification, Phase 17 verification, Phase 16 verification, Phase 15 verification, Phase 14 verification, and Phase 12 matrix for user-facing verification claims.
 
 ## Conclusion
 
-Phase 17 verification is complete for the standalone optional JUnit Platform engine: core install, root Maven verification, root runtime dependency audit, targeted engine tests, standalone engine verification, and engine runtime dependency audit passed with no blockers. Phase 16 verification is complete for the standalone optional Gradle plugin using Gradle 8.8 on the installed Java 21 runtime; the cached Gradle 7.4.2 executable was blocked by Java 21 with `Unsupported class file major version 65`, which remains an environment/tooling compatibility blocker for that cached executable, not a javaspec feature failure. Phase 15 verification is complete for the standalone optional Maven plugin. Phase 14 verification is complete for no-JUnit invocation, explicit classpath input, and JUnit XML-compatible reporting. Phase 12 is fully completed through the Distrobox multi-JDK matrix. Java 8, 11, 17, 21, and 25 containers all passed `mvn clean` and `mvn verify` with identical clean test totals. The Java 25 runtime Gatherer probe and Java 25 runtime dependency audit also passed.
+Phase 19 verification is complete for the post-roadmap release/CI hardening increment: script syntax/executable validation, local GitHub Actions YAML parse, whitespace checks, and full local aggregate verification through `scripts/verify-all.sh` passed with no blockers. Remote GitHub Actions execution is not claimed. Phase 18 verification is complete for the stable identifier/source-location/report polish increment: targeted changed tests, full core test/verify runs, root runtime dependency audit, core install, standalone Maven plugin verification, standalone JUnit Platform engine verification, standalone Gradle plugin verification, and Gradle runtimeClasspath audit passed with no blockers. Phase 17 verification is complete for the standalone optional JUnit Platform engine. Phase 16 verification is complete for the standalone optional Gradle plugin using Gradle 8.8 on the installed Java 21 runtime; the cached Gradle 7.4.2 executable was blocked by Java 21 with `Unsupported class file major version 65`, which remains an environment/tooling compatibility blocker for that cached executable, not a javaspec feature failure. Phase 15 verification is complete for the standalone optional Maven plugin. Phase 14 verification is complete for no-JUnit invocation, explicit classpath input, and JUnit XML-compatible reporting. Phase 12 is fully completed through the Distrobox multi-JDK matrix. Java 8, 11, 17, 21, and 25 containers all passed `mvn clean` and `mvn verify` with identical clean test totals. The Java 25 runtime Gatherer probe and Java 25 runtime dependency audit also passed.
