@@ -54,7 +54,7 @@
 - Optional JUnit Platform engine execution must remain an adapter over canonical discovery and `JavaspecLauncher`, avoid `System.exit`, and map passed/failed/broken/skipped/pending javaspec states to JUnit Platform events without requiring spec authoring changes.
 - Aggregate release verification must keep root `mvn verify` core-only, verify standalone adapters explicitly after installing the current core snapshot, run standalone examples by default unless explicitly skipped, and fail clearly when a required local Gradle executable cannot be resolved.
 - CI documentation must distinguish configured/local-validated workflow YAML from actual remote GitHub Actions results and must state remote status by phase.
-- Release-readiness documentation must keep public publication postponed until GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval are resolved; local source/javadoc packaging and standalone examples must not be described as signing, staging, deployment, publication, or remote CI success.
+- Release-readiness documentation must keep public publication postponed until GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval are resolved; local source/javadoc packaging and standalone examples must not be described as signing, staging, deployment, or publication, and remote CI success claims must cite user-/maintainer-confirmed or independently queried results.
 
 ## 10.3 Phase 12 Verification Summary
 
@@ -252,6 +252,7 @@ Phase 20 remains the authoritative verification for release-readiness scaffoldin
 | Gradle plugin generated POMs and `clean test build` | PASS — generated POMs passed metadata checks; 11 tests and main/sources/javadoc jars non-empty; non-blocking Java 8 source/target obsolete warnings on JDK 21 |
 | Gradle runtime dependency audit | PASS — only `org.javaspec:javaspec:0.1.0-SNAPSHOT` |
 | `JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-all.sh` | PASS — covered version alignment, core verify, root audit, local install, Maven plugin verify/audit, JUnit engine verify/audit, and Gradle plugin build/audit |
+| Remote CI execution | PASS (user-/maintainer-confirmed) — after Phase 20/21/22 were pushed, remote GitHub Actions success for HEAD `5088e96` on `develop` was confirmed by the user/maintainer; no run IDs, URLs, durations, or logs were independently queried |
 
 Verified Phase 20 quality points:
 
@@ -259,7 +260,7 @@ Verified Phase 20 quality points:
 - Version alignment is enforced before aggregate verification.
 - Local main/sources/javadoc artifact readiness is verified for root, Maven plugin, JUnit engine, and Gradle plugin.
 - Safe URL/SCM/GitHub Issues metadata is present with confirmed MIT license and maintainer/developer metadata.
-- No runtime dependencies, secrets, Maven multi-module conversion, actual publication, or remote Phase 20 CI result claim was added.
+- No runtime dependencies, secrets, Maven multi-module conversion, or actual publication was added; remote GitHub Actions success for HEAD `5088e96` on `develop` is user-/maintainer-confirmed after the Phase 20/21/22 push.
 - Publication remains intentionally postponed until GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval are resolved.
 
 See [Test and Quality Report](../test-report.md) for details.
@@ -282,14 +283,14 @@ Phase 21 is the current authoritative verification for adoption assets, standalo
 | Standalone adapter tests through aggregate script | PASS — Maven plugin 12 tests, JUnit Platform engine 12 tests, Gradle plugin 11 tests |
 | JUnit Platform example | PASS — 1 test |
 | Dependency summaries | PASS — root runtime only `org.javaspec:javaspec`; example runtime checks clean |
-| Remote CI execution | NOT CLAIMED — Phase 21 local verification only until pushed and CI-run |
+| Remote CI execution | PASS (user-/maintainer-confirmed) — after Phase 20/21/22 were pushed, remote GitHub Actions success for HEAD `5088e96` on `develop` was confirmed by the user/maintainer; no run IDs, URLs, durations, or logs were independently queried |
 
 Verified Phase 21 quality points:
 
 - Report schema and golden report examples are parseable and locally validated.
 - Standalone examples demonstrate Maven plugin, Gradle plugin, and JUnit Platform engine adoption without becoming root modules.
 - `scripts/verify-all.sh` covers examples by default, while `JAVASPEC_SKIP_EXAMPLES=1` and `JAVASPEC_SKIP_GRADLE_EXAMPLE=1` keep skips explicit.
-- No core runtime dependencies, core Java source/test changes, public publication, deployment, signing, or remote Phase 21 CI result claim were added.
+- No core runtime dependencies, core Java source/test changes, public publication, deployment, or signing were added; remote GitHub Actions success for HEAD `5088e96` on `develop` is user-/maintainer-confirmed after the Phase 20/21/22 push.
 
 See [Test and Quality Report](../test-report.md) for details.
 
@@ -312,7 +313,7 @@ Phase 22 is the current authoritative verification for explicit skipped/pending 
 | Gradle plugin runtimeClasspath | PASS — `org.javaspec:javaspec` only |
 | `JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-examples.sh` | PASS |
 | `JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-all.sh` | PASS |
-| Remote CI execution | NOT CLAIMED — Phase 22 local verification only |
+| Remote CI execution | PASS (user-/maintainer-confirmed) — after Phase 20/21/22 were pushed, remote GitHub Actions success for HEAD `5088e96` on `develop` was confirmed by the user/maintainer; no run IDs, URLs, durations, or logs were independently queried |
 
 Verified Phase 22 quality points:
 
@@ -323,7 +324,7 @@ Verified Phase 22 quality points:
 - Exit success is preserved when only passed/skipped/pending examples exist.
 - Formatter/CLI JSON/JUnit XML/Maven/Gradle/JUnit Platform behavior is covered.
 - Root core remains zero-runtime-dependency and optional adapter dependency isolation is preserved.
-- No Phase 22 remote CI success is claimed.
+- Remote GitHub Actions success for HEAD `5088e96` on `develop` is user-/maintainer-confirmed after the Phase 20/21/22 push; no run IDs, URLs, durations, or logs were independently queried.
 
 See [Test and Quality Report](../test-report.md) for details.
 

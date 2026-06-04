@@ -34,7 +34,7 @@ Negative consequences and limitations:
 
 - Root `mvn verify` still does not verify standalone adapters by itself; release checks must run `scripts/verify-all.sh` or equivalent explicit commands.
 - The aggregate script depends on a suitable local Gradle executable unless `JAVASPEC_SKIP_GRADLE=1` is intentionally set.
-- The GitHub Actions workflow has been locally parsed as valid YAML and the aggregate script has passed locally, but remote CI execution is not claimed until GitHub Actions runs it.
+- The GitHub Actions workflow was initially locally parsed as valid YAML and the aggregate script passed locally before remote evidence was available; subsequent status reports record user-/maintainer-confirmed remote GitHub Actions success for HEAD `4d30e63` on `develop` and, after Phase 20/21/22 were pushed, for HEAD `5088e96` on `develop`, without independently queried run IDs, URLs, durations, or logs.
 - A future multi-module or publishing/signing design remains possible, but it requires a separate decision because it would change release and dependency boundaries.
 
 Related ARC42 sections: [5. Building Block View](../arc42/05-building-block-view.md), [6. Runtime View](../arc42/06-runtime-view.md), [7. Deployment View](../arc42/07-deployment-view.md), [8. Concepts](../arc42/08-concepts.md), [9. Architecture Decisions](../arc42/09-architecture-decisions.md), [10. Quality Requirements](../arc42/10-quality-requirements.md), and [11. Risks and Technical Debt](../arc42/11-risks-and-technical-debt.md).

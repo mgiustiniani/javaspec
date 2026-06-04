@@ -39,7 +39,7 @@ Negative consequences and limitations:
 
 - Public publication remains intentionally postponed until GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval are resolved outside normal local verification.
 - `release-artifacts` packaging checks create local source/javadoc artifacts only; they do not sign, stage, deploy, or publish anything.
-- Phase 20 has local verification only in the recorded evidence; no remote GitHub Actions success is claimed for Phase 20 unless a future report records it.
+- Phase 20 local verification is supplemented by later user-/maintainer-confirmed remote GitHub Actions success for HEAD `5088e96` on `develop` after Phase 20/21/22 were pushed; no GitHub run IDs, URLs, durations, or logs were independently queried.
 - Future actual publishing/signing automation requires a new or updated ADR because it will change release, credential, and final publication boundaries.
 
 Related ARC42 sections: [5. Building Block View](../arc42/05-building-block-view.md), [6. Runtime View](../arc42/06-runtime-view.md), [7. Deployment View](../arc42/07-deployment-view.md), [8. Concepts](../arc42/08-concepts.md), [9. Architecture Decisions](../arc42/09-architecture-decisions.md), [10. Quality Requirements](../arc42/10-quality-requirements.md), and [11. Risks and Technical Debt](../arc42/11-risks-and-technical-debt.md).

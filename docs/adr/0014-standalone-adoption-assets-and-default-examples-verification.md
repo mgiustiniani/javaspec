@@ -39,7 +39,7 @@ Negative consequences and limitations:
 - `scripts/verify-all.sh` now takes longer and requires the example prerequisites unless `JAVASPEC_SKIP_EXAMPLES=1` is explicitly selected.
 - Example verification depends on local Maven snapshot installation until public artifacts are available.
 - Gradle example verification still depends on a compatible Gradle executable; `JAVASPEC_GRADLE_BIN` or the explicit `JAVASPEC_SKIP_GRADLE_EXAMPLE=1` opt-out may be needed on local machines.
-- Phase 21 has local verification only until the changes are pushed and CI-run; no remote CI success is claimed by this decision.
+- Phase 21 local verification is supplemented by later user-/maintainer-confirmed remote GitHub Actions success for HEAD `5088e96` on `develop` after Phase 20/21/22 were pushed; no GitHub run IDs, URLs, durations, or logs were independently queried. Examples verification by itself still must not be treated as publication, deployment, signing, or remote CI proof.
 - Future report schema changes must update the schema, golden reports, examples, user docs, and verification assertions together.
 - Public publication remains postponed and still requires a future ADR or ADR update before signing, staging, deploying, portal publication, or final publishing is implemented.
 

@@ -20,7 +20,7 @@
 | Explicit classpath | `run --classpath` or `--classpath-file` entries used to create the selected classloader for type existence checks and spec execution. Entries must point to already compiled classes or archives. |
 | Example | A public `void` Java spec method named `it_*` or `its_*`. |
 | Example status | Runtime outcome: `PASSED`, `FAILED`, `BROKEN`, `SKIPPED`, or `PENDING`. |
-| GitHub Actions workflow | `.github/workflows/ci.yml`; Phase 19 CI configuration with a Java 8/11/17/21/25 core matrix and Java 21 full-verification job. Phase 19 remote success is user-/maintainer-confirmed for HEAD `4d30e63` on `develop`; Phase 20, Phase 21, and Phase 22 have no remote CI success claim in the current evidence. |
+| GitHub Actions workflow | `.github/workflows/ci.yml`; CI configuration with a Java 8/11/17/21/25 core matrix and Java 21 full-verification job through `scripts/verify-all.sh`, including examples by default unless explicitly skipped. Phase 19 remote success is user-/maintainer-confirmed for HEAD `4d30e63` on `develop`; Phase 20/21/22 remote success is user-/maintainer-confirmed for HEAD `5088e96` on `develop`, with no independently queried run IDs, URLs, durations, or logs. |
 | Stable id | Identifier exposed by discovery/result objects and reports. Spec ids derive from the spec qualified name; example ids use `<specQualifiedName>#<methodName>` and match `ExampleResult.fullName()`. |
 | Extension API | Programmatic contracts `JavaspecExtension`/`Extension` and `ExtensionContext`. External CLI extension discovery/loading is not implemented. |
 | Formatter | A `RunFormatter` implementation. The CLI supports built-in `progress` and `pretty` names. |

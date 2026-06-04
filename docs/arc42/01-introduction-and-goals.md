@@ -51,6 +51,6 @@ Core requirements:
 - No existing sealed-interface source updates until nested permitted implementations can be updated source-preservingly.
 - No Maven multi-module conversion, runtime dependency additions, publishing, signing, secrets, portal credentials, final release tag/version, or final publish approval in the Phase 20 release-readiness or Phase 21 adoption-assets increments; the MIT license and confirmed maintainer metadata are resolved.
 - Phase 21 examples are standalone consumer projects, not root modules or public-publication evidence.
-- Phase 22 has local verification only in the current evidence; no remote CI success is claimed for it.
-- No remote CI success claim for Phase 20 or Phase 21 in the current evidence; Phase 19 remote GitHub Actions success is only user-/maintainer-confirmed for HEAD `4d30e63` on `develop`.
+- Phase 20, Phase 21, and Phase 22 have local verification evidence plus user-/maintainer-confirmed remote GitHub Actions success for HEAD `5088e96` on `develop` after push; no GitHub run IDs, URLs, durations, or logs were independently queried.
+- Phase 19 remote GitHub Actions success remains historical user-/maintainer-confirmed evidence for HEAD `4d30e63` on `develop`.
 - No C4 diagrams are currently generated.

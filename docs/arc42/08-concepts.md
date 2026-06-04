@@ -183,7 +183,7 @@ Phase 19 keeps release verification non-disruptive, Phase 20 adds release-readin
 - Maven `release-artifacts` profiles and the Gradle plugin build provide local source/javadoc jar readiness checks only; they do not sign, stage, deploy, or publish.
 - Safe URL, SCM, GitHub Issues, MIT license, and confirmed maintainer/developer metadata can be present.
 - Standalone examples under `examples/`, `scripts/verify-examples.sh`, `docs/schemas/run-report-v1.schema.json`, and golden reports under `docs/examples/reports/` are adoption assets, not root modules or publication evidence; Phase 22 keeps those schema/goldens synchronized with pending-aware report output.
-- No publishing, signing, secrets, mandatory Maven multi-module conversion, portal publication/credentials, final release version/tag, final publish approval, or Phase 20/Phase 21/Phase 22 remote CI success claim is part of the implemented increments.
+- No publishing, signing, secrets, mandatory Maven multi-module conversion, portal publication/credentials, final release version/tag, or final publish approval is part of the implemented increments. After Phase 20/21/22 were pushed, remote GitHub Actions success for HEAD `5088e96` on `develop` is user-/maintainer-confirmed; no run IDs, URLs, durations, or logs were independently queried.
 - Public publication remains postponed until GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval are resolved.
 
 ## 8.16 Extension Boundary
