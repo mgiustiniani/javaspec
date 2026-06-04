@@ -53,6 +53,7 @@ resolve_gradle_cmd() {
 
 gradle_cmd=()
 
+run_at_root "Version alignment check" "${repo_root}/scripts/check-version-alignment.sh"
 run_at_root "Root core verify" "${MAVEN_BIN}" -q verify
 run_at_root "Root runtime dependency tree audit" "${MAVEN_BIN}" dependency:tree -Dscope=runtime
 run_at_root "Install root core snapshot" "${MAVEN_BIN}" -q -DskipTests install

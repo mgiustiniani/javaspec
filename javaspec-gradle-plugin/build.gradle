@@ -1,5 +1,6 @@
 plugins {
     id 'java-gradle-plugin'
+    id 'maven-publish'
 }
 
 group = 'org.javaspec'
@@ -21,6 +22,8 @@ repositories {
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
+    withSourcesJar()
+    withJavadocJar()
 }
 
 dependencies {
@@ -41,4 +44,39 @@ gradlePlugin {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+}
+
+tasks.withType(Javadoc).configureEach {
+    options.addStringOption('Xdoclint:none', '-quiet')
+}
+
+publishing {
+    publications.withType(MavenPublication).configureEach {
+        pom {
+            url = 'https://github.com/mgiustiniani/javaspec'
+            licenses {
+                license {
+                    name = 'MIT License'
+                    url = 'https://opensource.org/licenses/MIT'
+                    distribution = 'repo'
+                }
+            }
+            developers {
+                developer {
+                    name = 'Mario Giustiniani'
+                    email = 'mariogiustiniani@gmail.com'
+                    roles = ['maintainer']
+                }
+            }
+            scm {
+                connection = 'scm:git:https://github.com/mgiustiniani/javaspec.git'
+                developerConnection = 'scm:git:ssh://git@github.com/mgiustiniani/javaspec.git'
+                url = 'https://github.com/mgiustiniani/javaspec'
+            }
+            issueManagement {
+                system = 'GitHub Issues'
+                url = 'https://github.com/mgiustiniani/javaspec/issues'
+            }
+        }
+    }
 }

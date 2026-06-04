@@ -2,7 +2,7 @@
 
 ## 1.1 Requirements Overview
 
-javaspec is a Java 8-compatible, zero-runtime-dependency specification framework inspired by phpspec. It supports an implemented first-MVP specification/generation slice, reflection runner, matcher expansion, MVP interface doubles, Phase 9 run controls, Phase 10 interface-style method generation, Phase 11 formatter/reporting/programmatic extension contracts, the Phase 14 no-JUnit integration foundation for programmatic invocation, explicit classpath input, and JUnit XML-compatible reports, Phase 15 Maven, Phase 16 Gradle, and Phase 17 JUnit Platform standalone optional adapters, Phase 18 stable identifier/source-location/report polish, plus Phase 19 aggregate release/CI verification. Future backlog work can grow the specification-first workflow further while preserving the conservative compatibility baseline.
+javaspec is a Java 8-compatible, zero-runtime-dependency specification framework inspired by phpspec. It supports an implemented first-MVP specification/generation slice, reflection runner, matcher expansion, MVP interface doubles, Phase 9 run controls, Phase 10 interface-style method generation, Phase 11 formatter/reporting/programmatic extension contracts, the Phase 14 no-JUnit integration foundation for programmatic invocation, explicit classpath input, and JUnit XML-compatible reports, Phase 15 Maven, Phase 16 Gradle, and Phase 17 JUnit Platform standalone optional adapters, Phase 18 stable identifier/source-location/report polish, Phase 19 aggregate release/CI verification, and Phase 20 release-readiness scaffolding. Future backlog work can grow the specification-first workflow further while preserving the conservative compatibility baseline.
 
 Core requirements:
 
@@ -18,7 +18,7 @@ Core requirements:
 - Support run-only CLI controls for dry-run planning, stop-on-failure, progress/pretty output, profile selection, verbose diagnostics, explicit classpath input, optional JSON reports, optional JUnit XML-compatible reports, stable identifiers, and source metadata where available.
 - Expose no-`System.exit` invocation, formatter/reporting, and minimal programmatic extension contracts without external CLI extension loading in the current implementation.
 - Provide Maven, Gradle, and JUnit Platform integrations only as standalone optional adapters over the canonical runner, not as core runtime dependencies.
-- Keep repository-root Maven verification core-only while providing explicit aggregate release/CI verification for standalone adapters.
+- Keep repository-root Maven verification core-only while providing explicit aggregate release/CI verification and release-readiness checks for standalone adapters.
 - Use phpspec as the functional inspiration for CLI, discovery, lifecycle, expectations, doubles, generation, reporting, and extension concepts.
 
 ## 1.2 Quality Goals
@@ -49,5 +49,6 @@ Core requirements:
 - No deep profile enforcement during execution yet; profiles are validated and reported.
 - No external CLI extension discovery/loading; extension APIs are programmatic only.
 - No existing sealed-interface source updates until nested permitted implementations can be updated source-preservingly.
-- No Maven multi-module conversion, publishing, signing, or remote CI success claim in the Phase 19 hardening increment.
+- No Maven multi-module conversion, runtime dependency additions, publishing, signing, secrets, portal credentials, final release tag/version, or final publish approval in the Phase 20 release-readiness increment; the MIT license and confirmed maintainer metadata are resolved.
+- No remote CI success claim for Phase 20 in the current evidence; Phase 19 remote GitHub Actions success is only user-/maintainer-confirmed for HEAD `4d30e63` on `develop`.
 - No C4 diagrams are currently generated.

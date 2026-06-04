@@ -1,5 +1,103 @@
 # Test and Quality Report
 
+## Phase 20 verification update
+
+Date: 2026-06-04
+
+This report records the completed Phase 20 verification results provided by the Java tester for release-readiness scaffolding after license and maintainer metadata were confirmed. Phase 20 added version-alignment checking, changelog/releasing documentation, MIT license and confirmed maintainer/developer metadata, safe publication metadata, and local source/javadoc artifact readiness checks only. It did not run or configure publish/deploy/signing/portal credential commands, add secrets, add runtime dependencies, configure Central Portal publication, configure Gradle Plugin Portal publication/credentials, choose a final release version/tag, approve final publishing, or convert the repository to Maven multi-module. Phase 19 release/CI hardening evidence and earlier evidence remain below.
+
+## Phase 20 executive summary
+
+| Area | Result | Notes |
+|---|---|---|
+| Tester file modifications | PASS | Tester reported no file modifications. |
+| Publish/deploy/signing commands | PASS | Tester reported no publish/deploy/signing commands were run. |
+| License file | PASS | `LICENSE` is identical to `origin/main:LICENSE`, blob `b990d5492f3ef404ffc145890b83e51914351bb5`. |
+| Script syntax/executable bits | PASS | `bash -n scripts/check-version-alignment.sh`, `bash -n scripts/verify-all.sh`, and combined/individual syntax checks passed; both scripts are executable (`-rwxr-xr-x`). |
+| Version alignment | PASS | `bash scripts/check-version-alignment.sh` passed; root Maven, Maven plugin, JUnit engine, Gradle plugin `version`, and Gradle plugin `javaspecCoreVersion` are aligned at `0.1.0-SNAPSHOT`. |
+| Whitespace checks | PASS | `git diff --check`, `git diff --cached --check`, and untracked whitespace checks passed. |
+| Effective POM generation | PASS | Effective POM generation passed for root, Maven plugin, and JUnit engine. |
+| Maven POM metadata | PASS | Root, Maven plugin, and JUnit engine POM metadata contain MIT License, URL `https://opensource.org/licenses/MIT`, distribution `repo`, Mario Giustiniani email, and maintainer role. |
+| Gradle generated POM metadata | PASS | `pluginMaven` and `javaspecPluginMarkerMaven` generated POMs include MIT license and maintainer metadata. |
+| Root core verification | PASS | `mvn -q verify` passed; 386 tests, 0 failures, 0 errors, 0 skipped. |
+| Root runtime dependency audit | PASS | `mvn dependency:tree -Dscope=runtime` passed; root runtime has no dependencies beyond `org.javaspec:javaspec`. |
+| Root release artifact check | PASS | `mvn -q -Prelease-artifacts -DskipTests package` passed; root main, sources, and javadoc jars were non-empty. |
+| Core install for standalone adapters | PASS | `mvn -q -DskipTests install` passed. |
+| Maven plugin release artifact check | PASS | `mvn -q -f javaspec-maven-plugin/pom.xml -Prelease-artifacts -DskipTests package` passed; main, sources, and javadoc jars were non-empty. |
+| JUnit Platform engine release artifact check | PASS | `mvn -q -f javaspec-junit-platform-engine/pom.xml -Prelease-artifacts -DskipTests package` passed; main, sources, and javadoc jars were non-empty. |
+| Standalone Maven plugin verification | PASS | `mvn -q verify` for the standalone Maven plugin passed with 12 tests. |
+| Standalone JUnit engine verification | PASS | `mvn -q verify` for the standalone JUnit engine passed with 12 tests. |
+| Gradle plugin POM generation/build/artifacts | PASS | Gradle publication POM generation passed; `/tmp/gradle-8.8/bin/gradle` was available; Gradle plugin `clean test build` passed with 11 tests, 0 failures/errors/skips, and non-empty main/sources/javadoc jars. Non-blocking Java 8 source/target obsolete warnings occurred on JDK 21. |
+| Gradle runtime dependency audit | PASS | Gradle runtime dependencies contained only `org.javaspec:javaspec:0.1.0-SNAPSHOT`. |
+| Full aggregate verification | PASS | `JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-all.sh` passed, covering version alignment, core verify, root audit, local install, Maven plugin verify/audit, JUnit engine verify/audit, and Gradle plugin build/audit. |
+| Remote CI execution | NOT CLAIMED | Phase 20 has local verification only in this report. Phase 19 remote GitHub Actions success remains user-/maintainer-confirmed for HEAD `4d30e63` on `develop`. |
+| Phase 20 metadata verification blockers | PASS | None reported. |
+| Publication/deploy/signing status | POSTPONED BY DESIGN | MIT license and maintainer metadata are resolved; GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval remain unresolved and unimplemented. |
+
+## Phase 20 verified commands
+
+```bash
+# LICENSE blob comparison against origin/main:LICENSE
+bash -n scripts/check-version-alignment.sh scripts/verify-all.sh
+# Individual script syntax checks
+bash scripts/check-version-alignment.sh
+git diff --check
+git diff --cached --check
+# Untracked whitespace checks
+# Effective POM generation and Maven metadata checks for root, Maven plugin, and JUnit engine
+mvn -q verify
+mvn dependency:tree -Dscope=runtime
+mvn -q -Prelease-artifacts -DskipTests package
+mvn -q -DskipTests install
+mvn -q -f javaspec-maven-plugin/pom.xml -Prelease-artifacts -DskipTests package
+mvn -q -f javaspec-junit-platform-engine/pom.xml -Prelease-artifacts -DskipTests package
+mvn -q -f javaspec-maven-plugin/pom.xml verify
+mvn -q -f javaspec-junit-platform-engine/pom.xml verify
+/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin generatePomFileForPluginMavenPublication generatePomFileForJavaspecPluginMarkerMavenPublication
+/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin clean test build
+# Gradle runtime dependency audit
+JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-all.sh
+```
+
+Commands covered by the passing full aggregate run:
+
+```bash
+scripts/check-version-alignment.sh
+mvn -q verify
+mvn dependency:tree -Dscope=runtime
+mvn -q -DskipTests install
+mvn -q -f javaspec-maven-plugin/pom.xml verify
+mvn -f javaspec-maven-plugin/pom.xml dependency:tree -Dscope=runtime
+mvn -q -f javaspec-junit-platform-engine/pom.xml verify
+mvn -f javaspec-junit-platform-engine/pom.xml dependency:tree -Dscope=runtime
+/tmp/gradle-8.8/bin/gradle clean test build
+/tmp/gradle-8.8/bin/gradle dependencies --configuration runtimeClasspath
+```
+
+## Phase 20 verification details
+
+- Phase 20 is release-readiness scaffolding only.
+- `scripts/check-version-alignment.sh` verifies root Maven project version, standalone Maven plugin project version, standalone JUnit Platform engine project version, Gradle plugin `version`, and Gradle plugin `javaspecCoreVersion` alignment.
+- `scripts/verify-all.sh` now runs version alignment before aggregate core and adapter verification.
+- `CHANGELOG.md` and `RELEASING.md` are documentation/checklist artifacts only.
+- The MIT `LICENSE` was copied exactly from `origin/main`; tester verification confirmed identical blob `b990d5492f3ef404ffc145890b83e51914351bb5`.
+- Maven POM metadata for root, Maven plugin, and JUnit engine includes MIT License, URL `https://opensource.org/licenses/MIT`, distribution `repo`, Mario Giustiniani email, and maintainer role.
+- Gradle generated POMs `pluginMaven` and `javaspecPluginMarkerMaven` include MIT license and maintainer metadata.
+- Maven `release-artifacts` profiles create local sources and javadocs for the root, Maven plugin, and JUnit Platform engine builds only.
+- The Gradle plugin build is ready to produce source and javadoc jars.
+- Safe URL, SCM, and GitHub Issues metadata is present in Maven/Gradle metadata.
+- Signing configuration, deploy/publish configuration, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval were intentionally not added.
+- No actual publishing, deployment, signing, secret usage, Maven multi-module conversion, runtime dependency additions, or remote Phase 20 CI result claim is part of this increment.
+
+## Phase 20 dependency summary
+
+| Artifact / area | Runtime dependency summary |
+|---|---|
+| Core runtime | No external runtime dependencies; root runtime tree contains only `org.javaspec:javaspec`. |
+| Maven plugin runtime | `org.javaspec:javaspec:0.1.0-SNAPSHOT`. |
+| JUnit Platform engine runtime | `org.javaspec:javaspec:0.1.0-SNAPSHOT`, `junit-platform-engine:1.10.2`, `opentest4j`, `junit-platform-commons`, `apiguardian-api`. |
+| Gradle plugin runtime | `org.javaspec:javaspec:0.1.0-SNAPSHOT`. |
+
 ## Phase 19 verification update
 
 Date: 2026-06-04
@@ -409,8 +507,8 @@ The Java 25 runtime reflection probe passed in `javaspec-jdk25-matrix` for all e
 
 - [ARC42 quality requirements](arc42/10-quality-requirements.md) summarize the quality scenarios backed by this report.
 - [ARC42 risks and technical debt](arc42/11-risks-and-technical-debt.md) records remaining limitations that are not test failures.
-- [README](../README.md) and the [user manual](usermanual/Home.md) reference the Phase 19 verification, Phase 18 verification, Phase 17 verification, Phase 16 verification, Phase 15 verification, Phase 14 verification, and Phase 12 matrix for user-facing verification claims.
+- [README](../README.md) and the [user manual](usermanual/Home.md) reference the Phase 20 verification, Phase 19 verification, Phase 18 verification, Phase 17 verification, Phase 16 verification, Phase 15 verification, Phase 14 verification, and Phase 12 matrix for user-facing verification claims.
 
 ## Conclusion
 
-Phase 19 verification is complete for the post-roadmap release/CI hardening increment: script syntax/executable validation, local GitHub Actions YAML parse, whitespace checks, and full local aggregate verification through `scripts/verify-all.sh` passed with no blockers; the user/maintainer also confirmed green GitHub Actions status for HEAD `4d30e63` on `develop`. No GitHub run IDs, URLs, durations, or logs were independently queried here. Phase 18 verification is complete for the stable identifier/source-location/report polish increment: targeted changed tests, full core test/verify runs, root runtime dependency audit, core install, standalone Maven plugin verification, standalone JUnit Platform engine verification, standalone Gradle plugin verification, and Gradle runtimeClasspath audit passed with no blockers. Phase 17 verification is complete for the standalone optional JUnit Platform engine. Phase 16 verification is complete for the standalone optional Gradle plugin using Gradle 8.8 on the installed Java 21 runtime; the cached Gradle 7.4.2 executable was blocked by Java 21 with `Unsupported class file major version 65`, which remains an environment/tooling compatibility blocker for that cached executable, not a javaspec feature failure. Phase 15 verification is complete for the standalone optional Maven plugin. Phase 14 verification is complete for no-JUnit invocation, explicit classpath input, and JUnit XML-compatible reporting. Phase 12 is fully completed through the Distrobox multi-JDK matrix. Java 8, 11, 17, 21, and 25 containers all passed `mvn clean` and `mvn verify` with identical clean test totals. The Java 25 runtime Gatherer probe and Java 25 runtime dependency audit also passed.
+Phase 20 verification is complete for release-readiness scaffolding: the MIT `LICENSE` matches `origin/main`, MIT license and Mario Giustiniani maintainer metadata passed Maven and Gradle generated-POM checks, version alignment, script syntax/executable checks, whitespace checks, effective POM generation, root verify/runtime audit, root/Maven plugin/JUnit engine source/javadoc artifact checks, standalone Maven plugin and JUnit engine verification, Gradle publication POM generation, Gradle plugin build/artifact checks, Gradle runtime audit, and full aggregate verification passed locally. No publish/deploy/signing commands were run, and Phase 20 has no remote CI success claim. Publication remains intentionally postponed until GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval are resolved. Phase 19 verification is complete for the post-roadmap release/CI hardening increment: script syntax/executable validation, local GitHub Actions YAML parse, whitespace checks, and full local aggregate verification through `scripts/verify-all.sh` passed with no blockers; the user/maintainer also confirmed green GitHub Actions status for HEAD `4d30e63` on `develop`. No GitHub run IDs, URLs, durations, or logs were independently queried here. Phase 18 verification is complete for the stable identifier/source-location/report polish increment: targeted changed tests, full core test/verify runs, root runtime dependency audit, core install, standalone Maven plugin verification, standalone JUnit Platform engine verification, standalone Gradle plugin verification, and Gradle runtimeClasspath audit passed with no blockers. Phase 17 verification is complete for the standalone optional JUnit Platform engine. Phase 16 verification is complete for the standalone optional Gradle plugin using Gradle 8.8 on the installed Java 21 runtime; the cached Gradle 7.4.2 executable was blocked by Java 21 with `Unsupported class file major version 65`, which remains an environment/tooling compatibility blocker for that cached executable, not a javaspec feature failure. Phase 15 verification is complete for the standalone optional Maven plugin. Phase 14 verification is complete for no-JUnit invocation, explicit classpath input, and JUnit XML-compatible reporting. Phase 12 is fully completed through the Distrobox multi-JDK matrix. Java 8, 11, 17, 21, and 25 containers all passed `mvn clean` and `mvn verify` with identical clean test totals. The Java 25 runtime Gatherer probe and Java 25 runtime dependency audit also passed.

@@ -3,7 +3,9 @@
 | Term | Meaning |
 |---|---|
 | ADR | Architecture Decision Record. javaspec ADRs live in `docs/adr/` and follow the Context, Decision, Consequences structure. |
-| Aggregate verification script | `scripts/verify-all.sh`; Phase 19 local release verification script that keeps root Maven verification core-only, installs the current core snapshot, and verifies/audits standalone Maven plugin, Gradle plugin, and JUnit Platform engine artifacts explicitly. |
+| Aggregate verification script | `scripts/verify-all.sh`; Phase 19 local release verification script, extended in Phase 20 to run version alignment first, that keeps root Maven verification core-only, installs the current core snapshot, and verifies/audits standalone Maven plugin, Gradle plugin, and JUnit Platform engine artifacts explicitly. |
+| Changelog | `CHANGELOG.md`; Phase 20 release-readiness documentation for notable changes. |
+| Version alignment check | `scripts/check-version-alignment.sh`; Phase 20 script that checks root Maven, standalone Maven plugin, standalone JUnit Platform engine, Gradle plugin `version`, and Gradle plugin `javaspecCoreVersion` alignment. |
 | Annotation element | A no-argument method-like member of a Java annotation type. javaspec generates only compatible elements for annotation sources. |
 | Bootstrap hook | A config value parsed as metadata for future runner lifecycle work. Bootstrap hooks are not executed in the current implementation. |
 | Class filter | Repeatable `run --class <name>` filter matching described qualified/simple names or spec qualified/simple names. |
@@ -18,7 +20,7 @@
 | Explicit classpath | `run --classpath` or `--classpath-file` entries used to create the selected classloader for type existence checks and spec execution. Entries must point to already compiled classes or archives. |
 | Example | A public `void` Java spec method named `it_*` or `its_*`. |
 | Example status | Runtime outcome: `PASSED`, `FAILED`, `BROKEN`, or `SKIPPED`. |
-| GitHub Actions workflow | `.github/workflows/ci.yml`; Phase 19 CI configuration with a Java 8/11/17/21/25 core matrix and Java 21 full-verification job. Local docs claim YAML parse and local aggregate verification only until remote CI actually runs. |
+| GitHub Actions workflow | `.github/workflows/ci.yml`; Phase 19 CI configuration with a Java 8/11/17/21/25 core matrix and Java 21 full-verification job. Phase 19 remote success is user-/maintainer-confirmed for HEAD `4d30e63` on `develop`; Phase 20 has no remote CI success claim in the current evidence. |
 | Stable id | Identifier exposed by discovery/result objects and reports. Spec ids derive from the spec qualified name; example ids use `<specQualifiedName>#<methodName>` and match `ExampleResult.fullName()`. |
 | Extension API | Programmatic contracts `JavaspecExtension`/`Extension` and `ExtensionContext`. External CLI extension discovery/loading is not implemented. |
 | Formatter | A `RunFormatter` implementation. The CLI supports built-in `progress` and `pretty` names. |
@@ -36,10 +38,13 @@
 | Matchable | Fluent expectation wrapper returned by typed proxy methods and `match(actual)`. |
 | Maven plugin adapter | Standalone optional artifact `javaspec-maven-plugin/` packaging `org.javaspec:javaspec-maven-plugin:0.1.0-SNAPSHOT` as a Maven plugin with goal prefix `javaspec`. It is not a root module and does not require JUnit in projects under test. |
 | Maven test classpath | The compiled test-scope classpath supplied by Maven to the optional plugin and used as input to the canonical javaspec runner. |
+| Maven `release-artifacts` profile | Phase 20 Maven profile on root, Maven plugin, and JUnit Platform engine builds that creates local sources and javadocs only; it does not sign, stage, deploy, or publish. |
 | Missing sealed-interface skeleton | A generated sealed-interface source file that can include root method declarations and nested permitted implementation bodies. |
 | PHPSpec-inspired | Modeled after PHPSpec workflow concepts while adapted to Java packages, classes, static typing, compilation, and interfaces. |
 | Profile catalog | Metadata model for Java LTS profiles, feature flags, and API symbols under `org.javaspec.profile`. |
 | Reflection runner | Dependency-free runner that executes compiled spec examples by Java reflection after discovery/generation/update work. |
+| Release checklist | `RELEASING.md`; Phase 20 local release-readiness checklist that documents verification steps and explicit blockers before public publication. |
+| Publication blockers | Required decisions, credentials, or approvals that remain intentionally unresolved before public release: GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval. The MIT `LICENSE` and maintainer metadata are already confirmed. |
 | Report | Optional machine-readable output written by `run`, currently JSON via `--report` / `--report-file` and JUnit XML-compatible XML via `--junit-xml` / `--junit-xml-file`. |
 | `run` | CLI command that discovers specs, owns production generation/update, can execute compiled examples, renders output, and can write reports. |
 | Sealed-interface update deferral | Intentional limitation: existing sealed-interface source updates are skipped until nested permitted implementation updates can be done safely. |
