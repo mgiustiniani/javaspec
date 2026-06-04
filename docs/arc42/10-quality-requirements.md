@@ -5,11 +5,11 @@
 | Quality attribute | Scenario | Evidence / current status |
 |---|---|---|
 | Java 8 compatibility | The runtime artifact executes on Java 8 and does not link directly to Java 9+ APIs. | Phase 12 Java 8 Distrobox `mvn clean` and `mvn verify` passed; compiler source/target is 1.8; bytecode and constant-pool audits are summarized in [Test and Quality Report](../test-report.md). |
-| Zero runtime dependencies | Runtime dependency scope contains only the javaspec artifact for core; optional adapters do not leak dependencies into core. | Phase 12 Java 25 runtime dependency audit passed with only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`; Phase 15 root runtime audit passed with only `org.javaspec:javaspec`, and Maven plugin runtime audit passed with the plugin plus compile-scope core only; Phase 16 root runtime audit passed with only `org.javaspec:javaspec`, and Gradle plugin runtimeClasspath contained only `org.javaspec:javaspec:0.1.0-SNAPSHOT`; Phase 17 root runtime audit passed with only `org.javaspec:javaspec`, and JUnit Platform engine runtime dependencies stayed isolated to the optional engine artifact; Phase 18 root runtime audit passed with only `org.javaspec:javaspec` and adapter runtime summaries remained isolated; Phase 19 aggregate verification repeated the root and adapter runtime audits with the same isolation; Phase 20 root and adapter runtime audits preserved the same isolation. |
-| Deterministic CLI/build-tool/engine behavior | Commands, options, prompts, output modes, explicit classpath handling, stable ids/source metadata, report writing, Maven/Gradle plugin adapter behavior, JUnit Platform engine mapping, aggregate verification, release-readiness checks, and exit codes/events are stable for local and CI usage. | CLI and optional Maven/Gradle/JUnit Platform adapter behavior are documented in the user manual; Phase 12 ran 364 tests per JDK across the matrix; Phase 15 standalone Maven plugin verification passed with 12 plugin tests; Phase 16 standalone Gradle plugin verification passed with 11 plugin tests using Gradle 8.8; Phase 17 standalone JUnit Platform engine verification passed with 12 tests; Phase 18 core and adapter verification passed with stable id/source/report assertions; Phase 19 `scripts/verify-all.sh` full aggregate verification passed locally; Phase 20 version alignment, release-artifact packaging, and full aggregate verification passed locally. |
+| Zero runtime dependencies | Runtime dependency scope contains only the javaspec artifact for core; optional adapters do not leak dependencies into core. | Phase 12 Java 25 runtime dependency audit passed with only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`; Phase 15 root runtime audit passed with only `org.javaspec:javaspec`, and Maven plugin runtime audit passed with the plugin plus compile-scope core only; Phase 16 root runtime audit passed with only `org.javaspec:javaspec`, and Gradle plugin runtimeClasspath contained only `org.javaspec:javaspec:0.1.0-SNAPSHOT`; Phase 17 root runtime audit passed with only `org.javaspec:javaspec`, and JUnit Platform engine runtime dependencies stayed isolated to the optional engine artifact; Phase 18 root runtime audit passed with only `org.javaspec:javaspec` and adapter runtime summaries remained isolated; Phase 19 aggregate verification repeated the root and adapter runtime audits with the same isolation; Phase 20 root and adapter runtime audits preserved the same isolation; Phase 21 root and example runtime dependency checks stayed clean. |
+| Deterministic CLI/build-tool/engine behavior | Commands, options, prompts, output modes, explicit classpath handling, stable ids/source metadata, report writing, Maven/Gradle plugin adapter behavior, JUnit Platform engine mapping, aggregate verification, release-readiness checks, and exit codes/events are stable for local and CI usage. | CLI and optional Maven/Gradle/JUnit Platform adapter behavior are documented in the user manual; Phase 12 ran 364 tests per JDK across the matrix; Phase 15 standalone Maven plugin verification passed with 12 plugin tests; Phase 16 standalone Gradle plugin verification passed with 11 plugin tests using Gradle 8.8; Phase 17 standalone JUnit Platform engine verification passed with 12 tests; Phase 18 core and adapter verification passed with stable id/source/report assertions; Phase 19 `scripts/verify-all.sh` full aggregate verification passed locally; Phase 20 version alignment, release-artifact packaging, and full aggregate verification passed locally; Phase 21 schema/golden validation, standalone examples verification, and full aggregate verification with examples passed locally. |
 | Safe generation | Production source generation/update is gated by prompts, `--generate`, or `--dry-run` planning. | ADR 0003, ADR 0004, ADR 0008, and the user manual document generation ownership and policies. |
 | Accurate implemented-feature documentation | Docs do not overstate unsupported behavior. | Limitations are recorded in the user manual, README, ARC42 section 11, and ADR consequences. |
-| Extensibility without dependency cost | Formatter, extension, reporting, invocation contracts, optional adapters, release verification assets, and release-readiness scaffolding are public boundaries without adding libraries to the core runtime. | ADR 0010 documents programmatic-only extension behavior and lack of external CLI loading; ADR 0011 covers no-JUnit invocation and optional adapters; ADR 0012 covers aggregate release/CI verification without mandatory Maven multi-module conversion; ADR 0013 covers release-readiness scaffolding with resolved MIT license/maintainer metadata and postponed publishing/signing/portal decisions; Phase 15 verifies the standalone Maven plugin boundary, Phase 16 verifies the standalone Gradle plugin boundary, Phase 17 verifies the standalone JUnit Platform engine boundary, Phase 19 verifies the aggregate script boundary, and Phase 20 verifies the release-readiness boundary. |
+| Extensibility without dependency cost | Formatter, extension, reporting, invocation contracts, optional adapters, release verification assets, release-readiness scaffolding, and adoption assets are public boundaries without adding libraries to the core runtime. | ADR 0010 documents programmatic-only extension behavior and lack of external CLI loading; ADR 0011 covers no-JUnit invocation and optional adapters; ADR 0012 covers aggregate release/CI verification without mandatory Maven multi-module conversion; ADR 0013 covers release-readiness scaffolding with resolved MIT license/maintainer metadata and postponed publishing/signing/portal decisions; ADR 0014 covers standalone adoption assets and examples-by-default verification; Phase 15 verifies the standalone Maven plugin boundary, Phase 16 verifies the standalone Gradle plugin boundary, Phase 17 verifies the standalone JUnit Platform engine boundary, Phase 19 verifies the aggregate script boundary, Phase 20 verifies the release-readiness boundary, and Phase 21 verifies the adoption-assets boundary. |
 | LTS awareness | Java 8, 11, 17, 21, and 25 profiles are modeled and verified where runtime probing is relevant. | Phase 12 matrix passed; Java 25 Gatherer reflection probe passed. |
 
 ## 10.2 Quality Scenarios
@@ -52,9 +52,9 @@
 - Programmatic invocation must not call `System.exit` and must return structured results with deterministic exit-code mapping.
 - Test and quality claims must cite produced tester/quality reports rather than invented results.
 - Optional JUnit Platform engine execution must remain an adapter over canonical discovery and `JavaspecLauncher`, avoid `System.exit`, and map passed/failed/broken/skipped javaspec states to JUnit Platform events without requiring spec authoring changes.
-- Aggregate release verification must keep root `mvn verify` core-only, verify standalone adapters explicitly after installing the current core snapshot, and fail clearly when a required local Gradle executable cannot be resolved.
+- Aggregate release verification must keep root `mvn verify` core-only, verify standalone adapters explicitly after installing the current core snapshot, run standalone examples by default unless explicitly skipped, and fail clearly when a required local Gradle executable cannot be resolved.
 - CI documentation must distinguish configured/local-validated workflow YAML from actual remote GitHub Actions results and must state remote status by phase.
-- Release-readiness documentation must keep public publication postponed until GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval are resolved; local source/javadoc packaging must not be described as signing, staging, deployment, or publication.
+- Release-readiness documentation must keep public publication postponed until GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval are resolved; local source/javadoc packaging and standalone examples must not be described as signing, staging, deployment, publication, or remote CI success.
 
 ## 10.3 Phase 12 Verification Summary
 
@@ -229,7 +229,7 @@ See [Test and Quality Report](../test-report.md) for details.
 
 ## 10.10 Phase 20 Verification Summary
 
-Phase 20 is the current authoritative verification for release-readiness scaffolding:
+Phase 20 remains the authoritative verification for release-readiness scaffolding:
 
 | Command / check | Result |
 |---|---|
@@ -264,7 +264,36 @@ Verified Phase 20 quality points:
 
 See [Test and Quality Report](../test-report.md) for details.
 
-## 10.11 Quality Gates for Future Work
+## 10.11 Phase 21 Verification Summary
+
+Phase 21 is the current authoritative verification for adoption assets, standalone examples, and report schema/golden documentation:
+
+| Command / check | Result |
+|---|---|
+| `git diff --name-only HEAD -- src/main/java src/test/java` | PASS — empty; no core production/test Java changes |
+| `git diff --check` and custom whitespace/EOF checks | PASS |
+| `bash -n scripts/verify-examples.sh`, `bash -n scripts/verify-all.sh`, `bash -n scripts/check-version-alignment.sh` | PASS |
+| Script executable bits | PASS — `scripts/check-version-alignment.sh`, `scripts/verify-all.sh`, and `scripts/verify-examples.sh` are `755` |
+| Generated examples output ignore verification | PASS — generated `target/`, `build/`, and `.gradle/` outputs under examples are ignored |
+| Schema/golden parsing and validation | PASS — schema JSON and golden JSON parsed; golden JSON validated against schema; golden XML parsed; structural sanity confirmed stable ids and `line=11` |
+| `JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-examples.sh` | PASS — Maven, JUnit Platform, and Gradle examples verified |
+| `JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-all.sh` | PASS — examples section executed after core/adapters |
+| Core tests through aggregate script | PASS — 386 tests, 0 failures, 0 errors, 0 skipped |
+| Standalone adapter tests through aggregate script | PASS — Maven plugin 12 tests, JUnit Platform engine 12 tests, Gradle plugin 11 tests |
+| JUnit Platform example | PASS — 1 test |
+| Dependency summaries | PASS — root runtime only `org.javaspec:javaspec`; example runtime checks clean |
+| Remote CI execution | NOT CLAIMED — Phase 21 local verification only until pushed and CI-run |
+
+Verified Phase 21 quality points:
+
+- Report schema and golden report examples are parseable and locally validated.
+- Standalone examples demonstrate Maven plugin, Gradle plugin, and JUnit Platform engine adoption without becoming root modules.
+- `scripts/verify-all.sh` covers examples by default, while `JAVASPEC_SKIP_EXAMPLES=1` and `JAVASPEC_SKIP_GRADLE_EXAMPLE=1` keep skips explicit.
+- No core runtime dependencies, core Java source/test changes, public publication, deployment, signing, or remote Phase 21 CI result claim were added.
+
+See [Test and Quality Report](../test-report.md) for details.
+
+## 10.12 Quality Gates for Future Work
 
 Future implementation phases should preserve these gates:
 
@@ -273,6 +302,7 @@ Future implementation phases should preserve these gates:
 3. Java 8 bytecode/source compatibility remains enforced.
 4. New architectural decisions are recorded as ADRs before implementation where they change core boundaries.
 5. User manual, README, ARC42, ADR references, and test/quality reports remain synchronized with implemented behavior.
-6. Standalone optional adapters remain covered by `scripts/verify-all.sh` or an explicitly documented equivalent aggregate verification path unless a future ADR changes the build/release architecture.
+6. Standalone optional adapters and standalone examples remain covered by `scripts/verify-all.sh` or an explicitly documented equivalent aggregate verification path unless a future ADR changes the build/release architecture.
 7. Version alignment remains checked before release-candidate packaging.
-8. Public publication/signing automation is not added until GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval are resolved and documented in an ADR; the confirmed MIT license and maintainer metadata must remain consistent.
+8. Report schema/golden examples stay synchronized with report writer behavior and standalone examples.
+9. Public publication/signing automation is not added until GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval are resolved and documented in an ADR; the confirmed MIT license and maintainer metadata must remain consistent.

@@ -13,7 +13,7 @@ The core runtime depends only on the JDK. This affects every feature:
 - JSON reports are written by an internal UTF-8 writer instead of a JSON library, including stable id/source fields added in Phase 18.
 - JUnit XML-compatible reports are written internally instead of using JUnit or XML/reporting libraries, with testcase file/line attributes when source data is available.
 - CLI parsing, explicit classpath handling, formatting, matchers, invocation APIs, and extension contracts are implemented with JDK APIs.
-- Optional adapters stay outside the core runtime; the Phase 15 Maven plugin uses Maven APIs as plugin-provided/build-tool dependencies, the Phase 16 Gradle plugin uses Gradle plugin APIs in its standalone artifact, and the Phase 17 JUnit Platform engine uses JUnit Platform APIs in its standalone artifact. Phase 19 release/CI verification assets and Phase 20 release-readiness scaffolding invoke or package those standalone artifacts explicitly instead of adding their dependencies to the core runtime. Projects that do not opt into the JUnit Platform engine keep no-JUnit execution paths.
+- Optional adapters stay outside the core runtime; the Phase 15 Maven plugin uses Maven APIs as plugin-provided/build-tool dependencies, the Phase 16 Gradle plugin uses Gradle plugin APIs in its standalone artifact, and the Phase 17 JUnit Platform engine uses JUnit Platform APIs in its standalone artifact. Phase 19 release/CI verification assets, Phase 20 release-readiness scaffolding, and Phase 21 adoption/report assets invoke, package, or verify those standalone artifacts explicitly instead of adding their dependencies to the core runtime. Projects that do not opt into the JUnit Platform engine keep no-JUnit execution paths.
 
 ## 8.3 PHPSpec-Inspired Java Workflow
 
@@ -167,19 +167,20 @@ The engine boundary principles are:
 
 ## 8.15 Release/CI Verification and Publication Boundary
 
-Phase 19 keeps release verification non-disruptive, and Phase 20 adds release-readiness scaffolding without public publication:
+Phase 19 keeps release verification non-disruptive, Phase 20 adds release-readiness scaffolding without public publication, and Phase 21 adds adoption examples/report documentation without core runtime changes:
 
 - Root `mvn verify` remains the core-only build and runtime dependency gate.
 - `scripts/check-version-alignment.sh` verifies root Maven, standalone Maven plugin, standalone JUnit Platform engine, Gradle plugin `version`, and Gradle plugin `javaspecCoreVersion` alignment.
-- `scripts/verify-all.sh` is the aggregate local release check for core plus standalone adapters and runs version alignment first.
+- `scripts/verify-all.sh` is the aggregate local release check for core plus standalone adapters and examples; it runs version alignment first and standalone examples verification by default at the end.
 - The script installs the current core snapshot locally before verifying standalone adapters.
 - The script verifies Maven plugin and JUnit Platform engine artifacts through their own POMs and verifies the Gradle plugin with a resolved Gradle executable.
-- `MAVEN_BIN`, `JAVASPEC_GRADLE_BIN`, and explicit `JAVASPEC_SKIP_GRADLE=1` make tool selection explicit.
+- `MAVEN_BIN`, `JAVASPEC_GRADLE_BIN`, explicit `JAVASPEC_SKIP_GRADLE=1`, explicit `JAVASPEC_SKIP_EXAMPLES=1`, and `JAVASPEC_SKIP_GRADLE_EXAMPLE=1` make tool selection and skips explicit.
 - `.github/workflows/ci.yml` defines a Java 8/11/17/21/25 core matrix and a Java 21 full-verification job that runs the aggregate script with Gradle 8.8.
 - `CHANGELOG.md` and `RELEASING.md` document release notes, checks, and blockers.
 - Maven `release-artifacts` profiles and the Gradle plugin build provide local source/javadoc jar readiness checks only; they do not sign, stage, deploy, or publish.
 - Safe URL, SCM, GitHub Issues, MIT license, and confirmed maintainer/developer metadata can be present.
-- No publishing, signing, secrets, mandatory Maven multi-module conversion, portal publication/credentials, final release version/tag, final publish approval, or Phase 20 remote CI success claim is part of the implemented increment.
+- Standalone examples under `examples/`, `scripts/verify-examples.sh`, `docs/schemas/run-report-v1.schema.json`, and golden reports under `docs/examples/reports/` are adoption assets, not root modules or publication evidence.
+- No publishing, signing, secrets, mandatory Maven multi-module conversion, portal publication/credentials, final release version/tag, final publish approval, or Phase 20/Phase 21 remote CI success claim is part of the implemented increments.
 - Public publication remains postponed until GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval are resolved.
 
 ## 8.16 Extension Boundary

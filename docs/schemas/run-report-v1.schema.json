@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://javaspec.org/schemas/run-report-v1.schema.json",
+  "title": "javaspec run report v1",
+  "description": "JSON report emitted by javaspec run with schemaVersion 1.",
+  "type": "object",
+  "required": ["schemaVersion", "summary", "specs"],
+  "additionalProperties": true,
+  "properties": {
+    "schemaVersion": {
+      "const": 1,
+      "description": "Report schema version. Version 1 is additive-compatible."
+    },
+    "summary": {
+      "$ref": "#/$defs/summary"
+    },
+    "specs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/spec"
+      }
+    }
+  },
+  "$defs": {
+    "summary": {
+      "type": "object",
+      "required": ["total", "passed", "failed", "broken", "skipped", "successful"],
+      "additionalProperties": true,
+      "properties": {
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "passed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "broken": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "skipped": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "successful": {
+          "type": "boolean"
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "required": [
+        "name",
+        "id",
+        "stableId",
+        "sourceFile",
+        "executable",
+        "notExecutableReason",
+        "summary",
+        "examples"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Fully-qualified specification class name."
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable spec identifier; currently equal to stableId."
+        },
+        "stableId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable spec identifier, currently the fully-qualified spec class name."
+        },
+        "sourceFile": {
+          "type": ["string", "null"],
+          "description": "Specification source file path when discovery supplied one."
+        },
+        "executable": {
+          "type": "boolean"
+        },
+        "notExecutableReason": {
+          "type": "string"
+        },
+        "summary": {
+          "$ref": "#/$defs/summary"
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/example"
+          }
+        }
+      }
+    },
+    "example": {
+      "type": "object",
+      "required": [
+        "specName",
+        "id",
+        "stableId",
+        "fullName",
+        "method",
+        "displayName",
+        "sourceOrderIndex",
+        "source",
+        "status",
+        "detail",
+        "failure"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "specName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable example identifier; currently equal to stableId/fullName."
+        },
+        "stableId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable example identifier in the form specQualifiedName#methodName."
+        },
+        "fullName": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable stable example name in the form specQualifiedName#methodName."
+        },
+        "method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceOrderIndex": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/sourceLocation"
+            }
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["PASSED", "FAILED", "BROKEN", "SKIPPED"]
+        },
+        "detail": {
+          "type": "string"
+        },
+        "failure": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/failure"
+            }
+          ]
+        }
+      }
+    },
+    "sourceLocation": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": true,
+      "properties": {
+        "file": {
+          "type": "string",
+          "minLength": 1
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "failure": {
+      "type": "object",
+      "required": ["throwableClassName", "message", "stackTrace"],
+      "additionalProperties": true,
+      "properties": {
+        "throwableClassName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string"
+        },
+        "stackTrace": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

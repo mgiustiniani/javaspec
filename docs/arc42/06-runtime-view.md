@@ -1,6 +1,6 @@
 # 6. Runtime View
 
-This section describes the implemented runtime and verification scenarios without C4 diagrams. The runtime is a Java 8-compatible CLI and library surface with no third-party runtime dependencies, including Phase 14 no-JUnit invocation, explicit classpath execution, JUnit XML-compatible reporting, the Phase 15 standalone optional Maven plugin adapter, the Phase 16 standalone optional Gradle plugin adapter, the Phase 17 standalone optional JUnit Platform engine adapter, the Phase 18 stable identifier/source-location/report polish increment, the Phase 19 aggregate release/CI verification workflow, and the Phase 20 release-readiness scaffolding.
+This section describes the implemented runtime and verification scenarios without C4 diagrams. The runtime is a Java 8-compatible CLI and library surface with no third-party runtime dependencies, including Phase 14 no-JUnit invocation, explicit classpath execution, JUnit XML-compatible reporting, the Phase 15 standalone optional Maven plugin adapter, the Phase 16 standalone optional Gradle plugin adapter, the Phase 17 standalone optional JUnit Platform engine adapter, the Phase 18 stable identifier/source-location/report polish increment, the Phase 19 aggregate release/CI verification workflow, the Phase 20 release-readiness scaffolding, and the Phase 21 standalone adoption examples/report documentation assets.
 
 ## 6.1 `describe` Scenario
 
@@ -153,9 +153,9 @@ Projects that do not opt into the engine still use CLI, programmatic invocation,
 
 Current limitation: profile selection is visible and validated but not deeply enforced during example execution.
 
-## 6.14 Aggregate Verification and Release-Readiness Scenario
+## 6.14 Aggregate Verification, Release-Readiness, and Examples Scenario
 
-1. A maintainer runs `scripts/check-version-alignment.sh` directly for release-readiness version checks, or runs `scripts/verify-all.sh` locally for the aggregate path. GitHub Actions is configured to run the aggregate script in the Java 21 `full-verification` job with `JAVASPEC_GRADLE_BIN=gradle`.
+1. A maintainer runs `scripts/check-version-alignment.sh` directly for release-readiness version checks, runs `scripts/verify-examples.sh` directly for standalone examples, or runs `scripts/verify-all.sh` locally for the aggregate path. GitHub Actions is configured to run the aggregate script in the Java 21 `full-verification` job with `JAVASPEC_GRADLE_BIN=gradle`.
 2. `scripts/check-version-alignment.sh` verifies the root Maven project version, standalone Maven plugin version, standalone JUnit Platform engine version, Gradle plugin `version`, and Gradle plugin `javaspecCoreVersion` against one baseline.
 3. `scripts/verify-all.sh` runs the version-alignment check first, resolves the repository root from its own path, and uses `MAVEN_BIN` or default `mvn` for Maven commands.
 4. Root `mvn -q verify` and root `mvn dependency:tree -Dscope=runtime` verify the zero-runtime-dependency core artifact only.
@@ -163,7 +163,17 @@ Current limitation: profile selection is visible and validated but not deeply en
 6. The script verifies and audits the standalone Maven plugin and standalone JUnit Platform engine with their own Maven POMs.
 7. Unless `JAVASPEC_SKIP_GRADLE=1` is set, the script resolves Gradle through explicit `JAVASPEC_GRADLE_BIN`, repository `./gradlew`, `/tmp/gradle-8.8/bin/gradle`, or `gradle` on `PATH`, then runs the standalone Gradle plugin `clean test build` and `runtimeClasspath` audit.
 8. If Gradle is required but unavailable, the script fails with a clear diagnostic rather than silently skipping adapter verification.
-9. Optional local release-artifact checks use Maven `-Prelease-artifacts -DskipTests package` for root, Maven plugin, and JUnit Platform engine main/sources/javadoc jars, plus the Gradle plugin `clean test build` for Gradle main/sources/javadoc jars.
-10. `CHANGELOG.md` and `RELEASING.md` document release changes, local checks, and public-publication blockers.
+9. Unless `JAVASPEC_SKIP_EXAMPLES=1` is set, `scripts/verify-all.sh` runs `scripts/verify-examples.sh` after core and adapter checks. The examples script installs local snapshots, runs Maven, JUnit Platform, and Gradle consumer examples, and asserts generated report markers. `JAVASPEC_SKIP_GRADLE_EXAMPLE=1` skips only the Gradle example inside that examples script.
+10. Optional local release-artifact checks use Maven `-Prelease-artifacts -DskipTests package` for root, Maven plugin, and JUnit Platform engine main/sources/javadoc jars, plus the Gradle plugin `clean test build` for Gradle main/sources/javadoc jars.
+11. `CHANGELOG.md` and `RELEASING.md` document release changes, local checks, and public-publication blockers.
 
-The GitHub Actions workflow also has a separate core matrix job for Java 8, 11, 17, 21, and 25 that runs root core verification and root runtime dependency audit. The workflow has no publishing/signing steps and uses no secrets. Phase 19 remote GitHub Actions success is user-/maintainer-confirmed for HEAD `4d30e63` on `develop`; Phase 20 has local verification only in the current evidence. The MIT license and maintainer metadata are resolved, but public publication remains postponed until GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval are resolved.
+The GitHub Actions workflow also has a separate core matrix job for Java 8, 11, 17, 21, and 25 that runs root core verification and root runtime dependency audit. The workflow has no publishing/signing steps and uses no secrets. Phase 19 remote GitHub Actions success is user-/maintainer-confirmed for HEAD `4d30e63` on `develop`; Phase 20 and Phase 21 have local verification only in the current evidence. The MIT license and maintainer metadata are resolved, but public publication remains postponed until GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval are resolved.
+
+## 6.15 Standalone Examples and Report Documentation Scenario
+
+1. A new adopter reads `examples/README.md` and chooses a standalone consumer example: Maven plugin, Gradle plugin, or JUnit Platform engine.
+2. The example builds consume local snapshots because public artifacts are not published yet.
+3. Maven and Gradle examples run a simple `CalculatorSpec` and write JSON plus JUnit XML-compatible reports to their own generated output directories.
+4. The JUnit Platform example runs through Maven Surefire configured for `*Spec` and the optional engine.
+5. Report tooling authors can validate against `docs/schemas/run-report-v1.schema.json` and compare with golden reports under `docs/examples/reports/`.
+6. Generated example `target/`, `build/`, and `.gradle/` outputs remain ignored and are not source-controlled artifacts.

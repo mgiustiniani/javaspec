@@ -2,9 +2,9 @@
 
 Wiki home for the current javaspec MVP.
 
-javaspec is a Java 8-compatible, zero-runtime-dependency specification tool inspired by PHPSpec. The current MVP supports the first spec-first loop plus the ADR 0004 correction work, follow-up factory construction generation, the Phase 7 matcher/expectation expansion, Phase 8 MVP collaborators/doubles, the completed Phase 9 CLI expansion, the Phase 10 advanced code-generation increment, the Phase 11 formatter/reporting/extension increment, the Phase 14 no-JUnit integration foundation, the Phase 15 optional Maven plugin adapter, the Phase 16 optional Gradle plugin adapter, the Phase 17 optional JUnit Platform engine adapter, the Phase 18 stable identifier/source-location/report polish increment, Phase 19 post-roadmap release/CI hardening, and Phase 20 release-readiness scaffolding: specification/support generation, production type discovery and generation, constructor and static factory construction generation, typed proxy matcher support, direct `ObjectBehavior` convenience assertions, method skeleton/declaration/element generation, Phase 3 Java LTS profiles/catalog/API-symbol metadata/compatibility probes, Phase 4 configuration, naming, suite selection, discovery filters, the Phase 5/6 MVP reflection runner, JDK-proxy interface doubles, run-only controls for dry-run planning, stop-on-failure, progress/pretty formatting, profile selection, verbose diagnostics, UTF-8 JSON run reports, dependency-free JUnit XML-compatible reports, explicit classpath input, public formatter contracts, minimal programmatic extension contracts, a no-`System.exit` programmatic invocation API, standalone optional Maven `javaspec:run` execution, standalone optional Gradle `javaspecRun` execution, standalone optional JUnit Platform engine execution, stable ids/source metadata for IDE/CI consumers, aggregate local verification through `scripts/verify-all.sh`, a GitHub Actions workflow, `CHANGELOG.md`, `RELEASING.md`, `scripts/check-version-alignment.sh`, Maven `release-artifacts` source/javadoc packaging checks, and Gradle source/javadoc jar readiness. Phase 12 compatibility/quality verification is complete through the Distrobox multi-JDK matrix for Java 8, 11, 17, 21, and 25; Phase 19 local aggregate verification passed for the core and standalone optional adapters; and Phase 20 local release-readiness verification passed without publishing or deployment.
+javaspec is a Java 8-compatible, zero-runtime-dependency specification tool inspired by PHPSpec. The current MVP supports the first spec-first loop plus the ADR 0004 correction work, follow-up factory construction generation, the Phase 7 matcher/expectation expansion, Phase 8 MVP collaborators/doubles, the completed Phase 9 CLI expansion, the Phase 10 advanced code-generation increment, the Phase 11 formatter/reporting/extension increment, the Phase 14 no-JUnit integration foundation, the Phase 15 optional Maven plugin adapter, the Phase 16 optional Gradle plugin adapter, the Phase 17 optional JUnit Platform engine adapter, the Phase 18 stable identifier/source-location/report polish increment, Phase 19 post-roadmap release/CI hardening, Phase 20 release-readiness scaffolding, and Phase 21 standalone adoption assets: specification/support generation, production type discovery and generation, constructor and static factory construction generation, typed proxy matcher support, direct `ObjectBehavior` convenience assertions, method skeleton/declaration/element generation, Phase 3 Java LTS profiles/catalog/API-symbol metadata/compatibility probes, Phase 4 configuration, naming, suite selection, discovery filters, the Phase 5/6 MVP reflection runner, JDK-proxy interface doubles, run-only controls for dry-run planning, stop-on-failure, progress/pretty formatting, profile selection, verbose diagnostics, UTF-8 JSON run reports, dependency-free JUnit XML-compatible reports, explicit classpath input, public formatter contracts, minimal programmatic extension contracts, a no-`System.exit` programmatic invocation API, standalone optional Maven `javaspec:run` execution, standalone optional Gradle `javaspecRun` execution, standalone optional JUnit Platform engine execution, stable ids/source metadata for IDE/CI consumers, aggregate local verification through `scripts/verify-all.sh`, a GitHub Actions workflow, `CHANGELOG.md`, `RELEASING.md`, `scripts/check-version-alignment.sh`, Maven `release-artifacts` source/javadoc packaging checks, Gradle source/javadoc jar readiness, standalone examples under `examples/`, `scripts/verify-examples.sh`, `docs/schemas/run-report-v1.schema.json`, and golden reports under `docs/examples/reports/`. Phase 12 compatibility/quality verification is complete through the Distrobox multi-JDK matrix for Java 8, 11, 17, 21, and 25; Phase 19 local aggregate verification passed for the core and standalone optional adapters; Phase 20 local release-readiness verification passed without publishing or deployment; and Phase 21 local adoption-assets verification passed for schema/golden reports plus standalone Maven, Gradle, and JUnit Platform examples.
 
-> Current status: `describe` writes specification/support files only. `javaspec run` keeps discovery, generation, and source updates, then executes discovered examples when the compiled spec classes are available on the effective classloader or the selected explicit classloader. It reuses `DiscoveredSpec`/`SpecExample` metadata, so suite, class, and example filters remain effective; these objects/results now expose stable ids and source metadata where available. The matcher set includes expanded negation, type/instance, count/empty, string, and map key/value helpers while preserving zero runtime dependencies. Interface doubles are available for ordinary interfaces through JDK dynamic proxies, with method-name/exact-argument stubbing, call history, and verification helpers. Run controls are active: `--dry-run` reports pending work without writes or prompts, `--stop-on-failure` stops after the first FAILED or BROKEN executable example, `--formatter` selects built-in `progress` or `pretty` through the public formatter contract/registry, `--profile` validates/selects an LTS profile without deep enforcement yet, `--verbose` prints selected run settings, `--classpath` / `--classpath-file` supplies explicit compiled-class classpath entries, `--report` / `--report-file` writes a UTF-8 JSON runner report, and `--junit-xml` / `--junit-xml-file` writes a UTF-8 JUnit XML-compatible report. JSON reports include stable spec/example ids and source file/line fields where available; JUnit XML-compatible testcase elements include file/line attributes when source data is available. The `org.javaspec.invocation` API exposes no-JUnit, no-`System.exit` programmatic invocation around canonical discovery and `SpecRunner`. The standalone optional Maven plugin at `javaspec-maven-plugin/` provides `javaspec:run`; the standalone optional Gradle plugin at `javaspec-gradle-plugin/` provides plugin id `org.javaspec`, extension `javaspec`, and task `javaspecRun`; both use build-tool classpaths and delegate to `JavaspecLauncher` without requiring JUnit in projects under test. The standalone optional JUnit Platform engine at `javaspec-junit-platform-engine/` provides engine id `javaspec`, ServiceLoader registration, canonical discovery and `JavaspecLauncher` execution, JUnit Platform selector/filter integration, stable unique-id shape with MethodSource behavior, and javaspec-to-JUnit listener event mapping; it is an optional IDE/CI adapter only and does not require changes to javaspec spec authoring style. These adapters are intentionally standalone and not root Maven modules. Repository-root `mvn verify` remains core-only; `scripts/verify-all.sh` is the aggregate local release check for core plus standalone adapters and now runs `scripts/check-version-alignment.sh` first. `CHANGELOG.md` and `RELEASING.md` document release notes and the release checklist. Maven `release-artifacts` profiles and Gradle source/javadoc jar readiness support local artifact checks only; they do not sign, stage, deploy, or publish. Projects that do not opt into the JUnit Platform engine still have no JUnit dependency and can keep CLI/programmatic/Maven/Gradle no-JUnit execution paths. Phase 10 interface-style generation is active for missing ordinary interfaces, missing annotations, missing sealed interfaces, and source-preserving existing ordinary interface/annotation updates; existing sealed-interface source updates are intentionally deferred. Bootstrap hooks remain parsed metadata and are not executed yet. The Phase 11 extension API is programmatic only; external extension discovery/loading is not implemented yet. Phase 12 verification passed across the Distrobox Java 8, 11, 17, 21, and 25 matrix; Phase 19 local aggregate verification passed root Maven verify/install/dependency audit plus standalone Maven plugin, Gradle plugin, and JUnit Platform engine verification; Phase 19 remote GitHub Actions success was user-/maintainer-confirmed for HEAD `4d30e63` on `develop`; and Phase 20 local release-readiness verification passed. Phase 20 has not been pushed/run remotely unless a future report says otherwise. The MIT `LICENSE` and confirmed maintainer metadata are resolved, but public publication remains postponed until GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval are resolved.
+> Current status: `describe` writes specification/support files only. `javaspec run` keeps discovery, generation, and source updates, then executes discovered examples when the compiled spec classes are available on the effective classloader or the selected explicit classloader. It reuses `DiscoveredSpec`/`SpecExample` metadata, so suite, class, and example filters remain effective; these objects/results now expose stable ids and source metadata where available. The matcher set includes expanded negation, type/instance, count/empty, string, and map key/value helpers while preserving zero runtime dependencies. Interface doubles are available for ordinary interfaces through JDK dynamic proxies, with method-name/exact-argument stubbing, call history, and verification helpers. Run controls are active: `--dry-run` reports pending work without writes or prompts, `--stop-on-failure` stops after the first FAILED or BROKEN executable example, `--formatter` selects built-in `progress` or `pretty` through the public formatter contract/registry, `--profile` validates/selects an LTS profile without deep enforcement yet, `--verbose` prints selected run settings, `--classpath` / `--classpath-file` supplies explicit compiled-class classpath entries, `--report` / `--report-file` writes a UTF-8 JSON runner report, and `--junit-xml` / `--junit-xml-file` writes a UTF-8 JUnit XML-compatible report. JSON reports include stable spec/example ids and source file/line fields where available; JUnit XML-compatible testcase elements include file/line attributes when source data is available. The `org.javaspec.invocation` API exposes no-JUnit, no-`System.exit` programmatic invocation around canonical discovery and `SpecRunner`. The standalone optional Maven plugin at `javaspec-maven-plugin/` provides `javaspec:run`; the standalone optional Gradle plugin at `javaspec-gradle-plugin/` provides plugin id `org.javaspec`, extension `javaspec`, and task `javaspecRun`; both use build-tool classpaths and delegate to `JavaspecLauncher` without requiring JUnit in projects under test. The standalone optional JUnit Platform engine at `javaspec-junit-platform-engine/` provides engine id `javaspec`, ServiceLoader registration, canonical discovery and `JavaspecLauncher` execution, JUnit Platform selector/filter integration, stable unique-id shape with MethodSource behavior, and javaspec-to-JUnit listener event mapping; it is an optional IDE/CI adapter only and does not require changes to javaspec spec authoring style. These adapters are intentionally standalone and not root Maven modules. Repository-root `mvn verify` remains core-only; `scripts/verify-all.sh` is the aggregate local release check for core plus standalone adapters and now runs `scripts/check-version-alignment.sh` first and standalone examples verification by default at the end. `CHANGELOG.md` and `RELEASING.md` document release notes and the release checklist. Maven `release-artifacts` profiles and Gradle source/javadoc jar readiness support local artifact checks only; they do not sign, stage, deploy, or publish. Projects that do not opt into the JUnit Platform engine still have no JUnit dependency and can keep CLI/programmatic/Maven/Gradle no-JUnit execution paths. Phase 10 interface-style generation is active for missing ordinary interfaces, missing annotations, missing sealed interfaces, and source-preserving existing ordinary interface/annotation updates; existing sealed-interface source updates are intentionally deferred. Bootstrap hooks remain parsed metadata and are not executed yet. The Phase 11 extension API is programmatic only; external extension discovery/loading is not implemented yet. Phase 12 verification passed across the Distrobox Java 8, 11, 17, 21, and 25 matrix; Phase 19 local aggregate verification passed root Maven verify/install/dependency audit plus standalone Maven plugin, Gradle plugin, and JUnit Platform engine verification; Phase 19 remote GitHub Actions success was user-/maintainer-confirmed for HEAD `4d30e63` on `develop`; and Phase 20 local release-readiness verification passed. Phase 20 and Phase 21 have local verification only and have not been pushed/run remotely unless a future report says otherwise. The MIT `LICENSE` and confirmed maintainer metadata are resolved, but public publication remains postponed until GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval are resolved.
 
 ## Quick start
 
@@ -21,13 +21,17 @@ Repository-root `mvn verify` is intentionally core-only. For release-readiness v
 scripts/check-version-alignment.sh
 ```
 
-For local aggregate release verification of the core plus standalone optional adapters, run:
+For local aggregate release verification of the core plus standalone optional adapters and examples, run:
 
 ```sh
 scripts/verify-all.sh
 ```
 
-`verify-all.sh` runs version alignment first. The optional Maven plugin is standalone and intentionally not a root module. To verify it locally, install the current core first, then run the plugin build:
+`verify-all.sh` runs version alignment first and standalone examples verification last by default. To verify only the standalone examples, run:
+
+```sh
+scripts/verify-examples.sh
+``` The optional Maven plugin is standalone and intentionally not a root module. To verify it locally, install the current core first, then run the plugin build:
 
 ```sh
 mvn -q -DskipTests install
@@ -64,7 +68,7 @@ javaspec='java -jar target/javaspec-0.1.0-SNAPSHOT.jar'
 
 ## Release and CI verification
 
-Phase 19 adds a non-disruptive aggregate verification path. Phase 20 adds release-readiness scaffolding. The repository was not converted to Maven multi-module: root `mvn verify` continues to verify and audit only the zero-runtime-dependency core artifact, while the optional Maven plugin, Gradle plugin, and JUnit Platform engine remain standalone artifacts.
+Phase 19 adds a non-disruptive aggregate verification path. Phase 20 adds release-readiness scaffolding. Phase 21 adds standalone examples and report schema/golden documentation. The repository was not converted to Maven multi-module: root `mvn verify` continues to verify and audit only the zero-runtime-dependency core artifact, while the optional Maven plugin, Gradle plugin, JUnit Platform engine, and examples remain standalone artifacts.
 
 Run the version-alignment check from the repository root:
 
@@ -89,7 +93,8 @@ The script resolves the repository root from its own location and runs these che
 4. root `mvn -q -DskipTests install` to refresh the local core snapshot;
 5. standalone Maven plugin `verify` and runtime dependency audit;
 6. standalone JUnit Platform engine `verify` and runtime dependency audit;
-7. standalone Gradle plugin `clean test build` and `runtimeClasspath` audit.
+7. standalone Gradle plugin `clean test build` and `runtimeClasspath` audit unless explicitly skipped;
+8. standalone examples verification through `scripts/verify-examples.sh` unless explicitly skipped.
 
 Environment variables:
 
@@ -98,6 +103,8 @@ Environment variables:
 | `MAVEN_BIN` | Maven executable to use; defaults to `mvn`. |
 | `JAVASPEC_GRADLE_BIN` | Explicit Gradle executable to use for the standalone Gradle plugin checks. |
 | `JAVASPEC_SKIP_GRADLE=1` | Explicitly skip Gradle adapter verification. Use only when that skip is intentional. |
+| `JAVASPEC_SKIP_EXAMPLES=1` | Explicitly skip the standalone examples section in `scripts/verify-all.sh`. |
+| `JAVASPEC_SKIP_GRADLE_EXAMPLE=1` | Explicitly skip only the Gradle example inside `scripts/verify-examples.sh`. |
 
 When `JAVASPEC_GRADLE_BIN` is not set and Gradle is not skipped, resolution order is repository `./gradlew` if executable, `/tmp/gradle-8.8/bin/gradle`, then `gradle` on `PATH`. If none is found, the script fails with a clear diagnostic.
 
@@ -122,7 +129,33 @@ These checks do not sign, stage, deploy, or publish artifacts. The MIT license a
 
 The GitHub Actions workflow at `.github/workflows/ci.yml` triggers on `push`, `pull_request`, and `workflow_dispatch`. It defines a core job matrix over Java 8, 11, 17, 21, and 25 using Temurin and Maven cache, running root `mvn -q verify` plus the root runtime dependency audit. It also defines a Java 21 `full-verification` job with Maven cache and Gradle 8.8 setup that runs `scripts/verify-all.sh` with `JAVASPEC_GRADLE_BIN=gradle`. The workflow performs no publishing and uses no secrets.
 
-Remote CI status must be stated by phase: Phase 19 remote GitHub Actions success was user-/maintainer-confirmed for HEAD `4d30e63` on `develop`; no run IDs, URLs, durations, or logs were independently queried from this environment. Phase 20 has local verification only in the recorded evidence and has not been pushed/run remotely unless a future report says otherwise.
+Remote CI status must be stated by phase: Phase 19 remote GitHub Actions success was user-/maintainer-confirmed for HEAD `4d30e63` on `develop`; no run IDs, URLs, durations, or logs were independently queried from this environment. Phase 20 and Phase 21 have local verification only in the recorded evidence and have not been pushed/run remotely unless a future report says otherwise.
+
+## Standalone examples and report schema
+
+Phase 21 adds standalone consumer examples. They are not root Maven modules and are not part of repository-root `mvn verify` by themselves.
+
+| Path | Demonstrates | Report output |
+|---|---|---|
+| `examples/maven-basic/` | `javaspec-maven-plugin` in a consuming Maven project | `target/javaspec/run-report.json`, `target/javaspec/junit-report.xml` |
+| `examples/gradle-basic/` | Gradle plugin id `org.javaspec` through an included plugin build | `build/reports/javaspec/run-report.json`, `build/reports/javaspec/junit-report.xml` |
+| `examples/junit-platform-basic/` | Standalone JUnit Platform engine with Maven Surefire configured for `*Spec` | `target/surefire-reports/` |
+
+Run all examples locally with:
+
+```sh
+scripts/verify-examples.sh
+```
+
+The script installs local snapshots for the core, Maven plugin, and JUnit Platform engine before running examples. Set `MAVEN_BIN` to choose Maven, `JAVASPEC_GRADLE_BIN` to choose Gradle, or `JAVASPEC_SKIP_GRADLE_EXAMPLE=1` to skip only the Gradle example. `scripts/verify-all.sh` runs this examples check by default unless `JAVASPEC_SKIP_EXAMPLES=1` is set.
+
+Report documentation assets:
+
+- JSON schema: [`../schemas/run-report-v1.schema.json`](../schemas/run-report-v1.schema.json)
+- Golden JSON report: [`../examples/reports/passing-run-report-v1.json`](../examples/reports/passing-run-report-v1.json)
+- Golden JUnit XML-compatible report: [`../examples/reports/passing-junit-report.xml`](../examples/reports/passing-junit-report.xml)
+
+The golden examples show schemaVersion 1, stable id `spec.com.example.CalculatorSpec#it_adds_two_numbers`, `PASSED` status, and source line `11`.
 
 ## Commands
 
@@ -362,7 +395,7 @@ $javaspec run --report target/javaspec-report.json
 $javaspec run --report-file target/javaspec-report.json --verbose
 ```
 
-The report schema is versioned with `"schemaVersion": 1`. Phase 18 adds identifier/source fields additively while preserving the existing fields. The top-level object contains:
+The report schema is versioned with `"schemaVersion": 1`. Phase 18 adds identifier/source fields additively while preserving the existing fields. The schema is documented at [`../schemas/run-report-v1.schema.json`](../schemas/run-report-v1.schema.json), and golden passing JSON/JUnit XML-compatible reports are available under [`../examples/reports/`](../examples/reports/). The top-level object contains:
 
 - `summary`: total, passed, failed, broken, skipped, and successful counts for the whole run.
 - `specs`: one entry per discovered spec result, with the spec name, `id`, `stableId`, optional `sourceFile`, executable flag, not-executable reason, per-spec summary, and examples.
@@ -1510,10 +1543,10 @@ Expected Maven plugin runtime scope contains the plugin plus compile-scope core 
 
 ## Verification
 
-Current verification after Phase 20:
+Current verification after Phase 21:
 
 - `LICENSE` is identical to `origin/main:LICENSE` with blob `b990d5492f3ef404ffc145890b83e51914351bb5`.
-- `bash -n scripts/check-version-alignment.sh` and `bash -n scripts/verify-all.sh` passed; both scripts are executable.
+- `bash -n scripts/check-version-alignment.sh`, `bash -n scripts/verify-all.sh`, and `bash -n scripts/verify-examples.sh` passed; all three scripts are executable.
 - `bash scripts/check-version-alignment.sh` passed with all checked versions aligned at `0.1.0-SNAPSHOT`.
 - `git diff --check`, `git diff --cached --check`, and untracked whitespace checks passed.
 - Effective POM generation passed for root, Maven plugin, and JUnit engine.
@@ -1526,26 +1559,27 @@ Current verification after Phase 20:
 - Maven plugin and JUnit Platform engine `-Prelease-artifacts -DskipTests package` checks passed and found non-empty main, sources, and javadoc jars.
 - Standalone Maven plugin `mvn -q verify` passed with 12 tests; standalone JUnit Platform engine `mvn -q verify` passed with 12 tests.
 - Gradle plugin publication POM generation passed; Gradle plugin `clean test build` passed with 11 tests and produced non-empty main/sources/javadoc jars; Gradle runtime dependencies contained only `org.javaspec:javaspec:0.1.0-SNAPSHOT`.
-- Full aggregate `JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-all.sh` passed, covering version alignment, core verify, root audit, local install, Maven plugin verify/audit, JUnit engine verify/audit, and Gradle plugin build/audit.
+- Full aggregate `JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-all.sh` passed, covering version alignment, core verify, root audit, local install, Maven plugin verify/audit, JUnit engine verify/audit, Gradle plugin build/audit, and standalone examples verification.
+- Phase 21 checks confirmed no core production/test Java changes, parsed the schema and golden reports, validated the golden JSON against `docs/schemas/run-report-v1.schema.json`, verified ignored generated example output directories, and passed `JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-examples.sh`.
 - No tester files were modified and no publish/deploy/signing commands were run.
-- Phase 20 has no remote GitHub Actions success claim. Phase 19 remote GitHub Actions success remains user-/maintainer-confirmed for HEAD `4d30e63` on `develop`.
+- Phase 20 and Phase 21 have no remote GitHub Actions success claim. Phase 19 remote GitHub Actions success remains user-/maintainer-confirmed for HEAD `4d30e63` on `develop`.
 - Phase 18 tests asserted stable ids/source metadata in discovery, runner results, JSON reports, JUnit XML reports, CLI reports, Maven plugin reports, and Gradle plugin reports.
 - Phase 12 remains the current cross-JDK evidence: Distrobox `1.8.2.5` with Podman `5.8.2` ran Maven `3.9.16` Temurin containers for Java 8, 11, 17, 21, and 25; every container executed `mvn clean` and `mvn verify` and passed with 364 tests, 0 failures, 0 errors, and 0 skipped.
 - Matrix runtimes: Java `1.8.0_492`, `11.0.31`, `17.0.19`, `21.0.11 LTS`, and `25.0.3 LTS`.
 - The Java 25 runtime reflection probe and Java 25 runtime dependency audit passed.
-- Verification blockers: none for Phase 20 metadata verification. Publication remains intentionally postponed because GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval remain unresolved.
+- Verification blockers: none for Phase 21 adoption-assets verification. Publication remains intentionally postponed because GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval remain unresolved.
 
 See [`../test-report.md`](../test-report.md) for the consolidated test and quality report.
 
 ## Future backlog
 
-The original numbered roadmap is complete through Phase 18. Phase 19 adds post-roadmap release/CI hardening without Maven multi-module conversion, and Phase 20 adds release-readiness scaffolding without public publishing. Future feature work should be tracked as new roadmap/backlog items and should distinguish implemented Phase 18 stable identifier/source-location/report polish, Phase 19 aggregate verification/CI workflow setup, and Phase 20 release-readiness scaffolding from broader IDE/CI or release ideas that are not implemented.
+The original numbered roadmap is complete through Phase 18. Phase 19 adds post-roadmap release/CI hardening without Maven multi-module conversion, Phase 20 adds release-readiness scaffolding without public publishing, and Phase 21 adds standalone adoption examples plus report schema/golden documentation without core runtime changes. Future feature work should be tracked as new roadmap/backlog items and should distinguish implemented Phase 18 stable identifier/source-location/report polish, Phase 19 aggregate verification/CI workflow setup, Phase 20 release-readiness scaffolding, and Phase 21 adoption assets from broader IDE/CI, adoption, or release ideas that are not implemented.
 
 Potential backlog items include pending examples, bootstrap execution, deeper profile-aware enforcement, external extension loading, advanced double integrations, richer failure-location diagnostics, broader classpath diagnostics, actual publishing/signing automation after signing/portal/final-approval decisions, and any future multi-module conversion decision. No-JUnit CLI/programmatic/Maven/Gradle paths remain first-class; the JUnit Platform engine remains an optional adapter.
 
 ## Current MVP limitations
 
-- javaspec does not compile source or spec files itself; source-only or otherwise unavailable spec classes are skipped/not executable until compiled classes are present on the effective classloader, selected explicit classloader, build-tool adapter classpath, or JUnit Platform engine runtime classpath. `--classpath`, `--classpath-file`, and adapter-supplied entries must point to already compiled classes or archives. The optional Maven plugin, Gradle plugin, and JUnit Platform engine supply integration paths but remain standalone artifacts that are not covered by repository-root `mvn verify`; verify them through `scripts/verify-all.sh` or separately after installing the current core.
+- javaspec does not compile source or spec files itself; source-only or otherwise unavailable spec classes are skipped/not executable until compiled classes are present on the effective classloader, selected explicit classloader, build-tool adapter classpath, or JUnit Platform engine runtime classpath. `--classpath`, `--classpath-file`, and adapter-supplied entries must point to already compiled classes or archives. The optional Maven plugin, Gradle plugin, and JUnit Platform engine supply integration paths but remain standalone artifacts that are not covered by repository-root `mvn verify`; verify them through `scripts/verify-all.sh` or separately after installing the current core. Phase 21 examples are standalone consumer projects that currently use local snapshots rather than public artifact resolution.
 - The runner lifecycle is an MVP: fresh spec instance per example plus optional public no-arg `let()` and `letGo()`. Pending examples, bootstrap execution, and deep profile-aware execution/enforcement remain future work.
 - JSON reporting remains the Phase 11 `schemaVersion` 1 runner report with Phase 18 additive stable id/source fields, and Phase 14 JUnit XML-compatible reporting remains intentionally minimal with Phase 18 additive testcase `file`/`line` attributes when source data is available. There is no config-level report destination, and dry-run pending generation/update exits before execution without writing reports.
 - Configuration files currently drive selected suite paths, package-prefix naming, constructor-policy defaults, profile and formatter defaults, and run class/example filters; bootstrap hooks remain metadata until later runner features are implemented.

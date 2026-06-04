@@ -69,3 +69,9 @@ else
   run_gradle_plugin "Gradle plugin clean test build" clean test build
   run_gradle_plugin "Gradle plugin runtime dependency tree audit" dependencies --configuration runtimeClasspath
 fi
+
+if [ "${JAVASPEC_SKIP_EXAMPLES:-0}" = "1" ]; then
+  printf '\nWARNING: Skipping standalone examples verification because JAVASPEC_SKIP_EXAMPLES=1.\n'
+else
+  run_at_root "Standalone examples verification" "${repo_root}/scripts/verify-examples.sh"
+fi

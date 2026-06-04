@@ -7,7 +7,7 @@
 | Java 8 baseline | Production code must compile with Java 8 source/target compatibility and run on a Java 8 runtime. |
 | No runtime dependencies | The core runtime artifact must depend only on the JDK; optional adapter artifacts must not leak third-party dependencies into core. |
 | Core test-scope dependencies only | External dependencies are allowed in the core build only for tests or build-time verification and must not leak into the core runtime artifact; standalone optional adapters may have their own isolated dependencies. |
-| Maven | The project uses Maven while preserving Java 8 bytecode compatibility; repository-root `mvn verify` is intentionally core-only, standalone optional Maven, Gradle, and JUnit Platform adapter artifacts are intentionally not root Maven modules, and Maven `release-artifacts` profiles produce local sources/javadocs only. |
+| Maven | The project uses Maven while preserving Java 8 bytecode compatibility; repository-root `mvn verify` is intentionally core-only, standalone optional Maven, Gradle, and JUnit Platform adapter artifacts plus Phase 21 example projects are intentionally not root Maven modules, and Maven `release-artifacts` profiles produce local sources/javadocs only. |
 | Package base | Production code uses package base `org.javaspec`. |
 | Post-Java 8 APIs | APIs introduced after Java 8 must be represented as metadata, strings, or reflected conditionally; production source must not import them directly. |
 | LTS profiles | The system must model Java LTS profiles for 8, 11, 17, 21, and 25. |
@@ -36,6 +36,7 @@
 - User-facing diagnostics should explain zero-dependency limitations clearly.
 - Aggregate release verification must use explicit scripts/CI workflow configuration rather than changing the root Maven reactor unless a future ADR decides otherwise.
 - Release-readiness scaffolding must stay local and non-publishing until explicit owner decisions provide GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval.
+- Standalone examples and report schema/golden docs are adoption assets only; they must not be treated as root build modules, public publication, deployment, signing, or remote CI proof.
 
 ## 2.4 Compatibility Constraints
 

@@ -1,0 +1,10 @@
+pluginManagement {
+    includeBuild('../../javaspec-gradle-plugin')
+    repositories {
+        gradlePluginPortal()
+        mavenLocal()
+        mavenCentral()
+    }
+}
+
+rootProject.name = 'javaspec-gradle-basic'

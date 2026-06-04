@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "summary": {
+    "total": 1,
+    "passed": 1,
+    "failed": 0,
+    "broken": 0,
+    "skipped": 0,
+    "successful": true
+  },
+  "specs": [
+    {
+      "name": "spec.com.example.CalculatorSpec",
+      "id": "spec.com.example.CalculatorSpec",
+      "stableId": "spec.com.example.CalculatorSpec",
+      "sourceFile": "examples/maven-basic/src/test/java/spec/com/example/CalculatorSpec.java",
+      "executable": true,
+      "notExecutableReason": "",
+      "summary": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0,
+        "broken": 0,
+        "skipped": 0,
+        "successful": true
+      },
+      "examples": [
+        {
+          "specName": "spec.com.example.CalculatorSpec",
+          "id": "spec.com.example.CalculatorSpec#it_adds_two_numbers",
+          "stableId": "spec.com.example.CalculatorSpec#it_adds_two_numbers",
+          "fullName": "spec.com.example.CalculatorSpec#it_adds_two_numbers",
+          "method": "it_adds_two_numbers",
+          "displayName": "it adds two numbers",
+          "sourceOrderIndex": 0,
+          "source": {
+            "file": "examples/maven-basic/src/test/java/spec/com/example/CalculatorSpec.java",
+            "line": 11
+          },
+          "status": "PASSED",
+          "detail": "",
+          "failure": null
+        }
+      ]
+    }
+  ]
+}

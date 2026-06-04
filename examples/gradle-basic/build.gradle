@@ -1,0 +1,30 @@
+plugins {
+    id 'java'
+    id 'org.javaspec'
+}
+
+group = 'org.javaspec.examples'
+version = '0.1.0-SNAPSHOT'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation 'org.javaspec:javaspec:0.1.0-SNAPSHOT'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+javaspec {
+    jsonReportFile = file("$buildDir/reports/javaspec/run-report.json")
+    junitXmlReportFile = file("$buildDir/reports/javaspec/junit-report.xml")
+}

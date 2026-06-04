@@ -3,7 +3,7 @@
 | Term | Meaning |
 |---|---|
 | ADR | Architecture Decision Record. javaspec ADRs live in `docs/adr/` and follow the Context, Decision, Consequences structure. |
-| Aggregate verification script | `scripts/verify-all.sh`; Phase 19 local release verification script, extended in Phase 20 to run version alignment first, that keeps root Maven verification core-only, installs the current core snapshot, and verifies/audits standalone Maven plugin, Gradle plugin, and JUnit Platform engine artifacts explicitly. |
+| Aggregate verification script | `scripts/verify-all.sh`; Phase 19 local release verification script, extended in Phase 20 to run version alignment first and in Phase 21 to run standalone examples by default, that keeps root Maven verification core-only, installs the current core snapshot, verifies/audits standalone Maven plugin, Gradle plugin, and JUnit Platform engine artifacts explicitly, and then verifies adoption examples unless explicitly skipped. |
 | Changelog | `CHANGELOG.md`; Phase 20 release-readiness documentation for notable changes. |
 | Version alignment check | `scripts/check-version-alignment.sh`; Phase 20 script that checks root Maven, standalone Maven plugin, standalone JUnit Platform engine, Gradle plugin `version`, and Gradle plugin `javaspecCoreVersion` alignment. |
 | Annotation element | A no-argument method-like member of a Java annotation type. javaspec generates only compatible elements for annotation sources. |
@@ -20,7 +20,7 @@
 | Explicit classpath | `run --classpath` or `--classpath-file` entries used to create the selected classloader for type existence checks and spec execution. Entries must point to already compiled classes or archives. |
 | Example | A public `void` Java spec method named `it_*` or `its_*`. |
 | Example status | Runtime outcome: `PASSED`, `FAILED`, `BROKEN`, or `SKIPPED`. |
-| GitHub Actions workflow | `.github/workflows/ci.yml`; Phase 19 CI configuration with a Java 8/11/17/21/25 core matrix and Java 21 full-verification job. Phase 19 remote success is user-/maintainer-confirmed for HEAD `4d30e63` on `develop`; Phase 20 has no remote CI success claim in the current evidence. |
+| GitHub Actions workflow | `.github/workflows/ci.yml`; Phase 19 CI configuration with a Java 8/11/17/21/25 core matrix and Java 21 full-verification job. Phase 19 remote success is user-/maintainer-confirmed for HEAD `4d30e63` on `develop`; Phase 20 and Phase 21 have no remote CI success claim in the current evidence. |
 | Stable id | Identifier exposed by discovery/result objects and reports. Spec ids derive from the spec qualified name; example ids use `<specQualifiedName>#<methodName>` and match `ExampleResult.fullName()`. |
 | Extension API | Programmatic contracts `JavaspecExtension`/`Extension` and `ExtensionContext`. External CLI extension discovery/loading is not implemented. |
 | Formatter | A `RunFormatter` implementation. The CLI supports built-in `progress` and `pretty` names. |
@@ -33,7 +33,7 @@
 | `JavaspecTestEngine` | Phase 17 optional JUnit Platform `TestEngine` implementation with engine id `javaspec`; it is registered through ServiceLoader, filters canonical discovery by JUnit Platform selectors/configuration parameters, and delegates execution to `JavaspecLauncher` without `System.exit`. |
 | JUnit Platform engine adapter | Standalone optional artifact `javaspec-junit-platform-engine/` packaging `org.javaspec:javaspec-junit-platform-engine:0.1.0-SNAPSHOT`; it is not a root Maven module and does not add JUnit Platform dependencies to the core runtime artifact. |
 | JUnit Platform selector | Class, package, method, or unique-id selector supplied by JUnit Platform and applied by the optional engine as a filter over canonical javaspec discovery results. |
-| JUnit XML-compatible report | Dependency-free UTF-8 XML report written by `run --junit-xml` / `--junit-xml-file`, Maven/Gradle plugin report settings, or core report writers from `RunResult`; it does not require JUnit. |
+| JUnit XML-compatible report | Dependency-free UTF-8 XML report written by `run --junit-xml` / `--junit-xml-file`, Maven/Gradle plugin report settings, or core report writers from `RunResult`; it does not require JUnit. Phase 21 adds a golden passing XML report under `docs/examples/reports/`. |
 | LTS profile | Target Java profile key: `java8`, `java11`, `java17`, `java21`, or `java25`. |
 | Matchable | Fluent expectation wrapper returned by typed proxy methods and `match(actual)`. |
 | Maven plugin adapter | Standalone optional artifact `javaspec-maven-plugin/` packaging `org.javaspec:javaspec-maven-plugin:0.1.0-SNAPSHOT` as a Maven plugin with goal prefix `javaspec`. It is not a root module and does not require JUnit in projects under test. |
@@ -46,6 +46,8 @@
 | Release checklist | `RELEASING.md`; Phase 20 local release-readiness checklist that documents verification steps and explicit blockers before public publication. |
 | Publication blockers | Required decisions, credentials, or approvals that remain intentionally unresolved before public release: GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval. The MIT `LICENSE` and maintainer metadata are already confirmed. |
 | Report | Optional machine-readable output written by `run`, currently JSON via `--report` / `--report-file` and JUnit XML-compatible XML via `--junit-xml` / `--junit-xml-file`. |
+| Report schema | `docs/schemas/run-report-v1.schema.json`; Phase 21 JSON Schema documentation for `schemaVersion` 1 run reports. |
+| Standalone examples | Consumer projects under `examples/` for Maven plugin, Gradle plugin, and JUnit Platform engine adoption paths. They are not root modules and are verified by `scripts/verify-examples.sh` or by the default examples section in `scripts/verify-all.sh`. |
 | `run` | CLI command that discovers specs, owns production generation/update, can execute compiled examples, renders output, and can write reports. |
 | Sealed-interface update deferral | Intentional limitation: existing sealed-interface source updates are skipped until nested permitted implementation updates can be done safely. |
 | Source location metadata | Source file path and 1-based source line information captured from discovered specs/examples and propagated to runner results and reports where available. |
