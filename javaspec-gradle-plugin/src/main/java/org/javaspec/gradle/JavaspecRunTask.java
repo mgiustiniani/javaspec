@@ -6,6 +6,7 @@ import org.gradle.api.file.FileCollection;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.TaskAction;
+import org.javaspec.bootstrap.BootstrapException;
 import org.javaspec.config.ConfigurationException;
 import org.javaspec.config.JavaspecConfiguration;
 import org.javaspec.config.JavaspecSuiteConfiguration;
@@ -375,6 +376,7 @@ public class JavaspecRunTask extends DefaultTask {
             Thread.currentThread().setContextClassLoader(runClassLoader);
             JavaspecInvocation invocation = JavaspecInvocation
                     .discovering(discoveryRequest, runClassLoader)
+                    .withBootstrapHooks(bootstrapHooksFor(configuration, selectedSuite))
                     .withStopOnFailure(effectiveStopOnFailure);
             JavaspecInvocationResult invocationResult = JavaspecLauncher.run(invocation);
             RunResult runResult = invocationResult.runResult();
@@ -387,6 +389,8 @@ public class JavaspecRunTask extends DefaultTask {
             handleFailures(runResult, effectiveFailOnFailure);
         } catch (GradleException ex) {
             throw ex;
+        } catch (BootstrapException ex) {
+            throw new GradleException("javaspec bootstrap execution failed: " + messageOf(ex), ex);
         } catch (RuntimeException ex) {
             throw new GradleException("javaspec execution failed: " + messageOf(ex), ex);
         } finally {
@@ -432,6 +436,16 @@ public class JavaspecRunTask extends DefaultTask {
         } catch (ConfigurationException ex) {
             throw new GradleException("Invalid javaspec suite selection: " + messageOf(ex), ex);
         }
+    }
+
+    private List<String> bootstrapHooksFor(
+            JavaspecConfiguration configuration,
+            JavaspecSuiteConfiguration selectedSuite
+    ) {
+        List<String> hooks = new ArrayList<String>();
+        hooks.addAll(configuration.bootstrapHooks());
+        hooks.addAll(selectedSuite.bootstrapHooks());
+        return hooks;
     }
 
     private SpecDiscoveryRequest createDiscoveryRequest(JavaspecSuiteConfiguration selectedSuite) {

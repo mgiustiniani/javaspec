@@ -405,6 +405,92 @@ public class JavaspecGradlePluginTest {
     }
 
     @Test
+    public void configurationBootstrapHooksExecuteBeforeExamplesAndCanChangeObservedBehavior() throws Exception {
+        File projectDir = newProject("configuration-bootstrap-hooks");
+        writeBuildFile(projectDir, javaPluginBuild(
+                "repositories {\n" +
+                        "    mavenLocal()\n" +
+                        "    mavenCentral()\n" +
+                        "}\n" +
+                        "\n" +
+                        "dependencies {\n" +
+                        "    testImplementation 'org.javaspec:javaspec:0.1.0-SNAPSHOT'\n" +
+                        "}\n" +
+                        "\n" +
+                        "javaspec {\n" +
+                        "    configFile = file('javaspec.conf')\n" +
+                        "    suite = 'custom'\n" +
+                        "}\n"
+        ));
+        writeFile(new File(projectDir, "javaspec.conf"),
+                "defaultSuite = custom\n" +
+                        "suite.custom.specDir = src/test/java\n" +
+                        "bootstrap = support.TopLevelBootstrapHook\n" +
+                        "suite.custom.bootstrap = support.SuiteBootstrapHook\n");
+        writeBootstrapSupportSources(projectDir);
+        writeJavaSource(projectDir, "src/test/java/spec/com/example/BootstrapSubjectSpec.java",
+                "package spec.com.example;\n\n" +
+                        "public class BootstrapSubjectSpec {\n" +
+                        "    public void it_observes_bootstrap_marker() {\n" +
+                        "        support.BootstrapState.record(\"example:\" + support.BootstrapState.marker());\n" +
+                        "        if (!\"top-level>suite\".equals(support.BootstrapState.marker())) {\n" +
+                        "            throw new AssertionError(\"bootstrap marker was not applied before example: \" + support.BootstrapState.marker());\n" +
+                        "        }\n" +
+                        "    }\n" +
+                        "}\n");
+
+        BuildResult result = runGradle(projectDir, "javaspecRun");
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":javaspecRun").getOutcome());
+        assertContains(result.getOutput(), "javaspec: running suite 'custom'");
+        assertContains(result.getOutput(), "javaspec: found 1 specification(s).");
+        assertContains(result.getOutput(), "javaspec: Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped, 0 pending.");
+        assertEquals("top-level:1\nsuite:1\nexample:top-level>suite\n", readFile(bootstrapEventFile(projectDir)));
+    }
+
+    @Test
+    public void bootstrapFailureFailsJavaspecRunTaskWithBootstrapWording() throws Exception {
+        File projectDir = newProject("bootstrap-failure");
+        writeBuildFile(projectDir, javaPluginBuild(
+                "repositories {\n" +
+                        "    mavenLocal()\n" +
+                        "    mavenCentral()\n" +
+                        "}\n" +
+                        "\n" +
+                        "dependencies {\n" +
+                        "    testImplementation 'org.javaspec:javaspec:0.1.0-SNAPSHOT'\n" +
+                        "}\n" +
+                        "\n" +
+                        "javaspec {\n" +
+                        "    configFile = file('javaspec.conf')\n" +
+                        "    jsonReportFile = file('build/reports/javaspec/bootstrap-failure.json')\n" +
+                        "    junitXmlReportFile = file('build/reports/javaspec/bootstrap-failure.xml')\n" +
+                        "}\n"
+        ));
+        writeFile(new File(projectDir, "javaspec.conf"),
+                "suite.default.specDir = src/test/java\n" +
+                        "bootstrap = support.FailingBootstrapHook\n");
+        writeBootstrapSupportSources(projectDir);
+        writeJavaSource(projectDir, "src/test/java/spec/com/example/FailingBootstrapSubjectSpec.java",
+                "package spec.com.example;\n\n" +
+                        "public class FailingBootstrapSubjectSpec {\n" +
+                        "    public void it_would_run_after_bootstrap() {\n" +
+                        "    }\n" +
+                        "}\n");
+
+        BuildResult result = runGradleAndFail(projectDir, "javaspecRun");
+
+        assertEquals(TaskOutcome.FAILED, result.task(":javaspecRun").getOutcome());
+        assertContains(result.getOutput(), "javaspec bootstrap execution failed:");
+        assertContains(result.getOutput(), "Bootstrap hook 'support.FailingBootstrapHook' threw an exception");
+        assertContains(result.getOutput(), "phase 27 Gradle bootstrap failure");
+        assertFalse(result.getOutput().contains("javaspec: Examples:"));
+        assertEquals("failing:1\n", readFile(bootstrapEventFile(projectDir)));
+        assertFalse(new File(projectDir, "build/reports/javaspec/bootstrap-failure.json").exists());
+        assertFalse(new File(projectDir, "build/reports/javaspec/bootstrap-failure.xml").exists());
+    }
+
+    @Test
     public void externalExtensionProviderOnTaskClasspathRendersSelectedFormatter() throws Exception {
         File projectDir = externalFormatterExtensionProject(
                 "external-extension-formatter",
@@ -561,6 +647,98 @@ public class JavaspecGradlePluginTest {
                         "    }\n" +
                         "}\n");
         return projectDir;
+    }
+
+    private static void writeBootstrapSupportSources(File projectDir) throws IOException {
+        writeJavaSource(projectDir, "src/test/java/support/BootstrapState.java",
+                "package support;\n\n" +
+                        "import org.javaspec.bootstrap.BootstrapContext;\n" +
+                        "\n" +
+                        "import java.io.File;\n" +
+                        "import java.io.IOException;\n" +
+                        "import java.nio.charset.StandardCharsets;\n" +
+                        "import java.nio.file.Files;\n" +
+                        "import java.nio.file.StandardOpenOption;\n" +
+                        "\n" +
+                        "public final class BootstrapState {\n" +
+                        "    private static String marker = \"\";\n" +
+                        "    private static File eventFile;\n" +
+                        "\n" +
+                        "    private BootstrapState() {\n" +
+                        "    }\n" +
+                        "\n" +
+                        "    public static synchronized void bind(BootstrapContext context) {\n" +
+                        "        if (context.specs().isEmpty()) {\n" +
+                        "            throw new IllegalStateException(\"bootstrap context did not receive discovered specs\");\n" +
+                        "        }\n" +
+                        "        eventFile = new File(context.specs().get(0).specFile().getParentFile(), \"bootstrap-events.txt\");\n" +
+                        "        if (eventFile.exists() && !eventFile.delete()) {\n" +
+                        "            throw new IllegalStateException(\"could not reset bootstrap event file: \" + eventFile);\n" +
+                        "        }\n" +
+                        "    }\n" +
+                        "\n" +
+                        "    public static synchronized void appendMarker(String value) {\n" +
+                        "        if (marker.length() == 0) {\n" +
+                        "            marker = value;\n" +
+                        "        } else {\n" +
+                        "            marker = marker + \">\" + value;\n" +
+                        "        }\n" +
+                        "    }\n" +
+                        "\n" +
+                        "    public static synchronized String marker() {\n" +
+                        "        return marker;\n" +
+                        "    }\n" +
+                        "\n" +
+                        "    public static synchronized void record(String event) {\n" +
+                        "        if (eventFile == null) {\n" +
+                        "            throw new IllegalStateException(\"bootstrap event file was not bound\");\n" +
+                        "        }\n" +
+                        "        try {\n" +
+                        "            Files.write(eventFile.toPath(), (event + \"\\n\").getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.APPEND);\n" +
+                        "        } catch (IOException ex) {\n" +
+                        "            throw new IllegalStateException(ex);\n" +
+                        "        }\n" +
+                        "    }\n" +
+                        "}\n");
+        writeJavaSource(projectDir, "src/test/java/support/TopLevelBootstrapHook.java",
+                "package support;\n\n" +
+                        "import org.javaspec.bootstrap.BootstrapContext;\n" +
+                        "import org.javaspec.bootstrap.BootstrapHook;\n" +
+                        "\n" +
+                        "public final class TopLevelBootstrapHook implements BootstrapHook {\n" +
+                        "    public void bootstrap(BootstrapContext context) {\n" +
+                        "        BootstrapState.bind(context);\n" +
+                        "        BootstrapState.appendMarker(\"top-level\");\n" +
+                        "        BootstrapState.record(\"top-level:\" + context.specs().size());\n" +
+                        "    }\n" +
+                        "}\n");
+        writeJavaSource(projectDir, "src/test/java/support/SuiteBootstrapHook.java",
+                "package support;\n\n" +
+                        "import org.javaspec.bootstrap.BootstrapContext;\n" +
+                        "import org.javaspec.bootstrap.BootstrapHook;\n" +
+                        "\n" +
+                        "public final class SuiteBootstrapHook implements BootstrapHook {\n" +
+                        "    public void bootstrap(BootstrapContext context) {\n" +
+                        "        BootstrapState.appendMarker(\"suite\");\n" +
+                        "        BootstrapState.record(\"suite:\" + context.specs().size());\n" +
+                        "    }\n" +
+                        "}\n");
+        writeJavaSource(projectDir, "src/test/java/support/FailingBootstrapHook.java",
+                "package support;\n\n" +
+                        "import org.javaspec.bootstrap.BootstrapContext;\n" +
+                        "import org.javaspec.bootstrap.BootstrapHook;\n" +
+                        "\n" +
+                        "public final class FailingBootstrapHook implements BootstrapHook {\n" +
+                        "    public void bootstrap(BootstrapContext context) {\n" +
+                        "        BootstrapState.bind(context);\n" +
+                        "        BootstrapState.record(\"failing:\" + context.specs().size());\n" +
+                        "        throw new IllegalStateException(\"phase 27 Gradle bootstrap failure\");\n" +
+                        "    }\n" +
+                        "}\n");
+    }
+
+    private static File bootstrapEventFile(File projectDir) {
+        return new File(projectDir, "src/test/java/spec/com/example/bootstrap-events.txt");
     }
 
     private static String javaPluginBuild(String extraConfiguration) {

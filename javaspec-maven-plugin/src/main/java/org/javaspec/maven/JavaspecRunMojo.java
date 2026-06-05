@@ -7,6 +7,7 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.javaspec.bootstrap.BootstrapException;
 import org.javaspec.config.ConfigurationException;
 import org.javaspec.config.JavaspecConfiguration;
 import org.javaspec.config.JavaspecSuiteConfiguration;
@@ -124,6 +125,7 @@ public final class JavaspecRunMojo extends AbstractMojo {
             Thread.currentThread().setContextClassLoader(runClassLoader);
             JavaspecInvocation invocation = JavaspecInvocation
                     .discovering(discoveryRequest, runClassLoader)
+                    .withBootstrapHooks(bootstrapHooksFor(configuration, selectedSuite))
                     .withStopOnFailure(stopOnFailure);
             JavaspecInvocationResult invocationResult = JavaspecLauncher.run(invocation);
             RunResult runResult = invocationResult.runResult();
@@ -136,6 +138,8 @@ public final class JavaspecRunMojo extends AbstractMojo {
             throw ex;
         } catch (MojoFailureException ex) {
             throw ex;
+        } catch (BootstrapException ex) {
+            throw new MojoExecutionException("javaspec bootstrap execution failed: " + messageOf(ex), ex);
         } catch (RuntimeException ex) {
             throw new MojoExecutionException("javaspec execution failed: " + messageOf(ex), ex);
         } finally {
@@ -175,6 +179,16 @@ public final class JavaspecRunMojo extends AbstractMojo {
         } catch (ConfigurationException ex) {
             throw new MojoExecutionException("Invalid javaspec suite selection: " + messageOf(ex), ex);
         }
+    }
+
+    private List<String> bootstrapHooksFor(
+            JavaspecConfiguration configuration,
+            JavaspecSuiteConfiguration selectedSuite
+    ) {
+        List<String> hooks = new ArrayList<String>();
+        hooks.addAll(configuration.bootstrapHooks());
+        hooks.addAll(selectedSuite.bootstrapHooks());
+        return hooks;
     }
 
     private SpecDiscoveryRequest createDiscoveryRequest(JavaspecSuiteConfiguration selectedSuite) throws MojoExecutionException {

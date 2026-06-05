@@ -13,16 +13,19 @@ import java.util.Objects;
  */
 public final class JavaspecInvocation {
     private static final List<DiscoveredSpec> EMPTY_SPECS = Collections.unmodifiableList(new ArrayList<DiscoveredSpec>());
+    private static final List<String> EMPTY_BOOTSTRAP_HOOKS = Collections.unmodifiableList(new ArrayList<String>());
 
     private final SpecDiscoveryRequest discoveryRequest;
     private final List<DiscoveredSpec> discoveredSpecs;
     private final ClassLoader classLoader;
+    private final List<String> bootstrapHooks;
     private final boolean stopOnFailure;
 
     private JavaspecInvocation(
             SpecDiscoveryRequest discoveryRequest,
             List<DiscoveredSpec> discoveredSpecs,
             ClassLoader classLoader,
+            List<String> bootstrapHooks,
             boolean stopOnFailure
     ) {
         if (discoveryRequest == null && discoveredSpecs == null) {
@@ -34,6 +37,7 @@ public final class JavaspecInvocation {
         this.discoveryRequest = discoveryRequest;
         this.discoveredSpecs = immutableSpecs(discoveredSpecs);
         this.classLoader = Objects.requireNonNull(classLoader, "classLoader must not be null");
+        this.bootstrapHooks = immutableHookClassNames(bootstrapHooks);
         this.stopOnFailure = stopOnFailure;
     }
 
@@ -46,6 +50,7 @@ public final class JavaspecInvocation {
                 Objects.requireNonNull(discoveryRequest, "discoveryRequest must not be null"),
                 null,
                 classLoader,
+                EMPTY_BOOTSTRAP_HOOKS,
                 false
         );
     }
@@ -63,7 +68,7 @@ public final class JavaspecInvocation {
     }
 
     public static JavaspecInvocation of(List<DiscoveredSpec> discoveredSpecs, ClassLoader classLoader) {
-        return new JavaspecInvocation(null, discoveredSpecs, classLoader, false);
+        return new JavaspecInvocation(null, discoveredSpecs, classLoader, EMPTY_BOOTSTRAP_HOOKS, false);
     }
 
     public static JavaspecInvocation forSpecs(List<DiscoveredSpec> discoveredSpecs, ClassLoader classLoader) {
@@ -110,6 +115,38 @@ public final class JavaspecInvocation {
         return classLoader;
     }
 
+    public List<String> bootstrapHooks() {
+        return bootstrapHooks;
+    }
+
+    public List<String> bootstrap() {
+        return bootstrapHooks;
+    }
+
+    public List<String> getBootstrapHooks() {
+        return bootstrapHooks;
+    }
+
+    public List<String> getBootstrap() {
+        return bootstrapHooks;
+    }
+
+    public JavaspecInvocation withBootstrapHooks(List<String> bootstrapHooks) {
+        return new JavaspecInvocation(
+                discoveryRequest,
+                hasDiscoveredSpecs() ? discoveredSpecs : null,
+                classLoader,
+                bootstrapHooks,
+                stopOnFailure
+        );
+    }
+
+    public JavaspecInvocation withBootstrapHook(String bootstrapHook) {
+        List<String> hooks = new ArrayList<String>(bootstrapHooks);
+        hooks.add(bootstrapHook);
+        return withBootstrapHooks(hooks);
+    }
+
     public boolean stopOnFailure() {
         return stopOnFailure;
     }
@@ -119,7 +156,13 @@ public final class JavaspecInvocation {
     }
 
     public JavaspecInvocation withStopOnFailure(boolean stopOnFailure) {
-        return new JavaspecInvocation(discoveryRequest, hasDiscoveredSpecs() ? discoveredSpecs : null, classLoader, stopOnFailure);
+        return new JavaspecInvocation(
+                discoveryRequest,
+                hasDiscoveredSpecs() ? discoveredSpecs : null,
+                classLoader,
+                bootstrapHooks,
+                stopOnFailure
+        );
     }
 
     public JavaspecInvocation stoppingOnFailure() {
@@ -144,6 +187,24 @@ public final class JavaspecInvocation {
         List<DiscoveredSpec> copy = new ArrayList<DiscoveredSpec>();
         for (int i = 0; i < specs.size(); i++) {
             copy.add(Objects.requireNonNull(specs.get(i), "discoveredSpecs[" + i + "] must not be null"));
+        }
+        return Collections.unmodifiableList(copy);
+    }
+
+    private static List<String> immutableHookClassNames(List<String> hookClassNames) {
+        Objects.requireNonNull(hookClassNames, "bootstrapHooks must not be null");
+        if (hookClassNames.isEmpty()) {
+            return EMPTY_BOOTSTRAP_HOOKS;
+        }
+        List<String> copy = new ArrayList<String>();
+        for (int i = 0; i < hookClassNames.size(); i++) {
+            String hookClassName = Objects.requireNonNull(hookClassNames.get(i),
+                    "bootstrapHooks[" + i + "] must not be null");
+            String trimmed = hookClassName.trim();
+            if (trimmed.length() == 0) {
+                throw new IllegalArgumentException("bootstrapHooks[" + i + "] must not be blank.");
+            }
+            copy.add(trimmed);
         }
         return Collections.unmodifiableList(copy);
     }

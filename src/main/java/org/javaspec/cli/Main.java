@@ -1,5 +1,7 @@
 package org.javaspec.cli;
 
+import org.javaspec.bootstrap.BootstrapException;
+import org.javaspec.bootstrap.BootstrapRunner;
 import org.javaspec.compatibility.ProfileEnforcement;
 import org.javaspec.compatibility.ProfileEnforcementReport;
 import org.javaspec.compatibility.ProfileViolation;
@@ -139,6 +141,7 @@ public final class Main {
 
         parsed.configuration = configuration;
         parsed.selectedSuite = selectedSuite;
+        parsed.effectiveBootstrapHooks = bootstrapHooksFor(configuration, selectedSuite);
         if (!parsed.specRootSpecified) {
             parsed.specRoot = selectedSuite.specDirectory();
         }
@@ -172,6 +175,19 @@ public final class Main {
             return EXIT_USAGE;
         }
         return EXIT_OK;
+    }
+
+    private static List<String> bootstrapHooksFor(
+            JavaspecConfiguration configuration,
+            JavaspecSuiteConfiguration selectedSuite
+    ) {
+        List<String> hooks = new ArrayList<String>();
+        hooks.addAll(configuration.bootstrapHooks());
+        hooks.addAll(selectedSuite.bootstrapHooks());
+        if (hooks.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return Collections.unmodifiableList(hooks);
     }
 
     private static ConstructorPolicy resolveConstructorPolicy(ParsedArguments parsed) {
@@ -482,6 +498,11 @@ public final class Main {
             return EXIT_MISSING_NOT_GENERATED;
         }
 
+        int bootstrapExitCode = executeBootstrapHooks(parsed.effectiveBootstrapHooks, selectedClassLoader, specs, err);
+        if (bootstrapExitCode != EXIT_OK) {
+            return bootstrapExitCode;
+        }
+
         RunResult runResult = SpecRunner.run(specs, selectedClassLoader, parsed.stopOnFailure);
         printRunnerSummary(runResult, out, parsed.effectiveFormatter, runFormatters);
         printExecutionDiagnostics(runResult, out, classpathSelection);
@@ -567,6 +588,24 @@ public final class Main {
 
     private static RunResult emptyRunResult() {
         return RunResult.of(Collections.<SpecResult>emptyList());
+    }
+
+    private static int executeBootstrapHooks(
+            List<String> bootstrapHooks,
+            ClassLoader classLoader,
+            List<DiscoveredSpec> specs,
+            PrintStream err
+    ) {
+        if (bootstrapHooks == null || bootstrapHooks.isEmpty()) {
+            return EXIT_OK;
+        }
+        try {
+            BootstrapRunner.run(bootstrapHooks, classLoader, specs);
+            return EXIT_OK;
+        } catch (BootstrapException ex) {
+            err.println("Error: Bootstrap execution failed: " + messageOf(ex));
+            return EXIT_USAGE;
+        }
     }
 
     private static int writeRequestedReports(RunResult runResult, ParsedArguments parsed, PrintStream err) {
@@ -902,6 +941,9 @@ public final class Main {
         out.println("  Constructor policy: " + policyOptionName(resolveConstructorPolicy(parsed)));
         out.println("  Profile: " + parsed.effectiveProfile.key());
         out.println("  Formatter: " + parsed.effectiveFormatter);
+        if (parsed.effectiveBootstrapHooks != null && !parsed.effectiveBootstrapHooks.isEmpty()) {
+            out.println("  Bootstrap hooks: " + joinNames(parsed.effectiveBootstrapHooks));
+        }
         if (parsed.reportPath != null) {
             out.println("  Report path: " + parsed.reportPath);
         }
@@ -1566,6 +1608,7 @@ public final class Main {
         private ConstructorPolicy effectiveConstructorPolicy;
         private JavaspecConfiguration configuration;
         private JavaspecSuiteConfiguration selectedSuite;
+        private List<String> effectiveBootstrapHooks;
         private SpecNamingConvention namingConvention;
         private List<String> classFilters;
         private List<String> exampleFilters;

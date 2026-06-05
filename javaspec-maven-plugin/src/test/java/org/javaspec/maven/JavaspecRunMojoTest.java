@@ -3,6 +3,8 @@ package org.javaspec.maven;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugin.logging.Log;
+import org.javaspec.bootstrap.BootstrapContext;
+import org.javaspec.bootstrap.BootstrapHook;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -237,6 +239,74 @@ public class JavaspecRunMojoTest {
     }
 
     @Test
+    public void configurationBootstrapHooksExecuteBeforeExamplesAndCanChangeObservedBehavior() throws Exception {
+        BootstrapState.reset();
+        File basedir = temporaryFolder.newFolder("bootstrap-project");
+        File specRoot = new File(basedir, "bootstrap-specs");
+        File classesDirectory = new File(basedir, "classes");
+        assertTrue(classesDirectory.mkdirs());
+        File configFile = new File(basedir, "javaspec.conf");
+        writeFile(configFile,
+                "defaultSuite=custom\n" +
+                        "suite.custom.specDir=bootstrap-specs\n" +
+                        "bootstrap=" + TopLevelBootstrapHook.class.getName() + "\n" +
+                        "suite.custom.bootstrap=" + SuiteBootstrapHook.class.getName() + "\n");
+        File specSource = writeSpec(specRoot, "spec.com.example.PluginBootstrapSubjectSpec",
+                "    public void it_observes_bootstrap_marker() {\n" +
+                        "        org.javaspec.maven.JavaspecRunMojoTest.BootstrapState.record(\"example:\" + org.javaspec.maven.JavaspecRunMojoTest.BootstrapState.marker());\n" +
+                        "        if (!\"top-level>suite\".equals(org.javaspec.maven.JavaspecRunMojoTest.BootstrapState.marker())) {\n" +
+                        "            throw new AssertionError(\"bootstrap marker was not applied before example: \" + org.javaspec.maven.JavaspecRunMojoTest.BootstrapState.marker());\n" +
+                        "        }\n" +
+                        "    }\n");
+        compile(classesDirectory, specSource);
+        CapturingLog log = new CapturingLog();
+        JavaspecRunMojo mojo = mojo(basedir, null, classesDirectory, log);
+        set(mojo, "configFile", configFile);
+        set(mojo, "suite", "custom");
+
+        mojo.execute();
+
+        assertTrue(log.containsInfo("javaspec: running suite 'custom' from " + specRoot.getPath() + "."));
+        assertTrue(log.containsInfo("javaspec: found 1 specification(s)."));
+        assertTrue(log.containsInfo("javaspec: examples total=1, passed=1, failed=0, broken=0, skipped=0, pending=0."));
+        assertTrue(log.warnMessages.isEmpty());
+        assertEquals("top-level>suite", BootstrapState.marker());
+        assertEquals(list("top-level:1", "suite:1", "example:top-level>suite"), BootstrapState.events());
+    }
+
+    @Test
+    public void bootstrapFailureThrowsMojoExecutionExceptionWithBootstrapWordingBeforeReports() throws Exception {
+        BootstrapState.reset();
+        CompiledSpecFixture fixture = compiledBootstrapSubjectFixture("PluginFailingBootstrapSubject");
+        File configFile = new File(fixture.basedir, "javaspec.conf");
+        File jsonFile = new File(fixture.basedir, "reports/bootstrap-failure.json");
+        File xmlFile = new File(fixture.basedir, "reports/bootstrap-failure.xml");
+        writeFile(configFile,
+                "suite.default.specDir=specs\n" +
+                        "bootstrap=" + FailingBootstrapHook.class.getName() + "\n");
+        CapturingLog log = new CapturingLog();
+        JavaspecRunMojo mojo = mojo(fixture.basedir, null, fixture.classesDirectory, log);
+        set(mojo, "configFile", configFile);
+        set(mojo, "jsonReportFile", jsonFile);
+        set(mojo, "junitXmlReportFile", xmlFile);
+
+        try {
+            mojo.execute();
+            fail("Expected bootstrap failure to throw MojoExecutionException");
+        } catch (MojoExecutionException expected) {
+            assertContains(expected.getMessage(), "javaspec bootstrap execution failed:");
+            assertContains(expected.getMessage(), "Bootstrap hook '");
+            assertContains(expected.getMessage(), FailingBootstrapHook.class.getName());
+            assertContains(expected.getMessage(), "phase 27 Maven bootstrap failure");
+        }
+
+        assertFalse(log.containsInfo("javaspec: examples total="));
+        assertEquals(list("failing:1"), BootstrapState.events());
+        assertFalse(jsonFile.exists());
+        assertFalse(xmlFile.exists());
+    }
+
+    @Test
     public void configurationReportDestinationsAreUsedWhenPluginReportParametersAreAbsent() throws Exception {
         File basedir = temporaryFolder.newFolder("configured-report-project");
         File specRoot = new File(basedir, "specs");
@@ -468,6 +538,18 @@ public class JavaspecRunMojoTest {
         return new CompiledSpecFixture(basedir, specRoot, classesDirectory);
     }
 
+    private CompiledSpecFixture compiledBootstrapSubjectFixture(String describedSimpleName) throws Exception {
+        File basedir = temporaryFolder.newFolder(describedSimpleName + "-project");
+        File specRoot = new File(basedir, "specs");
+        File classesDirectory = new File(basedir, "classes");
+        assertTrue(classesDirectory.mkdirs());
+        File specSource = writeSpec(specRoot, "spec.com.example." + describedSimpleName + "Spec",
+                "    public void it_runs_after_bootstrap() {\n" +
+                        "    }\n");
+        compile(classesDirectory, specSource);
+        return new CompiledSpecFixture(basedir, specRoot, classesDirectory);
+    }
+
     private void assertDuplicateReportAliasRejected(String reportConfiguration, String duplicateKey) throws Exception {
         File basedir = temporaryFolder.newFolder("duplicate-" + duplicateKey + "-project");
         File classesDirectory = new File(basedir, "classes");
@@ -646,8 +728,73 @@ public class JavaspecRunMojoTest {
         return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
     }
 
+    private static List<String> list(String first) {
+        List<String> values = new ArrayList<String>();
+        values.add(first);
+        return values;
+    }
+
+    private static List<String> list(String first, String second, String third) {
+        List<String> values = new ArrayList<String>();
+        values.add(first);
+        values.add(second);
+        values.add(third);
+        return values;
+    }
+
     private static void assertContains(String value, String expected) {
         assertTrue("Expected to contain: " + expected + "\nActual value:\n" + value, value.contains(expected));
+    }
+
+    public static final class BootstrapState {
+        private static final List<String> EVENTS = new ArrayList<String>();
+        private static String marker = "";
+
+        public static synchronized void reset() {
+            EVENTS.clear();
+            marker = "";
+        }
+
+        public static synchronized void appendMarker(String value) {
+            if (marker.length() == 0) {
+                marker = value;
+            } else {
+                marker = marker + ">" + value;
+            }
+        }
+
+        public static synchronized String marker() {
+            return marker;
+        }
+
+        public static synchronized void record(String event) {
+            EVENTS.add(event);
+        }
+
+        public static synchronized List<String> events() {
+            return new ArrayList<String>(EVENTS);
+        }
+    }
+
+    public static final class TopLevelBootstrapHook implements BootstrapHook {
+        public void bootstrap(BootstrapContext context) {
+            BootstrapState.appendMarker("top-level");
+            BootstrapState.record("top-level:" + context.specs().size());
+        }
+    }
+
+    public static final class SuiteBootstrapHook implements BootstrapHook {
+        public void bootstrap(BootstrapContext context) {
+            BootstrapState.appendMarker("suite");
+            BootstrapState.record("suite:" + context.specs().size());
+        }
+    }
+
+    public static final class FailingBootstrapHook implements BootstrapHook {
+        public void bootstrap(BootstrapContext context) {
+            BootstrapState.record("failing:" + context.specs().size());
+            throw new IllegalStateException("phase 27 Maven bootstrap failure");
+        }
     }
 
     private static final class CompiledSpecFixture {

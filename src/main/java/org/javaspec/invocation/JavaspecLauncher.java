@@ -1,5 +1,6 @@
 package org.javaspec.invocation;
 
+import org.javaspec.bootstrap.BootstrapRunner;
 import org.javaspec.discovery.DiscoveredSpec;
 import org.javaspec.discovery.SpecDiscovery;
 import org.javaspec.discovery.SpecDiscoveryRequest;
@@ -25,6 +26,7 @@ public final class JavaspecLauncher {
         List<DiscoveredSpec> specs = invocation.hasDiscoveredSpecs()
                 ? invocation.discoveredSpecs()
                 : SpecDiscovery.discover(invocation.discoveryRequest());
+        BootstrapRunner.run(invocation.bootstrapHooks(), invocation.classLoader(), specs);
         RunResult runResult = SpecRunner.run(specs, invocation.classLoader(), invocation.stopOnFailure());
         return JavaspecInvocationResult.of(specs, runResult, exitCodeFor(runResult));
     }
