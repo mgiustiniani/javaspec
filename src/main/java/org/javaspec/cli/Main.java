@@ -1,5 +1,8 @@
 package org.javaspec.cli;
 
+import org.javaspec.compatibility.ProfileEnforcement;
+import org.javaspec.compatibility.ProfileEnforcementReport;
+import org.javaspec.compatibility.ProfileViolation;
 import org.javaspec.config.ConfigurationException;
 import org.javaspec.config.JavaspecConfiguration;
 import org.javaspec.config.JavaspecSuiteConfiguration;
@@ -293,6 +296,10 @@ public final class Main {
         }
 
         out.println("Found " + specs.size() + " specification(s) in " + specRoot.getPath() + ".");
+        int profileEnforcementExitCode = enforceProfileCompatibility(parsed.effectiveProfile, specs, err);
+        if (profileEnforcementExitCode != EXIT_OK) {
+            return profileEnforcementExitCode;
+        }
         boolean missingWithoutGeneration = false;
         boolean dryRunPendingChanges = false;
         for (int i = 0; i < specs.size(); i++) {
@@ -483,6 +490,79 @@ public final class Main {
             return reportExitCode;
         }
         return JavaspecExitCode.from(runResult);
+    }
+
+    private static int enforceProfileCompatibility(
+            TargetProfile targetProfile,
+            List<DiscoveredSpec> specs,
+            PrintStream err
+    ) {
+        ProfileEnforcement enforcement = ProfileEnforcement.defaultEnforcement();
+        List<ProfileEnforcementFinding> deniedFindings = new ArrayList<ProfileEnforcementFinding>();
+        for (int i = 0; i < specs.size(); i++) {
+            DiscoveredSpec spec = specs.get(i);
+            DescribedType describedType = spec.describedType();
+            addDeniedProfileFinding(
+                    deniedFindings,
+                    enforcement,
+                    targetProfile,
+                    spec.specQualifiedName() + " -> " + promptTarget(describedType),
+                    describedType
+            );
+            List<DescribedType> relatedTypes = relatedTypesOf(describedType);
+            for (int ri = 0; ri < relatedTypes.size(); ri++) {
+                DescribedType relatedType = relatedTypes.get(ri);
+                addDeniedProfileFinding(
+                        deniedFindings,
+                        enforcement,
+                        targetProfile,
+                        "related to " + spec.specQualifiedName() + " -> " + promptTarget(relatedType),
+                        relatedType
+                );
+            }
+        }
+        if (deniedFindings.isEmpty()) {
+            return EXIT_OK;
+        }
+        printProfileCompatibilityError(deniedFindings, err);
+        return EXIT_USAGE;
+    }
+
+    private static void addDeniedProfileFinding(
+            List<ProfileEnforcementFinding> deniedFindings,
+            ProfileEnforcement enforcement,
+            TargetProfile targetProfile,
+            String sourceDescription,
+            DescribedType describedType
+    ) {
+        ProfileEnforcementReport report = enforcement.enforce(targetProfile, describedType);
+        if (report.isDenied()) {
+            deniedFindings.add(ProfileEnforcementFinding.of(sourceDescription, report));
+        }
+    }
+
+    private static void printProfileCompatibilityError(
+            List<ProfileEnforcementFinding> deniedFindings,
+            PrintStream err
+    ) {
+        ProfileEnforcementFinding firstFinding = deniedFindings.get(0);
+        ProfileEnforcementReport firstReport = firstFinding.report();
+        ProfileViolation firstViolation = firstReport.violations().get(0);
+        err.println("Profile compatibility error: " + firstViolation.message());
+        err.println("Selected profile: " + firstReport.targetProfile().key()
+                + " (" + firstReport.targetProfile().displayLabel() + ")");
+        err.println("Spec/type: " + firstFinding.sourceDescription());
+        if (deniedFindings.size() == 1 && firstReport.violations().size() == 1) {
+            return;
+        }
+        err.println("Violations:");
+        for (int i = 0; i < deniedFindings.size(); i++) {
+            ProfileEnforcementFinding finding = deniedFindings.get(i);
+            List<ProfileViolation> violations = finding.report().violations();
+            for (int vi = 0; vi < violations.size(); vi++) {
+                err.println("  - " + finding.sourceDescription() + ": " + violations.get(vi).summaryLine());
+            }
+        }
     }
 
     private static RunResult emptyRunResult() {
@@ -1337,6 +1417,28 @@ public final class Main {
             return throwable.getClass().getName();
         }
         return message;
+    }
+
+    private static final class ProfileEnforcementFinding {
+        private final String sourceDescription;
+        private final ProfileEnforcementReport report;
+
+        private ProfileEnforcementFinding(String sourceDescription, ProfileEnforcementReport report) {
+            this.sourceDescription = sourceDescription;
+            this.report = report;
+        }
+
+        static ProfileEnforcementFinding of(String sourceDescription, ProfileEnforcementReport report) {
+            return new ProfileEnforcementFinding(sourceDescription, report);
+        }
+
+        String sourceDescription() {
+            return sourceDescription;
+        }
+
+        ProfileEnforcementReport report() {
+            return report;
+        }
     }
 
     private static final class RelatedSpecCheckResult {

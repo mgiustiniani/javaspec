@@ -37,7 +37,7 @@
 | JUnit Platform engine adapter | Standalone optional artifact `javaspec-junit-platform-engine/` packaging `org.javaspec:javaspec-junit-platform-engine:0.1.0-SNAPSHOT`; it is not a root Maven module and does not add JUnit Platform dependencies to the core runtime artifact. |
 | JUnit Platform selector | Class, package, method, or unique-id selector supplied by JUnit Platform and applied by the optional engine as a filter over canonical javaspec discovery results. |
 | JUnit XML-compatible report | Dependency-free UTF-8 XML report written by `run --junit-xml` / `--junit-xml-file`, configuration-level report destinations, Maven/Gradle plugin report settings, or core report writers from `RunResult`; it does not require JUnit. SKIPPED and PENDING both map to `<skipped>`, and the testsuite `skipped` attribute includes both. Phase 21 adds a golden passing XML report under `docs/examples/reports/`; Phase 22 adds a pending XML golden. |
-| LTS profile | Target Java profile key: `java8`, `java11`, `java17`, `java21`, or `java25`. |
+| LTS profile | Target Java profile key: `java8`, `java11`, `java17`, `java21`, or `java25`; `run` enforces the effective profile before generation/update writes. |
 | Matchable | Fluent expectation wrapper returned by typed proxy methods and `match(actual)`. |
 | Maven plugin adapter | Standalone optional artifact `javaspec-maven-plugin/` packaging `org.javaspec:javaspec-maven-plugin:0.1.0-SNAPSHOT` as a Maven plugin with goal prefix `javaspec`. It is not a root module and does not require JUnit in projects under test. |
 | Maven test classpath | The compiled test-scope classpath supplied by Maven to the optional plugin and used as input to the canonical javaspec runner. |
@@ -46,6 +46,10 @@
 | Pending example | An example intentionally marked as pending through `@Pending`, `PendingExampleException`, or `ObjectBehavior.pending(...)`. It is counted separately from skipped in core results and JSON, but maps to skipped in JUnit-compatible outputs. |
 | PHPSpec-inspired | Modeled after PHPSpec workflow concepts while adapted to Java packages, classes, static typing, compilation, and interfaces. |
 | Profile catalog | Metadata model for Java LTS profiles, feature flags, and API symbols under `org.javaspec.profile`. |
+| Profile enforcement | Phase 26 compatibility boundary under `org.javaspec.compatibility` that checks described type kinds and resolvable cataloged Java API owners in generated method signatures before generation/update writes. It is conservative and ignores unknown project types plus ambiguous or unresolvable names. |
+| `ProfileEnforcement` | Additive programmatic API that enforces a `TargetProfile` against a `DescribedType` and returns a `ProfileEnforcementReport`. |
+| `ProfileEnforcementReport` | Immutable report for one described type/profile pair, exposing allowed/denied status and `ProfileViolation` values. |
+| `ProfileViolation` | Immutable profile enforcement violation for one described type location and denied `CompatibilityResult`. |
 | Reflection runner | Dependency-free runner that executes compiled spec examples by Java reflection after discovery/generation/update work. |
 | Release checklist | `RELEASING.md`; Phase 20 local release-readiness checklist that documents verification steps and explicit blockers before public publication. |
 | Publication blockers | Required decisions, credentials, or approvals that remain intentionally unresolved before public release: GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval. The MIT `LICENSE` and maintainer metadata are already confirmed. |

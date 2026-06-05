@@ -209,7 +209,7 @@ public class MainTest {
         File sealedClassFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "Shape.java");
         File sealedInterfaceFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "Message.java");
 
-        CommandResult result = run("run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath(), "--generate");
+        CommandResult result = run("run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath(), "--profile", "java17", "--generate");
 
         assertEquals(0, result.exitCode);
         assertTrue(result.out.contains("spec.com.example.UserSpec describes missing record com.example.User."));
@@ -243,7 +243,7 @@ public class MainTest {
         );
         File sealedClassFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "Shape.java");
 
-        CommandResult result = run("run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath(), "--generate");
+        CommandResult result = run("run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath(), "--profile", "java17", "--generate");
 
         assertEquals(0, result.exitCode);
         assertTrue(result.out.contains("spec.com.example.ShapeSpec describes missing sealed class com.example.Shape."));
@@ -296,7 +296,7 @@ public class MainTest {
         File circleSpec = new File(specRoot, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "CircleSpec.java");
         File circleFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "Circle.java");
 
-        CommandResult result = run("run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath(), "--generate");
+        CommandResult result = run("run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath(), "--profile", "java17", "--generate");
 
         assertEquals(0, result.exitCode);
         assertTrue(result.out.contains("Generated related specification: " + circleSpec.getPath()));
@@ -321,7 +321,7 @@ public class MainTest {
         File emailMessageFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "EmailMessage.java");
         File emailMessageSpec = new File(specRoot, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "EmailMessageSpec.java");
 
-        CommandResult result = run("run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath(), "--generate");
+        CommandResult result = run("run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath(), "--profile", "java17", "--generate");
 
         assertEquals(0, result.exitCode);
         assertTrue(result.out.contains("spec.com.example.MessageSpec describes missing sealed interface com.example.Message."));

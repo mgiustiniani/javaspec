@@ -7,10 +7,10 @@
 | Java 8 compatibility | The runtime artifact executes on Java 8 and does not link directly to Java 9+ APIs. | Phase 12 Java 8 Distrobox `mvn clean` and `mvn verify` passed; compiler source/target is 1.8; bytecode and constant-pool audits are summarized in [Test and Quality Report](../test-report.md). |
 | Zero runtime dependencies | Runtime dependency scope contains only the javaspec artifact for core; optional adapters do not leak dependencies into core. | Phase 12 Java 25 runtime dependency audit passed with only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`; Phase 15 root runtime audit passed with only `org.javaspec:javaspec`, and Maven plugin runtime audit passed with the plugin plus compile-scope core only; Phase 16 root runtime audit passed with only `org.javaspec:javaspec`, and Gradle plugin runtimeClasspath contained only `org.javaspec:javaspec:0.1.0-SNAPSHOT`; Phase 17 root runtime audit passed with only `org.javaspec:javaspec`, and JUnit Platform engine runtime dependencies stayed isolated to the optional engine artifact; Phase 18 root runtime audit passed with only `org.javaspec:javaspec` and adapter runtime summaries remained isolated; Phase 19 aggregate verification repeated the root and adapter runtime audits with the same isolation; Phase 20 root and adapter runtime audits preserved the same isolation; Phase 21 root and example runtime dependency checks stayed clean; Phase 22 root/plugin/Gradle runtime audits preserved zero-dependency core and isolated optional-adapter dependencies. |
 | Deterministic CLI/build-tool/engine behavior | Commands, options, prompts, output modes, explicit classpath handling, stable ids/source metadata, report writing, Maven/Gradle plugin adapter behavior, JUnit Platform engine mapping, aggregate verification, release-readiness checks, and exit codes/events are stable for local and CI usage. | CLI and optional Maven/Gradle/JUnit Platform adapter behavior are documented in the user manual; Phase 12 ran 364 tests per JDK across the matrix; Phase 15 standalone Maven plugin verification passed with 12 plugin tests; Phase 16 standalone Gradle plugin verification passed with 11 plugin tests using Gradle 8.8; Phase 17 standalone JUnit Platform engine verification passed with 12 tests; Phase 18 core and adapter verification passed with stable id/source/report assertions; Phase 19 `scripts/verify-all.sh` full aggregate verification passed locally; Phase 20 version alignment, release-artifact packaging, and full aggregate verification passed locally; Phase 21 schema/golden validation, standalone examples verification, and full aggregate verification with examples passed locally; Phase 22 targeted changed tests, root `mvn -q test`, root `mvn -q verify`, standalone adapter verification, examples verification, and aggregate verification passed locally. |
-| Safe generation | Production source generation/update is gated by prompts, `--generate`, or `--dry-run` planning. | ADR 0003, ADR 0004, ADR 0008, and the user manual document generation ownership and policies. |
+| Safe generation | Production source generation/update is gated by prompts, `--generate`, or `--dry-run` planning and by pre-write target-profile enforcement. | ADR 0003, ADR 0004, ADR 0008, ADR 0019, and the user manual document generation ownership, profile enforcement, and policies. |
 | Accurate implemented-feature documentation | Docs do not overstate unsupported behavior. | Limitations are recorded in the user manual, README, ARC42 section 11, and ADR consequences. |
 | Extensibility without dependency cost | Formatter, extension, reporting, invocation contracts, optional adapters, release verification assets, release-readiness scaffolding, and adoption assets are public boundaries without adding libraries to the core runtime. | ADR 0010 documents formatter/reporting/programmatic extension contracts; ADR 0018 documents zero-dependency ServiceLoader external formatter/extension discovery for CLI/Gradle while preserving built-in defaults and leaving Maven/JUnit Platform formatter controls out of scope; ADR 0011 covers no-JUnit invocation and optional adapters; ADR 0012 covers aggregate release/CI verification without mandatory Maven multi-module conversion; ADR 0013 covers release-readiness scaffolding with resolved MIT license/maintainer metadata and postponed publishing/signing/portal decisions; ADR 0014 covers standalone adoption assets and examples-by-default verification; ADR 0015 covers explicit skipped/pending semantics without dependency cost; Phase 15 verifies the standalone Maven plugin boundary, Phase 16 verifies the standalone Gradle plugin boundary, Phase 17 verifies the standalone JUnit Platform engine boundary, Phase 19 verifies the aggregate script boundary, Phase 20 verifies the release-readiness boundary, Phase 21 verifies the adoption-assets boundary, and Phase 22 verifies the explicit skipped/pending/report-adapter boundary. |
-| LTS awareness | Java 8, 11, 17, 21, and 25 profiles are modeled and verified where runtime probing is relevant. | Phase 12 matrix passed; Java 25 Gatherer reflection probe passed. |
+| LTS awareness | Java 8, 11, 17, 21, and 25 profiles are modeled and used for conservative pre-write enforcement where profile catalog data is resolvable. | Phase 12 matrix passed; Java 25 Gatherer reflection probe passed; ADR 0019 documents Phase 26 enforcement boundaries. |
 
 ## 10.2 Quality Scenarios
 
@@ -18,7 +18,9 @@
 
 - When running on Java 8, javaspec must start and execute the implemented CLI without `NoClassDefFoundError` caused by newer JDK APIs.
 - When profile metadata references Java 11+ APIs, those references must be strings or reflected conditionally.
-- When generated records or sealed types are emitted, the generator may produce source text that requires a newer JDK, but the javaspec binary itself must remain Java 8-compatible.
+- When generated records or sealed types are requested, `run` must reject them for target profiles below Java 17 before writing source, while the javaspec binary itself remains Java 8-compatible.
+- When generated method return or parameter types resolve to cataloged Java API owners introduced after the selected target profile, `run` must reject the write path before source changes.
+- Unknown project types and ambiguous or unresolvable simple type names must not be rejected solely by profile enforcement, to avoid false positives from heuristic discovery.
 
 ### Dependency Integrity
 
@@ -30,7 +32,7 @@
 
 - `describe` must not write production source.
 - `run` must prompt before production generation/update unless `--generate` is provided.
-- `run --dry-run` must not write files and must not prompt.
+- `run --dry-run` must not write files and must not prompt; profile compatibility violations must exit before report writing.
 - Constructor deletion must require explicit `--constructor-policy delete` or an equivalent explicit config/CLI selection.
 - Existing sealed-interface updates must remain skipped until safe source-preserving nested implementation updates are implemented.
 
@@ -47,7 +49,7 @@
 - JSON report schemaVersion 1 must remain stable unless a future schema decision is made; additive stable id/source and pending fields must preserve existing fields.
 - JUnit XML-compatible reports must be generated without JUnit or XML/reporting runtime dependencies, with testcase file/line attributes only when source data is available and with both skipped and pending examples represented as `<skipped>` for compatibility.
 - JSON and JUnit XML-compatible reports can be requested together for no-spec and executed run paths.
-- Dry-run pending generation/update exits before execution and must not write reports.
+- Dry-run pending generation/update exits before execution and must not write reports; profile compatibility violations also exit before execution/report writing.
 - Report write failures must include the report path and exit `70`.
 - Programmatic invocation must not call `System.exit` and must return structured results with deterministic exit-code mapping.
 - Test and quality claims must cite produced tester/quality reports rather than invented results.
@@ -336,7 +338,7 @@ Future implementation phases should preserve these gates:
 2. Runtime dependency audit remains clean.
 3. Java 8 bytecode/source compatibility remains enforced.
 4. New architectural decisions are recorded as ADRs before implementation where they change core boundaries.
-5. User manual, README, ARC42, ADR references, and test/quality reports remain synchronized with implemented behavior, including formatter/extension discovery boundaries and unsupported formatter controls.
+5. User manual, README, ARC42, ADR references, and test/quality reports remain synchronized with implemented behavior, including formatter/extension discovery boundaries, profile-enforcement boundaries, and unsupported formatter controls.
 6. Standalone optional adapters and standalone examples remain covered by `scripts/verify-all.sh` or an explicitly documented equivalent aggregate verification path unless a future ADR changes the build/release architecture.
 7. Version alignment remains checked before release-candidate packaging.
 8. Report schema/golden examples stay synchronized with report writer behavior and standalone examples.

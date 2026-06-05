@@ -10,7 +10,7 @@
 | Maven | The project uses Maven while preserving Java 8 bytecode compatibility; repository-root `mvn verify` is intentionally core-only, standalone optional Maven, Gradle, and JUnit Platform adapter artifacts plus Phase 21 example projects are intentionally not root Maven modules, and Maven `release-artifacts` profiles produce local sources/javadocs only. |
 | Package base | Production code uses package base `org.javaspec`. |
 | Post-Java 8 APIs | APIs introduced after Java 8 must be represented as metadata, strings, or reflected conditionally; production source must not import them directly. |
-| LTS profiles | The system must model Java LTS profiles for 8, 11, 17, 21, and 25. |
+| LTS profiles | The system must model Java LTS profiles for 8, 11, 17, 21, and 25 and enforce selected profiles before generation/update writes without breaking the Java 8 binary baseline. |
 | Restricted configuration parser | Configuration files must be parsed by an internal line-based parser; no YAML/TOML/JSON parser may be added to the runtime artifact. |
 | Java 25 stream metadata | Java 25 stream gatherer metadata is implemented from verified API-documentation research, but runtime availability must remain metadata/reflection-only and be re-validated during quality-matrix work. |
 | JDK proxy-only doubles | Core doubles must use Java 8 JDK dynamic proxies and therefore support ordinary interfaces only. |
@@ -30,7 +30,7 @@
 - Advanced features that normally require third-party dependencies must be implemented using JDK APIs, exposed as optional extensions/adapters outside the core runtime, or deferred.
 - Core doubles are ordinary interface-only JDK dynamic proxies; concrete/final class doubles, static doubles, constructor doubles, wildcard matchers, exception/callback stubbing, and default-interface-method invocation are outside the Phase 8 core MVP.
 - Reflection must be isolated behind compatibility boundaries to avoid accidental linkage to newer JDK APIs.
-- Configuration bootstrap hooks remain metadata until bootstrap execution is implemented; profile and formatter settings are active `run` selections with CLI overrides, while selected profiles are not deeply enforced during execution yet. Formatter names may be built-in or ServiceLoader-discovered from the effective run classloader. Suite package prefixes are active naming-convention inputs for `describe`, `run`, discovery, spec/support generation, and MVP reflection execution.
+- Configuration bootstrap hooks remain metadata until bootstrap execution is implemented; profile and formatter settings are active `run` selections with CLI overrides. Selected profiles are enforced before generation/update writes for described type kinds and resolvable cataloged Java API signature owners, but enforcement is not integrated compilation and ignores unknown project types plus ambiguous or unresolvable type names. Formatter names may be built-in or ServiceLoader-discovered from the effective run classloader. Suite package prefixes are active naming-convention inputs for `describe`, `run`, discovery, spec/support generation, and MVP reflection execution.
 - The MVP CLI runner, programmatic invocation API, and optional adapters do not compile source or specification files themselves; executable examples require compiled spec classes on the effective, selected explicit, build-tool, programmatic, or JUnit Platform launcher classloader, while source-only or unavailable spec classes are skipped with execution-availability diagnostics when applicable. The optional Maven plugin, Gradle plugin, and JUnit Platform engine supply host classpath integration as adapters over the same canonical runner.
 - Dry-run mode must not write files or prompt, and run-only controls, including explicit classpath and report options, must be rejected by `describe`/`desc`.
 - User-facing diagnostics should explain zero-dependency and external-compilation limitations clearly.
@@ -43,5 +43,5 @@
 
 - Java 8 is the binary compatibility floor.
 - Java 11, 17, 21, and 25 are target profiles, not separate binaries unless a future ADR decides otherwise.
-- The profile catalog must avoid assuming the presence of Java 9+ classes while running on Java 8.
+- The profile catalog and profile enforcement must avoid assuming the presence of Java 9+ classes while running on Java 8.
 - The build and test matrix should include Java 8 plus each supported LTS runtime where available.

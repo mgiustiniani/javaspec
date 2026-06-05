@@ -2,7 +2,7 @@
 
 ## 8.1 Java 8-Compatible Core
 
-All production code is written for Java 8 source/target compatibility. Newer JDK capabilities are modeled as profile metadata, generated source text, or reflection-only probes. This keeps the runtime binary usable on Java 8 while allowing javaspec to understand Java 11, 17, 21, and 25 concepts.
+All production code is written for Java 8 source/target compatibility. Newer JDK capabilities are modeled as profile metadata, generated source text, conservative profile enforcement results, or reflection-only probes. This keeps the runtime binary usable on Java 8 while allowing javaspec to understand Java 11, 17, 21, and 25 concepts.
 
 ## 8.2 Zero Runtime Dependencies
 
@@ -39,16 +39,16 @@ The user manual contains practical migration notes for PHPSpec users.
 The architecture preserves a strict command split:
 
 - `describe` creates or finds specification/support files and never writes production source.
-- `run` discovers specs, handles generation/update planning, prompts or uses `--generate`, accepts explicit compiled-class classpath input, executes compiled examples when available, renders output, prints execution-availability diagnostics when discovered specs/examples cannot execute on the selected classloader, writes optional JSON and/or JUnit XML-compatible reports from CLI or config destinations, and returns stable exit codes.
+- `run` discovers specs, enforces the effective target profile before generation/update writes, handles generation/update planning, prompts or uses `--generate`, accepts explicit compiled-class classpath input, executes compiled examples when available, renders output, prints execution-availability diagnostics when discovered specs/examples cannot execute on the selected classloader, writes optional JSON and/or JUnit XML-compatible reports from CLI or config destinations, and returns stable exit codes.
 - The optional Maven `javaspec:run` goal, optional Gradle `javaspecRun` task, and optional JUnit Platform `javaspec` engine are adapters over the same canonical runner and result model, using host-supplied classpaths/selectors rather than replacing runner semantics.
 
-This split is central to ADR 0003 and ADR 0008.
+This split is central to ADR 0003, ADR 0008, and ADR 0019.
 
 ## 8.5 Configuration and Suite Naming
 
 Configuration is suite-oriented. Each suite provides spec/source roots and package-prefix naming metadata. The active `SpecNamingConvention` maps production classes to spec/support classes and maps discovered spec classes back to described production types.
 
-Path options can override selected-suite roots, but naming still comes from the selected suite. Constructor policy, profile, formatter defaults, and optional JSON/JUnit XML-compatible report destinations are loaded from config and can be overridden by run CLI options where corresponding options exist. Bootstrap hooks are parsed metadata only and are not executed yet. `describe --config` accepts report destination keys but does not write reports.
+Path options can override selected-suite roots, but naming still comes from the selected suite. Constructor policy, profile, formatter defaults, and optional JSON/JUnit XML-compatible report destinations are loaded from config and can be overridden by run CLI options where corresponding options exist; CLI `--profile` overrides config before enforcement. Bootstrap hooks are parsed metadata only and are not executed yet. `describe --config` accepts profile and report destination keys but does not enforce profiles or write reports.
 
 ## 8.6 Construction Semantics
 
@@ -74,14 +74,14 @@ Known matcher limitation: count and emptiness checks on a generic `Iterable` con
 
 Generation is deterministic and reviewable:
 
-- Missing production class-like type skeletons are generated only by `run` after confirmation or `--generate`.
+- Missing production class-like type skeletons are generated only by `run` after profile enforcement and confirmation or `--generate`.
 - Constructor handling follows the selected policy: `comment` (default), `preserve`, or `delete`; destructive deletion requires explicit `delete`.
 - Empty generated/no-op unmatched constructors may be removed when safe.
 - Method generation uses Java default returns for generated method bodies.
 - Interface-style generation emits declarations or annotation elements where valid.
 - Missing sealed-interface skeletons include nested permitted implementation bodies; existing sealed-interface updates are deferred.
 
-Source parsing/generation uses Java 8-compatible heuristics rather than a full Java parser.
+Source parsing/generation uses Java 8-compatible heuristics rather than a full Java parser. Profile enforcement is likewise conservative: it rejects incompatible described type kinds and generated method signatures that resolve to cataloged later-JDK API owners, but ignores unknown project types and ambiguous or unresolvable names.
 
 ## 8.9 Runner, Results, Invocation, Formatters, and Reports
 
@@ -98,6 +98,7 @@ The runner result model separates discovery and execution from output and proces
 - Built-in `progress`/`pretty` and ServiceLoader-discovered external formatter output render results through `RunFormatter` implementations and include pending counts/details where the formatter chooses to display them.
 - JSON reports with `schemaVersion` 1 are written from the same results and include additive stable id/source fields plus pending counts and `PENDING` statuses. Config aliases `report`, `reportFile`, `report-file`, `jsonReport`, `jsonReportFile`, and `json-report-file` can supply a default destination when CLI report options are absent.
 - JUnit XML-compatible reports are also written from `RunResult`, mapping FAILED to failures, BROKEN to errors, and SKIPPED/PENDING to skipped test cases, with testcase file/line attributes when source data is available. Config aliases `junitXml`, `junit-xml`, `junitXmlFile`, `junit-xml-file`, `junitXmlReportFile`, and `junit-xml-report-file` can supply a default destination when CLI JUnit XML options are absent. The testsuite skipped attribute includes skipped plus pending and pending messages use `Pending: <reason>` or `Pending by javaspec.`.
+- Profile compatibility violations are usage failures and exit `64` before generation/update writes or report writing.
 - Report failures are I/O failures and exit `70` for CLI runs.
 
 Source-only or non-loadable compiled spec classes produce skipped examples because javaspec is not an in-process compiler. CLI `--classpath` / `--classpath-file` and programmatic invocation classloaders can supply compiled classes explicitly, but the entries must already be compiled. Phase 23 diagnostics make unavailable compiled spec classes, dependencies, and stale/missing compiled example methods visible without changing exit-code semantics.
@@ -172,7 +173,7 @@ The engine boundary principles are:
 
 ## 8.15 Release/CI Verification and Publication Boundary
 
-Phase 19 keeps release verification non-disruptive, Phase 20 adds release-readiness scaffolding without public publication, Phase 21 adds adoption examples/report documentation without core runtime changes, Phase 22 keeps skipped/pending semantics zero-dependency while updating docs/schema/goldens, Phase 23 keeps diagnostics zero-dependency while leaving compilation external, Phase 24 keeps report destination defaults inside the existing zero-dependency config/report boundaries, and Phase 25 keeps external formatter/extension discovery inside the JDK ServiceLoader boundary:
+Phase 19 keeps release verification non-disruptive, Phase 20 adds release-readiness scaffolding without public publication, Phase 21 adds adoption examples/report documentation without core runtime changes, Phase 22 keeps skipped/pending semantics zero-dependency while updating docs/schema/goldens, Phase 23 keeps diagnostics zero-dependency while leaving compilation external, Phase 24 keeps report destination defaults inside the existing zero-dependency config/report boundaries, Phase 25 keeps external formatter/extension discovery inside the JDK ServiceLoader boundary, and Phase 26 keeps target-profile enforcement inside the Java 8-compatible compatibility boundary:
 
 - Root `mvn verify` remains the core-only build and runtime dependency gate.
 - `scripts/check-version-alignment.sh` verifies root Maven, standalone Maven plugin, standalone JUnit Platform engine, Gradle plugin `version`, and Gradle plugin `javaspecCoreVersion` alignment.

@@ -1,6 +1,6 @@
 # 6. Runtime View
 
-This section describes the implemented runtime and verification scenarios without C4 diagrams. The runtime is a Java 8-compatible CLI and library surface with no third-party runtime dependencies, including Phase 14 no-JUnit invocation, explicit classpath execution, JUnit XML-compatible reporting, the Phase 15 standalone optional Maven plugin adapter, the Phase 16 standalone optional Gradle plugin adapter, the Phase 17 standalone optional JUnit Platform engine adapter, the Phase 18 stable identifier/source-location/report polish increment, the Phase 19 aggregate release/CI verification workflow, the Phase 20 release-readiness scaffolding, the Phase 21 standalone adoption examples/report documentation assets, the Phase 22 explicit skipped/pending semantics, the Phase 23 classpath/execution availability diagnostics, the Phase 24 configuration-level report destinations, and the Phase 25 ServiceLoader external formatter/extension discovery increment.
+This section describes the implemented runtime and verification scenarios without C4 diagrams. The runtime is a Java 8-compatible CLI and library surface with no third-party runtime dependencies, including Phase 14 no-JUnit invocation, explicit classpath execution, JUnit XML-compatible reporting, the Phase 15 standalone optional Maven plugin adapter, the Phase 16 standalone optional Gradle plugin adapter, the Phase 17 standalone optional JUnit Platform engine adapter, the Phase 18 stable identifier/source-location/report polish increment, the Phase 19 aggregate release/CI verification workflow, the Phase 20 release-readiness scaffolding, the Phase 21 standalone adoption examples/report documentation assets, the Phase 22 explicit skipped/pending semantics, the Phase 23 classpath/execution availability diagnostics, the Phase 24 configuration-level report destinations, the Phase 25 ServiceLoader external formatter/extension discovery increment, and the Phase 26 target-profile enforcement increment.
 
 ## 6.1 `describe` Scenario
 
@@ -11,23 +11,24 @@ This section describes the implemented runtime and verification scenarios withou
 5. Missing spec/support skeletons are written. Existing spec files are not overwritten; missing support files may still be created.
 6. No production source is generated or updated. Run-only controls are rejected.
 
-Important runtime invariant: `describe` is specification/support generation only. Production type, constructor, factory, method, execution, formatter, report writing, and dry-run behavior belong to `run`.
+Important runtime invariant: `describe` is specification/support generation only. Production type, constructor, factory, method, profile enforcement, execution, formatter, report writing, and dry-run behavior belong to `run`.
 
 ## 6.2 `run` Discovery, Generation, and Execution Scenario
 
 1. The user runs `javaspec run` with optional config, suite, path overrides, explicit classpath input, generation flags, filters, run controls, or report paths from CLI/config.
-2. The CLI loads inferred defaults or the configured suite. `--constructor-policy`, `--profile`, `--formatter`, `--report`/`--report-file`, and `--junit-xml`/`--junit-xml-file` override valid configured/default values when supplied. `--classpath` and `--classpath-file` build a selected explicit classloader when present; the formatter registry is loaded from the effective selected classloader after this selection.
+2. The CLI loads inferred defaults or the configured suite. `--constructor-policy`, `--profile`, `--formatter`, `--report`/`--report-file`, and `--junit-xml`/`--junit-xml-file` override valid configured/default values when supplied; CLI `--profile` overrides config profile before enforcement. `--classpath` and `--classpath-file` build a selected explicit classloader when present; the formatter registry is loaded from the effective selected classloader after this selection.
 3. `SpecDiscovery` scans the selected spec root using the active naming convention and filters by suite, class filters, and example filters.
 4. Discovery extracts described production type metadata, kind markers, relationship markers, construction markers, factory construction markers, typed proxy/throw proxy calls, direct subject/setter calls, and public `void` `it_*`/`its_*` example metadata including method declaration source lines.
-5. Existence checks inspect the source root and effective or selected explicit classloader for described production types and related types.
-6. Generation planning determines missing or updatable work: related specs/support, production type skeletons, support updates, constructors, static factory skeletons, class-like method bodies, ordinary-interface declarations, annotation elements, and missing sealed-interface skeleton declarations plus nested implementation bodies.
-7. If `--dry-run` is active, the CLI reports pending work without writing files or prompting. Pending work exits `1`; if no pending work exists, execution may proceed.
-8. If `--generate` is active, supported missing generation/update work is written non-interactively. Otherwise `run` prompts before production generation/update where required.
-9. After generation/update work completes without a declined or unavailable prompt, the reflection runner attempts to load compiled spec classes from the effective or selected explicit classloader.
-10. Loadable specs execute filtered examples. Source-only or otherwise unavailable specs are marked `SKIPPED` with enriched execution-availability reasons because the CLI does not compile source/spec files itself.
-11. Explicit `@Skip`/`@Pending` annotations or runtime skip/pending signals may mark examples `SKIPPED` or `PENDING`; pending is distinct from skipped in core results and excluded from availability diagnostics.
-12. Human-readable output is rendered through the selected built-in or ServiceLoader-discovered run formatter. If `RunDiagnostics.executionAvailabilityLines(RunResult)` returns lines, the CLI prints an `Execution diagnostics:` block with either current-process-classloader guidance or explicit classpath entry count guidance. Optional JSON and JUnit XML-compatible reports are written after no-spec output or runner summary rendering when the run reaches reportable execution/no-spec handling; effective report destinations can come from config or CLI, and reports include stable ids, source metadata, and pending counts/statuses where available.
-13. The process exits with the documented code: `0`, `1`, `64`, or `70`; execution diagnostics do not change exit-code semantics.
+5. Profile enforcement checks discovered described types and related types against the effective target profile before existence checks, generation/update planning output, prompts, execution, or reports. Violations print `Profile compatibility error`, selected profile, spec/type, and reasons, then exit `64` with no file or report writes.
+6. Existence checks inspect the source root and effective or selected explicit classloader for described production types and related types.
+7. Generation planning determines missing or updatable work: related specs/support, production type skeletons, support updates, constructors, static factory skeletons, class-like method bodies, ordinary-interface declarations, annotation elements, and missing sealed-interface skeleton declarations plus nested implementation bodies.
+8. If `--dry-run` is active, the CLI reports pending work without writing files or prompting. Pending work exits `1`; if no pending work exists, execution may proceed.
+9. If `--generate` is active, supported missing generation/update work is written non-interactively. Otherwise `run` prompts before production generation/update where required.
+10. After generation/update work completes without a declined or unavailable prompt, the reflection runner attempts to load compiled spec classes from the effective or selected explicit classloader.
+11. Loadable specs execute filtered examples. Source-only or otherwise unavailable specs are marked `SKIPPED` with enriched execution-availability reasons because the CLI does not compile source/spec files itself.
+12. Explicit `@Skip`/`@Pending` annotations or runtime skip/pending signals may mark examples `SKIPPED` or `PENDING`; pending is distinct from skipped in core results and excluded from availability diagnostics.
+13. Human-readable output is rendered through the selected built-in or ServiceLoader-discovered run formatter. If `RunDiagnostics.executionAvailabilityLines(RunResult)` returns lines, the CLI prints an `Execution diagnostics:` block with either current-process-classloader guidance or explicit classpath entry count guidance. Optional JSON and JUnit XML-compatible reports are written after no-spec output or runner summary rendering when the run reaches reportable execution/no-spec handling; effective report destinations can come from config or CLI, and reports include stable ids, source metadata, and pending counts/statuses where available.
+14. The process exits with the documented code: `0`, `1`, `64`, or `70`; execution diagnostics do not change exit-code semantics.
 
 ## 6.3 Example Execution Scenario
 
@@ -92,7 +93,7 @@ Unsupported target kinds fail fast with diagnostics rather than using bytecode l
 - `--report` and `--report-file` write UTF-8 JSON reports with `schemaVersion` 1 from the immutable runner result model, including stable spec/example ids, source file/line fields where available, separate `pending` counts, and `PENDING` example statuses. Config aliases `report`, `reportFile`, `report-file`, `jsonReport`, `jsonReportFile`, and `json-report-file` provide defaults when CLI JSON report options are absent.
 - `--junit-xml` and `--junit-xml-file` write UTF-8 JUnit XML-compatible reports from the same `RunResult` without JUnit dependencies; testcase `file` and `line` attributes are included when source data is available. Config aliases `junitXml`, `junit-xml`, `junitXmlFile`, `junit-xml-file`, `junitXmlReportFile`, and `junit-xml-report-file` provide defaults when CLI JUnit XML report options are absent. Both `SKIPPED` and `PENDING` map to `<skipped>`, the testsuite skipped attribute includes skipped plus pending, and pending messages use `Pending: <reason>` or `Pending by javaspec.`.
 - JSON and JUnit XML-compatible reports can be requested together from CLI options, config destinations, or a mix of both; CLI options override config values.
-- No-spec, passing, failing, broken, skipped-only, and pending-only runs write requested reports after normal output. Dry-run pending generation/update exits before execution and does not write reports.
+- No-spec, passing, failing, broken, skipped-only, and pending-only runs write requested reports after normal output. Dry-run pending generation/update and profile compatibility violations exit before execution/report writing and do not write reports.
 - Report write failures are I/O failures and exit `70` with path diagnostics.
 - Verbose run configuration shows effective JSON/JUnit XML-compatible report paths whether they came from config or CLI.
 - `RunDiagnostics.executionAvailabilityLines(RunResult)` derives deterministic human-readable availability diagnostics for non-executable specs and missing/stale compiled example methods while excluding explicit `@Skip` and `PENDING` results.
@@ -153,15 +154,16 @@ Unsupported target kinds fail fast with diagnostics rather than using bytecode l
 
 Projects that do not opt into the engine still use CLI, programmatic invocation, Maven plugin, or Gradle plugin no-JUnit execution paths without adding a JUnit dependency.
 
-## 6.13 Profile and Compatibility Probe Scenario
+## 6.13 Profile Enforcement and Compatibility Probe Scenario
 
-1. The active profile is loaded from defaults, config, or `--profile`.
+1. The active profile is loaded from defaults, config, or `--profile`; CLI `--profile` overrides config.
 2. Profile values are validated against `java8`, `java11`, `java17`, `java21`, and `java25`.
 3. Profile metadata and API-symbol catalog lookups use strings and Java 8-compatible domain objects.
-4. Optional runtime availability checks use `ApiAvailabilityProbe` with class, method, or field names.
-5. Post-Java-8 APIs are never imported directly by production code.
-
-Current limitation: profile selection is visible and validated but not deeply enforced during example execution.
+4. `ProfileEnforcement` checks described type kinds before writes: Java 8-compatible kinds pass under `java8`, while `record`, `sealed class`, and `sealed interface` require at least `java17`.
+5. Generated method return and parameter types are checked only when their owners resolve to known cataloged Java API symbols; unknown project types and ambiguous or unresolvable simple names are ignored to avoid false positives.
+6. Violations exit `64` before generation/update writes, dry-run output, execution, or report writing.
+7. Optional runtime availability checks use `ApiAvailabilityProbe` with class, method, or field names.
+8. Post-Java-8 APIs are never imported directly by production code, and no integrated compilation is performed.
 
 ## 6.14 Aggregate Verification, Release-Readiness, and Examples Scenario
 
