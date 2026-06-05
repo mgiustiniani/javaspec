@@ -124,6 +124,41 @@ final class Arguments {
         return builder.toString();
     }
 
+    static String describePattern(Object[] arguments) {
+        if (arguments == null || arguments.length == 0) {
+            return "()";
+        }
+        IdentityHashMap<Object, Boolean> seenArrays = new IdentityHashMap<Object, Boolean>();
+        StringBuilder builder = new StringBuilder("(");
+        for (int i = 0; i < arguments.length; i++) {
+            if (i > 0) {
+                builder.append(", ");
+            }
+            appendPatternValue(builder, arguments[i], seenArrays);
+        }
+        builder.append(')');
+        return builder.toString();
+    }
+
+    static String describeValue(Object value) {
+        IdentityHashMap<Object, Boolean> seenArrays = new IdentityHashMap<Object, Boolean>();
+        StringBuilder builder = new StringBuilder();
+        appendValue(builder, value, seenArrays);
+        return builder.toString();
+    }
+
+    private static void appendPatternValue(
+            StringBuilder builder,
+            Object value,
+            IdentityHashMap<Object, Boolean> seenArrays
+    ) {
+        if (value instanceof ArgumentMatcher) {
+            builder.append(String.valueOf(((ArgumentMatcher) value).describe()));
+            return;
+        }
+        appendValue(builder, value, seenArrays);
+    }
+
     private static void appendValue(StringBuilder builder, Object value, IdentityHashMap<Object, Boolean> seenArrays) {
         if (value == null) {
             builder.append("null");

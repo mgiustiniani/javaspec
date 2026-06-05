@@ -69,6 +69,62 @@ public final class Doubles {
         return control(doubleInstance);
     }
 
+    /**
+     * Matches any argument value, including null.
+     */
+    public static ArgumentMatcher any() {
+        return ArgumentMatchers.any();
+    }
+
+    /**
+     * Alias for {@link #any()}.
+     */
+    public static ArgumentMatcher anyArgument() {
+        return ArgumentMatchers.anyArgument();
+    }
+
+    /**
+     * Matches null or an argument assignable to the supplied type.
+     */
+    public static ArgumentMatcher any(Class<?> type) {
+        return ArgumentMatchers.any(type);
+    }
+
+    /**
+     * Alias for {@link #any(Class)}.
+     */
+    public static ArgumentMatcher anyType(Class<?> type) {
+        return ArgumentMatchers.anyType(type);
+    }
+
+    /**
+     * Matches only null.
+     */
+    public static ArgumentMatcher isNull() {
+        return ArgumentMatchers.isNull();
+    }
+
+    /**
+     * Matches any non-null argument.
+     */
+    public static ArgumentMatcher notNull() {
+        return ArgumentMatchers.notNull();
+    }
+
+    /**
+     * Matches an argument equal to the expected value using javaspec's array-aware equality.
+     */
+    public static ArgumentMatcher eq(Object expected) {
+        return ArgumentMatchers.eq(expected);
+    }
+
+    /**
+     * Alias for {@link #eq(Object)}.
+     */
+    public static ArgumentMatcher equalTo(Object expected) {
+        return ArgumentMatchers.equalTo(expected);
+    }
+
     private static DoubleInvocationHandler handlerFor(Object doubleInstance) {
         if (doubleInstance == null) {
             throw new IllegalArgumentException("Double instance must not be null");

@@ -26,18 +26,29 @@ final class DoubleInvocationHandler implements InvocationHandler {
         }
 
         StubbedInvocation stub;
+        DoubleInvocation invocation;
         synchronized (this) {
             calls.add(new Call(method.getName(), safeArguments));
             stub = findStub(method.getName(), safeArguments);
+            invocation = stub == null ? null : new DoubleInvocation(method, safeArguments);
         }
         if (stub == null) {
             return ReturnValues.valueFor(method, null, false);
         }
-        return ReturnValues.valueFor(method, stub.returnValue(), true);
+        Object stubbedValue = stub.invoke(invocation);
+        return ReturnValues.valueFor(method, stubbedValue, true);
     }
 
     synchronized void addStub(MethodPattern pattern, Object returnValue) {
-        stubs.add(new StubbedInvocation(pattern, returnValue));
+        stubs.add(StubbedInvocation.returning(pattern, returnValue));
+    }
+
+    synchronized void addThrowingStub(MethodPattern pattern, Throwable throwable) {
+        stubs.add(StubbedInvocation.throwing(pattern, throwable));
+    }
+
+    synchronized void addAnswerStub(MethodPattern pattern, StubAnswer answer) {
+        stubs.add(StubbedInvocation.answering(pattern, answer));
     }
 
     synchronized int count(MethodPattern pattern) {
@@ -80,13 +91,13 @@ final class DoubleInvocationHandler implements InvocationHandler {
     private StubbedInvocation findStub(String methodName, Object[] arguments) {
         for (int i = stubs.size() - 1; i >= 0; i--) {
             StubbedInvocation stub = stubs.get(i);
-            if (stub.exactArguments() && stub.matches(methodName, arguments)) {
+            if (stub.argumentConstrained() && stub.matches(methodName, arguments)) {
                 return stub;
             }
         }
         for (int i = stubs.size() - 1; i >= 0; i--) {
             StubbedInvocation stub = stubs.get(i);
-            if (!stub.exactArguments() && stub.matches(methodName, arguments)) {
+            if (!stub.argumentConstrained() && stub.matches(methodName, arguments)) {
                 return stub;
             }
         }

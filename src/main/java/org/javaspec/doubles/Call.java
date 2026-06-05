@@ -72,10 +72,11 @@ public final class Call {
     }
 
     /**
-     * Returns true when this call has exactly the supplied arguments.
+     * Returns true when this call has the supplied arguments.
+     * Ordinary values are matched exactly; {@link ArgumentMatcher} values are matched by callback.
      */
     public boolean hasArguments(Object... expectedArguments) {
-        return arguments.matches(expectedArguments);
+        return ArgumentPattern.from(expectedArguments).matches(arguments.toArray());
     }
 
     /**
@@ -86,7 +87,7 @@ public final class Call {
     }
 
     /**
-     * Returns true when this call has the supplied method name and exact arguments.
+     * Returns true when this call has the supplied method name and arguments.
      */
     public boolean matches(String expectedMethodName, Object... expectedArguments) {
         return matches(expectedMethodName) && hasArguments(expectedArguments);

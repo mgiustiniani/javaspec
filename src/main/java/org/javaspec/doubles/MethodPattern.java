@@ -2,9 +2,9 @@ package org.javaspec.doubles;
 
 final class MethodPattern {
     private final String methodName;
-    private final ArgumentList arguments;
+    private final ArgumentPattern arguments;
 
-    private MethodPattern(String methodName, ArgumentList arguments) {
+    private MethodPattern(String methodName, ArgumentPattern arguments) {
         this.methodName = validMethodName(methodName);
         this.arguments = arguments;
     }
@@ -14,10 +14,10 @@ final class MethodPattern {
     }
 
     static MethodPattern exactArguments(String methodName, Object[] arguments) {
-        return new MethodPattern(methodName, ArgumentList.from(arguments));
+        return new MethodPattern(methodName, ArgumentPattern.from(arguments));
     }
 
-    boolean exactArguments() {
+    boolean argumentConstrained() {
         return arguments != null;
     }
 
@@ -29,10 +29,7 @@ final class MethodPattern {
     }
 
     boolean matches(Call call) {
-        if (!call.matches(methodName)) {
-            return false;
-        }
-        return arguments == null || call.hasArguments(arguments.toArray());
+        return call.matches(methodName) && (arguments == null || arguments.matches(call.argumentsArray()));
     }
 
     String describe() {

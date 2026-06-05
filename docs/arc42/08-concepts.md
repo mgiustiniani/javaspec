@@ -9,7 +9,7 @@ All production code is written for Java 8 source/target compatibility. Newer JDK
 The core runtime depends only on the JDK. This affects every feature:
 
 - Configuration uses a restricted internal line-based parser instead of YAML/TOML/JSON libraries, including optional report destination defaults without external parsers.
-- Doubles use JDK dynamic proxies instead of bytecode libraries.
+- Doubles use JDK dynamic proxies instead of bytecode libraries, including Phase 28 argument matchers, throwing stubs, and answer callbacks inside the same interface-only boundary.
 - JSON reports are written by an internal UTF-8 writer instead of a JSON library, including stable id/source fields added in Phase 18 and pending counts/statuses added in Phase 22; Phase 24 report destinations configure only where the existing writer writes.
 - JUnit XML-compatible reports are written internally instead of using JUnit or XML/reporting libraries, with testcase file/line attributes when source data is available and skipped-element mapping for both skipped and pending examples; Phase 24 report destinations configure only where the existing writer writes.
 - CLI parsing, explicit classpath handling, execution-availability diagnostics, bootstrap hook execution, formatting, matchers, invocation APIs, and extension contracts are implemented with JDK APIs; external formatter/extension discovery uses JDK `ServiceLoader`, while bootstrap hooks are explicit configured class names.
@@ -27,7 +27,7 @@ javaspec keeps the PHPSpec workflow shape but adapts it to Java:
 | Examples | Public `void` Java methods named `it_*` or `its_*`; explicit `@Skip`/`@Pending` annotations or runtime signals can mark examples skipped or pending. |
 | Construction customization | `beConstructedWith(...)`, `beConstructedThrough(...)`, `beConstructedNamed(...)`, and `beConstructedThroughNamed(...)` before subject instantiation. |
 | Matcher syntax | `getValue().shouldReturn(...)`, `match(value).should...`, and direct `ObjectBehavior` convenience assertions. |
-| Collaborator doubles | Interface-only JDK-proxy doubles in the zero-dependency core. |
+| Collaborator doubles | Interface-only JDK-proxy doubles in the zero-dependency core, with matcher-aware argument constraints, throwing stubs, and answer callbacks. |
 | Generation prompts | Production generation/update belongs to `run`, gated by confirmation or `--generate`; `--dry-run` reports planned work without writing. |
 | No-JUnit execution | CLI, programmatic invocation, and optional Maven/Gradle plugins run compiled specs through the canonical javaspec runner without requiring JUnit. |
 | Optional JUnit Platform execution | The standalone optional engine exposes canonical javaspec discovery/execution to JUnit Platform tools without changing spec authoring style or adding JUnit dependencies to core. |
@@ -109,12 +109,15 @@ Source-only or non-loadable compiled spec classes produce skipped examples becau
 Core doubles intentionally support ordinary Java interfaces only. The design favors explicit limits over hidden dependencies:
 
 - JDK dynamic proxies implement interface doubles.
-- Stubbing is by method name or exact arguments.
-- Calls are recorded as immutable snapshots.
-- Verification supports called/not-called/called-once/exact-count checks.
+- Stubbing is by method name or argument-constrained patterns.
+- Argument-constrained patterns accept ordinary exact values or `ArgumentMatcher` values from `ArgumentMatchers` / `Doubles` aliases such as `any()`, nullable `any(Class<?>)`, `isNull()`, `notNull()`, and array-aware `eq(...)`.
+- Argument-constrained stubs, including matcher patterns, take priority over method-wide stubs; newest matching stub wins within one priority.
+- Stubs can return values, throw configured throwables, or invoke `StubAnswer` callbacks with immutable `DoubleInvocation` context.
+- Calls are recorded as immutable snapshots before return/throw/answer/default behavior.
+- Verification and call queries support called/not-called/called-once/exact-count checks with the same matcher-aware vararg semantics; ordinary exact values, `null`, and array-content equality remain supported.
 - Unstubbed methods return Java defaults.
 
-Concrete class, final class, static method, constructor, primitive, array, annotation, and enum doubles are outside the core runtime.
+Concrete class, final class, static method, constructor, primitive, array, annotation, enum, and bytecode-backed doubles are outside the core runtime. Default interface methods are not invoked by the proxy handler.
 
 ## 8.11 Explicit Classpath and No-JUnit Integration Boundary
 
@@ -174,7 +177,7 @@ The engine boundary principles are:
 
 ## 8.15 Release/CI Verification and Publication Boundary
 
-Phase 19 keeps release verification non-disruptive, Phase 20 adds release-readiness scaffolding without public publication, Phase 21 adds adoption examples/report documentation without core runtime changes, Phase 22 keeps skipped/pending semantics zero-dependency while updating docs/schema/goldens, Phase 23 keeps diagnostics zero-dependency while leaving compilation external, Phase 24 keeps report destination defaults inside the existing zero-dependency config/report boundaries, Phase 25 keeps external formatter/extension discovery inside the JDK ServiceLoader boundary, Phase 26 keeps target-profile enforcement inside the Java 8-compatible compatibility boundary, and Phase 27 keeps bootstrap hook execution inside the Java 8-compatible no-dependency classloader boundary:
+Phase 19 keeps release verification non-disruptive, Phase 20 adds release-readiness scaffolding without public publication, Phase 21 adds adoption examples/report documentation without core runtime changes, Phase 22 keeps skipped/pending semantics zero-dependency while updating docs/schema/goldens, Phase 23 keeps diagnostics zero-dependency while leaving compilation external, Phase 24 keeps report destination defaults inside the existing zero-dependency config/report boundaries, Phase 25 keeps external formatter/extension discovery inside the JDK ServiceLoader boundary, Phase 26 keeps target-profile enforcement inside the Java 8-compatible compatibility boundary, Phase 27 keeps bootstrap hook execution inside the Java 8-compatible no-dependency classloader boundary, and Phase 28 keeps stronger interface doubles inside the JDK dynamic proxy boundary:
 
 - Root `mvn verify` remains the core-only build and runtime dependency gate.
 - `scripts/check-version-alignment.sh` verifies root Maven, standalone Maven plugin, standalone JUnit Platform engine, Gradle plugin `version`, and Gradle plugin `javaspecCoreVersion` alignment.
@@ -187,7 +190,7 @@ Phase 19 keeps release verification non-disruptive, Phase 20 adds release-readin
 - Maven `release-artifacts` profiles and the Gradle plugin build provide local source/javadoc jar readiness checks only; they do not sign, stage, deploy, or publish.
 - Safe URL, SCM, GitHub Issues, MIT license, and confirmed maintainer/developer metadata can be present.
 - Standalone examples under `examples/`, `scripts/verify-examples.sh`, `docs/schemas/run-report-v1.schema.json`, and golden reports under `docs/examples/reports/` are adoption assets, not root modules or publication evidence; Phase 22 keeps those schema/goldens synchronized with pending-aware report output.
-- No publishing, signing, secrets, mandatory Maven multi-module conversion, portal publication/credentials, final release version/tag, or final publish approval is part of the implemented increments. Phase 27 does not add ServiceLoader hook discovery, script engines, integrated compilation, package scanning, dependency resolution, or runtime dependencies. After Phase 20/21/22 were pushed, remote GitHub Actions success for HEAD `5088e96` on `develop` is user-/maintainer-confirmed; no run IDs, URLs, durations, or logs were independently queried.
+- No publishing, signing, secrets, mandatory Maven multi-module conversion, portal publication/credentials, final release version/tag, or final publish approval is part of the implemented increments. Phase 27 does not add ServiceLoader hook discovery, script engines, integrated compilation, package scanning, dependency resolution, or runtime dependencies. Phase 28 does not add concrete/static/final/constructor/bytecode mocking, CLI/report/schema changes, dependency changes, optional adapter changes, examples, or generated assets. After Phase 20/21/22 were pushed, remote GitHub Actions success for HEAD `5088e96` on `develop` is user-/maintainer-confirmed; no run IDs, URLs, durations, or logs were independently queried.
 - Public publication remains postponed until GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and final publish approval are resolved.
 
 ## 8.16 Extension Boundary

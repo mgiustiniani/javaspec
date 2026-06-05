@@ -1,6 +1,6 @@
 # 6. Runtime View
 
-This section describes the implemented runtime and verification scenarios without C4 diagrams. The runtime is a Java 8-compatible CLI and library surface with no third-party runtime dependencies, including Phase 14 no-JUnit invocation, explicit classpath execution, JUnit XML-compatible reporting, the Phase 15 standalone optional Maven plugin adapter, the Phase 16 standalone optional Gradle plugin adapter, the Phase 17 standalone optional JUnit Platform engine adapter, the Phase 18 stable identifier/source-location/report polish increment, the Phase 19 aggregate release/CI verification workflow, the Phase 20 release-readiness scaffolding, the Phase 21 standalone adoption examples/report documentation assets, the Phase 22 explicit skipped/pending semantics, the Phase 23 classpath/execution availability diagnostics, the Phase 24 configuration-level report destinations, the Phase 25 ServiceLoader external formatter/extension discovery increment, the Phase 26 target-profile enforcement increment, and the Phase 27 bootstrap hook execution increment.
+This section describes the implemented runtime and verification scenarios without C4 diagrams. The runtime is a Java 8-compatible CLI and library surface with no third-party runtime dependencies, including Phase 14 no-JUnit invocation, explicit classpath execution, JUnit XML-compatible reporting, the Phase 15 standalone optional Maven plugin adapter, the Phase 16 standalone optional Gradle plugin adapter, the Phase 17 standalone optional JUnit Platform engine adapter, the Phase 18 stable identifier/source-location/report polish increment, the Phase 19 aggregate release/CI verification workflow, the Phase 20 release-readiness scaffolding, the Phase 21 standalone adoption examples/report documentation assets, the Phase 22 explicit skipped/pending semantics, the Phase 23 classpath/execution availability diagnostics, the Phase 24 configuration-level report destinations, the Phase 25 ServiceLoader external formatter/extension discovery increment, the Phase 26 target-profile enforcement increment, the Phase 27 bootstrap hook execution increment, and the Phase 28 stronger-interface-doubles increment.
 
 ## 6.1 `describe` Scenario
 
@@ -82,12 +82,14 @@ Generation output depends on the described production kind:
 1. User code creates a double for an ordinary interface through `Doubles` or `ObjectBehavior` convenience APIs.
 2. The doubles engine validates that the target is an ordinary interface.
 3. A JDK dynamic proxy records calls through the invocation handler.
-4. Stubs are resolved by method name with any arguments or by method name with exact arguments. Exact matching supports `null` values and array-content comparison.
-5. Unstubbed methods return Java defaults.
-6. Call snapshots can be inspected and verified for called, not called, called once, or exact count.
-7. `toString`, `equals`, and `hashCode` are handled deterministically and are not treated as user collaborator calls.
+4. Stubs are resolved by method name with any arguments or by method name with argument constraints. Argument constraints may contain ordinary exact values or `ArgumentMatcher` values from `ArgumentMatchers` / `Doubles` aliases such as `any()`, nullable `any(Class<?>)`, `isNull()`, `notNull()`, and array-aware `eq(...)`.
+5. Argument-constrained stubs, including matcher patterns, take priority over method-wide stubs; within one priority, the newest matching stub wins.
+6. A matching stub may return a validated value, throw a configured throwable, or invoke a `StubAnswer` callback with an immutable `DoubleInvocation` context. Calls are recorded before returns, throws, answer results, or default values are produced.
+7. Unstubbed methods return Java defaults.
+8. Call snapshots can be inspected and verified for called, not called, called once, or exact count, using the same matcher-aware vararg semantics as stubbing. `Call.hasArguments(...)` is matcher-aware while ordinary exact values, `null`, and array-content comparison remain supported.
+9. `toString`, `equals`, and `hashCode` are handled deterministically and are not treated as user collaborator calls.
 
-Unsupported target kinds fail fast with diagnostics rather than using bytecode libraries.
+Unsupported target kinds fail fast with diagnostics rather than using bytecode libraries. The scenario does not add CLI behavior, report/schema changes, dependencies, optional adapter changes, generated assets, concrete/static/final/constructor doubles, or bytecode mocking.
 
 ## 6.7 Reporting and Extension Runtime Scenario
 

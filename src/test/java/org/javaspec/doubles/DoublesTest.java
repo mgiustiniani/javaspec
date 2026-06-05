@@ -2,6 +2,8 @@ package org.javaspec.doubles;
 
 import org.junit.Test;
 
+import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -61,6 +63,311 @@ public class DoublesTest {
         assertNull(service.label("value"));
         assertEquals("left:right", service.join(new String[] {"left", "right"}));
         assertNull(service.join(new String[] {"left", "wrong"}));
+    }
+
+    @Test
+    public void argumentMatchersWorkAcrossVarargStubbingVerificationQueriesAndCalls() {
+        MatcherService service = Doubles.create(MatcherService.class);
+        DoubleControl control = Doubles.control(service);
+
+        control.when("anyPair", Doubles.any(), Doubles.anyArgument()).thenReturn("any pair");
+        control.when("typedReference", Doubles.any(String.class)).thenReturn("string value");
+        control.when("typedAlias", Doubles.anyType(Number.class)).thenReturn("number value");
+        control.when("typedPrimitiveToken", Doubles.any(int.class)).thenReturn("boxed int value");
+        control.when("primitiveNumber", Doubles.anyType(int.class)).thenReturn("primitive int value");
+        control.when("onlyNull", Doubles.isNull()).thenReturn("null value");
+        control.when("onlyNotNull", Doubles.notNull()).thenReturn("not-null value");
+
+        assertEquals("any pair", service.anyPair(null, "right"));
+        assertEquals("any pair", service.anyPair("left", null));
+        assertEquals("string value", service.typedReference(null));
+        assertEquals("string value", service.typedReference("text"));
+        assertNull(service.typedReference(Integer.valueOf(42)));
+        assertEquals("number value", service.typedAlias(null));
+        assertEquals("number value", service.typedAlias(Long.valueOf(42L)));
+        assertNull(service.typedAlias("not a number"));
+        assertEquals("boxed int value", service.typedPrimitiveToken(null));
+        assertEquals("boxed int value", service.typedPrimitiveToken(Integer.valueOf(7)));
+        assertNull(service.typedPrimitiveToken(Long.valueOf(7L)));
+        assertEquals("primitive int value", service.primitiveNumber(9));
+        assertEquals("null value", service.onlyNull(null));
+        assertNull(service.onlyNull("value"));
+        assertEquals("not-null value", service.onlyNotNull("value"));
+        assertNull(service.onlyNotNull(null));
+
+        control.verifyCalled("anyPair", Doubles.any(), Doubles.anyArgument());
+        control.verifyCalled("typedReference", Doubles.any(String.class));
+        control.verifyCalled("typedPrimitiveToken", Doubles.any(int.class));
+        control.verifyNotCalled("missing", Doubles.any());
+        control.verifyCallCount("anyPair", 2, Doubles.any(), Doubles.anyArgument());
+        control.verifyCallCount("typedReference", 2, Doubles.any(String.class));
+        assertEquals(2, control.callCount("anyPair", Doubles.any(), Doubles.anyArgument()));
+        assertEquals(2, control.callCount("typedAlias", Doubles.anyType(Number.class)));
+        assertEquals(2, control.callCount("typedPrimitiveToken", Doubles.any(int.class)));
+        assertEquals(1, control.callCount("primitiveNumber", Doubles.anyType(int.class)));
+        assertEquals(1, control.callCount("onlyNull", Doubles.isNull()));
+        assertEquals(1, control.callCount("onlyNotNull", Doubles.notNull()));
+        control.verify("anyPair", Doubles.any(), Doubles.anyArgument()).times(2);
+        assertEquals(2, control.verify("anyPair", Doubles.any(), Doubles.anyArgument()).count());
+
+        List<Call> matchingCalls = control.calls("anyPair", Doubles.any(), Doubles.anyArgument());
+        assertEquals(2, matchingCalls.size());
+        assertTrue(matchingCalls.get(0).hasArguments(Doubles.any(), Doubles.equalTo("right")));
+        assertTrue(matchingCalls.get(1).hasArguments(Doubles.any(String.class), Doubles.anyArgument()));
+        assertFalse(matchingCalls.get(1).hasArguments(Doubles.any(Integer.class), Doubles.notNull()));
+
+        assertAssertionMessage(new ThrowingCall() {
+            @Override
+            public void run() {
+                control.verifyCalled("missing", Doubles.any(), Doubles.any(String.class),
+                        Doubles.eq(new String[] {"a", "b"}));
+            }
+        }, "any()", "any(java.lang.String)", "eq([a, b])");
+    }
+
+    @Test
+    public void equalityMatchersUseArrayAwareEqualityAndDefensiveExpectedCopies() {
+        MatcherService service = Doubles.create(MatcherService.class);
+        DoubleControl control = Doubles.control(service);
+
+        String[] expected = new String[] {"a", "b"};
+        control.when("arrayValue", Doubles.eq(expected)).thenReturn("eq-array");
+        expected[0] = "changed";
+        control.when("arrayValue", Doubles.equalTo(new String[] {"x", "y"})).thenReturn("equal-to-array");
+
+        assertEquals("eq-array", service.arrayValue(new String[] {"a", "b"}));
+        assertEquals("equal-to-array", service.arrayValue(new String[] {"x", "y"}));
+        assertNull(service.arrayValue(new String[] {"changed", "b"}));
+
+        control.verifyCalled("arrayValue", Doubles.eq(new String[] {"a", "b"}));
+        control.verifyCallCount("arrayValue", 1, Doubles.equalTo(new String[] {"x", "y"}));
+        assertEquals(1, control.callCount("arrayValue", Doubles.eq(new String[] {"a", "b"})));
+
+        String[] queryExpected = new String[] {"a", "b"};
+        ArgumentMatcher queryMatcher = Doubles.equalTo(queryExpected);
+        queryExpected[1] = "changed";
+        List<Call> calls = control.calls("arrayValue", queryMatcher);
+        assertEquals(1, calls.size());
+        assertTrue(calls.get(0).hasArguments(Doubles.eq(new String[] {"a", "b"})));
+        assertFalse(calls.get(0).hasArguments(Doubles.eq(new String[] {"changed", "b"})));
+    }
+
+    @Test
+    public void argumentConstrainedStubsTakePriorityAndNewestMatchingConstrainedStubWins() {
+        MatcherService service = Doubles.create(MatcherService.class);
+        DoubleControl control = Doubles.control(service);
+
+        control.when("choose").thenReturn("method-wide original");
+        control.when("choose", Doubles.any()).thenReturn("constrained any");
+        control.when("choose").thenReturn("method-wide newest");
+
+        assertEquals("constrained any", service.choose("anything"));
+        assertEquals("constrained any", service.choose(null));
+
+        control.when("choose", Doubles.eq("specific")).thenReturn("specific constrained");
+        assertEquals("specific constrained", service.choose("specific"));
+
+        control.when("choose", Doubles.any()).thenReturn("constrained newest");
+        assertEquals("constrained newest", service.choose("specific"));
+        assertEquals("constrained newest", service.choose("other"));
+    }
+
+    @Test
+    public void throwingStubsThrowConfiguredThrowableAndRecordCallsBeforeThrowing() {
+        SampleService service = Doubles.create(SampleService.class);
+        DoubleControl control = Doubles.control(service);
+        RuntimeException failure = new IllegalStateException("boom");
+
+        control.when("greet", Doubles.eq("boom")).thenThrow(failure);
+
+        Throwable thrown = expect(RuntimeException.class, new ThrowingCall() {
+            @Override
+            public void run() {
+                service.greet("boom");
+            }
+        });
+        assertSame(failure, thrown);
+        assertEquals(1, control.callCount("greet", "boom"));
+        assertEquals(1, control.callCount("greet", Doubles.eq("boom")));
+
+        CheckedService checked = Doubles.create(CheckedService.class);
+        DoubleControl checkedControl = Doubles.control(checked);
+        IOException checkedFailure = new IOException("checked boom");
+        checkedControl.when("load", Doubles.any()).throwsException(checkedFailure);
+
+        Throwable checkedThrown = expect(IOException.class, new ThrowingCall() {
+            @Override
+            public void run() throws Throwable {
+                checked.load("key");
+            }
+        });
+        assertSame(checkedFailure, checkedThrown);
+        assertEquals(1, checkedControl.callCount("load", Doubles.any()));
+    }
+
+    @Test
+    public void throwingStubsRejectNullThrowableClearly() {
+        SampleService service = Doubles.create(SampleService.class);
+        final DoubleControl control = Doubles.control(service);
+
+        NullPointerException thenThrowError = (NullPointerException) expect(NullPointerException.class,
+                new ThrowingCall() {
+                    @Override
+                    public void run() {
+                        control.when("greet").thenThrow(null);
+                    }
+                });
+        assertThrowableMessage(thenThrowError, "throwable must not be null");
+
+        NullPointerException aliasError = (NullPointerException) expect(NullPointerException.class,
+                new ThrowingCall() {
+                    @Override
+                    public void run() {
+                        control.when("greet").throwsException(null);
+                    }
+                });
+        assertThrowableMessage(aliasError, "throwable must not be null");
+    }
+
+    @Test
+    public void answerStubsReceiveImmutableInvocationAndReturnCallbackResult() {
+        AnswerService service = Doubles.create(AnswerService.class);
+        DoubleControl control = Doubles.control(service);
+        final DoubleInvocation[] invocationSeen = new DoubleInvocation[1];
+        final String[] submitted = new String[] {"a", "b"};
+
+        control.when("describe", Doubles.eq("prefix"), Doubles.any(String[].class)).thenAnswer(new StubAnswer() {
+            @Override
+            public Object answer(DoubleInvocation invocation) throws Throwable {
+                invocationSeen[0] = invocation;
+                Method expectedMethod = AnswerService.class.getMethod("describe", String.class, String[].class);
+
+                assertEquals("describe", invocation.methodName());
+                assertEquals("describe", invocation.getMethodName());
+                assertEquals(expectedMethod, invocation.method());
+                assertEquals(expectedMethod, invocation.getMethod());
+                assertEquals(2, invocation.argumentCount());
+                assertEquals("prefix", invocation.argument(0));
+                assertEquals(2, invocation.arguments().size());
+                assertEquals(2, invocation.getArguments().size());
+                assertEquals(2, invocation.argumentsArray().length);
+                assertEquals("describe(prefix, [a, b])", invocation.toString());
+
+                List<Object> arguments = invocation.arguments();
+                try {
+                    arguments.add("extra");
+                    fail("Expected invocation arguments to be immutable");
+                } catch (UnsupportedOperationException expected) {
+                    // expected
+                }
+                String[] listArray = (String[]) arguments.get(1);
+                listArray[0] = "list mutation";
+                assertArrayEquals(new String[] {"a", "b"}, (String[]) invocation.argument(1));
+
+                Object[] argumentArray = invocation.argumentsArray();
+                argumentArray[0] = "array mutation";
+                ((String[]) argumentArray[1])[0] = "nested array mutation";
+                assertEquals("prefix", invocation.argument(0));
+                assertArrayEquals(new String[] {"a", "b"}, (String[]) invocation.argument(1));
+
+                String[] indexedArgument = (String[]) invocation.argument(1);
+                indexedArgument[1] = "indexed mutation";
+                assertArrayEquals(new String[] {"a", "b"}, (String[]) invocation.argument(1));
+
+                String[] values = (String[]) invocation.argument(1);
+                return invocation.methodName() + ":" + values[0] + ":" + values[1];
+            }
+        });
+
+        assertEquals("describe:a:b", service.describe("prefix", submitted));
+        submitted[0] = "caller mutation";
+        assertArrayEquals(new String[] {"a", "b"}, (String[]) invocationSeen[0].argument(1));
+
+        control.when("primitiveResult", Doubles.any()).answers(new StubAnswer() {
+            @Override
+            public Object answer(DoubleInvocation invocation) {
+                return Integer.valueOf(invocation.argumentCount() + 10);
+            }
+        });
+        assertEquals(11, service.primitiveResult("score"));
+    }
+
+    @Test
+    public void answerStubsPropagateExceptionsRecordCallsAndValidateReturnValues() {
+        AnswerService service = Doubles.create(AnswerService.class);
+        DoubleControl control = Doubles.control(service);
+
+        control.when("describe", "bad", Doubles.any()).thenAnswer(new StubAnswer() {
+            @Override
+            public Object answer(DoubleInvocation invocation) {
+                return Integer.valueOf(5);
+            }
+        });
+        IllegalStateException typeError = (IllegalStateException) expect(IllegalStateException.class,
+                new ThrowingCall() {
+                    @Override
+                    public void run() {
+                        service.describe("bad", new String[] {"x"});
+                    }
+                });
+        assertThrowableMessage(typeError, "Stubbed value", "describe", Integer.class.getName(), String.class.getName());
+        assertEquals(1, control.callCount("describe", "bad", Doubles.any()));
+
+        control.when("primitiveResult", "null").answers(new StubAnswer() {
+            @Override
+            public Object answer(DoubleInvocation invocation) {
+                return null;
+            }
+        });
+        IllegalStateException nullError = (IllegalStateException) expect(IllegalStateException.class,
+                new ThrowingCall() {
+                    @Override
+                    public void run() {
+                        service.primitiveResult("null");
+                    }
+                });
+        assertThrowableMessage(nullError, "primitiveResult", "null", "primitive int");
+        assertEquals(1, control.callCount("primitiveResult", "null"));
+
+        final RuntimeException failure = new RuntimeException("answer boom");
+        control.when("describe", "throw", Doubles.any()).thenAnswer(new StubAnswer() {
+            @Override
+            public Object answer(DoubleInvocation invocation) {
+                throw failure;
+            }
+        });
+        Throwable thrown = expect(RuntimeException.class, new ThrowingCall() {
+            @Override
+            public void run() {
+                service.describe("throw", new String[] {"x"});
+            }
+        });
+        assertSame(failure, thrown);
+        assertEquals(1, control.callCount("describe", "throw", Doubles.any()));
+    }
+
+    @Test
+    public void answerStubsRejectNullAnswerClearly() {
+        AnswerService service = Doubles.create(AnswerService.class);
+        final DoubleControl control = Doubles.control(service);
+
+        NullPointerException thenAnswerError = (NullPointerException) expect(NullPointerException.class,
+                new ThrowingCall() {
+                    @Override
+                    public void run() {
+                        control.when("describe").thenAnswer(null);
+                    }
+                });
+        assertThrowableMessage(thenAnswerError, "answer must not be null");
+
+        NullPointerException aliasError = (NullPointerException) expect(NullPointerException.class,
+                new ThrowingCall() {
+                    @Override
+                    public void run() {
+                        control.when("describe").answers(null);
+                    }
+                });
+        assertThrowableMessage(aliasError, "answer must not be null");
     }
 
     @Test
@@ -186,6 +493,14 @@ public class DoublesTest {
         }
     }
 
+    private static void assertThrowableMessage(Throwable error, String... fragments) {
+        String message = String.valueOf(error.getMessage());
+        for (int i = 0; i < fragments.length; i++) {
+            assertTrue("Expected message to contain '" + fragments[i] + "' but was: " + message,
+                    message.contains(fragments[i]));
+        }
+    }
+
     private static Throwable expect(Class<? extends Throwable> expectedType, ThrowingCall call) {
         try {
             call.run();
@@ -204,6 +519,36 @@ public class DoublesTest {
 
     private interface ThrowingCall {
         void run() throws Throwable;
+    }
+
+    public interface MatcherService {
+        String anyPair(Object first, Object second);
+
+        String typedReference(Object value);
+
+        String typedAlias(Object value);
+
+        String typedPrimitiveToken(Object value);
+
+        String primitiveNumber(int value);
+
+        String onlyNull(Object value);
+
+        String onlyNotNull(Object value);
+
+        String arrayValue(String[] values);
+
+        String choose(String value);
+    }
+
+    public interface CheckedService {
+        String load(String key) throws IOException;
+    }
+
+    public interface AnswerService {
+        String describe(String prefix, String[] values);
+
+        int primitiveResult(String key);
     }
 
     public interface SampleService {

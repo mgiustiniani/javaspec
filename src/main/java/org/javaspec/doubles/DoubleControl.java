@@ -22,7 +22,8 @@ public final class DoubleControl {
     }
 
     /**
-     * Starts an exact-arguments stub for the named method.
+     * Starts an argument-constrained stub for the named method.
+     * Ordinary values are matched exactly; {@link ArgumentMatcher} values are matched by callback.
      */
     public MethodStub when(String methodName, Object... exactArguments) {
         return new MethodStub(this, MethodPattern.exactArguments(methodName, exactArguments));
@@ -50,7 +51,8 @@ public final class DoubleControl {
     }
 
     /**
-     * Creates a verifier for calls to the named method with exact arguments.
+     * Creates a verifier for calls to the named method with constrained arguments.
+     * Ordinary values are matched exactly; {@link ArgumentMatcher} values are matched by callback.
      */
     public CallVerifier verify(String methodName, Object... exactArguments) {
         return new CallVerifier(this, MethodPattern.exactArguments(methodName, exactArguments));
@@ -227,6 +229,14 @@ public final class DoubleControl {
 
     void addStub(MethodPattern pattern, Object returnValue) {
         handler.addStub(pattern, returnValue);
+    }
+
+    void addThrowingStub(MethodPattern pattern, Throwable throwable) {
+        handler.addThrowingStub(pattern, throwable);
+    }
+
+    void addAnswerStub(MethodPattern pattern, StubAnswer answer) {
+        handler.addAnswerStub(pattern, answer);
     }
 
     int count(MethodPattern pattern) {
