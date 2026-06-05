@@ -2,6 +2,8 @@ package org.javaspec.cli;
 
 import org.javaspec.bootstrap.BootstrapException;
 import org.javaspec.bootstrap.BootstrapRunner;
+import org.javaspec.compilation.SourceCompilationResult;
+import org.javaspec.compilation.SourceCompiler;
 import org.javaspec.compatibility.ProfileEnforcement;
 import org.javaspec.compatibility.ProfileEnforcementReport;
 import org.javaspec.compatibility.ProfileViolation;
@@ -60,11 +62,13 @@ import java.util.Locale;
 public final class Main {
     private static final int EXIT_OK = 0;
     private static final int EXIT_MISSING_NOT_GENERATED = 1;
+    private static final int EXIT_COMPILATION_FAILED = 1;
     private static final int EXIT_USAGE = 64;
     private static final int EXIT_IO_ERROR = 70;
 
     private static final String DEFAULT_SOURCE_ROOT = "src/main/java";
     private static final String DEFAULT_SPEC_ROOT = "src/test/java";
+    private static final String DEFAULT_COMPILE_OUTPUT = "target/javaspec-classes";
 
     private Main() {
     }
@@ -498,6 +502,15 @@ public final class Main {
             return EXIT_MISSING_NOT_GENERATED;
         }
 
+        ClasspathSelection executionClasspathSelection = classpathSelection;
+        if (parsed.compile && !parsed.dryRun) {
+            executionClasspathSelection = compileSourcesForRun(parsed, sourceRoot, specRoot, classpathSelection, out, err);
+            if (executionClasspathSelection.exitCode() != EXIT_OK) {
+                return executionClasspathSelection.exitCode();
+            }
+            selectedClassLoader = executionClasspathSelection.classLoader();
+        }
+
         int bootstrapExitCode = executeBootstrapHooks(parsed.effectiveBootstrapHooks, selectedClassLoader, specs, err);
         if (bootstrapExitCode != EXIT_OK) {
             return bootstrapExitCode;
@@ -505,7 +518,7 @@ public final class Main {
 
         RunResult runResult = SpecRunner.run(specs, selectedClassLoader, parsed.stopOnFailure);
         printRunnerSummary(runResult, out, parsed.effectiveFormatter, runFormatters);
-        printExecutionDiagnostics(runResult, out, classpathSelection);
+        printExecutionDiagnostics(runResult, out, executionClasspathSelection);
         int reportExitCode = writeRequestedReports(runResult, parsed, err);
         if (reportExitCode != EXIT_OK) {
             return reportExitCode;
@@ -588,6 +601,71 @@ public final class Main {
 
     private static RunResult emptyRunResult() {
         return RunResult.of(Collections.<SpecResult>emptyList());
+    }
+
+    private static ClasspathSelection compileSourcesForRun(
+            ParsedArguments parsed,
+            File sourceRoot,
+            File specRoot,
+            ClasspathSelection classpathSelection,
+            PrintStream out,
+            PrintStream err
+    ) {
+        File outputDirectory = new File(parsed.compileOutputPath);
+        SourceCompilationResult result;
+        try {
+            result = SourceCompiler.compile(
+                    compilationSourceRoots(sourceRoot, specRoot),
+                    outputDirectory,
+                    classpathSelection.entries()
+            );
+        } catch (NoClassDefFoundError ex) {
+            printCompilerUnavailable(err);
+            return classpathSelection.withExitCode(EXIT_USAGE);
+        } catch (IOException ex) {
+            err.println("I/O error while compiling sources: " + messageOf(ex));
+            err.println("Target path: " + outputDirectory.getPath());
+            return classpathSelection.withExitCode(EXIT_IO_ERROR);
+        } catch (SecurityException ex) {
+            err.println("I/O error while compiling sources: " + messageOf(ex));
+            err.println("Target path: " + outputDirectory.getPath());
+            return classpathSelection.withExitCode(EXIT_IO_ERROR);
+        }
+
+        if (!result.compilerAvailable()) {
+            printCompilerUnavailable(err);
+            return classpathSelection.withExitCode(EXIT_USAGE);
+        }
+        if (!result.successful()) {
+            printCompilationFailure(result, err);
+            return classpathSelection.withExitCode(EXIT_COMPILATION_FAILED);
+        }
+        if (result.sourceFileCount() == 0) {
+            return classpathSelection;
+        }
+
+        out.println("Compiled " + result.sourceFileCount() + " source file(s) to "
+                + result.outputDirectory().getPath() + ".");
+        return selectClasspathWithCompileOutput(result.outputDirectory(), classpathSelection, err);
+    }
+
+    private static List<File> compilationSourceRoots(File sourceRoot, File specRoot) {
+        List<File> roots = new ArrayList<File>();
+        roots.add(sourceRoot);
+        roots.add(specRoot);
+        return roots;
+    }
+
+    private static void printCompilerUnavailable(PrintStream err) {
+        err.println("Error: Java compiler is not available. Run javaspec with a JDK or omit --compile.");
+    }
+
+    private static void printCompilationFailure(SourceCompilationResult result, PrintStream err) {
+        err.println("Compilation failed:");
+        List<String> diagnostics = result.diagnostics();
+        for (int i = 0; i < diagnostics.size(); i++) {
+            err.println("  " + diagnostics.get(i));
+        }
     }
 
     private static int executeBootstrapHooks(
@@ -811,7 +889,7 @@ public final class Main {
     private static ClasspathSelection selectClasspath(ParsedArguments parsed, PrintStream err) {
         ClassLoader parent = effectiveClassLoader();
         if (!parsed.hasExplicitClasspath()) {
-            return ClasspathSelection.of(parent, Collections.<File>emptyList(), EXIT_OK);
+            return ClasspathSelection.of(parent, Collections.<File>emptyList(), EXIT_OK, parent, false);
         }
 
         List<File> entries = new ArrayList<File>();
@@ -820,7 +898,7 @@ public final class Main {
             if (argument.isFile()) {
                 int exitCode = addClasspathFileEntries(argument.value(), entries, err);
                 if (exitCode != EXIT_OK) {
-                    return ClasspathSelection.of(parent, entries, exitCode);
+                    return ClasspathSelection.of(parent, entries, exitCode, parent, false);
                 }
             } else {
                 addPathListEntries(argument.value(), entries);
@@ -833,14 +911,46 @@ public final class Main {
                 urls[i] = entries.get(i).toURI().toURL();
             } catch (MalformedURLException ex) {
                 printUsageError(err, "Invalid classpath entry: " + entries.get(i).getPath() + " (" + messageOf(ex) + ").");
-                return ClasspathSelection.of(parent, entries, EXIT_USAGE);
+                return ClasspathSelection.of(parent, entries, EXIT_USAGE, parent, false);
             } catch (SecurityException ex) {
                 err.println("I/O error while preparing explicit classpath: " + messageOf(ex));
                 err.println("Classpath entry: " + entries.get(i).getPath());
-                return ClasspathSelection.of(parent, entries, EXIT_IO_ERROR);
+                return ClasspathSelection.of(parent, entries, EXIT_IO_ERROR, parent, false);
             }
         }
-        return ClasspathSelection.of(new URLClassLoader(urls, parent), entries, EXIT_OK);
+        return ClasspathSelection.of(new URLClassLoader(urls, parent), entries, EXIT_OK, parent, false);
+    }
+
+    private static ClasspathSelection selectClasspathWithCompileOutput(
+            File compileOutputDirectory,
+            ClasspathSelection baseSelection,
+            PrintStream err
+    ) {
+        List<File> entries = new ArrayList<File>();
+        entries.add(compileOutputDirectory);
+        entries.addAll(baseSelection.entries());
+
+        URL[] urls = new URL[entries.size()];
+        for (int i = 0; i < entries.size(); i++) {
+            try {
+                urls[i] = entries.get(i).toURI().toURL();
+            } catch (MalformedURLException ex) {
+                printUsageError(err, "Invalid classpath entry: " + entries.get(i).getPath()
+                        + " (" + messageOf(ex) + ").");
+                return baseSelection.withExitCode(EXIT_USAGE);
+            } catch (SecurityException ex) {
+                err.println("I/O error while preparing compilation classpath: " + messageOf(ex));
+                err.println("Target path: " + compileOutputDirectory.getPath());
+                return baseSelection.withExitCode(EXIT_IO_ERROR);
+            }
+        }
+        return ClasspathSelection.of(
+                new URLClassLoader(urls, baseSelection.parentClassLoader()),
+                entries,
+                EXIT_OK,
+                baseSelection.parentClassLoader(),
+                true
+        );
     }
 
     private static int addClasspathFileEntries(String classpathFilePath, List<File> entries, PrintStream err) {
@@ -921,6 +1031,10 @@ public final class Main {
         for (int i = 0; i < lines.size(); i++) {
             out.println("  - " + lines.get(i));
         }
+        if (classpathSelection.includesCompileOutput()) {
+            out.println("  - Compile output classpath entry: "
+                    + classpathSelection.compiledOutputDirectory().getPath());
+        }
         if (classpathSelection.hasExplicitEntries()) {
             out.println("  - Explicit classpath entries provided: " + classpathSelection.entries().size()
                     + ". Verify these entries contain compiled spec classes and required dependencies.");
@@ -941,6 +1055,10 @@ public final class Main {
         out.println("  Constructor policy: " + policyOptionName(resolveConstructorPolicy(parsed)));
         out.println("  Profile: " + parsed.effectiveProfile.key());
         out.println("  Formatter: " + parsed.effectiveFormatter);
+        if (parsed.compile) {
+            out.println("  Compile: true");
+            out.println("  Compile output: " + parsed.compileOutputPath);
+        }
         if (parsed.effectiveBootstrapHooks != null && !parsed.effectiveBootstrapHooks.isEmpty()) {
             out.println("  Bootstrap hooks: " + joinNames(parsed.effectiveBootstrapHooks));
         }
@@ -1112,6 +1230,7 @@ public final class Main {
         ParsedArguments parsed = new ParsedArguments();
         parsed.sourceRoot = DEFAULT_SOURCE_ROOT;
         parsed.specRoot = DEFAULT_SPEC_ROOT;
+        parsed.compileOutputPath = DEFAULT_COMPILE_OUTPUT;
 
         List<String> operands = new ArrayList<String>();
         int index = 0;
@@ -1240,6 +1359,22 @@ public final class Main {
                 }
                 parsed.addClasspathArgument(ClasspathArgument.file(arg, classpathFile));
                 index += 2;
+            } else if ("--compile".equals(arg)) {
+                parsed.compile = true;
+                index++;
+            } else if ("--compile-output".equals(arg)) {
+                if (index + 1 >= args.length) {
+                    parsed.errorMessage = "Missing value for " + arg + ".";
+                    return parsed;
+                }
+                parsed.compileOutputPath = args[index + 1];
+                parsed.compileOutputSpecified = true;
+                parsed.compile = true;
+                if (parsed.compileOutputPath.length() == 0) {
+                    parsed.errorMessage = "Compile output directory must not be empty.";
+                    return parsed;
+                }
+                index += 2;
             } else if ("--spec-dir".equals(arg) || "--spec-root".equals(arg)) {
                 if (index + 1 >= args.length) {
                     parsed.errorMessage = "Missing value for " + arg + ".";
@@ -1360,6 +1495,14 @@ public final class Main {
                 parsed.errorMessage = "The " + parsed.firstClasspathOption() + " option belongs to run; describe does not execute examples.";
                 return parsed;
             }
+            if (parsed.compileOutputSpecified) {
+                parsed.errorMessage = "The --compile-output option belongs to run; describe does not execute examples.";
+                return parsed;
+            }
+            if (parsed.compile) {
+                parsed.errorMessage = "The --compile option belongs to run; describe does not execute examples.";
+                return parsed;
+            }
             if (parsed.sourceRootSpecified) {
                 parsed.errorMessage = "The source directory is used by run; describe writes only to the spec directory.";
                 return parsed;
@@ -1421,7 +1564,7 @@ public final class Main {
         stream.println("Usage:");
         stream.println("  javaspec describe <ClassName> [--config <file>] [--suite <name>] [--spec-dir <dir>]");
         stream.println("  javaspec desc <ClassName> [--config <file>] [--suite <name>] [--spec-root <dir>]");
-        stream.println("  javaspec run [--config <file>] [--suite <name>] [--spec-dir <dir>] [--source-dir <dir>] [--classpath <path-list>] [--classpath-file <file>] [--generate] [--dry-run] [--stop-on-failure] [--formatter <progress|pretty>] [--profile <java8|java11|java17|java21|java25>] [--verbose] [--report <file>] [--junit-xml <file>] [--constructor-policy <delete|preserve|comment>] [--class <name>] [--example <name>]");
+        stream.println("  javaspec run [--config <file>] [--suite <name>] [--spec-dir <dir>] [--source-dir <dir>] [--classpath <path-list>] [--classpath-file <file>] [--compile] [--compile-output <dir>] [--generate] [--dry-run] [--stop-on-failure] [--formatter <progress|pretty>] [--profile <java8|java11|java17|java21|java25>] [--verbose] [--report <file>] [--junit-xml <file>] [--constructor-policy <delete|preserve|comment>] [--class <name>] [--example <name>]");
         stream.println();
         stream.println("Commands:");
         stream.println("  describe <ClassName>  Create a PHPSpec-style specification skeleton; never creates production code.");
@@ -1437,6 +1580,8 @@ public final class Main {
         stream.println("  --source-root <dir>   Alias for --source-dir.");
         stream.println("  --classpath <paths>   With run, add explicit classpath entries separated by '" + File.pathSeparator + "'.");
         stream.println("  --classpath-file <file> With run, read UTF-8 classpath entries, one per non-comment line.");
+        stream.println("  --compile             With run, compile source and spec trees before executable examples.");
+        stream.println("  --compile-output <dir> With run, write compiled classes to <dir> (default: " + DEFAULT_COMPILE_OUTPUT + ").");
         stream.println("  --generate            With run, answer yes to missing production type generation prompts.");
         stream.println("  --dry-run             With run, report pending generation/update work without writing files or prompting.");
         stream.println("  --stop-on-failure     With run, stop after the first failed or broken executable example.");
@@ -1541,8 +1686,16 @@ public final class Main {
         private final ClassLoader classLoader;
         private final List<File> entries;
         private final int exitCode;
+        private final ClassLoader parentClassLoader;
+        private final boolean includesCompileOutput;
 
-        private ClasspathSelection(ClassLoader classLoader, List<File> entries, int exitCode) {
+        private ClasspathSelection(
+                ClassLoader classLoader,
+                List<File> entries,
+                int exitCode,
+                ClassLoader parentClassLoader,
+                boolean includesCompileOutput
+        ) {
             this.classLoader = classLoader;
             if (entries.isEmpty()) {
                 this.entries = Collections.emptyList();
@@ -1550,14 +1703,30 @@ public final class Main {
                 this.entries = Collections.unmodifiableList(new ArrayList<File>(entries));
             }
             this.exitCode = exitCode;
+            this.parentClassLoader = parentClassLoader;
+            this.includesCompileOutput = includesCompileOutput;
         }
 
-        static ClasspathSelection of(ClassLoader classLoader, List<File> entries, int exitCode) {
-            return new ClasspathSelection(classLoader, entries, exitCode);
+        static ClasspathSelection of(
+                ClassLoader classLoader,
+                List<File> entries,
+                int exitCode,
+                ClassLoader parentClassLoader,
+                boolean includesCompileOutput
+        ) {
+            return new ClasspathSelection(classLoader, entries, exitCode, parentClassLoader, includesCompileOutput);
+        }
+
+        ClasspathSelection withExitCode(int newExitCode) {
+            return new ClasspathSelection(classLoader, entries, newExitCode, parentClassLoader, includesCompileOutput);
         }
 
         ClassLoader classLoader() {
             return classLoader;
+        }
+
+        ClassLoader parentClassLoader() {
+            return parentClassLoader;
         }
 
         List<File> entries() {
@@ -1566,6 +1735,17 @@ public final class Main {
 
         boolean hasExplicitEntries() {
             return !entries.isEmpty();
+        }
+
+        boolean includesCompileOutput() {
+            return includesCompileOutput;
+        }
+
+        File compiledOutputDirectory() {
+            if (!includesCompileOutput || entries.isEmpty()) {
+                return null;
+            }
+            return entries.get(0);
         }
 
         int exitCode() {
@@ -1584,6 +1764,9 @@ public final class Main {
         private boolean dryRun;
         private boolean stopOnFailure;
         private boolean verbose;
+        private boolean compile;
+        private String compileOutputPath;
+        private boolean compileOutputSpecified;
         private boolean helpRequested;
         private String errorMessage;
         private String configPath;
