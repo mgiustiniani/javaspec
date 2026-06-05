@@ -12,6 +12,8 @@ import org.javaspec.config.JavaspecSuiteConfiguration;
 import org.javaspec.diagnostics.RunDiagnostics;
 import org.javaspec.discovery.SpecDiscoveryRequest;
 import org.javaspec.discovery.SpecNamingConvention;
+import org.javaspec.extension.ExtensionLoadingException;
+import org.javaspec.extension.JavaspecExtensionLoader;
 import org.javaspec.formatter.RunFormatter;
 import org.javaspec.formatter.RunFormatterRegistry;
 import org.javaspec.invocation.JavaspecInvocation;
@@ -40,8 +42,6 @@ import java.util.Set;
  * Gradle task that adapts to the canonical no-JUnit javaspec launcher.
  */
 public class JavaspecRunTask extends DefaultTask {
-    private static final RunFormatterRegistry RUN_FORMATTERS = RunFormatterRegistry.builtIn();
-
     private final JavaspecExtension taskOptions;
     private JavaspecExtension extension;
     private FileCollection defaultClasspath;
@@ -361,7 +361,8 @@ public class JavaspecRunTask extends DefaultTask {
             SpecDiscoveryRequest discoveryRequest = createDiscoveryRequest(selectedSuite);
             List<File> classpathEntries = classpathEntries();
             runClassLoader = createRunClassLoader(originalContextClassLoader, classpathEntries);
-            String effectiveFormatter = effectiveFormatter(configuration);
+            RunFormatterRegistry runFormatters = runFormatterRegistry(runClassLoader);
+            String effectiveFormatter = effectiveFormatter(configuration, runFormatters);
 
             getLogger().lifecycle("javaspec: running suite '" + selectedSuite.name()
                     + "' from " + discoveryRequest.specRoot().getPath() + ".");
@@ -379,7 +380,7 @@ public class JavaspecRunTask extends DefaultTask {
             RunResult runResult = invocationResult.runResult();
 
             logDiscoverySummary(invocationResult);
-            renderFormattedSummary(runResult, effectiveFormatter);
+            renderFormattedSummary(runResult, effectiveFormatter, runFormatters);
             logExecutionDiagnostics(runResult, classpathEntries.size());
             logFailureWarnings(runResult);
             writeReports(runResult, configuration);
@@ -507,15 +508,23 @@ public class JavaspecRunTask extends DefaultTask {
         return new URLClassLoader(urls, parent);
     }
 
-    private String effectiveFormatter(JavaspecConfiguration configuration) {
+    private RunFormatterRegistry runFormatterRegistry(ClassLoader runClassLoader) {
+        try {
+            return JavaspecExtensionLoader.loadRunFormatterRegistry(runClassLoader);
+        } catch (ExtensionLoadingException ex) {
+            throw new GradleException("Could not load javaspec extensions: " + messageOf(ex), ex);
+        }
+    }
+
+    private String effectiveFormatter(JavaspecConfiguration configuration, RunFormatterRegistry runFormatters) {
         String configuredFormatter = trimmedOrNull(getFormatter());
         if (configuredFormatter == null) {
             configuredFormatter = configuration.formatter();
         }
         String normalized = RunFormatterRegistry.normalizeName(configuredFormatter);
-        if (normalized == null || !RUN_FORMATTERS.contains(normalized)) {
+        if (normalized == null || !runFormatters.contains(normalized)) {
             throw new GradleException("Invalid javaspec formatter: " + configuredFormatter
-                    + ". Valid values: " + validFormatterNames() + ".");
+                    + ". Valid values: " + validFormatterNames(runFormatters) + ".");
         }
         return normalized;
     }
@@ -529,8 +538,12 @@ public class JavaspecRunTask extends DefaultTask {
         }
     }
 
-    private void renderFormattedSummary(RunResult runResult, String formatterName) {
-        RunFormatter formatter = RUN_FORMATTERS.lookup(formatterName);
+    private void renderFormattedSummary(
+            RunResult runResult,
+            String formatterName,
+            RunFormatterRegistry runFormatters
+    ) {
+        RunFormatter formatter = runFormatters.lookup(formatterName);
         if (formatter == null) {
             return;
         }
@@ -910,8 +923,8 @@ public class JavaspecRunTask extends DefaultTask {
         return trimmed;
     }
 
-    private static String validFormatterNames() {
-        List<String> names = RunFormatterRegistry.builtInFormatterNames();
+    private static String validFormatterNames(RunFormatterRegistry registry) {
+        List<String> names = registry.formatterNames();
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < names.size(); i++) {
             if (i > 0) {

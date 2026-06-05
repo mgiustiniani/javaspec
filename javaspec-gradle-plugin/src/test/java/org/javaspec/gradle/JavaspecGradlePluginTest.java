@@ -405,6 +405,35 @@ public class JavaspecGradlePluginTest {
     }
 
     @Test
+    public void externalExtensionProviderOnTaskClasspathRendersSelectedFormatter() throws Exception {
+        File projectDir = externalFormatterExtensionProject(
+                "external-extension-formatter",
+                "    formatter = 'external'\n"
+        );
+
+        BuildResult result = runGradle(projectDir, "javaspecRun");
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":javaspecRun").getOutcome());
+        assertContains(result.getOutput(), "javaspec: formatter external.");
+        assertContains(result.getOutput(), "javaspec: found 1 specification(s).");
+        assertContains(result.getOutput(), "javaspec: external gradle formatter total=1 passed=1 failed=0");
+        assertFalse(result.getOutput().contains("javaspec: Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped, 0 pending."));
+    }
+
+    @Test
+    public void invalidFormatterListsExternalNamesWhenProviderIsOnTaskClasspath() throws Exception {
+        File projectDir = externalFormatterExtensionProject(
+                "invalid-external-formatter-list",
+                "    formatter = 'missing'\n"
+        );
+
+        BuildResult result = runGradleAndFail(projectDir, "javaspecRun");
+
+        assertEquals(TaskOutcome.FAILED, result.task(":javaspecRun").getOutcome());
+        assertContains(result.getOutput(), "Invalid javaspec formatter: missing. Valid values: progress, pretty, external.");
+    }
+
+    @Test
     public void invalidConfigFileFailsWithDiagnostics() throws Exception {
         File projectDir = newProject("invalid-config");
         writeBuildFile(projectDir, javaPluginBuild(
@@ -465,6 +494,51 @@ public class JavaspecGradlePluginTest {
         assertEquals(TaskOutcome.FAILED, result.task(":javaspecRun").getOutcome());
         assertContains(result.getOutput(), "Invalid javaspec configuration:");
         assertContains(result.getOutput(), "Duplicate configuration key '" + duplicateKey + "'");
+    }
+
+    private File externalFormatterExtensionProject(String projectName, String javaspecConfiguration) throws Exception {
+        File projectDir = newProject(projectName);
+        writeBuildFile(projectDir, javaPluginBuild(
+                "repositories {\n" +
+                        "    mavenLocal()\n" +
+                        "    mavenCentral()\n" +
+                        "}\n" +
+                        "\n" +
+                        "dependencies {\n" +
+                        "    testImplementation 'org.javaspec:javaspec:0.1.0-SNAPSHOT'\n" +
+                        "}\n" +
+                        "\n" +
+                        "javaspec {\n" +
+                        javaspecConfiguration +
+                        "}\n"
+        ));
+        writeJavaSource(projectDir, "src/test/java/com/example/ExternalFormatterExtension.java",
+                "package com.example;\n\n" +
+                        "import org.javaspec.extension.ExtensionContext;\n" +
+                        "import org.javaspec.extension.JavaspecExtension;\n" +
+                        "import org.javaspec.formatter.RunFormatter;\n" +
+                        "import org.javaspec.runner.RunResult;\n\n" +
+                        "import java.io.PrintStream;\n\n" +
+                        "public class ExternalFormatterExtension implements JavaspecExtension {\n" +
+                        "    public void configure(ExtensionContext context) {\n" +
+                        "        context.runFormatters().register(\"external\", new RunFormatter() {\n" +
+                        "            public void format(RunResult runResult, PrintStream out) {\n" +
+                        "                out.println(\"external gradle formatter total=\" + runResult.totalExamples()\n" +
+                        "                        + \" passed=\" + runResult.passedCount()\n" +
+                        "                        + \" failed=\" + runResult.failedCount());\n" +
+                        "            }\n" +
+                        "        });\n" +
+                        "    }\n" +
+                        "}\n");
+        writeFile(new File(projectDir, "src/test/resources/META-INF/services/org.javaspec.extension.JavaspecExtension"),
+                "com.example.ExternalFormatterExtension\n");
+        writeJavaSource(projectDir, "src/test/java/spec/com/example/ExternalFormatterSpec.java",
+                "package spec.com.example;\n\n" +
+                        "public class ExternalFormatterSpec {\n" +
+                        "    public void it_passes_with_external_formatter() {\n" +
+                        "    }\n" +
+                        "}\n");
+        return projectDir;
     }
 
     private File failingExamplesProject(String projectName, String extraJavaspecConfiguration) throws Exception {

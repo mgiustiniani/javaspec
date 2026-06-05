@@ -10,6 +10,8 @@ import org.javaspec.discovery.SpecDiscoveryRequest;
 import org.javaspec.discovery.SpecNamingConvention;
 import org.javaspec.discovery.TypeCheckResult;
 import org.javaspec.discovery.TypeExistenceChecker;
+import org.javaspec.extension.ExtensionLoadingException;
+import org.javaspec.extension.JavaspecExtensionLoader;
 import org.javaspec.generation.SpecFileGenerator;
 import org.javaspec.generation.SpecGenerationPlan;
 import org.javaspec.generation.SpecSkeletonGenerator;
@@ -58,7 +60,6 @@ public final class Main {
 
     private static final String DEFAULT_SOURCE_ROOT = "src/main/java";
     private static final String DEFAULT_SPEC_ROOT = "src/test/java";
-    private static final RunFormatterRegistry RUN_FORMATTERS = RunFormatterRegistry.builtIn();
 
     private Main() {
     }
@@ -249,6 +250,17 @@ public final class Main {
             return classpathSelection.exitCode();
         }
         ClassLoader selectedClassLoader = classpathSelection.classLoader();
+        RunFormatterRegistry runFormatters;
+        try {
+            runFormatters = JavaspecExtensionLoader.loadRunFormatterRegistry(selectedClassLoader);
+        } catch (ExtensionLoadingException ex) {
+            err.println("Error: Could not load javaspec extensions: " + messageOf(ex));
+            return EXIT_USAGE;
+        }
+        int formatterExitCode = validateEffectiveFormatter(parsed, runFormatters, err);
+        if (formatterExitCode != EXIT_OK) {
+            return formatterExitCode;
+        }
 
         if (parsed.verbose) {
             printRunConfiguration(parsed, out, classpathSelection);
@@ -464,7 +476,7 @@ public final class Main {
         }
 
         RunResult runResult = SpecRunner.run(specs, selectedClassLoader, parsed.stopOnFailure);
-        printRunnerSummary(runResult, out, parsed.effectiveFormatter);
+        printRunnerSummary(runResult, out, parsed.effectiveFormatter, runFormatters);
         printExecutionDiagnostics(runResult, out, classpathSelection);
         int reportExitCode = writeRequestedReports(runResult, parsed, err);
         if (reportExitCode != EXIT_OK) {
@@ -764,10 +776,15 @@ public final class Main {
         }
     }
 
-    private static void printRunnerSummary(RunResult runResult, PrintStream out, String formatter) {
-        RunFormatter runFormatter = RUN_FORMATTERS.lookup(formatter);
+    private static void printRunnerSummary(
+            RunResult runResult,
+            PrintStream out,
+            String formatter,
+            RunFormatterRegistry runFormatters
+    ) {
+        RunFormatter runFormatter = runFormatters.lookup(formatter);
         if (runFormatter == null) {
-            runFormatter = RUN_FORMATTERS.lookup(RunFormatterRegistry.FORMATTER_PROGRESS);
+            runFormatter = runFormatters.lookup(RunFormatterRegistry.FORMATTER_PROGRESS);
         }
         runFormatter.format(runResult, out);
     }
@@ -842,18 +859,37 @@ public final class Main {
     }
 
     private static String normalizeFormatter(String formatter) {
-        String normalized = RunFormatterRegistry.normalizeName(formatter);
-        if (normalized == null) {
-            return null;
-        }
-        if (RUN_FORMATTERS.contains(normalized)) {
-            return normalized;
-        }
-        return null;
+        return RunFormatterRegistry.normalizeName(formatter);
     }
 
-    private static String validFormatterNames() {
-        return joinNames(RunFormatterRegistry.builtInFormatterNames());
+    private static int validateEffectiveFormatter(
+            ParsedArguments parsed,
+            RunFormatterRegistry runFormatters,
+            PrintStream err
+    ) {
+        if (runFormatters.contains(parsed.effectiveFormatter)) {
+            return EXIT_OK;
+        }
+        printUsageError(err, "Invalid formatter: " + selectedFormatterDisplay(parsed)
+                + ". Valid values: " + validFormatterNames(runFormatters) + ".");
+        return EXIT_USAGE;
+    }
+
+    private static String selectedFormatterDisplay(ParsedArguments parsed) {
+        if (parsed.formatterSpecified) {
+            return parsed.formatter;
+        }
+        if (parsed.configuration != null) {
+            return parsed.configuration.formatter();
+        }
+        if (parsed.effectiveFormatter != null) {
+            return parsed.effectiveFormatter;
+        }
+        return RunFormatterRegistry.FORMATTER_PROGRESS;
+    }
+
+    private static String validFormatterNames(RunFormatterRegistry registry) {
+        return joinNames(registry.formatterNames());
     }
 
     private static String joinNames(List<String> names) {
@@ -1226,8 +1262,7 @@ public final class Main {
             if (parsed.formatterSpecified) {
                 parsed.formatterOverride = normalizeFormatter(parsed.formatter);
                 if (parsed.formatterOverride == null) {
-                    parsed.errorMessage = "Invalid formatter: " + parsed.formatter
-                            + ". Valid values: " + validFormatterNames() + ".";
+                    parsed.errorMessage = "Formatter must not be empty.";
                     return parsed;
                 }
             }

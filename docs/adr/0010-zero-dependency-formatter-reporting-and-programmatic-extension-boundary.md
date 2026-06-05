@@ -8,7 +8,7 @@ Accepted
 
 Phase 11 stabilized human-readable run output behind public formatter contracts, added optional JSON run reports, and introduced a minimal extension lifecycle API. These features must preserve the zero-runtime-dependency policy from ADR 0002 and reuse the immutable runner result model from ADR 0006.
 
-The implementation also needs to avoid overstating plugin behavior. Public extension contracts exist, but the CLI does not discover or load external extensions in the current increment.
+The implementation also needs to avoid overstating plugin behavior. Public extension contracts exist, but Phase 11 did not discover or load external extensions; Phase 25 / ADR 0018 later adds ServiceLoader-based formatter/extension discovery without changing this ADR's zero-dependency formatter/reporting boundary.
 
 ## Decision
 
@@ -18,7 +18,7 @@ javaspec writes optional run reports through `org.javaspec.reporting.RunReportWr
 
 `javaspec run --report <file>` and `--report-file <file>` are run-only. No-spec, passing, failing, broken, skipped-only, and pending-only runs write reports after normal output. Failed or broken executable examples still exit `1` after the report is written. Dry-run pending generation/update exits before execution and does not write a report. Report write failures are I/O failures and exit `70`.
 
-javaspec exposes minimal programmatic extension contracts through `JavaspecExtension`, the short-name alias `Extension`, and `ExtensionContext`. Extensions can register run formatters programmatically through the context registry. External CLI extension discovery/loading is not implemented: there is no configuration-driven activation, classpath scanning, `ServiceLoader` integration, plugin lookup, or CLI use of extension-provided formatter names in this increment.
+javaspec exposes minimal programmatic extension contracts through `JavaspecExtension`, the short-name alias `Extension`, and `ExtensionContext`. Extensions can register run formatters programmatically through the context registry. Phase 11 did not implement external CLI extension discovery/loading. Phase 25 / ADR 0018 later adds JDK ServiceLoader discovery for `RunFormatter`, `JavaspecExtension`, and alias `Extension` providers; configuration-driven activation, package scanning, plugin lookup, Maven plugin formatter controls, and JUnit Platform formatter controls remain out of scope.
 
 ## Consequences
 
@@ -31,11 +31,11 @@ Positive consequences:
 
 Negative consequences and limitations:
 
-- CLI formatter selection remains limited to built-in `progress` and `pretty`.
+- Before ADR 0018, CLI formatter selection was limited to built-in `progress` and `pretty`; after ADR 0018 it can also select ServiceLoader-discovered formatter names available on the effective run classloader.
 - Reports remain schemaVersion 1 with additive Phase 18 identifier/source fields and Phase 22 pending fields/statuses; Phase 24 adds config-level report destinations only, with no alternate report format or streaming report mode.
-- Extension APIs are useful only when code can configure the registry programmatically; end-user plugin loading remains future work and will need its own design decision before implementation.
+- Extension APIs are useful programmatically and, after ADR 0018, through classpath-scoped ServiceLoader providers. End-user plugin lookup, package scanning, and configuration-driven activation remain future work and need their own design decision before implementation.
 - The JSON writer must maintain correct escaping and deterministic output internally because no JSON library is used at runtime.
 
-Related decision: [ADR 0017](0017-configuration-level-report-destinations.md) extends report destination configuration without changing report schemas or writers.
+Related decisions: [ADR 0017](0017-configuration-level-report-destinations.md) extends report destination configuration without changing report schemas or writers, and [ADR 0018](0018-serviceloader-external-formatter-extension-discovery.md) extends formatter/extension discovery without adding runtime dependencies.
 
 Related ARC42 sections: [5. Building Block View](../arc42/05-building-block-view.md), [6. Runtime View](../arc42/06-runtime-view.md), [7. Deployment View](../arc42/07-deployment-view.md), [8. Concepts](../arc42/08-concepts.md), and [10. Quality Requirements](../arc42/10-quality-requirements.md).

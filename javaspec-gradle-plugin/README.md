@@ -50,7 +50,35 @@ tasks.named('javaspecRun') {
 
 The plugin registers extension `javaspec` and task `javaspecRun` in Gradle's `verification` group. When the Gradle Java plugin/source sets are present, `javaspecRun` defaults to the `test` source set runtime classpath and depends on `testClasses`.
 
-Supported task/extension options include `skip`, `failOnFailure` (default `true`), `stopOnFailure`, `configFile`, `suite`, `specDir`/`specRoot`, class filters, example filters, formatter `progress` or `pretty`, JSON report aliases (`reportFile`, `jsonReportFile`), and JUnit XML-compatible report aliases (`junitXmlReportFile`, `junitXmlFile`). JSON and JUnit XML-compatible reports are produced by core writers and include Phase 18 stable id/source metadata plus Phase 22 pending statuses/counts where available.
+Supported task/extension options include `skip`, `failOnFailure` (default `true`), `stopOnFailure`, `configFile`, `suite`, `specDir`/`specRoot`, class filters, example filters, formatter selection, JSON report aliases (`reportFile`, `jsonReportFile`), and JUnit XML-compatible report aliases (`junitXmlReportFile`, `junitXmlFile`). JSON and JUnit XML-compatible reports are produced by core writers and include Phase 18 stable id/source metadata plus Phase 22 pending statuses/counts where available.
+
+`javaspecRun` loads built-in formatters first and then discovers external formatter/extension providers through JDK `ServiceLoader` from the task run classloader. Provider jars can be on the configured task classpath, the extension classpath, or the default Java test runtime classpath when that default is active. Formatter selection precedence is task setting, extension setting, project property `javaspec.formatter`, config `formatter`, then default `progress`. Invalid formatter diagnostics list all discovered formatter names.
+
+A provider jar can expose a direct formatter or an extension with service files such as:
+
+```text
+# META-INF/services/org.javaspec.formatter.RunFormatter
+com.example.javaspec.MarkdownRunFormatter
+
+# META-INF/services/org.javaspec.extension.JavaspecExtension
+com.example.javaspec.MarkdownExtension
+
+# alias service type also supported:
+# META-INF/services/org.javaspec.extension.Extension
+com.example.javaspec.MarkdownExtension
+```
+
+Example consumer configuration when the formatter jar is on `testRuntimeClasspath`:
+
+```groovy
+dependencies {
+    testRuntimeOnly 'com.example:javaspec-markdown-formatter:1.0.0'
+}
+
+tasks.named('javaspecRun') {
+    formatter = 'markdown'
+}
+```
 
 When `configFile` points at a javaspec config that defines top-level report destinations, the task uses those destinations as defaults if no explicit extension/task report setting is present. Supported config aliases are `report`, `reportFile`, `report-file`, `jsonReport`, `jsonReportFile`, and `json-report-file` for JSON, plus `junitXml`, `junit-xml`, `junitXmlFile`, `junit-xml-file`, `junitXmlReportFile`, and `junit-xml-report-file` for JUnit XML-compatible reports. Explicit Gradle adapter settings override config values.
 

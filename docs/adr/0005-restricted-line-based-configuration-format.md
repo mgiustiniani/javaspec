@@ -35,5 +35,6 @@ Negative consequences:
 Implementation follow-up:
 
 - Phase 9 made configured `profile` and `formatter` active run selections with command-line overrides; selected profiles are still not deeply enforced during execution.
-- Phase 11 kept CLI formatter selection limited to built-in `progress` and `pretty`; config cannot select extension-provided formatter names because external extension loading is not implemented.
+- Phase 11 kept CLI formatter selection limited to built-in `progress` and `pretty` before external loading existed.
 - Phase 24 extends the fixed top-level key set with optional JSON and JUnit XML-compatible report destinations while preserving the same restricted line-based parser and zero-runtime-dependency configuration boundary.
+- Phase 25 / ADR 0018 allows `formatter` to name a ServiceLoader-discovered formatter when the provider is on the effective run classloader; the line-based parser still stores the value without adding parser dependencies or configuration-driven extension activation.

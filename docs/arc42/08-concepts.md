@@ -12,7 +12,7 @@ The core runtime depends only on the JDK. This affects every feature:
 - Doubles use JDK dynamic proxies instead of bytecode libraries.
 - JSON reports are written by an internal UTF-8 writer instead of a JSON library, including stable id/source fields added in Phase 18 and pending counts/statuses added in Phase 22; Phase 24 report destinations configure only where the existing writer writes.
 - JUnit XML-compatible reports are written internally instead of using JUnit or XML/reporting libraries, with testcase file/line attributes when source data is available and skipped-element mapping for both skipped and pending examples; Phase 24 report destinations configure only where the existing writer writes.
-- CLI parsing, explicit classpath handling, execution-availability diagnostics, formatting, matchers, invocation APIs, and extension contracts are implemented with JDK APIs.
+- CLI parsing, explicit classpath handling, execution-availability diagnostics, formatting, matchers, invocation APIs, and extension contracts are implemented with JDK APIs; external formatter/extension discovery uses JDK `ServiceLoader`.
 - Optional adapters stay outside the core runtime; the Phase 15 Maven plugin uses Maven APIs as plugin-provided/build-tool dependencies, the Phase 16 Gradle plugin uses Gradle plugin APIs in its standalone artifact, and the Phase 17 JUnit Platform engine uses JUnit Platform APIs in its standalone artifact. Phase 19 release/CI verification assets, Phase 20 release-readiness scaffolding, and Phase 21 adoption/report assets invoke, package, or verify those standalone artifacts explicitly instead of adding their dependencies to the core runtime. Projects that do not opt into the JUnit Platform engine keep no-JUnit execution paths.
 
 ## 8.3 PHPSpec-Inspired Java Workflow
@@ -95,7 +95,7 @@ The runner result model separates discovery and execution from output and proces
 - `SpecExample`, `SpecResult`, and `ExampleResult` carry source metadata where discovery supplied it.
 - `JavaspecLauncher` returns `JavaspecInvocationResult` for no-`System.exit` programmatic callers while reusing canonical discovery and `SpecRunner` semantics.
 - `RunDiagnostics.executionAvailabilityLines(RunResult)` derives deterministic human-readable diagnostics for non-executable specs and missing/stale compiled example methods, excluding explicit `@Skip` and `PENDING` results.
-- Built-in `progress` and `pretty` output render results through `RunFormatter` implementations and include pending counts/details.
+- Built-in `progress`/`pretty` and ServiceLoader-discovered external formatter output render results through `RunFormatter` implementations and include pending counts/details where the formatter chooses to display them.
 - JSON reports with `schemaVersion` 1 are written from the same results and include additive stable id/source fields plus pending counts and `PENDING` statuses. Config aliases `report`, `reportFile`, `report-file`, `jsonReport`, `jsonReportFile`, and `json-report-file` can supply a default destination when CLI report options are absent.
 - JUnit XML-compatible reports are also written from `RunResult`, mapping FAILED to failures, BROKEN to errors, and SKIPPED/PENDING to skipped test cases, with testcase file/line attributes when source data is available. Config aliases `junitXml`, `junit-xml`, `junitXmlFile`, `junit-xml-file`, `junitXmlReportFile`, and `junit-xml-report-file` can supply a default destination when CLI JUnit XML options are absent. The testsuite skipped attribute includes skipped plus pending and pending messages use `Pending: <reason>` or `Pending by javaspec.`.
 - Report failures are I/O failures and exit `70` for CLI runs.
@@ -126,7 +126,7 @@ Phase 14 makes no-JUnit execution first-class without changing compilation owner
 - Neither CLI nor programmatic invocation compiles source/spec files.
 - `RunDiagnostics.executionAvailabilityLines(RunResult)` is available for no-JUnit host tooling that wants the same availability lines as the CLI/build-tool adapters.
 - `JavaspecRunMojo` delegates to `JavaspecLauncher` with Maven's test classpath, logs `javaspec:` execution-availability warnings with Maven test classpath element counts when needed, and does not call `System.exit`.
-- `JavaspecRunTask` delegates to `JavaspecLauncher` with the Gradle classpath, manages a `URLClassLoader` and thread context classloader, logs `javaspec:` execution-availability warnings with Gradle classpath element counts when needed, and does not call `System.exit`.
+- `JavaspecRunTask` delegates to `JavaspecLauncher` with the Gradle classpath, manages a `URLClassLoader` and thread context classloader, loads ServiceLoader formatter/extension providers from that run classloader, logs `javaspec:` execution-availability warnings with Gradle classpath element counts when needed, and does not call `System.exit`.
 - `JavaspecTestEngine` delegates to `JavaspecLauncher` with discovered specs, applies JUnit Platform selectors as filters over canonical discovery, keeps the stable unique-id shape and MethodSource behavior, aligns descriptor reporting to stable ids, maps results to listener events, maps pending to `executionSkipped` with a `Pending:` reason, and does not call `System.exit`.
 
 ## 8.12 Optional Maven Plugin Boundary
@@ -153,7 +153,7 @@ The plugin boundary principles are:
 - The plugin depends on core `org.javaspec:javaspec:0.1.0-SNAPSHOT`; verified runtimeClasspath contains only that core dependency.
 - JUnit and TestKit are plugin test dependencies only; projects under test do not need JUnit.
 - `javaspecRun` uses the configured Gradle classpath and defaults to the Java plugin `test` source set runtime classpath plus `testClasses` dependency when source sets are present.
-- The extension/task supports skip/fail/stop controls, config/suite/specDir/specRoot, class/example filters, built-in formatter selection, JSON reports, JUnit XML-compatible reports, config report destinations as defaults when explicit extension/task report settings are absent, Gradle logging, and `javaspec:` execution-availability warnings with Gradle classpath element counts.
+- The extension/task supports skip/fail/stop controls, config/suite/specDir/specRoot, class/example filters, built-in or ServiceLoader-discovered formatter selection, JSON reports, JUnit XML-compatible reports, config report destinations as defaults when explicit extension/task report settings are absent, Gradle logging, and `javaspec:` execution-availability warnings with Gradle classpath element counts.
 - The task delegates to canonical `JavaspecLauncher`, avoids `System.exit`, restores the thread context classloader, and closes its `URLClassLoader`.
 
 ## 8.14 Optional JUnit Platform Engine Boundary
@@ -172,7 +172,7 @@ The engine boundary principles are:
 
 ## 8.15 Release/CI Verification and Publication Boundary
 
-Phase 19 keeps release verification non-disruptive, Phase 20 adds release-readiness scaffolding without public publication, Phase 21 adds adoption examples/report documentation without core runtime changes, Phase 22 keeps skipped/pending semantics zero-dependency while updating docs/schema/goldens, Phase 23 keeps diagnostics zero-dependency while leaving compilation external, and Phase 24 keeps report destination defaults inside the existing zero-dependency config/report boundaries:
+Phase 19 keeps release verification non-disruptive, Phase 20 adds release-readiness scaffolding without public publication, Phase 21 adds adoption examples/report documentation without core runtime changes, Phase 22 keeps skipped/pending semantics zero-dependency while updating docs/schema/goldens, Phase 23 keeps diagnostics zero-dependency while leaving compilation external, Phase 24 keeps report destination defaults inside the existing zero-dependency config/report boundaries, and Phase 25 keeps external formatter/extension discovery inside the JDK ServiceLoader boundary:
 
 - Root `mvn verify` remains the core-only build and runtime dependency gate.
 - `scripts/check-version-alignment.sh` verifies root Maven, standalone Maven plugin, standalone JUnit Platform engine, Gradle plugin `version`, and Gradle plugin `javaspecCoreVersion` alignment.
@@ -190,13 +190,24 @@ Phase 19 keeps release verification non-disruptive, Phase 20 adds release-readin
 
 ## 8.16 Extension Boundary
 
-The current extension API is programmatic. `JavaspecExtension`/`Extension` can configure an `ExtensionContext`, and the context exposes the run formatter registry.
+The extension API remains minimal and zero-dependency. `JavaspecExtension`/`Extension` can configure an `ExtensionContext`, and the context exposes the run formatter registry.
+
+Phase 25 adds classpath-based JDK `ServiceLoader` discovery:
+
+- `JavaspecExtensionLoader.loadRunFormatterRegistry()` and `loadRunFormatterRegistry(ClassLoader)` return a `RunFormatterRegistry` with built-ins first plus ServiceLoader providers.
+- `META-INF/services/org.javaspec.formatter.RunFormatter` registers formatter providers by `RunFormatter.name()`.
+- `META-INF/services/org.javaspec.extension.JavaspecExtension` configures extension providers with an `ExtensionContext`.
+- `META-INF/services/org.javaspec.extension.Extension` is an alias service type.
+- Duplicate extension implementation classes listed under both extension service types are configured once per registry load.
+- Invalid providers raise `ExtensionLoadingException` with service/provider diagnostics.
+- CLI `javaspec run` loads providers after effective classloader selection, so provider jars can be on the process classpath or in `--classpath` / `--classpath-file` entries.
+- Gradle `javaspecRun` loads providers from its run classloader, so provider jars can be on the configured/default task classpath.
 
 Not implemented in the current architecture:
 
-- Configuration-driven extension activation.
-- External CLI extension discovery/loading.
-- Classpath scanning.
-- `ServiceLoader` integration for extensions.
-- Plugin lookup.
-- CLI formatter selection for extension-provided names.
+- Configuration-driven extension activation beyond selecting a discovered formatter name.
+- Package scanning.
+- Plugin repository lookup.
+- Maven plugin formatter output controls.
+- JUnit Platform formatter output controls.
+- Integrated compilation or automatic classpath repair for provider jars.
