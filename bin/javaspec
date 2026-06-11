@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# javaspec launcher
+# Locates the built or installed javaspec jar and invokes the CLI.
+set -euo pipefail
+
+# Resolve the directory containing this script.
+bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+repo_root="$(cd "${bin_dir}/.." && pwd -P)"
+
+# Locate the jar: prefer Maven local repo (installed snapshot), fall back to
+# the build output in the repository target directory.
+version="0.1.0-SNAPSHOT"
+local_repo="${HOME}/.m2/repository/org/javaspec/javaspec/${version}/javaspec-${version}.jar"
+target_jar="${repo_root}/target/javaspec-${version}.jar"
+
+if [ -f "${local_repo}" ]; then
+  jar="${local_repo}"
+elif [ -f "${target_jar}" ]; then
+  jar="${target_jar}"
+else
+  printf 'javaspec: jar not found.\n' >&2
+  printf 'Run: mvn -q package  (or: mvn -q -DskipTests install)\n' >&2
+  exit 1
+fi
+
+exec java -jar "${jar}" "$@"

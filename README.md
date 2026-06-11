@@ -4,7 +4,7 @@
 
 ![javaspec demo](docs/assets/demo.gif)
 
-javaspec is a specification-first testing and design tool for Java, inspired by phpspec. You describe the behavior you want, run the specification, and let javaspec guide the next small production-code step.
+javaspec is a spec-first BDD tool for Java, inspired by phpspec. You describe the behavior you want, run the specification, and let javaspec guide the next small production-code step.
 
 The core is Java 8-compatible and has no third-party runtime dependencies. It can be used directly from the CLI, embedded through a no-`System.exit` launcher, or adopted through optional Maven, Gradle, and JUnit Platform adapters.
 
@@ -12,7 +12,7 @@ Public artifact publication is not available yet. Until Central Portal and Gradl
 
 ## Highlights
 
-- Specification-first Java workflow inspired by phpspec.
+- Spec-first BDD workflow inspired by phpspec.
 - Java 8-compatible core.
 - Zero-runtime-dependency core artifact.
 - CLI, Maven plugin, Gradle plugin, and JUnit Platform adapter.
@@ -22,46 +22,97 @@ Public artifact publication is not available yet. Until Central Portal and Gradl
 
 ## Quick Start
 
-From a checkout of this repository, install the local snapshot:
+### Setup
+
+Build the local snapshot and make the launcher available:
 
 ```sh
+# Build and install the local snapshot
 mvn -q -DskipTests install
+
+# Add bin/ to your PATH for this session
+export PATH="$PWD/bin:$PATH"
+
+# Or invoke directly
+./bin/javaspec --help
 ```
 
-Describe a class:
+After adding `bin/` to your `PATH`, the `javaspec` command is available. You can also run `./bin/javaspec` directly from the repository root without modifying `PATH`.
+
+### The red-green cycle
+
+**Step 1 — Describe a class:** creates spec and support skeletons.
 
 ```sh
-java -cp target/javaspec-0.1.0-SNAPSHOT.jar org.javaspec.cli.Main describe com.example.Calculator
+javaspec describe com.example.PriceCalculator
 ```
 
-This creates a spec skeleton under the configured spec root. Public coordinates and packaged distributions are not published yet, so local use currently relies on the built jar or Maven-local snapshots.
-
-Write the first behavior:
+**Step 2 — View and edit the generated spec:** open `src/test/java/spec/com/example/PriceCalculatorSpec.java` and add one example.
 
 ```java
 package spec.com.example;
 
-import com.example.Calculator;
+import com.example.PriceCalculator;
 import org.javaspec.api.ObjectBehavior;
 
-public class CalculatorSpec extends ObjectBehavior<Calculator> {
-    public CalculatorSpec() {
-        super(Calculator.class);
+public class PriceCalculatorSpec extends ObjectBehavior<PriceCalculator> {
+    public PriceCalculatorSpec() {
+        super(PriceCalculator.class);
     }
 
-    public void it_adds_two_numbers() {
-        match(subject().add(2, 3)).shouldReturn(5);
+    public void it_calculates_the_total_price() {
+        match(subject().total(10.0, 2.5)).shouldReturn(12.5);
     }
 }
 ```
 
-Run specs and opt into source/spec compilation:
+**Step 3 — Run specs:** the generation prompt fires because the production class is missing. `--generate` accepts automatically; `--compile` recompiles before execution; `--formatter pretty` shows descriptive output.
 
 ```sh
-java -cp target/javaspec-0.1.0-SNAPSHOT.jar org.javaspec.cli.Main run --compile
+javaspec run --generate --compile --formatter pretty
 ```
 
-If production code is missing, `run` can prompt for generation. Use `--generate` for non-interactive generation.
+Sample output:
+
+```
+PriceCalculator
+  ✗ it calculates the total price  [BROKEN: class not found]
+
+Pending generation:
+  + com/example/PriceCalculator.java  (new class)
+
+Generate missing production code? [y/N] (auto-accepted with --generate)
+```
+
+**Step 4 — View the generated production class:**
+
+```sh
+cat src/main/java/com/example/PriceCalculator.java
+```
+
+javaspec wrote a skeleton with a stub return value (`return 0.0d;`).
+
+**Step 5 — Implement the body (minimal fix):**
+
+```sh
+sed -i 's/return 0.0d;/return arg0 + arg1;/' src/main/java/com/example/PriceCalculator.java
+```
+
+The fixed method now looks like:
+
+```java
+public double total(double arg0, double arg1) {
+    return arg0 + arg1;
+}
+```
+
+**Step 6 — Verify everything passes:**
+
+```sh
+mvn verify
+```
+
+That's the full red-green cycle with javaspec.
 
 ## Why use javaspec?
 
