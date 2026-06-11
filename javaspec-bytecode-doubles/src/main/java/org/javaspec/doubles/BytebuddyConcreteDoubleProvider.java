@@ -11,14 +11,15 @@ import java.lang.reflect.Modifier;
  * A {@link ConcreteDoubleProvider} that generates concrete-class doubles via ByteBuddy subclass
  * generation.
  *
- * <p>This class intentionally resides in package {@code org.javaspec.doubles} (the same package
- * as the core) so that it can access the package-private constructors of {@link InterfaceDouble},
- * {@link DoubleControl}, and {@link DoubleInvocationHandler} to assemble the double handle.
- *
  * <p>For each requested type, ByteBuddy generates a subclass that overrides all non-final,
- * non-private, non-static methods and delegates every invocation to a
- * {@link DoubleInvocationHandler}, which records calls and applies configured stubs — the same
+ * non-private, non-static methods. Intercepted calls are routed to an invocation handler obtained
+ * from {@link Doubles#newDoubleHandler(Class)}, preserving the same call-recording and stubbing
  * semantics used by {@link Doubles#interfaceDouble(Class)} for interface proxies.
+ *
+ * <p>The final {@link InterfaceDouble} is assembled through
+ * {@link Doubles#assembleFromHandler(Class, Object, java.lang.reflect.InvocationHandler)}, so this
+ * adapter does not need package-private access to core constructors. That keeps concrete doubles
+ * working across plugin/run classloader boundaries where package-private access would fail.
  *
  * @since Phase 37
  */
@@ -60,8 +61,10 @@ public final class BytebuddyConcreteDoubleProvider implements ConcreteDoubleProv
      * Creates a concrete double for {@code type} using ByteBuddy subclass generation.
      *
      * <p>The returned {@link InterfaceDouble} wraps a generated subclass instance whose
-     * intercepted methods delegate to a {@link DoubleInvocationHandler}.  The embedded
-     * {@link DoubleControl} exposes the full stub/verify/inspect API.
+     * intercepted methods delegate to an invocation handler created by
+     * {@link Doubles#newDoubleHandler(Class)}. The double handle is assembled through
+     * {@link Doubles#assembleFromHandler(Class, Object, java.lang.reflect.InvocationHandler)},
+     * avoiding package-private constructor access across plugin/run classloader boundaries.
      *
      * @throws IllegalArgumentException if the type is not supported or if ByteBuddy cannot
      *                                  generate or instantiate the subclass (e.g. no accessible

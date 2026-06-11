@@ -1,10 +1,30 @@
 # Test and Quality Report
 
+## Finalization documentation and examples verification update
+
+Date: 2026-06-11
+
+This finalization pass synchronized documentation after the completed Phases 30-37 known-limitations resolution program, including Phase 37 bytecode doubles and `examples/bytecode-doubles-basic/`. `scripts/verify-examples.sh` now verifies the bytecode doubles example and passed in this turn.
+
+Final verification summary:
+
+- Root: 549 tests, 0 failures, 0 errors, 0 skipped.
+- Bytecode adapter: 17 tests, 0 failures, 0 errors, 0 skipped.
+- Maven plugin: 30 tests, 0 failures, 0 errors, 0 skipped.
+- JUnit Platform engine: 19 tests, 0 failures, 0 errors, 0 skipped.
+- Gradle plugin: 32 tests, 0 failures, 0 errors, 0 skipped.
+- Examples verification passed, including Maven basic (1), bytecode doubles basic (2), JUnit Platform example, and Gradle basic (1).
+- Root runtime dependency tree remains only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+- Bytecode adapter runtime tree includes adapter + core + `net.bytebuddy:byte-buddy:jar:1.14.18`.
+- Gradle `runtimeClasspath` remains only `org.javaspec:javaspec:0.1.0-SNAPSHOT`.
+
+No blockers were reported. Public publication remains intentionally postponed and was not verified as part of this pass.
+
 ## Phase 37 verification update
 
 Date: 2026-06-11
 
-This report records completed Phase 37 verification for the standalone optional bytecode doubles adapter. A new `javaspec-bytecode-doubles` artifact provides concrete-class double creation via ByteBuddy subclass generation without touching the zero-runtime-dependency core. The core SPI (`ConcreteDoubleProvider`, `ConcreteDoubleRegistry`) was added with no new runtime dependencies; `Doubles.concreteDouble(Class<T>)` and alias `classDouble(Class<T>)` delegate to a `ServiceLoader`-discovered provider, or throw `IllegalStateException` when no provider is registered. `BytebuddyConcreteDoubleProvider`, in the `javaspec-bytecode-doubles` standalone artifact, lives in the split package `org.javaspec.doubles` to access package-private constructors, uses ByteBuddy subclass generation with `InvocationHandlerAdapter` to route all non-final/non-private/non-static methods to `DoubleInvocationHandler`, and rejects interface, final, enum, array, annotation, and primitive types. A `META-INF/services` file registers the provider for `ServiceLoader` discovery. `scripts/verify-all.sh` was updated to verify and dependency-audit the new adapter module. All tests pass and no Java 8 compatibility regressions or unintended runtime dependency additions to the core were reported. No blockers were reported.
+This report records completed Phase 37 verification for the standalone optional bytecode doubles adapter. A new `javaspec-bytecode-doubles` artifact provides concrete-class double creation via ByteBuddy subclass generation without touching the zero-runtime-dependency core. The core SPI (`ConcreteDoubleProvider`, `ConcreteDoubleRegistry`) was added with no new runtime dependencies; `Doubles.concreteDouble(Class<T>)` and alias `classDouble(Class<T>)` delegate to a `ServiceLoader`-discovered provider, or throw `IllegalStateException` when no provider is registered. `BytebuddyConcreteDoubleProvider`, in the `javaspec-bytecode-doubles` standalone artifact, uses ByteBuddy subclass generation with `InvocationHandlerAdapter`, obtains the invocation handler through `Doubles.newDoubleHandler(Class<?>)`, returns the handle through `Doubles.assembleFromHandler(Class<T>, T, InvocationHandler)`, and avoids package-private access across Maven plugin/run classloader boundaries. It rejects interface, final, enum, array, annotation, and primitive types. A `META-INF/services` file registers the provider for `ServiceLoader` discovery. `scripts/verify-all.sh` was updated to verify and dependency-audit the new adapter module. All tests pass and no Java 8 compatibility regressions or unintended runtime dependency additions to the core were reported. No blockers were reported.
 
 ## Phase 37 executive summary
 
@@ -15,8 +35,8 @@ This report records completed Phase 37 verification for the standalone optional 
 | `Doubles.concreteDouble()` / `classDouble()` API | PASS | Validates type, looks up provider, delegates, or throws `IllegalStateException("No ConcreteDoubleProvider is registered...")` when absent. |
 | Bytecode adapter artifact — `javaspec-bytecode-doubles` | PASS | Standalone artifact; Java 8, ByteBuddy 1.14.18, javaspec core compile-scope. |
 | `supports()` correctness | PASS | Accepts non-final concrete classes only; rejects interface, final, enum, array, annotation, and primitive types. |
-| `createDouble()` ByteBuddy subclass generation | PASS | Uses ByteBuddy subclass + `InvocationHandlerAdapter` to route all eligible methods to `DoubleInvocationHandler`. |
-| Stub/verify delegation | PASS | All stub and call-history/verify behaviours from `DoubleInvocationHandler` work through bytecode-generated subclasses. |
+| `createDouble()` ByteBuddy subclass generation | PASS | Uses ByteBuddy subclass + `InvocationHandlerAdapter`, obtains handlers through `Doubles.newDoubleHandler(Class<?>)`, and assembles handles through `Doubles.assembleFromHandler(...)`. |
+| Stub/verify delegation | PASS | Stub and call-history/verify semantics are provided by the core handler/control assembled through `Doubles`. |
 | ServiceLoader discovery | PASS | `META-INF/services/org.javaspec.doubles.ConcreteDoubleProvider` registration file present; provider loaded automatically when adapter is on classpath. |
 | Scripts update | PASS | `scripts/verify-all.sh` updated to include bytecode doubles adapter verify and dependency tree audit steps. |
 | Runtime compatibility | PASS | Root Maven runtime tree unchanged: `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT` only. Adapter runtime tree carries ByteBuddy intentionally as an adapter-scope dependency, not in core. |

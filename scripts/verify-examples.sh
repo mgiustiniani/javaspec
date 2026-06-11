@@ -91,6 +91,7 @@ remove_path() {
 
 run_at_root "Install root core snapshot for examples" "${MAVEN_BIN}" -q -DskipTests install
 run_at_root "Install Maven plugin snapshot for examples" "${MAVEN_BIN}" -q -f javaspec-maven-plugin/pom.xml -DskipTests install
+run_at_root "Install bytecode doubles adapter snapshot for examples" "${MAVEN_BIN}" -q -f javaspec-bytecode-doubles/pom.xml -DskipTests install
 run_at_root "Install JUnit Platform engine snapshot for examples" "${MAVEN_BIN}" -q -f javaspec-junit-platform-engine/pom.xml -DskipTests install
 
 remove_path "Clean previous Maven example reports" examples/maven-basic/target/javaspec
@@ -115,6 +116,30 @@ assert_file_contains "Maven JUnit XML report" "$maven_xml" '<property name="java
 assert_file_contains "Maven JUnit XML report" "$maven_xml" 'classname="spec.com.example.CalculatorSpec"'
 assert_file_contains "Maven JUnit XML report" "$maven_xml" 'name="it_adds_two_numbers"'
 assert_file_contains "Maven JUnit XML report" "$maven_xml" 'line="11"'
+
+if [ "${JAVASPEC_SKIP_BYTECODE_DOUBLES_EXAMPLE:-0}" = "1" ]; then
+  printf '\nWARNING: Skipping bytecode doubles basic example because JAVASPEC_SKIP_BYTECODE_DOUBLES_EXAMPLE=1.\n'
+else
+  remove_path "Clean previous bytecode doubles example reports" examples/bytecode-doubles-basic/target/javaspec
+  run_at_root "Verify bytecode doubles basic example" "${MAVEN_BIN}" -q -f examples/bytecode-doubles-basic/pom.xml verify
+  bytecode_json="${repo_root}/examples/bytecode-doubles-basic/target/javaspec/run-report.json"
+  bytecode_xml="${repo_root}/examples/bytecode-doubles-basic/target/javaspec/junit-report.xml"
+  assert_file_exists "Bytecode doubles JSON report" "$bytecode_json"
+  assert_file_exists "Bytecode doubles JUnit XML report" "$bytecode_xml"
+  assert_file_contains "Bytecode doubles JSON report" "$bytecode_json" '"schemaVersion": 1'
+  assert_file_contains "Bytecode doubles JSON report" "$bytecode_json" '"metadata": {'
+  assert_file_contains "Bytecode doubles JSON report" "$bytecode_json" '"stableId": "spec.com.example.DataServiceSpec#it_saves_data_using_the_store"'
+  assert_file_contains "Bytecode doubles JSON report" "$bytecode_json" '"stableId": "spec.com.example.DataServiceSpec#it_returns_not_found_when_store_has_no_entry"'
+  assert_file_contains "Bytecode doubles JSON report" "$bytecode_json" '"status": "PASSED"'
+  assert_file_contains "Bytecode doubles JSON report" "$bytecode_json" '"line": 14'
+  assert_file_contains "Bytecode doubles JSON report" "$bytecode_json" '"line": 21'
+  assert_file_contains "Bytecode doubles JUnit XML report" "$bytecode_xml" '<testsuite name="javaspec" tests="2" failures="0" errors="0" skipped="0" timestamp="'
+  assert_file_contains "Bytecode doubles JUnit XML report" "$bytecode_xml" 'classname="spec.com.example.DataServiceSpec"'
+  assert_file_contains "Bytecode doubles JUnit XML report" "$bytecode_xml" 'name="it_saves_data_using_the_store"'
+  assert_file_contains "Bytecode doubles JUnit XML report" "$bytecode_xml" 'name="it_returns_not_found_when_store_has_no_entry"'
+  assert_file_contains "Bytecode doubles JUnit XML report" "$bytecode_xml" 'line="14"'
+  assert_file_contains "Bytecode doubles JUnit XML report" "$bytecode_xml" 'line="21"'
+fi
 
 remove_path "Clean previous JUnit Platform example reports" examples/junit-platform-basic/target/surefire-reports
 run_at_root "Verify JUnit Platform engine basic example" "${MAVEN_BIN}" -q -f examples/junit-platform-basic/pom.xml test

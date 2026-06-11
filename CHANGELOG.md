@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Finalized documentation for the Phases 30-37 known-limitations resolution program, including bytecode doubles usage and example verification notes.
+- Added Phases 30-37 resolution updates: bounded generic `Iterable` matcher checks, source-preserving sealed-interface updates, config-driven extension activation and formatter controls, ServiceLoader bootstrap hook discovery, programmatic/Maven/Gradle opt-in compilation, additive report metadata/properties, deeper target-profile enforcement, and the standalone optional `javaspec-bytecode-doubles` adapter with `examples/bytecode-doubles-basic/`.
 - Added the MIT `LICENSE` file and release-readiness scaffolding: version-alignment verification, release-artifact profiles, MIT license and maintainer publication metadata, and a release checklist; public publishing/deployment/signing/portal credentials remain postponed.
 - Kept the repository layout non-reactor/non-multi-module: the core, Maven plugin, Gradle plugin, and JUnit Platform engine remain standalone builds.
 - Added explicit skipped/pending semantics: zero-dependency `@Skip`/`@Pending` annotations, runtime skip/pending signals and `ObjectBehavior` helpers, distinct `PENDING` counts/status, pending-aware formatter summaries, JSON reports, JUnit XML-compatible `<skipped>` mapping, Maven/Gradle report behavior, and JUnit Platform skipped-event mapping.

@@ -1,6 +1,6 @@
 # 6. Runtime View
 
-This section describes the implemented runtime and verification scenarios without C4 diagrams. The runtime is a Java 8-compatible CLI and library surface with no third-party runtime dependencies, including Phase 14 no-JUnit invocation, explicit classpath execution, JUnit XML-compatible reporting, the Phase 15 standalone optional Maven plugin adapter, the Phase 16 standalone optional Gradle plugin adapter, the Phase 17 standalone optional JUnit Platform engine adapter, the Phase 18 stable identifier/source-location/report polish increment, the Phase 19 aggregate release/CI verification workflow, the Phase 20 release-readiness scaffolding, the Phase 21 standalone adoption examples/report documentation assets, the Phase 22 explicit skipped/pending semantics, the Phase 23 classpath/execution availability diagnostics, the Phase 24 configuration-level report destinations, the Phase 25 ServiceLoader external formatter/extension discovery increment, the Phase 26 target-profile enforcement increment, the Phase 27 bootstrap hook execution increment, the Phase 28 stronger-interface-doubles increment, and the Phase 29 opt-in CLI compilation increment.
+This section describes the implemented runtime and verification scenarios without C4 diagrams. The runtime is a Java 8-compatible CLI and library surface with no third-party runtime dependencies, including Phase 14 no-JUnit invocation, explicit classpath execution, JUnit XML-compatible reporting, the Phase 15 standalone optional Maven plugin adapter, the Phase 16 standalone optional Gradle plugin adapter, the Phase 17 standalone optional JUnit Platform engine adapter, the Phase 18 stable identifier/source-location/report polish increment, the Phase 19 aggregate release/CI verification workflow, the Phase 20 release-readiness scaffolding, the Phase 21 standalone adoption examples/report documentation assets, the Phase 22 explicit skipped/pending semantics, the Phase 23 classpath/execution availability diagnostics, the Phase 24 configuration-level report destinations, the Phase 25 ServiceLoader external formatter/extension discovery increment, the Phase 26 target-profile enforcement increment, the Phase 27 bootstrap hook execution increment, the Phase 28 stronger-interface-doubles increment, the Phase 29 opt-in CLI compilation increment, Phases 30-36 known-limitations resolution, and the Phase 37 optional bytecode-doubles adapter.
 
 ## 6.1 `describe` Scenario
 
@@ -16,7 +16,7 @@ Important runtime invariant: `describe` is specification/support generation only
 ## 6.2 `run` Discovery, Generation, and Execution Scenario
 
 1. The user runs `javaspec run` with optional config, suite, path overrides, explicit classpath input, opt-in compilation, generation flags, filters, run controls, bootstrap hooks, or report paths from CLI/config.
-2. The CLI loads inferred defaults or the configured suite. `--constructor-policy`, `--profile`, `--formatter`, `--report`/`--report-file`, and `--junit-xml`/`--junit-xml-file` override valid configured/default values when supplied; CLI `--profile` overrides config profile before enforcement. `--compile` enables CLI source/spec compilation, and `--compile-output <dir>` selects the output directory while implying `--compile` (default `target/javaspec-classes`). Top-level bootstrap hooks and selected-suite bootstrap hooks are combined with top-level entries first, selected-suite entries second, and duplicates preserved. `--classpath` and `--classpath-file` build a selected explicit classloader when present; the formatter registry is loaded from the effective selected classloader after this selection.
+2. The CLI loads inferred defaults or the configured suite. `--constructor-policy`, `--profile`, `--formatter`, `--report`/`--report-file`, and `--junit-xml`/`--junit-xml-file` override valid configured/default values when supplied; CLI `--profile` overrides config profile before enforcement. `--compile` enables CLI source/spec compilation, and `--compile-output <dir>` selects the output directory while implying `--compile` (default `target/javaspec-classes`). Top-level bootstrap hooks and selected-suite bootstrap hooks are combined with top-level entries first, selected-suite entries second, duplicates preserved, and ServiceLoader-discovered hook providers afterward in deterministic order. `--classpath` and `--classpath-file` build a selected explicit classloader when present; the formatter registry is loaded from the effective selected classloader after this selection.
 3. `SpecDiscovery` scans the selected spec root using the active naming convention and filters by suite, class filters, and example filters. If no specs are discovered, CLI `run` skips compilation and bootstrap execution and writes requested no-spec reports as before.
 4. Discovery extracts described production type metadata, kind markers, relationship markers, construction markers, factory construction markers, typed proxy/throw proxy calls, direct subject/setter calls, and public `void` `it_*`/`its_*` example metadata including method declaration source lines.
 5. Profile enforcement checks discovered described types and related types against the effective target profile before existence checks, generation/update planning output, prompts, execution, or reports. Violations print `Profile compatibility error`, selected profile, spec/type, and reasons, then exit `64` with no file or report writes.
@@ -77,7 +77,7 @@ Generation output depends on the described production kind:
 | Ordinary interface | Non-static method declarations ending in `;`; static descriptors are skipped. |
 | Annotation | Compatible no-argument non-static elements; incompatible descriptors are ignored. |
 | Missing sealed interface | Root declarations plus nested permitted implementation bodies with Java default returns. |
-| Existing sealed interface | Source updates intentionally skipped until nested permitted implementations can also be updated safely. |
+| Existing sealed interface | Source-preserving root declaration updates plus nested permitted implementation method bodies where supported. |
 
 ## 6.6 Interface Double Scenario
 
@@ -91,7 +91,15 @@ Generation output depends on the described production kind:
 8. Call snapshots can be inspected and verified for called, not called, called once, or exact count, using the same matcher-aware vararg semantics as stubbing. `Call.hasArguments(...)` is matcher-aware while ordinary exact values, `null`, and array-content comparison remain supported.
 9. `toString`, `equals`, and `hashCode` are handled deterministically and are not treated as user collaborator calls.
 
-Unsupported target kinds fail fast with diagnostics rather than using bytecode libraries. The scenario does not add CLI behavior, report/schema changes, dependencies, optional adapter changes, generated assets, concrete/static/final/constructor doubles, or bytecode mocking.
+Unsupported core target kinds fail fast with diagnostics. Non-final concrete-class doubles are available only through the standalone bytecode adapter; final, static, and constructor mocking remain unsupported.
+
+### 6.6.1 Optional Bytecode Concrete-Class Double Scenario
+
+1. A test runtime includes `javaspec-bytecode-doubles` in addition to core.
+2. `Doubles.concreteDouble(DataStore.class)` asks the core `ConcreteDoubleProvider` registry for a provider through `ServiceLoader`.
+3. The ByteBuddy provider accepts a non-final concrete class and generates a subclass that delegates eligible calls to the core double invocation handler.
+4. The returned `InterfaceDouble<DataStore>` exposes the same `control()`, stub, call-history, and verification APIs as interface doubles.
+5. If no provider is registered, core throws `IllegalStateException` with guidance. If the target is final, enum, array, annotation, primitive, or an interface, creation is rejected clearly.
 
 ## 6.7 Reporting and Extension Runtime Scenario
 
@@ -105,7 +113,7 @@ Unsupported target kinds fail fast with diagnostics rather than using bytecode l
 - `RunDiagnostics.executionAvailabilityLines(RunResult)` derives deterministic human-readable availability diagnostics for non-executable specs and missing/stale compiled example methods while excluding explicit `@Skip` and `PENDING` results.
 - `JavaspecExtension`/`Extension` and `ExtensionContext` support formatter registration. `JavaspecExtensionLoader.loadRunFormatterRegistry()` and `loadRunFormatterRegistry(ClassLoader)` load built-ins first, then ServiceLoader providers for `org.javaspec.formatter.RunFormatter`, `org.javaspec.extension.JavaspecExtension`, and alias service type `org.javaspec.extension.Extension`.
 - Duplicate extension implementation classes listed under both extension service types are configured once. Invalid providers raise `ExtensionLoadingException` with clear diagnostics.
-- ServiceLoader discovery is classpath-based only; configuration-driven activation, package scanning, plugin lookup, Maven plugin formatter controls, and JUnit Platform formatter controls are not implemented. Bootstrap hooks are explicit config class names, not ServiceLoader providers, scripts, generated classes, package scans, or dependency-resolved plugins.
+- ServiceLoader discovery is classpath-based only; configuration-driven activation and adapter formatter controls are implemented where documented, while package scanning, plugin lookup, and automatic classpath repair are not implemented. Bootstrap hooks are explicit config class names plus ServiceLoader providers, not scripts, generated classes, package scans, or dependency-resolved plugins.
 
 ## 6.8 Explicit Classpath Runtime Scenario
 
@@ -120,7 +128,7 @@ Unsupported target kinds fail fast with diagnostics rather than using bytecode l
 ### 6.8.1 Opt-in CLI Compilation Runtime Scenario
 
 1. `run --compile` enables the CLI compilation step. `run --compile-output <dir>` selects the output directory and implies `--compile`; when no output is supplied, the directory is `target/javaspec-classes`.
-2. Compilation is CLI-only. No configuration keys are added, and programmatic invocation plus optional Maven/Gradle/JUnit Platform adapters remain host-classpath based.
+2. Compilation is explicit opt-in. No configuration keys are added; programmatic, Maven, and Gradle paths have separate opt-in settings, while the JUnit Platform engine remains host-classpath based.
 3. The current JDK `javax.tools.JavaCompiler` is obtained from `ToolProvider`; javaspec does not fork `javac` and does not add compiler dependencies.
 4. If no specs are discovered, the CLI skips compilation and writes requested empty reports. If `--dry-run` is active, the CLI skips compilation and creates no compile output.
 5. After discovery, profile enforcement, generation/update decisions, and any successful writes, the compiler receives all `.java` files under the effective source root and effective spec root, de-duplicated by normalized path.
@@ -137,17 +145,17 @@ Unsupported target kinds fail fast with diagnostics rather than using bytecode l
 4. `JavaspecExitCode` maps passing, skipped/pending-only, and no-spec runs to `0`, and failed or broken runs to `1`.
 5. The invocation API remains classpath-based and does not compile source/spec files itself.
 6. Host tools can call `RunDiagnostics.executionAvailabilityLines(result.runResult())` to obtain the same deterministic availability lines used by CLI/Maven/Gradle diagnostics.
-7. Host tools that need built-in plus ServiceLoader-provided formatters can call `JavaspecExtensionLoader.loadRunFormatterRegistry(classLoader)` with the same classloader.
+7. Host tools that need built-in plus ServiceLoader-provided formatters can call `JavaspecExtensionLoader.loadRunFormatterRegistry(classLoader)` with the same classloader, and can opt into compilation through `JavaspecInvocation.withCompilation(...)`.
 
 ## 6.10 Optional Maven Plugin Runtime Scenario
 
 1. A Maven build configures or invokes the optional `org.javaspec:javaspec-maven-plugin:0.1.0-SNAPSHOT` artifact and its `javaspec:run` goal.
 2. The Mojo participates as a standalone Maven plugin, not as a root repository module. Its default phase is `verify`, and it requires Maven test dependency resolution.
 3. Maven supplies the test classpath; compiled production/spec classes from the project under test are passed through the plugin adapter to the canonical javaspec invocation path.
-4. The Mojo applies config/suite/specDir/specRoot selection, class/example filters, top-level plus selected-suite bootstrap hooks, `stopOnFailure`, `skip`, `failOnFailure`, JSON report settings, and JUnit XML-compatible report settings. Configured report destinations are defaults when explicit plugin report settings are absent; explicit plugin settings override config values. Phase 25 does not add Maven plugin formatter output controls.
+4. The Mojo applies config/suite/specDir/specRoot selection, class/example filters, top-level plus selected-suite bootstrap hooks, `stopOnFailure`, `skip`, `failOnFailure`, JSON report settings, and JUnit XML-compatible report settings. Configured report destinations are defaults when explicit plugin report settings are absent; explicit plugin settings override config values. Formatter selection is available through config or `javaspec.formatter`, and extension activation through config or `javaspec.extensions`, where implemented.
 5. Output and diagnostics are emitted through Maven logging. When execution availability lines exist, the Mojo logs `javaspec:` warnings and the Maven test classpath element count. Bootstrap failures fail the build with clear `javaspec bootstrap execution failed` diagnostics.
 6. The Mojo delegates to `org.javaspec.invocation.JavaspecLauncher`, receives structured results, and avoids `System.exit` and direct low-level runner coupling.
-7. No JUnit is required in the project under test, and source/spec compilation remains Maven's responsibility before javaspec execution.
+7. No JUnit is required in the project under test. Source/spec compilation remains Maven's responsibility by default; `javaspec.compile`, `javaspec.compileOutput`, or `javaspec.compileOutputDirectory` explicitly opt into current-JDK javaspec compilation.
 
 ## 6.11 Optional Gradle Plugin Runtime Scenario
 
@@ -157,7 +165,7 @@ Unsupported target kinds fail fast with diagnostics rather than using bytecode l
 4. The task applies extension/task/project-property options for `skip`, `failOnFailure`, `stopOnFailure`, `configFile`, `suite`, `specDir`/`specRoot`, class/example filters, top-level plus selected-suite bootstrap hooks, built-in or ServiceLoader-discovered formatter selection, JSON report aliases, and JUnit XML-compatible report aliases. Formatter precedence is task setting, extension setting, project property `javaspec.formatter`, config formatter, then default `progress`. Configured report destinations are defaults when explicit extension/task report settings are absent; explicit Gradle adapter settings override config values.
 5. The task loads javaspec configuration when configured, selects suites, builds `SpecDiscoveryRequest` with `SpecNamingConvention`, creates a `URLClassLoader` over the Gradle classpath, loads built-in plus ServiceLoader formatter/extension providers from that run classloader, passes bootstrap hooks into canonical invocation, sets and restores the thread context classloader, and closes the loader.
 6. The task delegates to canonical no-JUnit `JavaspecLauncher`, renders selected formatter output through Gradle logging, writes reports via core writers, logs through Gradle, logs `javaspec:` warning diagnostics plus the Gradle classpath element count when execution availability lines exist, throws `GradleException` for bootstrap failures with clear `javaspec bootstrap execution failed` diagnostics, and throws `GradleException` for failed or broken examples when `failOnFailure=true`.
-7. No JUnit is required in the project under test, and source/spec compilation remains Gradle's responsibility before javaspec execution.
+7. No JUnit is required in the project under test. Source/spec compilation remains Gradle's responsibility by default; `compile` / `javaspec.compile` and `compileOutput` / `javaspec.compileOutput` explicitly opt into current-JDK javaspec compilation.
 
 ## 6.12 Optional JUnit Platform Engine Runtime Scenario
 
@@ -178,7 +186,7 @@ Projects that do not opt into the engine still use CLI, programmatic invocation,
 2. Profile values are validated against `java8`, `java11`, `java17`, `java21`, and `java25`.
 3. Profile metadata and API-symbol catalog lookups use strings and Java 8-compatible domain objects.
 4. `ProfileEnforcement` checks described type kinds before writes: Java 8-compatible kinds pass under `java8`, while `record`, `sealed class`, and `sealed interface` require at least `java17`.
-5. Generated method return and parameter types are checked only when their owners resolve to known cataloged Java API symbols; unknown project types and ambiguous or unresolvable simple names are ignored to avoid false positives.
+5. Generated method return/parameter types and relationship type references such as super/extends/implements/permits are checked when their owners resolve to known cataloged Java API symbols; unknown project types and ambiguous or unresolvable names are ignored to avoid false positives.
 6. Violations exit `64` before generation/update writes, dry-run output, execution, or report writing.
 7. Optional runtime availability checks use `ApiAvailabilityProbe` with class, method, or field names.
 8. Post-Java-8 APIs are never imported directly by production code, and no integrated compilation is performed.
@@ -193,7 +201,7 @@ Projects that do not opt into the engine still use CLI, programmatic invocation,
 6. The script verifies and audits the standalone Maven plugin and standalone JUnit Platform engine with their own Maven POMs.
 7. Unless `JAVASPEC_SKIP_GRADLE=1` is set, the script resolves Gradle through explicit `JAVASPEC_GRADLE_BIN`, repository `./gradlew`, `/tmp/gradle-8.8/bin/gradle`, or `gradle` on `PATH`, then runs the standalone Gradle plugin `clean test build` and `runtimeClasspath` audit.
 8. If Gradle is required but unavailable, the script fails with a clear diagnostic rather than silently skipping adapter verification.
-9. Unless `JAVASPEC_SKIP_EXAMPLES=1` is set, `scripts/verify-all.sh` runs `scripts/verify-examples.sh` after core and adapter checks. The examples script installs local snapshots, runs Maven, JUnit Platform, and Gradle consumer examples, and asserts generated report markers. `JAVASPEC_SKIP_GRADLE_EXAMPLE=1` skips only the Gradle example inside that examples script.
+9. Unless `JAVASPEC_SKIP_EXAMPLES=1` is set, `scripts/verify-all.sh` runs `scripts/verify-examples.sh` after core and adapter checks. The examples script installs local snapshots, runs Maven, JUnit Platform, bytecode doubles, and Gradle consumer examples, and asserts generated report markers. `JAVASPEC_SKIP_GRADLE_EXAMPLE=1` skips only the Gradle example inside that examples script.
 10. Optional local release-artifact checks use Maven `-Prelease-artifacts -DskipTests package` for root, Maven plugin, and JUnit Platform engine main/sources/javadoc jars, plus the Gradle plugin `clean test build` for Gradle main/sources/javadoc jars.
 11. `CHANGELOG.md` and `RELEASING.md` document release changes, local checks, and public-publication blockers.
 
@@ -201,9 +209,9 @@ The GitHub Actions workflow also has a separate core matrix job for Java 8, 11, 
 
 ## 6.15 Standalone Examples and Report Documentation Scenario
 
-1. A new adopter reads `examples/README.md` and chooses a standalone consumer example: Maven plugin, Gradle plugin, or JUnit Platform engine.
+1. A new adopter reads `examples/README.md` and chooses a standalone consumer example: Maven plugin, Gradle plugin, JUnit Platform engine, or bytecode doubles.
 2. The example builds consume local snapshots because public artifacts are not published yet.
-3. Maven and Gradle examples run a simple `CalculatorSpec` and write JSON plus JUnit XML-compatible reports to their own generated output directories.
-4. The JUnit Platform example runs through Maven Surefire configured for `*Spec` and the optional engine.
+3. Maven, Gradle, and bytecode doubles examples run simple specs and write JSON plus JUnit XML-compatible reports to their own generated output directories.
+4. The JUnit Platform example runs through Maven Surefire configured for `*Spec` and the optional engine; the bytecode doubles example uses `javaspec-bytecode-doubles` to double a non-final concrete `DataStore`.
 5. Report tooling authors can validate against `docs/schemas/run-report-v1.schema.json` and compare with passing and pending golden reports under `docs/examples/reports/`.
 6. Generated example `target/`, `build/`, and `.gradle/` outputs remain ignored and are not source-controlled artifacts.

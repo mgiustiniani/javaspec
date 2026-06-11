@@ -50,6 +50,7 @@
   - [Call history and verification](Home.md#call-history-and-verification)
   - [Object methods and resets](Home.md#object-methods-and-resets)
   - [Supported targets and limitations](Home.md#supported-targets-and-limitations)
+- [Optional bytecode concrete-class doubles](Home.md#optional-bytecode-concrete-class-doubles)
 - [Class-like type generation](Home.md#class-like-type-generation)
 - [Extends and implements](Home.md#extends-and-implements)
 - [Custom directories](Home.md#custom-directories)

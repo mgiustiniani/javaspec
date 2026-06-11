@@ -2,7 +2,7 @@
 
 These examples are standalone consumer projects. They are not root Maven modules and are not part of the repository-root Maven reactor.
 
-Until javaspec artifacts are publicly published, install local snapshots before running the Maven and JUnit Platform examples. The Gradle example uses an included build for `javaspec-gradle-plugin`, but that plugin build still resolves the core `org.javaspec:javaspec` snapshot from Maven local.
+Until javaspec artifacts are publicly published, install local snapshots before running the Maven, JUnit Platform, and bytecode doubles examples. The Gradle example uses an included build for `javaspec-gradle-plugin`, but that plugin build still resolves the core `org.javaspec:javaspec` snapshot from Maven local.
 
 The easiest local check is:
 
@@ -16,9 +16,11 @@ Manual setup and runs from the repository root:
 mvn -q -DskipTests install
 mvn -q -f javaspec-maven-plugin/pom.xml -DskipTests install
 mvn -q -f javaspec-junit-platform-engine/pom.xml -DskipTests install
+mvn -q -f javaspec-bytecode-doubles/pom.xml -DskipTests install
 
 mvn -q -f examples/maven-basic/pom.xml verify
 mvn -q -f examples/junit-platform-basic/pom.xml test
+mvn -q -f examples/bytecode-doubles-basic/pom.xml verify
 gradle -p examples/gradle-basic clean javaspecRun
 ```
 
@@ -29,6 +31,8 @@ Outputs:
 - `examples/gradle-basic/build/reports/javaspec/run-report.json`
 - `examples/gradle-basic/build/reports/javaspec/junit-report.xml`
 - `examples/junit-platform-basic/target/surefire-reports/`
+- `examples/bytecode-doubles-basic/target/javaspec/run-report.json`
+- `examples/bytecode-doubles-basic/target/javaspec/junit-report.xml`
 
 Specs can explicitly skip or mark examples pending without adding dependencies:
 
@@ -54,4 +58,4 @@ public class PaymentSpec extends PaymentSpecSupport {
 
 JSON reports include separate `pending` counts and `status: "PENDING"`. JUnit XML-compatible reports map pending examples to `<skipped message="Pending: ...">` and include pending in the testsuite `skipped` attribute.
 
-If Gradle is not available locally, set `JAVASPEC_SKIP_GRADLE_EXAMPLE=1` when running `scripts/verify-examples.sh`.
+If Gradle is not available locally, set `JAVASPEC_SKIP_GRADLE_EXAMPLE=1` when running `scripts/verify-examples.sh`. To skip only the bytecode doubles example, set `JAVASPEC_SKIP_BYTECODE_DOUBLES_EXAMPLE=1`.
