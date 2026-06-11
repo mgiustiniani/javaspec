@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/mgiustiniani/javaspec/actions/workflows/ci.yml/badge.svg)](https://github.com/mgiustiniani/javaspec/actions/workflows/ci.yml)
 
-![javaspec demo](https://drive.usercontent.google.com/download?id=1WCJh4s4NktFzjBHG0_pxco3M80NJWFr7&export=view)
+![javaspec demo](docs/assets/demo.gif)
 
 javaspec is a specification-first testing and design tool for Java, inspired by phpspec. You describe the behavior you want, run the specification, and let javaspec guide the next small production-code step.
 
