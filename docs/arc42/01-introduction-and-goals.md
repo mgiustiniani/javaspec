@@ -2,7 +2,22 @@
 
 ## 1.1 Requirements Overview
 
-javaspec is a Java 8-compatible, zero-runtime-dependency specification framework inspired by phpspec. It supports an implemented first-MVP specification/generation slice, reflection runner, matcher expansion, interface doubles, Phase 9 run controls, Phase 10 interface-style method generation, Phase 11 formatter/reporting/programmatic extension contracts, the Phase 14 no-JUnit integration foundation for programmatic invocation, explicit classpath input, and JUnit XML-compatible reports, Phase 15 Maven, Phase 16 Gradle, and Phase 17 JUnit Platform standalone optional adapters, Phase 18 stable identifier/source-location/report polish, Phase 19 aggregate release/CI verification, Phase 20 release-readiness scaffolding, Phase 21 standalone adoption examples plus report schema/golden documentation, Phase 22 explicit skipped/pending semantics, Phase 23 classpath/execution availability diagnostics, Phase 24 configuration-level report destinations, Phase 25 ServiceLoader external formatter/extension discovery, Phase 26 target-profile enforcement before generation/update writes, Phase 27 bootstrap hook execution before examples, Phase 28 stronger interface doubles, Phase 29 opt-in CLI source/spec compilation, Phases 30-36 known-limitations resolution, and Phase 37 standalone optional bytecode concrete-class doubles. Future backlog work can grow the specification-first workflow further while preserving the conservative compatibility baseline.
+javaspec is a Java 8-compatible, zero-runtime-dependency specification framework inspired by
+phpspec. It supports an implemented first-MVP specification/generation slice, reflection runner,
+matcher expansion, interface doubles, Phase 9 run controls, Phase 10 interface-style method
+generation, Phase 11 formatter/reporting/programmatic extension contracts, the Phase 14 no-JUnit
+integration foundation for programmatic invocation, explicit classpath input, and JUnit
+XML-compatible reports, Phase 15 Maven, Phase 16 Gradle, and Phase 17 JUnit Platform standalone
+optional adapters, Phase 18 stable identifier/source-location/report polish, Phase 19 aggregate
+release/CI verification, Phase 20 release-readiness scaffolding, Phase 21 standalone adoption
+examples plus report schema/golden documentation, Phase 22 explicit skipped/pending semantics, Phase
+23 classpath/execution availability diagnostics, Phase 24 configuration-level report destinations,
+Phase 25 ServiceLoader external formatter/extension discovery, Phase 26 target-profile enforcement
+before generation/update writes, Phase 27 bootstrap hook execution before examples, Phase 28
+stronger interface doubles, Phase 29 opt-in CLI source/spec compilation, Phases 30-36
+known-limitations resolution, and Phase 37 standalone optional bytecode concrete-class doubles.
+Future backlog work can grow the specification-first workflow further while preserving the
+conservative compatibility baseline.
 
 Core requirements:
 
@@ -10,16 +25,35 @@ Core requirements:
 - Use Maven and package base `org.javaspec`.
 - Keep the core runtime artifact free of third-party runtime dependencies beyond the JDK.
 - Allow dependencies only in test scope.
-- Model Java LTS target profiles for Java 8, 11, 17, 21, and 25 through a profile catalog, API-symbol metadata, compatibility checks, reflection-only probes, and conservative pre-write profile enforcement.
+- Model Java LTS target profiles for Java 8, 11, 17, 21, and 25 through a profile catalog,
+  API-symbol metadata, compatibility checks, reflection-only probes, and conservative pre-write
+  profile enforcement.
 - Avoid direct production-code references to APIs unavailable on Java 8.
-- Support zero-runtime-dependency line-based configuration with suite-level spec/source directories, package-prefix naming, selected-suite discovery, config-driven extension activation, executable top-level/selected-suite plus ServiceLoader-discovered bootstrap hooks, and optional top-level JSON/JUnit XML-compatible report destinations.
-- Execute discovered examples through a Java 8-compatible reflection runner when compiled spec classes are available on the effective or selected explicit classloader, with optional stop-on-failure and explicit skipped/pending semantics.
-- Support zero-runtime-dependency interface doubles using JDK dynamic proxies, including argument matchers, throwing stubs, and answer callbacks, plus optional non-final concrete-class doubles through a standalone ByteBuddy adapter that remains outside the core runtime.
-- Support run-only CLI controls for dry-run planning, stop-on-failure, progress/pretty output, profile selection/enforcement, verbose diagnostics, explicit classpath input, execution-availability diagnostics, bootstrap execution immediately before examples, optional JSON reports, optional JUnit XML-compatible reports, stable identifiers, separate pending counts, and source metadata where available.
-- Expose no-`System.exit` invocation, formatter/reporting, minimal extension contracts, and zero-dependency ServiceLoader discovery for external run formatter/extension providers on CLI and Gradle run classloaders.
-- Provide Maven, Gradle, and JUnit Platform integrations only as standalone optional adapters over the canonical runner, not as core runtime dependencies.
-- Keep repository-root Maven verification core-only while providing explicit aggregate release/CI verification, release-readiness checks, and standalone adoption examples verification for standalone adapters.
-- Use phpspec as the functional inspiration for CLI, discovery, lifecycle, expectations, doubles, generation, reporting, and extension concepts.
+- Support zero-runtime-dependency line-based configuration with suite-level spec/source directories,
+  package-prefix naming, selected-suite discovery, config-driven extension activation, executable
+  top-level/selected-suite plus ServiceLoader-discovered bootstrap hooks, and optional top-level
+  JSON/JUnit XML-compatible report destinations.
+- Execute discovered examples through a Java 8-compatible reflection runner when compiled spec
+  classes are available on the effective or selected explicit classloader, with optional
+  stop-on-failure and explicit skipped/pending semantics.
+- Support zero-runtime-dependency interface doubles using JDK dynamic proxies, including argument
+  matchers, throwing stubs, and answer callbacks, plus optional non-final concrete-class doubles
+  through a standalone ByteBuddy adapter that remains outside the core runtime.
+- Support run-only CLI controls for dry-run planning, stop-on-failure, progress/pretty output,
+  profile selection/enforcement, verbose diagnostics, explicit classpath input,
+  execution-availability diagnostics, bootstrap execution immediately before examples, optional JSON
+  reports, optional JUnit XML-compatible reports, stable identifiers, separate pending counts, and
+  source metadata where available.
+- Expose no-`System.exit` invocation, formatter/reporting, minimal extension contracts, and
+  zero-dependency ServiceLoader discovery for external run formatter/extension providers on CLI and
+  Gradle run classloaders.
+- Provide Maven, Gradle, and JUnit Platform integrations only as standalone optional adapters over
+  the canonical runner, not as core runtime dependencies.
+- Keep repository-root Maven verification core-only while providing explicit aggregate release/CI
+  verification, release-readiness checks, and standalone adoption examples verification for
+  standalone adapters.
+- Use phpspec as the functional inspiration for CLI, discovery, lifecycle, expectations, doubles,
+  generation, reporting, and extension concepts.
 
 ## 1.2 Quality Goals
 
@@ -45,11 +79,26 @@ Core requirements:
 ## 1.4 Current Non-Goals and Limits
 
 - No third-party runtime dependencies in the core artifact.
-- Default runs remain classpath-based; source-only specs are skipped until compiled classes are available, with Phase 23 diagnostics to explain availability problems. CLI, programmatic, Maven, and Gradle paths can explicitly opt into current-JDK `javax.tools.JavaCompiler` compilation; the JUnit Platform engine remains classpath-based.
-- Profile enforcement is conservative and generation-scoped: `run` checks described type kinds and resolvable cataloged Java API signature owners before writes, but it is not an integrated compiler and ignores unknown project types plus ambiguous or unresolvable type names.
-- Extension activation and formatter controls are implemented where documented through config/build-tool/JUnit Platform settings and ServiceLoader-discovered providers. Package scanning, plugin repository lookup, script engines, automatic classpath repair, dependency resolution, and compiler-grade profile checks remain out of scope.
-- No Maven multi-module conversion, core runtime dependency additions, publishing, signing, secrets, portal credentials, final release tag/version, or final publish approval in release-readiness/adoption increments; the MIT license and confirmed maintainer metadata are resolved.
-- Phase 21 examples are standalone consumer projects, not root modules or public-publication evidence.
-- Phase 20, Phase 21, and Phase 22 have local verification evidence plus user-/maintainer-confirmed remote GitHub Actions success for HEAD `5088e96` on `develop` after push; no GitHub run IDs, URLs, durations, or logs were independently queried.
-- Phase 19 remote GitHub Actions success remains historical user-/maintainer-confirmed evidence for HEAD `4d30e63` on `develop`.
+- Default runs remain classpath-based; source-only specs are skipped until compiled classes are
+  available, with Phase 23 diagnostics to explain availability problems. CLI, programmatic, Maven,
+  and Gradle paths can explicitly opt into current-JDK `javax.tools.JavaCompiler` compilation; the
+  JUnit Platform engine remains classpath-based.
+- Profile enforcement is conservative and generation-scoped: `run` checks described type kinds and
+  resolvable cataloged Java API signature owners before writes, but it is not an integrated compiler
+  and ignores unknown project types plus ambiguous or unresolvable type names.
+- Extension activation and formatter controls are implemented where documented through
+  config/build-tool/JUnit Platform settings and ServiceLoader-discovered providers. Package
+  scanning, plugin repository lookup, script engines, automatic classpath repair, dependency
+  resolution, and compiler-grade profile checks remain out of scope.
+- No Maven multi-module conversion, core runtime dependency additions, publishing, signing, secrets,
+  portal credentials, final release tag/version, or final publish approval in
+  release-readiness/adoption increments; the MIT license and confirmed maintainer metadata are
+  resolved.
+- Phase 21 examples are standalone consumer projects, not root modules or public-publication
+  evidence.
+- Phase 20, Phase 21, and Phase 22 have local verification evidence plus user-/maintainer-confirmed
+  remote GitHub Actions success for HEAD `5088e96` on `develop` after push; no GitHub run IDs, URLs,
+  durations, or logs were independently queried.
+- Phase 19 remote GitHub Actions success remains historical user-/maintainer-confirmed evidence for
+  HEAD `4d30e63` on `develop`.
 - No C4 diagrams are currently generated.
