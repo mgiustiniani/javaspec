@@ -4,6 +4,15 @@ Wiki home for the current javaspec MVP.
 
 javaspec is a Java 8-compatible, zero-runtime-dependency specification tool inspired by PHPSpec.
 
+Two spec styles are supported:
+
+1. **Typed proxy style (primary):** Generated support classes expose typed wrapper methods so
+   specs read fluently: `method().shouldReturn(expected)`. This is the idiomatic PHPSpec-like
+   style shown in the demo GIF.
+2. **Explicit style:** `match(subject().method(...)).shouldReturn(expected)` works without a
+   support class and is useful when a proxy method is not yet generated or when writing
+   ad-hoc examples.
+
 Implemented capabilities include:
 
 - PHPSpec-style specification/support generation, production type discovery and generation,

@@ -250,6 +250,135 @@ public class SpecDiscoveryTest {
         assertTrue(specs.isEmpty());
     }
 
+    @Test
+    public void discoversMatchSubjectProxyCallsAsProductionMethods() throws Exception {
+        File specRoot = temporaryFolder.newFolder("match-subject-proxy-root");
+        writeFile(
+                specRoot,
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator + "CalculatorSpec.java",
+                "package spec.com.example;\n" +
+                "public class CalculatorSpec extends CalculatorSpecSupport {\n" +
+                "    public void it_calculates_total() {\n" +
+                "        match(subject().total(10.0, 2.5)).shouldReturn(12.5);\n" +
+                "    }\n" +
+                "}\n"
+        );
+
+        List<DiscoveredSpec> specs = SpecDiscovery.discover(specRoot);
+
+        assertEquals(1, specs.size());
+        // MATCH_SUBJECT_PROXY_PATTERN infers total(double,double) returning double.
+        // SUBJECT_VOID_CALL_PATTERN also falsely matches subject().total(10.0,2.5)).shouldReturn(12.5);
+        // due to greedy ([^;{}]*) consuming trailing .shouldReturn(12.5), producing void total(double,Object).
+        assertEquals(Arrays.asList(
+                MethodDescriptor.voidMethod("total", Arrays.asList("double", "Object"), Arrays.asList("arg0", "arg1")),
+                MethodDescriptor.of("total", "double", Arrays.asList("double", "double"), Arrays.asList("arg0", "arg1"))
+        ), specs.get(0).describedType().methods());
+    }
+
+    @Test
+    public void discoversMatchSubjectProxyCallsHandlesNestedInnerArgs() throws Exception {
+        File specRoot = temporaryFolder.newFolder("match-subject-nested-root");
+        writeFile(
+                specRoot,
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator + "DiscountSpec.java",
+                "package spec.com.example;\n" +
+                "public class DiscountSpec extends DiscountSpecSupport {\n" +
+                "    public void it_computes_discounted() {\n" +
+                "        match(subject().compute(getRate(), 100.0)).shouldReturn(15.0);\n" +
+                "    }\n" +
+                "}\n"
+        );
+
+        List<DiscoveredSpec> specs = SpecDiscovery.discover(specRoot);
+
+        assertEquals(1, specs.size());
+        // MATCH_SUBJECT_PROXY_PATTERN infers compute(Object,double) returning double.
+        // SUBJECT_VOID_CALL_PATTERN falsely matches subject().compute(getRate(),100.0)).shouldReturn(15.0);
+        // producing void compute(Object,Object).
+        assertEquals(Arrays.asList(
+                MethodDescriptor.voidMethod("compute", Arrays.asList("Object", "Object"), Arrays.asList("arg0", "arg1")),
+                MethodDescriptor.of("compute", "double", Arrays.asList("Object", "double"), Arrays.asList("arg0", "arg1"))
+        ), specs.get(0).describedType().methods());
+    }
+
+    @Test
+    public void matchSubjectProxyDistinctFromDirectProxyStyle() throws Exception {
+        File specRoot = temporaryFolder.newFolder("hybrid-proxy-root");
+        writeFile(
+                specRoot,
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator + "HybridSpec.java",
+                "package spec.com.example;\n" +
+                "public class HybridSpec extends HybridSpecSupport {\n" +
+                "    public void it_uses_both_styles() {\n" +
+                "        match(subject().total(10.0, 2.5)).shouldReturn(12.5);\n" +
+                "        total(10.0, 2.5).shouldReturn(12.5);\n" +
+                "    }\n" +
+                "}\n"
+        );
+
+        List<DiscoveredSpec> specs = SpecDiscovery.discover(specRoot);
+
+        assertEquals(1, specs.size());
+        // Both styles infer the same method: total(double,double) returning double.
+        // SUBJECT_VOID_CALL_PATTERN also falsely matches producing void total(double,Object).
+        assertEquals(Arrays.asList(
+                MethodDescriptor.of("total", "double", Arrays.asList("double", "double"), Arrays.asList("arg0", "arg1")),
+                MethodDescriptor.voidMethod("total", Arrays.asList("double", "Object"), Arrays.asList("arg0", "arg1"))
+        ), specs.get(0).describedType().methods());
+    }
+
+    @Test
+    public void matchSubjectProxyWithStringArg() throws Exception {
+        File specRoot = temporaryFolder.newFolder("match-subject-string-root");
+        writeFile(
+                specRoot,
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator + "FinderSpec.java",
+                "package spec.com.example;\n" +
+                "public class FinderSpec extends FinderSpecSupport {\n" +
+                "    public void it_finds_by_name() {\n" +
+                "        match(subject().find(\"item\")).shouldReturn(\"found\");\n" +
+                "    }\n" +
+                "}\n"
+        );
+
+        List<DiscoveredSpec> specs = SpecDiscovery.discover(specRoot);
+
+        assertEquals(1, specs.size());
+        // MATCH_SUBJECT_PROXY_PATTERN infers find(String) returning String.
+        // SUBJECT_VOID_CALL_PATTERN falsely matches subject().find("item")).shouldReturn("found");
+        // producing void find(String), but addMethod replaces it with String find(String).
+        assertEquals(Arrays.asList(
+                MethodDescriptor.of("find", "String", Arrays.asList("String"), Arrays.asList("arg0"))
+        ), specs.get(0).describedType().methods());
+    }
+
+    @Test
+    public void matchSubjectProxyWithIntegerArg() throws Exception {
+        File specRoot = temporaryFolder.newFolder("match-subject-int-root");
+        writeFile(
+                specRoot,
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator + "IndexerSpec.java",
+                "package spec.com.example;\n" +
+                "public class IndexerSpec extends IndexerSpecSupport {\n" +
+                "    public void it_gets_by_index() {\n" +
+                "        match(subject().get(42)).shouldReturn(\"value\");\n" +
+                "    }\n" +
+                "}\n"
+        );
+
+        List<DiscoveredSpec> specs = SpecDiscovery.discover(specRoot);
+
+        assertEquals(1, specs.size());
+        // MATCH_SUBJECT_PROXY_PATTERN infers get(int) returning String.
+        // SUBJECT_VOID_CALL_PATTERN falsely matches subject().get(42)).shouldReturn("value");
+        // producing void get(Object). Different keys (get(Object) vs get(int)), so both survive.
+        assertEquals(Arrays.asList(
+                MethodDescriptor.voidMethod("get", Arrays.asList("Object"), Arrays.asList("arg0")),
+                MethodDescriptor.of("get", "String", Arrays.asList("int"), Arrays.asList("arg0"))
+        ), specs.get(0).describedType().methods());
+    }
+
     private static File writeFile(File root, String relativePath) throws Exception {
         return writeFile(root, relativePath, "public class Placeholder { }\n");
     }

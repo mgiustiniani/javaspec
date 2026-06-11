@@ -50,6 +50,12 @@ public final class SpecDiscovery {
     private static final Pattern PLAIN_SETTER_CALL_PATTERN = Pattern.compile(
             "(?m)^\\s*(set[A-Z][A-Za-z0-9_$]*)\\s*\\(([^;{}]*)\\)\\s*;"
     );
+    private static final Pattern MATCH_SUBJECT_PROXY_PATTERN = Pattern.compile(
+            "match\\s*\\(\\s*subject\\s*\\(\\s*\\)\\s*\\.\\s*([a-z][A-Za-z0-9_$]*)\\s*\\(([^;{}]*)\\)\\s*\\)\\s*\\.\\s*"
+                    + "(shouldReturn|shouldNotReturn|shouldBe|shouldNotBe|shouldEqual|shouldNotEqual|shouldBeLike|shouldNotBeLike|shouldBeEqualTo|shouldNotBeEqualTo|shouldHaveType|shouldBeAnInstanceOf|shouldReturnAnInstanceOf|shouldImplement|shouldContain|shouldNotContain|shouldStartWith|shouldNotStartWith|shouldEndWith|shouldNotEndWith|shouldMatchPattern|shouldNotMatchPattern|shouldHaveCount|shouldBeEmpty|shouldNotBeEmpty|shouldHaveKey|shouldNotHaveKey|shouldHaveValue|shouldNotHaveValue)"
+                    + "\\s*\\(([^;{}]*)\\)",
+            Pattern.DOTALL
+    );
 
     private SpecDiscovery() {
     }
@@ -242,6 +248,21 @@ public final class SpecDiscovery {
             List<String> parameterTypes = inferArgumentTypes(argumentSource, source, subjectVoidMatcher.start(), specMethods);
             List<String> parameterNames = parameterNamesFor(methodName, parameterTypes.size());
             addMethod(discovered, MethodDescriptor.voidMethod(methodName, parameterTypes, parameterNames));
+        }
+
+        Matcher matchSubjectMatcher = MATCH_SUBJECT_PROXY_PATTERN.matcher(source);
+        while (matchSubjectMatcher.find()) {
+            String methodName = matchSubjectMatcher.group(1);
+            if (isIgnoredProxyCall(methodName)) {
+                continue;
+            }
+            String argumentSource = matchSubjectMatcher.group(2).trim();
+            String matcherName = matchSubjectMatcher.group(3);
+            String expectationSource = matchSubjectMatcher.group(4).trim();
+            List<String> parameterTypes = inferArgumentTypes(argumentSource, source, matchSubjectMatcher.start(), specMethods);
+            List<String> parameterNames = parameterNamesFor(methodName, parameterTypes.size());
+            String returnType = inferReturnType(matcherName, expectationSource);
+            addMethod(discovered, MethodDescriptor.of(methodName, returnType, parameterTypes, parameterNames));
         }
 
         Matcher setterMatcher = PLAIN_SETTER_CALL_PATTERN.matcher(source);

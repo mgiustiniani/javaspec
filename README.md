@@ -18,6 +18,7 @@ Public artifact publication is not available yet. Until Central Portal and Gradl
 - CLI, Maven plugin, Gradle plugin, and JUnit Platform adapter.
 - Generation and update support for specs, support classes, production skeletons, constructors, and methods.
 - JSON and JUnit XML-compatible reports.
+- Generated typed proxy methods for phpspec-style `method().shouldReturn(expected)` syntax.
 - Interface doubles in core; optional ByteBuddy-based concrete-class doubles adapter.
 
 ## Quick Start
@@ -53,18 +54,16 @@ javaspec describe com.example.PriceCalculator
 package spec.com.example;
 
 import com.example.PriceCalculator;
-import org.javaspec.api.ObjectBehavior;
+import com.example.PriceCalculatorSpecSupport;
 
-public class PriceCalculatorSpec extends ObjectBehavior<PriceCalculator> {
-    public PriceCalculatorSpec() {
-        super(PriceCalculator.class);
-    }
-
+public class PriceCalculatorSpec extends PriceCalculatorSpecSupport {
     public void it_calculates_the_total_price() {
-        match(subject().total(10.0, 2.5)).shouldReturn(12.5);
+        total(10.0, 2.5).shouldReturn(12.5);
     }
 }
 ```
+
+The proxy style works because `javaspec describe` generates a support class with typed wrapper methods. If you prefer the explicit form, `match(subject().total(10.0, 2.5)).shouldReturn(12.5)` is also supported.
 
 **Step 3 — Run specs:** the generation prompt fires because the production class is missing. `--generate` accepts automatically; `--compile` recompiles before execution; `--formatter pretty` shows descriptive output.
 
@@ -78,10 +77,13 @@ Sample output:
 PriceCalculator
   ✗ it calculates the total price  [BROKEN: class not found]
 
-Pending generation:
-  + com/example/PriceCalculator.java  (new class)
+describes missing class: com.example.PriceCalculator
+Generated class skeleton: src/main/java/com/example/PriceCalculator.java
+Compilation output: target/javaspec-classes
 
-Generate missing production code? [y/N] (auto-accepted with --generate)
+  ✓ it calculates the total price  [PASSED]
+
+1 spec, 1 example — 1 passed, 0 failed, 0 broken, 0 skipped, 0 pending
 ```
 
 **Step 4 — View the generated production class:**
@@ -109,8 +111,10 @@ public double total(double arg0, double arg1) {
 **Step 6 — Verify everything passes:**
 
 ```sh
-mvn verify
+javaspec run --compile --formatter pretty
 ```
+
+If you have a Maven project with the javaspec Maven plugin configured, `mvn javaspec:run` works too.
 
 That's the full red-green cycle with javaspec.
 
@@ -136,10 +140,15 @@ public class CalculatorSpec extends ObjectBehavior<Calculator> {
     }
 
     public void it_adds_two_numbers() {
-        match(subject().add(2, 3)).shouldReturn(5);
+        add(2, 3).shouldReturn(5);
     }
 }
 ```
+
+The concise form works because `javaspec describe` generates a support class with typed
+proxy methods for each subject method — each returns `Matchable<T>` and can be chained
+directly. The explicit form `match(subject().add(2, 3)).shouldReturn(5)` is equivalent
+and useful when calling methods not yet reflected in the support class.
 
 Common authoring concepts:
 
@@ -338,7 +347,16 @@ int exitCode = result.exitCode();
 
 ## Matchers and expectations
 
-Use `match(value)` for fluent expectations:
+Use proxy methods (phpspec style) or `match(value)` for fluent expectations:
+
+```java
+add(2, 3).shouldReturn(5);
+name().shouldStartWith("calc");
+items().shouldHaveCount(3);
+shouldBeAnInstanceOf(Calculator.class);
+```
+
+The explicit form is available too, and useful when a proxy method is not yet generated:
 
 ```java
 match(subject().add(2, 3)).shouldReturn(5);
