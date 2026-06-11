@@ -2,6 +2,7 @@ package org.javaspec.junit.platform;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.platform.commons.JUnitException;
 import org.junit.platform.engine.TestExecutionResult;
 import org.junit.platform.engine.UniqueId;
 import org.junit.platform.engine.discovery.DiscoverySelectors;
@@ -19,8 +20,10 @@ import org.junit.platform.launcher.listeners.TestExecutionSummary;
 import javax.tools.JavaCompiler;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
@@ -36,6 +39,7 @@ import java.util.ServiceLoader;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class JavaspecTestEnginePhase17Test {
@@ -389,6 +393,143 @@ class JavaspecTestEnginePhase17Test {
     }
 
     @Test
+    void bootstrapDiscoveryParameterExecutesServiceLoaderHookBeforeExamples(@TempDir Path temp) throws Exception {
+        RunOutcome outcome = executeBootstrapDiscoveryCase(
+                temp,
+                "enabled",
+                "true",
+                "discovered"
+        );
+
+        assertEquals(1, outcome.summary().getTestsFoundCount());
+        assertEquals(1, outcome.summary().getTestsSucceededCount());
+        assertEquals(0, outcome.summary().getTestsFailedCount());
+    }
+
+    @Test
+    void absentOrFalseBootstrapDiscoveryParameterLeavesServiceLoaderHookUnexecuted(@TempDir Path temp) throws Exception {
+        RunOutcome absent = executeBootstrapDiscoveryCase(
+                temp,
+                "absent",
+                null,
+                ""
+        );
+        RunOutcome disabled = executeBootstrapDiscoveryCase(
+                temp,
+                "disabled",
+                "false",
+                ""
+        );
+
+        assertEquals(1, absent.summary().getTestsSucceededCount());
+        assertEquals(0, absent.summary().getTestsFailedCount());
+        assertEquals(1, disabled.summary().getTestsSucceededCount());
+        assertEquals(0, disabled.summary().getTestsFailedCount());
+    }
+
+    @Test
+    void invalidBootstrapDiscoveryParameterThrowsConfigurationError(@TempDir Path temp) throws Exception {
+        Path specRoot = Files.createDirectories(temp.resolve("invalid-bootstrap-discovery-specs"));
+
+        JUnitException failure = assertThrows(JUnitException.class, () -> execute(
+                requestBuilder()
+                        .configurationParameter("javaspec.specRoot", specRoot.toString())
+                        .configurationParameter("javaspec.bootstrapDiscovery", "definitely")
+                        .build()
+        ));
+
+        assertThrowableContains(failure, "Invalid javaspec configuration parameter 'javaspec.bootstrapDiscovery'");
+        assertThrowableContains(failure, "expected true or false");
+        assertThrowableContains(failure, "definitely");
+    }
+
+    @Test
+    void configurationParameterExtensionsRegisterFormatterAndFormatterParameterSelectsIt(@TempDir Path temp) throws Exception {
+        Path specRoot = temp.resolve("formatter-specs");
+        Path specSource = writeSpec(specRoot, "phase32.engine", "FormatterSpec",
+                "    public void it_passes_with_configured_formatter() {\n" +
+                "    }\n");
+        Path noopExtension = writeNoopExtensionSource(temp, "phase32.engine.NoopPhase32Extension");
+        Path formatterExtension = writeFormatterExtensionSource(
+                temp,
+                "phase32.engine.Phase32EngineFormatterExtension",
+                "phase32-engine",
+                "junit phase32 formatter"
+        );
+
+        try (URLClassLoader classLoader = compileToClassLoader(
+                temp.resolve("classes"),
+                specSource,
+                noopExtension,
+                formatterExtension
+        )) {
+            CapturedRunOutcome outcome = executeCapturingOutput(
+                    requestBuilder()
+                            .configurationParameter("javaspec.specRoot", specRoot.toString())
+                            .configurationParameter("javaspec.extensions",
+                                    "phase32.engine.NoopPhase32Extension ; phase32.engine.Phase32EngineFormatterExtension")
+                            .configurationParameter("javaspec.formatter", "phase32-engine")
+                            .build(),
+                    classLoader
+            );
+
+            assertEquals(1, outcome.runOutcome().summary().getTestsFoundCount());
+            assertEquals(1, outcome.runOutcome().summary().getTestsSucceededCount());
+            assertEquals(0, outcome.runOutcome().summary().getTestsFailedCount());
+            assertTrue(outcome.output().contains("junit phase32 formatter total=1 passed=1 failed=0"), outcome.output());
+        }
+    }
+
+    @Test
+    void invalidFormatterParameterListsExtensionRegisteredFormatterNames(@TempDir Path temp) throws Exception {
+        Path specRoot = Files.createDirectories(temp.resolve("invalid-formatter-specs"));
+        Path formatterExtension = writeFormatterExtensionSource(
+                temp,
+                "phase32.engine.AvailableFormatterExtension",
+                "phase32-available",
+                "available junit formatter"
+        );
+
+        try (URLClassLoader classLoader = compileToClassLoader(temp.resolve("classes"), formatterExtension)) {
+            JUnitException failure = assertThrows(JUnitException.class, () -> execute(
+                    requestBuilder()
+                            .configurationParameter("javaspec.specRoot", specRoot.toString())
+                            .configurationParameter("javaspec.extensions", "phase32.engine.AvailableFormatterExtension")
+                            .configurationParameter("javaspec.formatter", "missing")
+                            .build(),
+                    classLoader
+            ));
+
+            assertThrowableContains(failure, "Invalid javaspec formatter: missing.");
+            assertThrowableContains(failure, "Valid values: progress, pretty, phase32-available.");
+        }
+    }
+
+    @Test
+    void activationFailureParameterFailsWithJUnitExceptionMessage(@TempDir Path temp) throws Exception {
+        Path specRoot = Files.createDirectories(temp.resolve("activation-failure-specs"));
+        Path failingExtension = writeFailingExtensionSource(
+                temp,
+                "phase32.engine.FailingPhase32Extension",
+                "phase 32 JUnit extension failure"
+        );
+
+        try (URLClassLoader classLoader = compileToClassLoader(temp.resolve("classes"), failingExtension)) {
+            JUnitException failure = assertThrows(JUnitException.class, () -> execute(
+                    requestBuilder()
+                            .configurationParameter("javaspec.specRoot", specRoot.toString())
+                            .configurationParameter("javaspec.extensions", "phase32.engine.FailingPhase32Extension")
+                            .build(),
+                    classLoader
+            ));
+
+            assertThrowableContains(failure, "javaspec extension activation failed:");
+            assertThrowableContains(failure, "phase32.engine.FailingPhase32Extension");
+            assertThrowableContains(failure, "phase 32 JUnit extension failure");
+        }
+    }
+
+    @Test
     void engineSourceUsesCanonicalLauncherAndDoesNotCallSystemExit() throws Exception {
         Path sourcePath = Paths.get("src/main/java/org/javaspec/junit/platform/JavaspecTestEngine.java");
         String source = new String(Files.readAllBytes(sourcePath), StandardCharsets.UTF_8);
@@ -420,6 +561,21 @@ class JavaspecTestEnginePhase17Test {
         }
     }
 
+    private static CapturedRunOutcome executeCapturingOutput(LauncherDiscoveryRequest request, ClassLoader classLoader) throws Exception {
+        PrintStream originalOut = System.out;
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        PrintStream capture = new PrintStream(output, true, "UTF-8");
+        try {
+            System.setOut(capture);
+            RunOutcome outcome = execute(request, classLoader);
+            capture.flush();
+            return new CapturedRunOutcome(outcome, new String(output.toByteArray(), StandardCharsets.UTF_8));
+        } finally {
+            System.setOut(originalOut);
+            capture.close();
+        }
+    }
+
     private static TestExecutionSummary.Failure failureFor(TestExecutionSummary summary, String displayNameFragment) {
         List<TestExecutionSummary.Failure> failures = summary.getFailures();
         for (int i = 0; i < failures.size(); i++) {
@@ -429,6 +585,26 @@ class JavaspecTestEnginePhase17Test {
             }
         }
         throw new AssertionError("Expected failure containing display name fragment '" + displayNameFragment + "' but got " + failures);
+    }
+
+    private static void assertThrowableContains(Throwable throwable, String expectedFragment) {
+        if (throwableContains(throwable, expectedFragment)) {
+            return;
+        }
+        throw new AssertionError("Expected throwable chain to contain '" + expectedFragment + "' but was: " + throwable,
+                throwable);
+    }
+
+    private static boolean throwableContains(Throwable throwable, String expectedFragment) {
+        Throwable current = throwable;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null && message.contains(expectedFragment)) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     private static SkippedEvent skippedEventFor(RecordingListener recorder, String displayNameFragment) {
@@ -447,6 +623,87 @@ class JavaspecTestEnginePhase17Test {
         return type.getField(fieldName).getInt(null);
     }
 
+    private static String staticString(Class<?> type, String fieldName) throws Exception {
+        return (String) type.getField(fieldName).get(null);
+    }
+
+    private static RunOutcome executeBootstrapDiscoveryCase(
+            Path temp,
+            String caseName,
+            String parameterValue,
+            String expectedMarker
+    ) throws Exception {
+        Path caseRoot = temp.resolve("bootstrap-discovery-" + caseName);
+        Path specRoot = caseRoot.resolve("specs");
+        String packageName = "phase33.bootstrap." + caseName;
+        String stateName = packageName + ".BootstrapDiscoveryState";
+        String hookName = packageName + ".DiscoveredBootstrapHook";
+        Path specSource = writeSpec(specRoot, packageName, "BootstrapDiscoverySpec",
+                "    public void it_observes_bootstrap_discovery_marker() {\n" +
+                        "        if (!\"" + expectedMarker + "\".equals(BootstrapDiscoveryState.marker)) {\n" +
+                        "            throw new AssertionError(\"unexpected bootstrap discovery marker: \" + BootstrapDiscoveryState.marker);\n" +
+                        "        }\n" +
+                        "        BootstrapDiscoveryState.exampleRuns++;\n" +
+                        "    }\n");
+        Path stateSource = writeBootstrapDiscoveryStateSource(caseRoot, packageName);
+        Path hookSource = writeBootstrapDiscoveryHookSource(caseRoot, packageName);
+        Path classesRoot = caseRoot.resolve("classes");
+
+        try (URLClassLoader classLoader = compileToClassLoader(classesRoot, specSource, stateSource, hookSource)) {
+            writeServiceProvider(classesRoot, "org.javaspec.bootstrap.BootstrapHook", hookName);
+            LauncherDiscoveryRequestBuilder builder = requestBuilder()
+                    .configurationParameter("javaspec.specRoot", specRoot.toString());
+            if (parameterValue != null) {
+                builder.configurationParameter("javaspec.bootstrapDiscovery", parameterValue);
+            }
+            RunOutcome outcome = execute(builder.build(), classLoader);
+            Class<?> stateClass = classLoader.loadClass(stateName);
+            assertEquals(expectedMarker, staticString(stateClass, "marker"));
+            assertEquals(1, staticInt(stateClass, "exampleRuns"));
+            return outcome;
+        }
+    }
+
+    private static Path writeBootstrapDiscoveryStateSource(Path root, String packageName) throws IOException {
+        Path source = sourcePath(root.resolve("bootstrap-discovery-sources"), packageName + ".BootstrapDiscoveryState");
+        Files.createDirectories(source.getParent());
+        Files.write(source, (
+                "package " + packageName + ";\n\n" +
+                "public final class BootstrapDiscoveryState {\n" +
+                "    public static String marker = \"\";\n" +
+                "    public static int exampleRuns = 0;\n\n" +
+                "    private BootstrapDiscoveryState() {\n" +
+                "    }\n\n" +
+                "    public static void reset() {\n" +
+                "        marker = \"\";\n" +
+                "        exampleRuns = 0;\n" +
+                "    }\n" +
+                "}\n").getBytes(StandardCharsets.UTF_8));
+        return source;
+    }
+
+    private static Path writeBootstrapDiscoveryHookSource(Path root, String packageName) throws IOException {
+        Path source = sourcePath(root.resolve("bootstrap-discovery-sources"), packageName + ".DiscoveredBootstrapHook");
+        Files.createDirectories(source.getParent());
+        Files.write(source, (
+                "package " + packageName + ";\n\n" +
+                "import org.javaspec.bootstrap.BootstrapContext;\n" +
+                "import org.javaspec.bootstrap.BootstrapHook;\n\n" +
+                "public final class DiscoveredBootstrapHook implements BootstrapHook {\n" +
+                "    public void bootstrap(BootstrapContext context) {\n" +
+                "        BootstrapDiscoveryState.reset();\n" +
+                "        BootstrapDiscoveryState.marker = \"discovered\";\n" +
+                "    }\n" +
+                "}\n").getBytes(StandardCharsets.UTF_8));
+        return source;
+    }
+
+    private static void writeServiceProvider(Path classesRoot, String serviceTypeName, String providerTypeName) throws IOException {
+        Path serviceFile = classesRoot.resolve("META-INF").resolve("services").resolve(serviceTypeName);
+        Files.createDirectories(serviceFile.getParent());
+        Files.write(serviceFile, (providerTypeName + "\n").getBytes(StandardCharsets.UTF_8));
+    }
+
     private static Path writeSpec(Path specRoot, String packageName, String simpleName, String classBody) throws IOException {
         Path packageDirectory = specRoot;
         if (packageName.length() > 0) {
@@ -463,6 +720,77 @@ class JavaspecTestEnginePhase17Test {
         builder.append("}\n");
         Files.write(source, builder.toString().getBytes(StandardCharsets.UTF_8));
         return source;
+    }
+
+    private static Path writeFormatterExtensionSource(
+            Path root,
+            String qualifiedName,
+            String formatterName,
+            String linePrefix
+    ) throws IOException {
+        int lastDot = qualifiedName.lastIndexOf('.');
+        String packageName = qualifiedName.substring(0, lastDot);
+        String simpleName = qualifiedName.substring(lastDot + 1);
+        Path source = sourcePath(root.resolve("extension-sources"), qualifiedName);
+        Files.createDirectories(source.getParent());
+        Files.write(source, (
+                "package " + packageName + ";\n\n" +
+                "import org.javaspec.extension.ExtensionContext;\n" +
+                "import org.javaspec.extension.JavaspecExtension;\n" +
+                "import org.javaspec.formatter.RunFormatter;\n" +
+                "import org.javaspec.runner.RunResult;\n\n" +
+                "import java.io.PrintStream;\n\n" +
+                "public final class " + simpleName + " implements JavaspecExtension {\n" +
+                "    public void configure(ExtensionContext context) {\n" +
+                "        context.runFormatters().register(\"" + formatterName + "\", new RunFormatter() {\n" +
+                "            public void format(RunResult runResult, PrintStream out) {\n" +
+                "                out.println(\"" + linePrefix + " total=\" + runResult.totalExamples()\n" +
+                "                        + \" passed=\" + runResult.passedCount()\n" +
+                "                        + \" failed=\" + runResult.failedCount());\n" +
+                "            }\n" +
+                "        });\n" +
+                "    }\n" +
+                "}\n").getBytes(StandardCharsets.UTF_8));
+        return source;
+    }
+
+    private static Path writeNoopExtensionSource(Path root, String qualifiedName) throws IOException {
+        int lastDot = qualifiedName.lastIndexOf('.');
+        String packageName = qualifiedName.substring(0, lastDot);
+        String simpleName = qualifiedName.substring(lastDot + 1);
+        Path source = sourcePath(root.resolve("extension-sources"), qualifiedName);
+        Files.createDirectories(source.getParent());
+        Files.write(source, (
+                "package " + packageName + ";\n\n" +
+                "import org.javaspec.extension.ExtensionContext;\n" +
+                "import org.javaspec.extension.JavaspecExtension;\n\n" +
+                "public final class " + simpleName + " implements JavaspecExtension {\n" +
+                "    public void configure(ExtensionContext context) {\n" +
+                "    }\n" +
+                "}\n").getBytes(StandardCharsets.UTF_8));
+        return source;
+    }
+
+    private static Path writeFailingExtensionSource(Path root, String qualifiedName, String message) throws IOException {
+        int lastDot = qualifiedName.lastIndexOf('.');
+        String packageName = qualifiedName.substring(0, lastDot);
+        String simpleName = qualifiedName.substring(lastDot + 1);
+        Path source = sourcePath(root.resolve("extension-sources"), qualifiedName);
+        Files.createDirectories(source.getParent());
+        Files.write(source, (
+                "package " + packageName + ";\n\n" +
+                "import org.javaspec.extension.ExtensionContext;\n" +
+                "import org.javaspec.extension.JavaspecExtension;\n\n" +
+                "public final class " + simpleName + " implements JavaspecExtension {\n" +
+                "    public void configure(ExtensionContext context) {\n" +
+                "        throw new IllegalStateException(\"" + message + "\");\n" +
+                "    }\n" +
+                "}\n").getBytes(StandardCharsets.UTF_8));
+        return source;
+    }
+
+    private static Path sourcePath(Path root, String qualifiedName) {
+        return root.resolve(qualifiedName.replace('.', File.separatorChar) + ".java");
     }
 
     private static URLClassLoader compileToClassLoader(Path classesRoot, Path... sources) throws Exception {
@@ -493,6 +821,24 @@ class JavaspecTestEnginePhase17Test {
         }
         URL[] urls = new URL[] {classesRoot.toUri().toURL()};
         return new URLClassLoader(urls, Thread.currentThread().getContextClassLoader());
+    }
+
+    private static final class CapturedRunOutcome {
+        private final RunOutcome runOutcome;
+        private final String output;
+
+        private CapturedRunOutcome(RunOutcome runOutcome, String output) {
+            this.runOutcome = runOutcome;
+            this.output = output;
+        }
+
+        RunOutcome runOutcome() {
+            return runOutcome;
+        }
+
+        String output() {
+            return output;
+        }
     }
 
     private static final class RunOutcome {

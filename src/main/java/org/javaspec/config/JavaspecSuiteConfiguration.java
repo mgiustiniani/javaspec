@@ -16,13 +16,16 @@ public final class JavaspecSuiteConfiguration {
     public static final String DEFAULT_PACKAGE_PREFIX = "";
 
     private static final List<String> EMPTY_BOOTSTRAP_HOOKS = Collections.unmodifiableList(new ArrayList<String>());
+    private static final List<String> EMPTY_EXTENSIONS = Collections.unmodifiableList(new ArrayList<String>());
     private static final JavaspecSuiteConfiguration DEFAULT_CONFIGURATION = new JavaspecSuiteConfiguration(
             DEFAULT_SUITE_NAME,
             DEFAULT_SPEC_DIRECTORY,
             DEFAULT_SOURCE_DIRECTORY,
             DEFAULT_SPEC_PACKAGE_PREFIX,
             DEFAULT_PACKAGE_PREFIX,
-            EMPTY_BOOTSTRAP_HOOKS
+            EMPTY_BOOTSTRAP_HOOKS,
+            EMPTY_EXTENSIONS,
+            false
     );
 
     private final String name;
@@ -31,6 +34,8 @@ public final class JavaspecSuiteConfiguration {
     private final String specPackagePrefix;
     private final String packagePrefix;
     private final List<String> bootstrapHooks;
+    private final List<String> extensions;
+    private final boolean bootstrapDiscovery;
 
     private JavaspecSuiteConfiguration(
             String name,
@@ -38,7 +43,9 @@ public final class JavaspecSuiteConfiguration {
             String sourceDirectory,
             String specPackagePrefix,
             String packagePrefix,
-            List<String> bootstrapHooks
+            List<String> bootstrapHooks,
+            List<String> extensions,
+            boolean bootstrapDiscovery
     ) {
         this.name = validateRequiredValue("suite name", name);
         this.specDirectory = validateRequiredValue("specDir", specDirectory);
@@ -46,6 +53,8 @@ public final class JavaspecSuiteConfiguration {
         this.specPackagePrefix = validateRequiredValue("specPackagePrefix", specPackagePrefix);
         this.packagePrefix = validateOptionalValue("packagePrefix", packagePrefix);
         this.bootstrapHooks = immutableBootstrapHooks(bootstrapHooks);
+        this.extensions = immutableExtensions(extensions);
+        this.bootstrapDiscovery = bootstrapDiscovery;
     }
 
     public static JavaspecSuiteConfiguration defaults() {
@@ -66,7 +75,73 @@ public final class JavaspecSuiteConfiguration {
                 sourceDirectory,
                 specPackagePrefix,
                 packagePrefix,
-                bootstrapHooks
+                bootstrapHooks,
+                EMPTY_EXTENSIONS,
+                false
+        );
+    }
+
+    public static JavaspecSuiteConfiguration of(
+            String name,
+            String specDirectory,
+            String sourceDirectory,
+            String specPackagePrefix,
+            String packagePrefix,
+            List<String> bootstrapHooks,
+            boolean bootstrapDiscovery
+    ) {
+        return new JavaspecSuiteConfiguration(
+                name,
+                specDirectory,
+                sourceDirectory,
+                specPackagePrefix,
+                packagePrefix,
+                bootstrapHooks,
+                EMPTY_EXTENSIONS,
+                bootstrapDiscovery
+        );
+    }
+
+    public static JavaspecSuiteConfiguration of(
+            String name,
+            String specDirectory,
+            String sourceDirectory,
+            String specPackagePrefix,
+            String packagePrefix,
+            List<String> bootstrapHooks,
+            List<String> extensions
+    ) {
+        return new JavaspecSuiteConfiguration(
+                name,
+                specDirectory,
+                sourceDirectory,
+                specPackagePrefix,
+                packagePrefix,
+                bootstrapHooks,
+                extensions,
+                false
+        );
+    }
+
+    public static JavaspecSuiteConfiguration of(
+            String name,
+            String specDirectory,
+            String sourceDirectory,
+            String specPackagePrefix,
+            String packagePrefix,
+            List<String> bootstrapHooks,
+            List<String> extensions,
+            boolean bootstrapDiscovery
+    ) {
+        return new JavaspecSuiteConfiguration(
+                name,
+                specDirectory,
+                sourceDirectory,
+                specPackagePrefix,
+                packagePrefix,
+                bootstrapHooks,
+                extensions,
+                bootstrapDiscovery
         );
     }
 
@@ -158,6 +233,39 @@ public final class JavaspecSuiteConfiguration {
         return bootstrapHooks;
     }
 
+    /**
+     * Returns whether this suite opts into ServiceLoader discovery of
+     * {@code org.javaspec.bootstrap.BootstrapHook} providers.
+     *
+     * <p>The default is {@code false}. For a selected suite, discovery is enabled when either
+     * the top-level configuration or this suite is enabled. Explicit configured hooks still run
+     * first in their configured order; discovered providers are loaded from the run classloader
+     * and executed afterward in provider implementation class name order.</p>
+     */
+    public boolean bootstrapDiscovery() {
+        return bootstrapDiscovery;
+    }
+
+    public boolean isBootstrapDiscoveryEnabled() {
+        return bootstrapDiscovery;
+    }
+
+    public boolean getBootstrapDiscovery() {
+        return bootstrapDiscovery;
+    }
+
+    /**
+     * Ordered, duplicate-preserving list of configured extension implementation class names
+     * scoped to this suite. Defaults to an empty immutable list.
+     */
+    public List<String> extensions() {
+        return extensions;
+    }
+
+    public List<String> getExtensions() {
+        return extensions;
+    }
+
     @Override
     public boolean equals(Object other) {
         if (this == other) {
@@ -172,7 +280,9 @@ public final class JavaspecSuiteConfiguration {
                 && sourceDirectory.equals(that.sourceDirectory)
                 && specPackagePrefix.equals(that.specPackagePrefix)
                 && packagePrefix.equals(that.packagePrefix)
-                && bootstrapHooks.equals(that.bootstrapHooks);
+                && bootstrapHooks.equals(that.bootstrapHooks)
+                && extensions.equals(that.extensions)
+                && bootstrapDiscovery == that.bootstrapDiscovery;
     }
 
     @Override
@@ -183,6 +293,8 @@ public final class JavaspecSuiteConfiguration {
         result = 31 * result + specPackagePrefix.hashCode();
         result = 31 * result + packagePrefix.hashCode();
         result = 31 * result + bootstrapHooks.hashCode();
+        result = 31 * result + extensions.hashCode();
+        result = 31 * result + (bootstrapDiscovery ? 1 : 0);
         return result;
     }
 
@@ -195,6 +307,8 @@ public final class JavaspecSuiteConfiguration {
                 + ", specPackagePrefix='" + specPackagePrefix + '\''
                 + ", packagePrefix='" + packagePrefix + '\''
                 + ", bootstrapHooks=" + bootstrapHooks
+                + ", extensions=" + extensions
+                + ", bootstrapDiscovery=" + bootstrapDiscovery
                 + '}';
     }
 
@@ -228,5 +342,23 @@ public final class JavaspecSuiteConfiguration {
             hooks.add(trimmed);
         }
         return Collections.unmodifiableList(hooks);
+    }
+
+    private static List<String> immutableExtensions(List<String> extensions) {
+        Objects.requireNonNull(extensions, "extensions must not be null");
+        if (extensions.size() == 0) {
+            return EMPTY_EXTENSIONS;
+        }
+        List<String> copy = new ArrayList<String>();
+        for (int i = 0; i < extensions.size(); i++) {
+            String extension = extensions.get(i);
+            Objects.requireNonNull(extension, "extension must not be null");
+            String trimmed = extension.trim();
+            if (trimmed.length() == 0) {
+                throw new ConfigurationException("extension must not be blank.");
+            }
+            copy.add(trimmed);
+        }
+        return Collections.unmodifiableList(copy);
     }
 }

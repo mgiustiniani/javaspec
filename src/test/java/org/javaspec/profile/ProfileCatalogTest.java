@@ -111,6 +111,11 @@ public class ProfileCatalogTest {
         assertSymbol(catalog, "java.util.Map", "ofEntries", ApiSymbolKind.STATIC_METHOD, ApiSymbolCategory.COLLECTION_FACTORY, TargetProfile.JAVA11);
         assertSymbol(catalog, "java.util.Optional", "stream", ApiSymbolKind.METHOD, ApiSymbolCategory.OPTIONAL, TargetProfile.JAVA11);
         assertSymbol(catalog, "java.util.stream.Stream", "ofNullable", ApiSymbolKind.STATIC_METHOD, ApiSymbolCategory.STREAM, TargetProfile.JAVA11);
+        assertSymbol(catalog, "java.nio.file.Files", "readString", ApiSymbolKind.STATIC_METHOD, ApiSymbolCategory.FILE_IO, TargetProfile.JAVA11);
+        assertSymbol(catalog, "java.nio.file.Files", "writeString", ApiSymbolKind.STATIC_METHOD, ApiSymbolCategory.FILE_IO, TargetProfile.JAVA11);
+        assertSymbol(catalog, "java.net.http.HttpClient", null, ApiSymbolKind.TYPE, ApiSymbolCategory.HTTP_CLIENT, TargetProfile.JAVA11);
+        assertSymbol(catalog, "java.net.http.HttpClient.Builder", null, ApiSymbolKind.NESTED_TYPE, ApiSymbolCategory.HTTP_CLIENT, TargetProfile.JAVA11);
+        assertSymbol(catalog, "java.net.http.HttpClient", "newHttpClient", ApiSymbolKind.STATIC_METHOD, ApiSymbolCategory.HTTP_CLIENT, TargetProfile.JAVA11);
     }
 
     @Test
@@ -120,7 +125,12 @@ public class ProfileCatalogTest {
         assertSymbol(catalog, "java.util.stream.Stream", "toList", ApiSymbolKind.METHOD, ApiSymbolCategory.STREAM, TargetProfile.JAVA17);
         assertSymbol(catalog, "record", null, ApiSymbolKind.LANGUAGE_FEATURE, ApiSymbolCategory.LANGUAGE_MODELING, TargetProfile.JAVA17);
         assertSymbol(catalog, "java.util.HexFormat", null, ApiSymbolKind.TYPE, ApiSymbolCategory.HEX_FORMAT, TargetProfile.JAVA17);
+        assertSymbol(catalog, "java.time.InstantSource", null, ApiSymbolKind.TYPE, ApiSymbolCategory.TIME_SOURCE, TargetProfile.JAVA17);
+        assertSymbol(catalog, "java.time.InstantSource", "system", ApiSymbolKind.STATIC_METHOD, ApiSymbolCategory.TIME_SOURCE, TargetProfile.JAVA17);
         assertSymbol(catalog, "java.util.random.RandomGenerator", null, ApiSymbolKind.TYPE, ApiSymbolCategory.RANDOM_GENERATOR, TargetProfile.JAVA17);
+        assertSymbol(catalog, "java.util.random.RandomGeneratorFactory", null, ApiSymbolKind.TYPE, ApiSymbolCategory.RANDOM_GENERATOR, TargetProfile.JAVA17);
+        assertSymbol(catalog, "java.util.random.RandomGeneratorFactory", "all", ApiSymbolKind.STATIC_METHOD, ApiSymbolCategory.RANDOM_GENERATOR, TargetProfile.JAVA17);
+        assertSymbol(catalog, "java.util.random.RandomGeneratorFactory", "getDefault", ApiSymbolKind.STATIC_METHOD, ApiSymbolCategory.RANDOM_GENERATOR, TargetProfile.JAVA17);
     }
 
     @Test
@@ -131,15 +141,26 @@ public class ProfileCatalogTest {
         assertSymbol(catalog, "java.util.SequencedCollection", "reversed", ApiSymbolKind.METHOD, ApiSymbolCategory.SEQUENCED_COLLECTION, TargetProfile.JAVA21);
         assertSymbol(catalog, "java.util.SequencedCollection", "getFirst", ApiSymbolKind.METHOD, ApiSymbolCategory.SEQUENCED_COLLECTION, TargetProfile.JAVA21);
         assertSymbol(catalog, "java.util.SequencedMap", "putFirst", ApiSymbolKind.METHOD, ApiSymbolCategory.SEQUENCED_COLLECTION, TargetProfile.JAVA21);
+        assertSymbol(catalog, "java.lang.Thread.Builder", null, ApiSymbolKind.NESTED_TYPE, ApiSymbolCategory.VIRTUAL_THREAD, TargetProfile.JAVA21);
+        assertSymbol(catalog, "java.lang.Thread.Builder.OfVirtual", null, ApiSymbolKind.NESTED_TYPE, ApiSymbolCategory.VIRTUAL_THREAD, TargetProfile.JAVA21);
+        assertSymbol(catalog, "java.lang.Thread", "ofVirtual", ApiSymbolKind.STATIC_METHOD, ApiSymbolCategory.VIRTUAL_THREAD, TargetProfile.JAVA21);
+        assertSymbol(catalog, "java.lang.Thread", "startVirtualThread", ApiSymbolKind.STATIC_METHOD, ApiSymbolCategory.VIRTUAL_THREAD, TargetProfile.JAVA21);
+        assertSymbol(catalog, "java.lang.Thread", "isVirtual", ApiSymbolKind.METHOD, ApiSymbolCategory.VIRTUAL_THREAD, TargetProfile.JAVA21);
     }
 
     @Test
     public void catalogContainsRepresentativeJava25Symbols() {
         ProfileCatalog catalog = ProfileCatalog.defaultCatalog();
 
+        assertSymbol(catalog, "java.util.stream.Stream", "gather", ApiSymbolKind.METHOD, ApiSymbolCategory.STREAM_GATHERER, TargetProfile.JAVA25);
         assertSymbol(catalog, "java.util.stream.Gatherer", null, ApiSymbolKind.TYPE, ApiSymbolCategory.STREAM_GATHERER, TargetProfile.JAVA25);
+        assertSymbol(catalog, "java.util.stream.Gatherer", "of", ApiSymbolKind.STATIC_METHOD, ApiSymbolCategory.STREAM_GATHERER, TargetProfile.JAVA25);
+        assertSymbol(catalog, "java.util.stream.Gatherer", "ofSequential", ApiSymbolKind.STATIC_METHOD, ApiSymbolCategory.STREAM_GATHERER, TargetProfile.JAVA25);
+        assertSymbol(catalog, "java.util.stream.Gatherer", "initializer", ApiSymbolKind.METHOD, ApiSymbolCategory.STREAM_GATHERER, TargetProfile.JAVA25);
         assertSymbol(catalog, "java.util.stream.Gatherers", null, ApiSymbolKind.TYPE, ApiSymbolCategory.STREAM_GATHERER, TargetProfile.JAVA25);
+        assertSymbol(catalog, "java.util.stream.Gatherers", "fold", ApiSymbolKind.STATIC_METHOD, ApiSymbolCategory.STREAM_GATHERER, TargetProfile.JAVA25);
         assertSymbol(catalog, "java.util.stream.Gatherer.Integrator", null, ApiSymbolKind.NESTED_TYPE, ApiSymbolCategory.STREAM_GATHERER, TargetProfile.JAVA25);
+        assertSymbol(catalog, "java.util.stream.Gatherer.Integrator.Greedy", null, ApiSymbolKind.NESTED_TYPE, ApiSymbolCategory.STREAM_GATHERER, TargetProfile.JAVA25);
     }
 
     @Test

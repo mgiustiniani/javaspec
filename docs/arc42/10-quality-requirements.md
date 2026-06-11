@@ -52,8 +52,8 @@
 ### Reporting and CI
 
 - Built-in `progress` and `pretty` formatters must remain deterministic, and ServiceLoader-discovered formatters must not change report schemas, runner results, or built-in default availability.
-- JSON report schemaVersion 1 must remain stable unless a future schema decision is made; additive stable id/source and pending fields must preserve existing fields.
-- JUnit XML-compatible reports must be generated without JUnit or XML/reporting runtime dependencies, with testcase file/line attributes only when source data is available and with both skipped and pending examples represented as `<skipped>` for compatibility.
+- JSON report schemaVersion 1 must remain stable unless a future schema decision is made; additive stable id/source, pending, and optional Phase 35 metadata fields must preserve existing fields and validate older schemaVersion 1 reports without metadata.
+- JUnit XML-compatible reports must be generated without JUnit or XML/reporting runtime dependencies, with Phase 35 testsuite metadata/properties, testcase file/line attributes only when source data is available, and both skipped and pending examples represented as `<skipped>` for compatibility.
 - JSON and JUnit XML-compatible reports can be requested together for no-spec and executed run paths.
 - Dry-run pending generation/update exits before execution and must not write reports; profile compatibility violations, opt-in CLI compilation failures, and bootstrap execution failures also exit before report writing.
 - Report write failures must include the report path and exit `70`.

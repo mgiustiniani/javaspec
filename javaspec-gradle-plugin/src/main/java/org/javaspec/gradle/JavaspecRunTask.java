@@ -7,6 +7,8 @@ import org.gradle.api.logging.Logger;
 import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.TaskAction;
 import org.javaspec.bootstrap.BootstrapException;
+import org.javaspec.compilation.SourceCompilationException;
+import org.javaspec.compilation.SourceCompilationResult;
 import org.javaspec.config.ConfigurationException;
 import org.javaspec.config.JavaspecConfiguration;
 import org.javaspec.config.JavaspecSuiteConfiguration;
@@ -96,6 +98,42 @@ public class JavaspecRunTask extends DefaultTask {
     }
 
     @Internal
+    public boolean isBootstrapDiscovery() {
+        return booleanOptIn(
+                taskOptions.bootstrapDiscoveryOption(),
+                extension == null ? null : extension.bootstrapDiscoveryOption(),
+                "javaspec.bootstrapDiscovery"
+        );
+    }
+
+    public void setBootstrapDiscovery(boolean bootstrapDiscovery) {
+        taskOptions.setBootstrapDiscovery(bootstrapDiscovery);
+    }
+
+    @Internal
+    public boolean isCompile() {
+        return booleanOption(
+                taskOptions.compileOption(),
+                extension == null ? null : extension.compileOption(),
+                "javaspec.compile",
+                false
+        ) || compileOutput() != null;
+    }
+
+    public void setCompile(boolean compile) {
+        taskOptions.setCompile(compile);
+    }
+
+    @Internal
+    public File getCompileOutput() {
+        return compileOutput();
+    }
+
+    public void setCompileOutput(Object compileOutput) {
+        taskOptions.setCompileOutput(compileOutput);
+    }
+
+    @Internal
     public File getConfigFile() {
         return fileOption(
                 taskOptions.configFileOption(),
@@ -180,6 +218,19 @@ public class JavaspecRunTask extends DefaultTask {
 
     public void setFormatter(String formatter) {
         taskOptions.setFormatter(formatter);
+    }
+
+    @Internal
+    public List<String> getJavaspecExtensions() {
+        return taskOptions.getExtensions();
+    }
+
+    public void setJavaspecExtensions(Object extensions) {
+        taskOptions.setExtensions(extensions);
+    }
+
+    public void javaspecExtensions(Object... extensions) {
+        taskOptions.extensions(extensions);
     }
 
     @Internal
@@ -362,8 +413,10 @@ public class JavaspecRunTask extends DefaultTask {
             SpecDiscoveryRequest discoveryRequest = createDiscoveryRequest(selectedSuite);
             List<File> classpathEntries = classpathEntries();
             runClassLoader = createRunClassLoader(originalContextClassLoader, classpathEntries);
-            RunFormatterRegistry runFormatters = runFormatterRegistry(runClassLoader);
+            List<String> effectiveExtensions = extensionsFor(configuration, selectedSuite);
+            RunFormatterRegistry runFormatters = runFormatterRegistry(runClassLoader, effectiveExtensions);
             String effectiveFormatter = effectiveFormatter(configuration, runFormatters);
+            boolean effectiveBootstrapDiscovery = effectiveBootstrapDiscovery(configuration, selectedSuite);
 
             getLogger().lifecycle("javaspec: running suite '" + selectedSuite.name()
                     + "' from " + discoveryRequest.specRoot().getPath() + ".");
@@ -377,18 +430,36 @@ public class JavaspecRunTask extends DefaultTask {
             JavaspecInvocation invocation = JavaspecInvocation
                     .discovering(discoveryRequest, runClassLoader)
                     .withBootstrapHooks(bootstrapHooksFor(configuration, selectedSuite))
+                    .withBootstrapDiscovery(effectiveBootstrapDiscovery)
+                    .withExtensions(effectiveExtensions)
                     .withStopOnFailure(effectiveStopOnFailure);
+            if (isCompile()) {
+                invocation = invocation.withCompilation(
+                        sourceDirectoryFor(selectedSuite),
+                        discoveryRequest.specRoot(),
+                        effectiveCompilationOutputDirectory(),
+                        classpathEntries
+                );
+            }
             JavaspecInvocationResult invocationResult = JavaspecLauncher.run(invocation);
             RunResult runResult = invocationResult.runResult();
+            RunFormatterRegistry outputFormatters = invocationResult.hasRunFormatterRegistry()
+                    ? invocationResult.runFormatterRegistry()
+                    : runFormatters;
 
+            logSourceCompilation(invocationResult);
             logDiscoverySummary(invocationResult);
-            renderFormattedSummary(runResult, effectiveFormatter, runFormatters);
+            renderFormattedSummary(runResult, effectiveFormatter, outputFormatters);
             logExecutionDiagnostics(runResult, classpathEntries.size());
             logFailureWarnings(runResult);
             writeReports(runResult, configuration);
             handleFailures(runResult, effectiveFailOnFailure);
         } catch (GradleException ex) {
             throw ex;
+        } catch (SourceCompilationException ex) {
+            handleCompilationFailure(ex);
+        } catch (ExtensionLoadingException ex) {
+            throw new GradleException("javaspec extension activation failed: " + messageOf(ex), ex);
         } catch (BootstrapException ex) {
             throw new GradleException("javaspec bootstrap execution failed: " + messageOf(ex), ex);
         } catch (RuntimeException ex) {
@@ -448,6 +519,29 @@ public class JavaspecRunTask extends DefaultTask {
         return hooks;
     }
 
+    private boolean effectiveBootstrapDiscovery(
+            JavaspecConfiguration configuration,
+            JavaspecSuiteConfiguration selectedSuite
+    ) {
+        boolean adapterBootstrapDiscovery = isBootstrapDiscovery();
+        return configuration.effectiveBootstrapDiscovery(selectedSuite) || adapterBootstrapDiscovery;
+    }
+
+    private List<String> extensionsFor(
+            JavaspecConfiguration configuration,
+            JavaspecSuiteConfiguration selectedSuite
+    ) {
+        List<String> extensions = new ArrayList<String>();
+        extensions.addAll(configuration.extensions());
+        extensions.addAll(selectedSuite.extensions());
+        if (extension != null) {
+            addListFilters(extensions, extension.extensionsOption(), "javaspec.extensions");
+        }
+        addListFilters(extensions, taskOptions.extensionsOption(), "extensions");
+        addDelimitedFilters(extensions, projectProperty("javaspec.extensions"), "javaspec.extensions");
+        return extensions;
+    }
+
     private SpecDiscoveryRequest createDiscoveryRequest(JavaspecSuiteConfiguration selectedSuite) {
         File effectiveSpecRoot = specDirectoryFor(selectedSuite);
         SpecNamingConvention namingConvention;
@@ -493,6 +587,18 @@ public class JavaspecRunTask extends DefaultTask {
         return getProject().file(selectedSuite.specDirectory());
     }
 
+    private File sourceDirectoryFor(JavaspecSuiteConfiguration selectedSuite) {
+        return getProject().file(selectedSuite.sourceDirectory());
+    }
+
+    private File effectiveCompilationOutputDirectory() {
+        File configuredOutput = compileOutput();
+        if (configuredOutput != null) {
+            return configuredOutput;
+        }
+        return getProject().file("build/javaspec-classes");
+    }
+
     private List<File> classpathEntries() {
         Set<File> files = getClasspath().getFiles();
         return new ArrayList<File>(files);
@@ -522,11 +628,14 @@ public class JavaspecRunTask extends DefaultTask {
         return new URLClassLoader(urls, parent);
     }
 
-    private RunFormatterRegistry runFormatterRegistry(ClassLoader runClassLoader) {
+    private RunFormatterRegistry runFormatterRegistry(
+            ClassLoader runClassLoader,
+            List<String> effectiveExtensions
+    ) {
         try {
-            return JavaspecExtensionLoader.loadRunFormatterRegistry(runClassLoader);
+            return JavaspecExtensionLoader.loadRunFormatterRegistry(runClassLoader, effectiveExtensions);
         } catch (ExtensionLoadingException ex) {
-            throw new GradleException("Could not load javaspec extensions: " + messageOf(ex), ex);
+            throw new GradleException("javaspec extension activation failed: " + messageOf(ex), ex);
         }
     }
 
@@ -541,6 +650,18 @@ public class JavaspecRunTask extends DefaultTask {
                     + ". Valid values: " + validFormatterNames(runFormatters) + ".");
         }
         return normalized;
+    }
+
+    private void logSourceCompilation(JavaspecInvocationResult invocationResult) {
+        if (!invocationResult.hasSourceCompilationResult()) {
+            return;
+        }
+        SourceCompilationResult result = invocationResult.sourceCompilationResult();
+        if (result.sourceFileCount() <= 0) {
+            return;
+        }
+        getLogger().lifecycle("javaspec: compiled " + result.sourceFileCount()
+                + " source file(s) to " + result.outputDirectory().getPath() + ".");
     }
 
     private void logDiscoverySummary(JavaspecInvocationResult invocationResult) {
@@ -718,6 +839,31 @@ public class JavaspecRunTask extends DefaultTask {
         getLogger().warn("javaspec: failOnFailure=false, Gradle build will continue.");
     }
 
+    private void handleCompilationFailure(SourceCompilationException ex) {
+        if (ex.reason() == SourceCompilationException.Reason.COMPILER_UNAVAILABLE) {
+            throw new GradleException("javaspec compilation failed: Java compiler is not available. "
+                    + "Run javaspec with a JDK or disable compilation.", ex);
+        }
+        if (ex.reason() == SourceCompilationException.Reason.COMPILATION_FAILED) {
+            logCompilationDiagnostics(ex);
+            throw new GradleException("javaspec compilation failed: Compilation failed", ex);
+        }
+        if (ex.reason() == SourceCompilationException.Reason.IO_ERROR) {
+            throw new GradleException("javaspec compilation failed: " + messageOf(ex), ex);
+        }
+        throw new GradleException("javaspec compilation failed: " + messageOf(ex), ex);
+    }
+
+    private void logCompilationDiagnostics(SourceCompilationException ex) {
+        if (!ex.hasSourceCompilationResult()) {
+            return;
+        }
+        List<String> diagnostics = ex.sourceCompilationResult().diagnostics();
+        for (int i = 0; i < diagnostics.size(); i++) {
+            getLogger().error("javaspec:   " + diagnostics.get(i));
+        }
+    }
+
     private List<String> collectClassFilters() {
         List<String> filters = new ArrayList<String>();
         if (extension != null) {
@@ -825,6 +971,21 @@ public class JavaspecRunTask extends DefaultTask {
         return defaultValue;
     }
 
+    private boolean booleanOptIn(Boolean taskValue, Boolean extensionValue, String propertyName) {
+        boolean enabled = false;
+        if (taskValue != null && taskValue.booleanValue()) {
+            enabled = true;
+        }
+        if (extensionValue != null && extensionValue.booleanValue()) {
+            enabled = true;
+        }
+        String propertyValue = projectProperty(propertyName);
+        if (propertyValue != null && parseBooleanProperty(propertyName, propertyValue)) {
+            enabled = true;
+        }
+        return enabled;
+    }
+
     private String stringOption(String taskValue, String extensionValue, String propertyName) {
         if (taskValue != null) {
             return taskValue;
@@ -874,6 +1035,14 @@ public class JavaspecRunTask extends DefaultTask {
                 taskOptions.junitXmlFileOption(),
                 extension == null ? null : extension.junitXmlFileOption(),
                 "javaspec.junitXmlFile"
+        );
+    }
+
+    private File compileOutput() {
+        return fileOption(
+                taskOptions.compileOutputOption(),
+                extension == null ? null : extension.compileOutputOption(),
+                "javaspec.compileOutput"
         );
     }
 

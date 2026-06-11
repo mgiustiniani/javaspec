@@ -11,11 +11,14 @@ import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import static org.junit.Assert.assertEquals;
@@ -23,6 +26,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class JUnitXmlReportWriterTest {
+    private static final String TIMESTAMP = "2026-06-11T12:34:56Z";
+    private static final String HOSTNAME = "ci-host";
+    private static final ReportMetadata METADATA = ReportMetadata.of(TIMESTAMP, HOSTNAME, 1234L);
+
     @Test
     public void writesDeterministicJUnitXmlForAllExampleOutcomes() throws Exception {
         RunResult runResult = runResult(
@@ -33,10 +40,14 @@ public class JUnitXmlReportWriterTest {
                 example("it_is_pending", ExampleStatus.PENDING, "pending implementation", null)
         );
 
-        String xml = JUnitXmlReportWriter.toXml(runResult);
+        String xml = JUnitXmlReportWriter.toXml(runResult, METADATA);
 
         assertEquals("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-                "<testsuite name=\"javaspec\" tests=\"5\" failures=\"1\" errors=\"1\" skipped=\"2\" time=\"0\">\n" +
+                "<testsuite name=\"javaspec\" tests=\"5\" failures=\"1\" errors=\"1\" skipped=\"2\" timestamp=\"2026-06-11T12:34:56Z\" hostname=\"ci-host\" time=\"1.234\">\n" +
+                "  <properties>\n" +
+                "    <property name=\"javaspec.report.schemaVersion\" value=\"1\"/>\n" +
+                "    <property name=\"javaspec.report.tool\" value=\"javaspec\"/>\n" +
+                "  </properties>\n" +
                 "  <testcase classname=\"spec.example.CalculatorSpec\" name=\"it_passes\" time=\"0\"/>\n" +
                 "  <testcase classname=\"spec.example.CalculatorSpec\" name=\"it_fails\" time=\"0\">\n" +
                 "    <failure type=\"java.lang.AssertionError\" message=\"expected five\">Assertion failed\n" +
@@ -60,11 +71,41 @@ public class JUnitXmlReportWriterTest {
     public void pendingWithDefaultReasonMapsToSkippedWithPendingMessage() throws Exception {
         String xml = JUnitXmlReportWriter.toXml(runResult(
                 example("it_is_pending", ExampleStatus.PENDING, "Pending by javaspec.", null)
-        ));
+        ), METADATA);
 
-        assertContains(xml, "<testsuite name=\"javaspec\" tests=\"1\" failures=\"0\" errors=\"0\" skipped=\"1\" time=\"0\">");
+        assertContains(xml, "<testsuite name=\"javaspec\" tests=\"1\" failures=\"0\" errors=\"0\" skipped=\"1\" timestamp=\"2026-06-11T12:34:56Z\" hostname=\"ci-host\" time=\"1.234\">");
         assertContains(xml, "<skipped message=\"Pending by javaspec.\"/>");
         assertParsesAsXml(xml);
+    }
+
+    @Test
+    public void writesMetadataPropertiesAsFirstChildAndEscapesPropertyAttributes() throws Exception {
+        Map<String, String> properties = new LinkedHashMap<String, String>();
+        properties.put("prop&<>\"'", "value&<>\"'");
+        properties.put("line\n\t", "return\r\n\t");
+        ReportMetadata metadata = ReportMetadata.of(TIMESTAMP, "host&<>\"'", 1500L, properties);
+
+        String xml = JUnitXmlReportWriter.toXml(RunResult.of(Collections.<SpecResult>emptyList()), metadata);
+
+        assertContains(xml, "<testsuite name=\"javaspec\" tests=\"0\" failures=\"0\" errors=\"0\" skipped=\"0\" timestamp=\"2026-06-11T12:34:56Z\" hostname=\"host&amp;&lt;&gt;&quot;&apos;\" time=\"1.5\">\n" +
+                "  <properties>\n" +
+                "    <property name=\"prop&amp;&lt;&gt;&quot;&apos;\" value=\"value&amp;&lt;&gt;&quot;&apos;\"/>\n" +
+                "    <property name=\"line&#10;&#9;\" value=\"return&#13;&#10;&#9;\"/>\n" +
+                "  </properties>\n");
+        Document document = parseXml(xml);
+        Element root = document.getDocumentElement();
+        assertEquals("testsuite", root.getTagName());
+        assertEquals(TIMESTAMP, root.getAttribute("timestamp"));
+        assertEquals("host&<>\"'", root.getAttribute("hostname"));
+        assertEquals("1.5", root.getAttribute("time"));
+
+        Element propertiesElement = firstChildElement(root);
+        assertEquals("properties", propertiesElement.getTagName());
+        NodeList propertyElements = propertiesElement.getElementsByTagName("property");
+        assertEquals(2, propertyElements.getLength());
+        Element firstProperty = (Element) propertyElements.item(0);
+        assertEquals("prop&<>\"'", firstProperty.getAttribute("name"));
+        assertEquals("value&<>\"'", firstProperty.getAttribute("value"));
     }
 
     @Test
@@ -87,7 +128,7 @@ public class JUnitXmlReportWriterTest {
                 Arrays.asList(sourced)
         )));
 
-        String xml = JUnitXmlReportWriter.toXml(runResult);
+        String xml = JUnitXmlReportWriter.toXml(runResult, METADATA);
 
         Element testcase = singleTestcase(xml);
         assertEquals("spec.example.CalculatorSpec", testcase.getAttribute("classname"));
@@ -100,10 +141,14 @@ public class JUnitXmlReportWriterTest {
 
     @Test
     public void writesDeterministicJUnitXmlForNoSpecRunResult() throws Exception {
-        String xml = JUnitXmlReportWriter.toXml(RunResult.of(Collections.<SpecResult>emptyList()));
+        String xml = JUnitXmlReportWriter.toXml(RunResult.of(Collections.<SpecResult>emptyList()), METADATA);
 
         assertEquals("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-                "<testsuite name=\"javaspec\" tests=\"0\" failures=\"0\" errors=\"0\" skipped=\"0\" time=\"0\">\n" +
+                "<testsuite name=\"javaspec\" tests=\"0\" failures=\"0\" errors=\"0\" skipped=\"0\" timestamp=\"2026-06-11T12:34:56Z\" hostname=\"ci-host\" time=\"1.234\">\n" +
+                "  <properties>\n" +
+                "    <property name=\"javaspec.report.schemaVersion\" value=\"1\"/>\n" +
+                "    <property name=\"javaspec.report.tool\" value=\"javaspec\"/>\n" +
+                "  </properties>\n" +
                 "</testsuite>\n", xml);
         assertParsesAsXml(xml);
     }
@@ -134,7 +179,7 @@ public class JUnitXmlReportWriterTest {
                 )
         ))));
 
-        String xml = JUnitXmlReportWriter.toXml(runResult);
+        String xml = JUnitXmlReportWriter.toXml(runResult, METADATA);
 
         assertParsesAsXml(xml);
         assertContains(xml, "classname=\"spec.example.Escaping&amp;Spec&lt;One&gt;&quot;Quote&apos;New&#10;Line\"");
@@ -169,6 +214,17 @@ public class JUnitXmlReportWriterTest {
         NodeList testcases = document.getElementsByTagName("testcase");
         assertEquals(1, testcases.getLength());
         return (Element) testcases.item(0);
+    }
+
+    private static Element firstChildElement(Element parent) {
+        Node child = parent.getFirstChild();
+        while (child != null) {
+            if (child instanceof Element) {
+                return (Element) child;
+            }
+            child = child.getNextSibling();
+        }
+        throw new AssertionError("Expected first child element");
     }
 
     private static Document parseXml(String xml) throws Exception {

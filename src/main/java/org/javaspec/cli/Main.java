@@ -18,6 +18,7 @@ import org.javaspec.discovery.SpecNamingConvention;
 import org.javaspec.discovery.TypeCheckResult;
 import org.javaspec.discovery.TypeExistenceChecker;
 import org.javaspec.extension.ExtensionLoadingException;
+import org.javaspec.extension.JavaspecExtensionActivator;
 import org.javaspec.extension.JavaspecExtensionLoader;
 import org.javaspec.generation.SpecFileGenerator;
 import org.javaspec.generation.SpecGenerationPlan;
@@ -146,6 +147,8 @@ public final class Main {
         parsed.configuration = configuration;
         parsed.selectedSuite = selectedSuite;
         parsed.effectiveBootstrapHooks = bootstrapHooksFor(configuration, selectedSuite);
+        parsed.effectiveBootstrapDiscovery = configuration.effectiveBootstrapDiscovery(selectedSuite);
+        parsed.effectiveExtensions = extensionsFor(configuration, selectedSuite);
         if (!parsed.specRootSpecified) {
             parsed.specRoot = selectedSuite.specDirectory();
         }
@@ -192,6 +195,19 @@ public final class Main {
             return Collections.emptyList();
         }
         return Collections.unmodifiableList(hooks);
+    }
+
+    private static List<String> extensionsFor(
+            JavaspecConfiguration configuration,
+            JavaspecSuiteConfiguration selectedSuite
+    ) {
+        List<String> extensions = new ArrayList<String>();
+        extensions.addAll(configuration.extensions());
+        extensions.addAll(selectedSuite.extensions());
+        if (extensions.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return Collections.unmodifiableList(extensions);
     }
 
     private static ConstructorPolicy resolveConstructorPolicy(ParsedArguments parsed) {
@@ -279,6 +295,15 @@ public final class Main {
         } catch (ExtensionLoadingException ex) {
             err.println("Error: Could not load javaspec extensions: " + messageOf(ex));
             return EXIT_USAGE;
+        }
+        int extensionActivationExitCode = activateConfiguredExtensions(
+                parsed.effectiveExtensions,
+                selectedClassLoader,
+                runFormatters,
+                err
+        );
+        if (extensionActivationExitCode != EXIT_OK) {
+            return extensionActivationExitCode;
         }
         int formatterExitCode = validateEffectiveFormatter(parsed, runFormatters, err);
         if (formatterExitCode != EXIT_OK) {
@@ -511,7 +536,13 @@ public final class Main {
             selectedClassLoader = executionClasspathSelection.classLoader();
         }
 
-        int bootstrapExitCode = executeBootstrapHooks(parsed.effectiveBootstrapHooks, selectedClassLoader, specs, err);
+        int bootstrapExitCode = executeBootstrapHooks(
+                parsed.effectiveBootstrapHooks,
+                parsed.effectiveBootstrapDiscovery,
+                selectedClassLoader,
+                specs,
+                err
+        );
         if (bootstrapExitCode != EXIT_OK) {
             return bootstrapExitCode;
         }
@@ -668,17 +699,43 @@ public final class Main {
         }
     }
 
+    /**
+     * Activates configuration-declared extensions, in configured order, against the same
+     * registry instance later used for formatter selection. Failures follow the bootstrap
+     * failure convention: an "Error: Extension activation failed" message and exit code 64,
+     * with no reports written.
+     */
+    private static int activateConfiguredExtensions(
+            List<String> extensionClassNames,
+            ClassLoader classLoader,
+            RunFormatterRegistry runFormatters,
+            PrintStream err
+    ) {
+        if (extensionClassNames == null || extensionClassNames.isEmpty()) {
+            return EXIT_OK;
+        }
+        try {
+            JavaspecExtensionActivator.activate(extensionClassNames, classLoader, runFormatters);
+            return EXIT_OK;
+        } catch (ExtensionLoadingException ex) {
+            err.println("Error: Extension activation failed: " + messageOf(ex));
+            return EXIT_USAGE;
+        }
+    }
+
     private static int executeBootstrapHooks(
             List<String> bootstrapHooks,
+            boolean bootstrapDiscovery,
             ClassLoader classLoader,
             List<DiscoveredSpec> specs,
             PrintStream err
     ) {
-        if (bootstrapHooks == null || bootstrapHooks.isEmpty()) {
+        List<String> hooks = bootstrapHooks == null ? Collections.<String>emptyList() : bootstrapHooks;
+        if (hooks.isEmpty() && !bootstrapDiscovery) {
             return EXIT_OK;
         }
         try {
-            BootstrapRunner.run(bootstrapHooks, classLoader, specs);
+            BootstrapRunner.run(hooks, classLoader, specs, bootstrapDiscovery);
             return EXIT_OK;
         } catch (BootstrapException ex) {
             err.println("Error: Bootstrap execution failed: " + messageOf(ex));
@@ -1061,6 +1118,12 @@ public final class Main {
         }
         if (parsed.effectiveBootstrapHooks != null && !parsed.effectiveBootstrapHooks.isEmpty()) {
             out.println("  Bootstrap hooks: " + joinNames(parsed.effectiveBootstrapHooks));
+        }
+        if (parsed.effectiveBootstrapDiscovery) {
+            out.println("  Bootstrap discovery: true");
+        }
+        if (parsed.effectiveExtensions != null && !parsed.effectiveExtensions.isEmpty()) {
+            out.println("  Extensions: " + joinNames(parsed.effectiveExtensions));
         }
         if (parsed.reportPath != null) {
             out.println("  Report path: " + parsed.reportPath);
@@ -1792,6 +1855,8 @@ public final class Main {
         private JavaspecConfiguration configuration;
         private JavaspecSuiteConfiguration selectedSuite;
         private List<String> effectiveBootstrapHooks;
+        private boolean effectiveBootstrapDiscovery;
+        private List<String> effectiveExtensions;
         private SpecNamingConvention namingConvention;
         private List<String> classFilters;
         private List<String> exampleFilters;

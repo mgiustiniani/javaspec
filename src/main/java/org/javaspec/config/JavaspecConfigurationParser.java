@@ -137,6 +137,14 @@ public final class JavaspecConfigurationParser {
         if ("bootstrap".equals(key)) {
             return ParsedKey.topLevel(key, KeyKind.BOOTSTRAP, "bootstrap");
         }
+        if ("bootstrapDiscovery".equals(key)
+                || "bootstrap-discovery".equals(key)
+                || "discoverBootstrapHooks".equals(key)) {
+            return ParsedKey.topLevel(key, KeyKind.BOOTSTRAP_DISCOVERY, "bootstrapDiscovery");
+        }
+        if ("extensions".equals(key) || "extension".equals(key)) {
+            return ParsedKey.topLevel(key, KeyKind.EXTENSIONS, "extensions");
+        }
         if (key.startsWith(SUITE_PREFIX)) {
             return parseSuiteKey(key, lineNumber);
         }
@@ -183,6 +191,26 @@ public final class JavaspecConfigurationParser {
             return parsedKey;
         }
         parsedKey = parseSuiteKeyWithSuffix(key, remainder, ".bootstrap", KeyKind.SUITE_BOOTSTRAP, "bootstrap", lineNumber);
+        if (parsedKey != null) {
+            return parsedKey;
+        }
+        parsedKey = parseSuiteKeyWithSuffix(key, remainder, ".bootstrapDiscovery", KeyKind.SUITE_BOOTSTRAP_DISCOVERY, "bootstrapDiscovery", lineNumber);
+        if (parsedKey != null) {
+            return parsedKey;
+        }
+        parsedKey = parseSuiteKeyWithSuffix(key, remainder, ".bootstrap-discovery", KeyKind.SUITE_BOOTSTRAP_DISCOVERY, "bootstrapDiscovery", lineNumber);
+        if (parsedKey != null) {
+            return parsedKey;
+        }
+        parsedKey = parseSuiteKeyWithSuffix(key, remainder, ".discoverBootstrapHooks", KeyKind.SUITE_BOOTSTRAP_DISCOVERY, "bootstrapDiscovery", lineNumber);
+        if (parsedKey != null) {
+            return parsedKey;
+        }
+        parsedKey = parseSuiteKeyWithSuffix(key, remainder, ".extensions", KeyKind.SUITE_EXTENSIONS, "extensions", lineNumber);
+        if (parsedKey != null) {
+            return parsedKey;
+        }
+        parsedKey = parseSuiteKeyWithSuffix(key, remainder, ".extension", KeyKind.SUITE_EXTENSIONS, "extensions", lineNumber);
         if (parsedKey != null) {
             return parsedKey;
         }
@@ -243,7 +271,15 @@ public final class JavaspecConfigurationParser {
             return;
         }
         if (parsedKey.kind() == KeyKind.BOOTSTRAP) {
-            draft.bootstrapHooks = parseBootstrapHooks("bootstrap", value, lineNumber);
+            draft.bootstrapHooks = parseClassNameList("bootstrap", value, lineNumber);
+            return;
+        }
+        if (parsedKey.kind() == KeyKind.BOOTSTRAP_DISCOVERY) {
+            draft.bootstrapDiscovery = parseBoolean("bootstrapDiscovery", value, lineNumber);
+            return;
+        }
+        if (parsedKey.kind() == KeyKind.EXTENSIONS) {
+            draft.extensions = parseClassNameList("extensions", value, lineNumber);
             return;
         }
 
@@ -265,7 +301,15 @@ public final class JavaspecConfigurationParser {
             return;
         }
         if (parsedKey.kind() == KeyKind.SUITE_BOOTSTRAP) {
-            suite.bootstrapHooks = parseBootstrapHooks("suite '" + suite.name + "' bootstrap", value, lineNumber);
+            suite.bootstrapHooks = parseClassNameList("suite '" + suite.name + "' bootstrap", value, lineNumber);
+            return;
+        }
+        if (parsedKey.kind() == KeyKind.SUITE_BOOTSTRAP_DISCOVERY) {
+            suite.bootstrapDiscovery = parseBoolean("suite '" + suite.name + "' bootstrapDiscovery", value, lineNumber);
+            return;
+        }
+        if (parsedKey.kind() == KeyKind.SUITE_EXTENSIONS) {
+            suite.extensions = parseClassNameList("suite '" + suite.name + "' extensions", value, lineNumber);
         }
     }
 
@@ -287,6 +331,22 @@ public final class JavaspecConfigurationParser {
         }
     }
 
+    private static boolean parseBoolean(String fieldName, String value, int lineNumber) {
+        String trimmed = value.trim();
+        if (trimmed.length() == 0) {
+            throw ConfigurationException.atLine(lineNumber, fieldName
+                    + " must not be blank. Valid values: true, false.");
+        }
+        if ("true".equalsIgnoreCase(trimmed)) {
+            return true;
+        }
+        if ("false".equalsIgnoreCase(trimmed)) {
+            return false;
+        }
+        throw ConfigurationException.atLine(lineNumber, "Invalid " + fieldName + ": " + trimmed
+                + ". Valid values: true, false.");
+    }
+
     private static String requiredValue(String fieldName, String value, int lineNumber) {
         String trimmed = value.trim();
         if (trimmed.length() == 0) {
@@ -295,31 +355,35 @@ public final class JavaspecConfigurationParser {
         return trimmed;
     }
 
-    private static List<String> parseBootstrapHooks(String fieldName, String value, int lineNumber) {
+    /**
+     * Parses a comma-separated, ordered, duplicate-preserving list of class names
+     * (used by the {@code bootstrap} and {@code extensions} keys).
+     */
+    private static List<String> parseClassNameList(String fieldName, String value, int lineNumber) {
         String trimmed = value.trim();
         if (trimmed.length() == 0) {
             throw ConfigurationException.atLine(lineNumber, fieldName + " must not be blank.");
         }
 
-        List<String> hooks = new ArrayList<String>();
+        List<String> classNames = new ArrayList<String>();
         int segmentStart = 0;
         int entryIndex = 1;
         while (segmentStart <= trimmed.length()) {
             int comma = trimmed.indexOf(',', segmentStart);
             int segmentEnd = comma < 0 ? trimmed.length() : comma;
-            String hook = trimmed.substring(segmentStart, segmentEnd).trim();
-            if (hook.length() == 0) {
+            String className = trimmed.substring(segmentStart, segmentEnd).trim();
+            if (className.length() == 0) {
                 throw ConfigurationException.atLine(lineNumber, fieldName
                         + " contains a blank entry at position " + entryIndex + ".");
             }
-            hooks.add(hook);
+            classNames.add(className);
             if (comma < 0) {
                 break;
             }
             segmentStart = comma + 1;
             entryIndex++;
         }
-        return Collections.unmodifiableList(hooks);
+        return Collections.unmodifiableList(classNames);
     }
 
     private static String validProfileKeys() {
@@ -342,11 +406,15 @@ public final class JavaspecConfigurationParser {
         JUNIT_XML_REPORT_FILE,
         DEFAULT_SUITE,
         BOOTSTRAP,
+        BOOTSTRAP_DISCOVERY,
+        EXTENSIONS,
         SUITE_SPEC_DIRECTORY,
         SUITE_SOURCE_DIRECTORY,
         SUITE_SPEC_PACKAGE_PREFIX,
         SUITE_PACKAGE_PREFIX,
-        SUITE_BOOTSTRAP
+        SUITE_BOOTSTRAP,
+        SUITE_BOOTSTRAP_DISCOVERY,
+        SUITE_EXTENSIONS
     }
 
     private static final class ParsedKey {
@@ -395,6 +463,8 @@ public final class JavaspecConfigurationParser {
         private String jsonReportFile;
         private String junitXmlReportFile;
         private List<String> bootstrapHooks = Collections.unmodifiableList(new ArrayList<String>());
+        private List<String> extensions = Collections.unmodifiableList(new ArrayList<String>());
+        private boolean bootstrapDiscovery;
         private final Map<String, SuiteDraft> suites = new LinkedHashMap<String, SuiteDraft>();
 
         ConfigurationDraft() {
@@ -421,9 +491,11 @@ public final class JavaspecConfigurationParser {
                     constructorPolicy,
                     defaultSuiteName,
                     bootstrapHooks,
+                    extensions,
                     suiteConfigurations,
                     jsonReportFile,
-                    junitXmlReportFile
+                    junitXmlReportFile,
+                    bootstrapDiscovery
             );
         }
     }
@@ -435,6 +507,8 @@ public final class JavaspecConfigurationParser {
         private String specPackagePrefix = JavaspecSuiteConfiguration.DEFAULT_SPEC_PACKAGE_PREFIX;
         private String packagePrefix = JavaspecSuiteConfiguration.DEFAULT_PACKAGE_PREFIX;
         private List<String> bootstrapHooks = Collections.unmodifiableList(new ArrayList<String>());
+        private List<String> extensions = Collections.unmodifiableList(new ArrayList<String>());
+        private boolean bootstrapDiscovery;
 
         SuiteDraft(String name) {
             this.name = name;
@@ -447,7 +521,9 @@ public final class JavaspecConfigurationParser {
                     sourceDirectory,
                     specPackagePrefix,
                     packagePrefix,
-                    bootstrapHooks
+                    bootstrapHooks,
+                    extensions,
+                    bootstrapDiscovery
             );
         }
     }

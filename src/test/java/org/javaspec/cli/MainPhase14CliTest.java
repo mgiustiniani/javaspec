@@ -140,8 +140,9 @@ public class MainPhase14CliTest {
         assertContains(result.out, "No specifications found in " + specRoot.getAbsolutePath() + ".");
         assertEquals("", result.err);
         assertTrue(xmlFile.isFile());
-        assertEquals(emptyJUnitXml(), readFile(xmlFile));
-        assertParsesAsXml(readFile(xmlFile));
+        String xml = readFile(xmlFile);
+        assertEmptyJUnitXml(xml);
+        assertParsesAsXml(xml);
     }
 
     @Test
@@ -162,7 +163,7 @@ public class MainPhase14CliTest {
         assertContains(result.out, "Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped, 0 pending.");
         assertEquals("", result.err);
         String xml = readFile(xmlFile);
-        assertContains(xml, "<testsuite name=\"javaspec\" tests=\"1\" failures=\"0\" errors=\"0\" skipped=\"0\" time=\"0\">");
+        assertJUnitXmlSuiteHeader(xml, 1, 0, 0, 0);
         assertFailingSubjectTestcaseHasSource(xml, "it_passes", 4);
         assertParsesAsXml(xml);
     }
@@ -185,7 +186,7 @@ public class MainPhase14CliTest {
         assertContains(result.out, "Examples: 1 total, 0 passed, 1 failed, 0 broken, 0 skipped, 0 pending.");
         assertEquals("", result.err);
         String xml = readFile(xmlFile);
-        assertContains(xml, "<testsuite name=\"javaspec\" tests=\"1\" failures=\"1\" errors=\"0\" skipped=\"0\" time=\"0\">");
+        assertJUnitXmlSuiteHeader(xml, 1, 1, 0, 0);
         assertFailingSubjectTestcaseHasSource(xml, "it_fails", 7);
         assertContains(xml, "<failure type=\"java.lang.AssertionError\" message=\"cli failure\">Assertion failed");
         assertParsesAsXml(xml);
@@ -298,7 +299,7 @@ public class MainPhase14CliTest {
         assertContains(json, "\"status\": \"PENDING\"");
         assertContains(json, "\"detail\": \"cli pending\"");
         String xml = readFile(xmlFile);
-        assertContains(xml, "<testsuite name=\"javaspec\" tests=\"2\" failures=\"0\" errors=\"0\" skipped=\"2\" time=\"0\">");
+        assertJUnitXmlSuiteHeader(xml, 2, 0, 0, 2);
         assertContains(xml, "<skipped message=\"cli skip\"/>");
         assertContains(xml, "<skipped message=\"Pending: cli pending\"/>");
         assertParsesAsXml(xml);
@@ -427,10 +428,19 @@ public class MainPhase14CliTest {
         return count;
     }
 
-    private static String emptyJUnitXml() {
-        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-                "<testsuite name=\"javaspec\" tests=\"0\" failures=\"0\" errors=\"0\" skipped=\"0\" time=\"0\">\n" +
-                "</testsuite>\n";
+    private static void assertEmptyJUnitXml(String xml) {
+        assertContains(xml, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+        assertJUnitXmlSuiteHeader(xml, 0, 0, 0, 0);
+        assertContains(xml, "  </properties>\n</testsuite>\n");
+    }
+
+    private static void assertJUnitXmlSuiteHeader(String xml, int tests, int failures, int errors, int skipped) {
+        assertContains(xml, "<testsuite name=\"javaspec\" tests=\"" + tests + "\" failures=\"" + failures
+                + "\" errors=\"" + errors + "\" skipped=\"" + skipped + "\" timestamp=\"");
+        assertContains(xml, "\" hostname=\"");
+        assertContains(xml, "\" time=\"0\">\n  <properties>\n");
+        assertContains(xml, "    <property name=\"javaspec.report.schemaVersion\" value=\"1\"/>\n");
+        assertContains(xml, "    <property name=\"javaspec.report.tool\" value=\"javaspec\"/>\n");
     }
 
     private static void assertParsesAsXml(String xml) throws Exception {

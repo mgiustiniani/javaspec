@@ -17,6 +17,8 @@ public class JavaspecExtension {
     private Boolean skip;
     private Boolean failOnFailure;
     private Boolean stopOnFailure;
+    private Boolean bootstrapDiscovery;
+    private Boolean compile;
     private File configFile;
     private String suite;
     private File specDir;
@@ -26,6 +28,7 @@ public class JavaspecExtension {
     private File reportFile;
     private File jsonReportFile;
     private File junitXmlReportFile;
+    private File compileOutput;
     private File junitXmlFile;
 
     private final List<String> classFilters = new ArrayList<String>();
@@ -37,6 +40,8 @@ public class JavaspecExtension {
     private String exampleFiltersProperty;
     private String exampleFilter;
     private String exampleNameFilter;
+
+    private final List<String> extensions = new ArrayList<String>();
 
     public JavaspecExtension(Project project) {
         this.project = project;
@@ -64,6 +69,22 @@ public class JavaspecExtension {
 
     public void setStopOnFailure(boolean stopOnFailure) {
         this.stopOnFailure = Boolean.valueOf(stopOnFailure);
+    }
+
+    public boolean isBootstrapDiscovery() {
+        return bootstrapDiscovery != null && bootstrapDiscovery.booleanValue();
+    }
+
+    public void setBootstrapDiscovery(boolean bootstrapDiscovery) {
+        this.bootstrapDiscovery = Boolean.valueOf(bootstrapDiscovery);
+    }
+
+    public boolean isCompile() {
+        return compile != null && compile.booleanValue();
+    }
+
+    public void setCompile(boolean compile) {
+        this.compile = Boolean.valueOf(compile);
     }
 
     public File getConfigFile() {
@@ -174,6 +195,14 @@ public class JavaspecExtension {
         setJunitXmlFile(junitXmlFile);
     }
 
+    public File getCompileOutput() {
+        return compileOutput;
+    }
+
+    public void setCompileOutput(Object compileOutput) {
+        this.compileOutput = fileOrNull(compileOutput);
+    }
+
     public List<String> getClassFilters() {
         return classFilters;
     }
@@ -264,6 +293,19 @@ public class JavaspecExtension {
         this.exampleNameFilter = exampleName;
     }
 
+    public List<String> getExtensions() {
+        return extensions;
+    }
+
+    public void setExtensions(Object extensions) {
+        this.extensions.clear();
+        addFilterObject(this.extensions, extensions);
+    }
+
+    public void extensions(Object... extensions) {
+        addFilterObject(this.extensions, extensions);
+    }
+
     Boolean skipOption() {
         return skip;
     }
@@ -274,6 +316,14 @@ public class JavaspecExtension {
 
     Boolean stopOnFailureOption() {
         return stopOnFailure;
+    }
+
+    Boolean bootstrapDiscoveryOption() {
+        return bootstrapDiscovery;
+    }
+
+    Boolean compileOption() {
+        return compile;
     }
 
     File configFileOption() {
@@ -316,6 +366,10 @@ public class JavaspecExtension {
         return junitXmlFile;
     }
 
+    File compileOutputOption() {
+        return compileOutput;
+    }
+
     List<String> classFiltersOption() {
         return classFilters;
     }
@@ -334,6 +388,10 @@ public class JavaspecExtension {
 
     List<String> exampleFiltersOption() {
         return exampleFilters;
+    }
+
+    List<String> extensionsOption() {
+        return extensions;
     }
 
     String exampleFiltersPropertyOption() {

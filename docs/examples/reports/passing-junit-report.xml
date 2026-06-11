@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="javaspec" tests="1" failures="0" errors="0" skipped="0" time="0">
+<testsuite name="javaspec" tests="1" failures="0" errors="0" skipped="0" timestamp="2026-01-01T00:00:00Z" hostname="ci.example.local" time="0">
+  <properties>
+    <property name="javaspec.report.schemaVersion" value="1"/>
+    <property name="javaspec.report.tool" value="javaspec"/>
+  </properties>
   <testcase classname="spec.com.example.CalculatorSpec" name="it_adds_two_numbers" time="0" file="examples/maven-basic/src/test/java/spec/com/example/CalculatorSpec.java" line="11"/>
 </testsuite>

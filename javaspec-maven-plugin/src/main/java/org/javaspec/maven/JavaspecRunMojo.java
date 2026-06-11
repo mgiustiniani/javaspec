@@ -8,12 +8,18 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.javaspec.bootstrap.BootstrapException;
+import org.javaspec.compilation.SourceCompilationException;
+import org.javaspec.compilation.SourceCompilationResult;
 import org.javaspec.config.ConfigurationException;
 import org.javaspec.config.JavaspecConfiguration;
 import org.javaspec.config.JavaspecSuiteConfiguration;
 import org.javaspec.diagnostics.RunDiagnostics;
 import org.javaspec.discovery.SpecDiscoveryRequest;
 import org.javaspec.discovery.SpecNamingConvention;
+import org.javaspec.extension.ExtensionLoadingException;
+import org.javaspec.extension.JavaspecExtensionLoader;
+import org.javaspec.formatter.RunFormatter;
+import org.javaspec.formatter.RunFormatterRegistry;
 import org.javaspec.invocation.JavaspecInvocation;
 import org.javaspec.invocation.JavaspecInvocationResult;
 import org.javaspec.invocation.JavaspecLauncher;
@@ -22,11 +28,15 @@ import org.javaspec.reporting.RunReportWriter;
 import org.javaspec.runner.ExampleResult;
 import org.javaspec.runner.RunResult;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -105,6 +115,24 @@ public final class JavaspecRunMojo extends AbstractMojo {
     @Parameter(property = "javaspec.junitXmlFile")
     private File junitXmlFile;
 
+    @Parameter(property = "javaspec.formatter")
+    private String formatter;
+
+    @Parameter(property = "javaspec.extensions")
+    private String extensionsProperty;
+
+    @Parameter(property = "javaspec.bootstrapDiscovery")
+    private String bootstrapDiscovery;
+
+    @Parameter(property = "javaspec.compile", defaultValue = "false")
+    private boolean compile;
+
+    @Parameter(property = "javaspec.compileOutput")
+    private File compileOutput;
+
+    @Parameter(property = "javaspec.compileOutputDirectory")
+    private File compileOutputDirectory;
+
     public void execute() throws MojoExecutionException, MojoFailureException {
         if (skip) {
             getLog().info("javaspec: execution skipped.");
@@ -117,20 +145,42 @@ public final class JavaspecRunMojo extends AbstractMojo {
             JavaspecConfiguration configuration = loadConfiguration();
             JavaspecSuiteConfiguration selectedSuite = selectSuite(configuration);
             SpecDiscoveryRequest discoveryRequest = createDiscoveryRequest(selectedSuite);
-            runClassLoader = createRunClassLoader(originalContextClassLoader);
+            List<File> classpathEntries = classpathEntries();
+            runClassLoader = createRunClassLoader(originalContextClassLoader, classpathEntries);
+
+            List<String> effectiveExtensions = extensionsFor(configuration, selectedSuite);
+            RunFormatterRegistry runFormatters = runFormatterRegistry(runClassLoader, effectiveExtensions);
+            String effectiveFormatter = effectiveFormatter(configuration, runFormatters);
+            boolean effectiveBootstrapDiscovery = effectiveBootstrapDiscovery(configuration, selectedSuite);
 
             getLog().info("javaspec: running suite '" + selectedSuite.name() + "' from "
                     + discoveryRequest.specRoot().getPath() + ".");
+            getLog().info("javaspec: formatter " + effectiveFormatter + ".");
 
             Thread.currentThread().setContextClassLoader(runClassLoader);
             JavaspecInvocation invocation = JavaspecInvocation
                     .discovering(discoveryRequest, runClassLoader)
                     .withBootstrapHooks(bootstrapHooksFor(configuration, selectedSuite))
+                    .withBootstrapDiscovery(effectiveBootstrapDiscovery)
+                    .withExtensions(effectiveExtensions)
                     .withStopOnFailure(stopOnFailure);
+            if (compilationRequested()) {
+                invocation = invocation.withCompilation(
+                        sourceDirectoryFor(selectedSuite),
+                        discoveryRequest.specRoot(),
+                        effectiveCompilationOutputDirectory(),
+                        classpathEntries
+                );
+            }
             JavaspecInvocationResult invocationResult = JavaspecLauncher.run(invocation);
             RunResult runResult = invocationResult.runResult();
+            RunFormatterRegistry outputFormatters = invocationResult.hasRunFormatterRegistry()
+                    ? invocationResult.runFormatterRegistry()
+                    : runFormatters;
 
+            logSourceCompilation(invocationResult);
             logSummary(invocationResult);
+            renderFormattedSummary(runResult, effectiveFormatter, outputFormatters);
             logExecutionDiagnostics(runResult);
             writeReports(runResult, configuration);
             handleFailures(runResult);
@@ -138,6 +188,10 @@ public final class JavaspecRunMojo extends AbstractMojo {
             throw ex;
         } catch (MojoFailureException ex) {
             throw ex;
+        } catch (SourceCompilationException ex) {
+            handleCompilationFailure(ex);
+        } catch (ExtensionLoadingException ex) {
+            throw new MojoFailureException("javaspec extension activation failed: " + messageOf(ex), ex);
         } catch (BootstrapException ex) {
             throw new MojoExecutionException("javaspec bootstrap execution failed: " + messageOf(ex), ex);
         } catch (RuntimeException ex) {
@@ -191,6 +245,32 @@ public final class JavaspecRunMojo extends AbstractMojo {
         return hooks;
     }
 
+    private boolean effectiveBootstrapDiscovery(
+            JavaspecConfiguration configuration,
+            JavaspecSuiteConfiguration selectedSuite
+    ) throws MojoExecutionException {
+        boolean adapterBootstrapDiscovery = bootstrapDiscoveryParameter();
+        return configuration.effectiveBootstrapDiscovery(selectedSuite) || adapterBootstrapDiscovery;
+    }
+
+    private boolean bootstrapDiscoveryParameter() throws MojoExecutionException {
+        if (bootstrapDiscovery == null) {
+            return false;
+        }
+        String trimmed = bootstrapDiscovery.trim();
+        if (trimmed.length() == 0) {
+            throw new MojoExecutionException("Invalid javaspec.bootstrapDiscovery: value must not be blank.");
+        }
+        if ("true".equalsIgnoreCase(trimmed)) {
+            return true;
+        }
+        if ("false".equalsIgnoreCase(trimmed)) {
+            return false;
+        }
+        throw new MojoExecutionException("Invalid javaspec.bootstrapDiscovery: expected true or false but was '"
+                + bootstrapDiscovery + "'.");
+    }
+
     private SpecDiscoveryRequest createDiscoveryRequest(JavaspecSuiteConfiguration selectedSuite) throws MojoExecutionException {
         File effectiveSpecRoot = specDirectoryFor(selectedSuite);
         SpecNamingConvention namingConvention;
@@ -222,16 +302,45 @@ public final class JavaspecRunMojo extends AbstractMojo {
         return projectFile(new File(selectedSuite.specDirectory()));
     }
 
-    private URLClassLoader createRunClassLoader(ClassLoader contextClassLoader) throws MojoExecutionException {
-        ClassLoader parent = contextClassLoader == null ? JavaspecRunMojo.class.getClassLoader() : contextClassLoader;
+    private File sourceDirectoryFor(JavaspecSuiteConfiguration selectedSuite) {
+        return projectFile(new File(selectedSuite.sourceDirectory()));
+    }
+
+    private boolean compilationRequested() {
+        return compile || compileOutput != null || compileOutputDirectory != null;
+    }
+
+    private File effectiveCompilationOutputDirectory() {
+        if (compileOutput != null) {
+            return projectFile(compileOutput);
+        }
+        if (compileOutputDirectory != null) {
+            return projectFile(compileOutputDirectory);
+        }
+        return projectFile(new File("target/javaspec-classes"));
+    }
+
+    private List<File> classpathEntries() throws MojoExecutionException {
         List<String> elements = testClasspathElements == null ? new ArrayList<String>() : testClasspathElements;
-        URL[] urls = new URL[elements.size()];
+        List<File> entries = new ArrayList<File>();
         for (int i = 0; i < elements.size(); i++) {
             String element = elements.get(i);
             if (element == null || element.trim().length() == 0) {
                 throw new MojoExecutionException("Invalid test classpath element at index " + i + ": value must not be blank.");
             }
-            File classpathEntry = projectFile(new File(element));
+            entries.add(projectFile(new File(element)));
+        }
+        return entries;
+    }
+
+    private URLClassLoader createRunClassLoader(
+            ClassLoader contextClassLoader,
+            List<File> classpathEntries
+    ) throws MojoExecutionException {
+        ClassLoader parent = contextClassLoader == null ? JavaspecRunMojo.class.getClassLoader() : contextClassLoader;
+        URL[] urls = new URL[classpathEntries.size()];
+        for (int i = 0; i < classpathEntries.size(); i++) {
+            File classpathEntry = classpathEntries.get(i);
             try {
                 urls[i] = classpathEntry.toURI().toURL();
             } catch (MalformedURLException ex) {
@@ -307,6 +416,18 @@ public final class JavaspecRunMojo extends AbstractMojo {
             throw new MojoExecutionException("Invalid " + parameterName + ": value must not be blank.");
         }
         target.add(trimmed);
+    }
+
+    private void logSourceCompilation(JavaspecInvocationResult invocationResult) {
+        if (!invocationResult.hasSourceCompilationResult()) {
+            return;
+        }
+        SourceCompilationResult result = invocationResult.sourceCompilationResult();
+        if (result.sourceFileCount() <= 0) {
+            return;
+        }
+        getLog().info("javaspec: compiled " + result.sourceFileCount()
+                + " source file(s) to " + result.outputDirectory().getPath() + ".");
     }
 
     private void logSummary(JavaspecInvocationResult invocationResult) {
@@ -448,6 +569,33 @@ public final class JavaspecRunMojo extends AbstractMojo {
         getLog().warn("javaspec: failOnFailure=false, Maven build will continue.");
     }
 
+    private void handleCompilationFailure(
+            SourceCompilationException ex
+    ) throws MojoExecutionException, MojoFailureException {
+        if (ex.reason() == SourceCompilationException.Reason.COMPILER_UNAVAILABLE) {
+            throw new MojoExecutionException("javaspec compilation failed: Java compiler is not available. "
+                    + "Run javaspec with a JDK or disable compilation.", ex);
+        }
+        if (ex.reason() == SourceCompilationException.Reason.COMPILATION_FAILED) {
+            logCompilationDiagnostics(ex);
+            throw new MojoFailureException("javaspec compilation failed: Compilation failed", ex);
+        }
+        if (ex.reason() == SourceCompilationException.Reason.IO_ERROR) {
+            throw new MojoExecutionException("javaspec compilation failed: " + messageOf(ex), ex);
+        }
+        throw new MojoExecutionException("javaspec compilation failed: " + messageOf(ex), ex);
+    }
+
+    private void logCompilationDiagnostics(SourceCompilationException ex) {
+        if (!ex.hasSourceCompilationResult()) {
+            return;
+        }
+        List<String> diagnostics = ex.sourceCompilationResult().diagnostics();
+        for (int i = 0; i < diagnostics.size(); i++) {
+            getLog().error("javaspec:   " + diagnostics.get(i));
+        }
+    }
+
     private File projectFile(File file) {
         if (file.isAbsolute()) {
             return file;
@@ -478,6 +626,101 @@ public final class JavaspecRunMojo extends AbstractMojo {
         } catch (IOException ex) {
             getLog().warn("javaspec: could not close run classloader: " + messageOf(ex));
         }
+    }
+
+    private List<String> extensionsFor(
+            JavaspecConfiguration configuration,
+            JavaspecSuiteConfiguration selectedSuite
+    ) throws MojoExecutionException {
+        List<String> extensions = new ArrayList<String>();
+        extensions.addAll(configuration.extensions());
+        extensions.addAll(selectedSuite.extensions());
+        addDelimitedFilters(extensions, extensionsProperty, "javaspec.extensions");
+        return extensions;
+    }
+
+    private RunFormatterRegistry runFormatterRegistry(
+            ClassLoader runClassLoader,
+            List<String> effectiveExtensions
+    ) throws MojoFailureException {
+        try {
+            return JavaspecExtensionLoader.loadRunFormatterRegistry(runClassLoader, effectiveExtensions);
+        } catch (ExtensionLoadingException ex) {
+            throw new MojoFailureException("javaspec extension activation failed: " + messageOf(ex), ex);
+        }
+    }
+
+    private String effectiveFormatter(
+            JavaspecConfiguration configuration,
+            RunFormatterRegistry runFormatters
+    ) throws MojoFailureException {
+        String configuredFormatter = trimmedOrNull(formatter);
+        if (configuredFormatter == null) {
+            configuredFormatter = configuration.formatter();
+        }
+        String normalized = RunFormatterRegistry.normalizeName(configuredFormatter);
+        if (normalized == null || !runFormatters.contains(normalized)) {
+            throw new MojoFailureException("Invalid javaspec formatter: " + configuredFormatter
+                    + ". Valid values: " + validFormatterNames(runFormatters) + ".");
+        }
+        return normalized;
+    }
+
+    private void renderFormattedSummary(
+            RunResult runResult,
+            String formatterName,
+            RunFormatterRegistry runFormatters
+    ) {
+        RunFormatter formatter = runFormatters.lookup(formatterName);
+        if (formatter == null) {
+            return;
+        }
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        PrintStream stream = null;
+        try {
+            stream = new PrintStream(buffer, true, StandardCharsets.UTF_8.name());
+            formatter.format(runResult, stream);
+            stream.flush();
+            String output = buffer.toString(StandardCharsets.UTF_8.name());
+            int start = 0;
+            while (start < output.length()) {
+                int end = start;
+                while (end < output.length() && output.charAt(end) != '\n' && output.charAt(end) != '\r') {
+                    end++;
+                }
+                String line = output.substring(start, end);
+                if (line.length() > 0) {
+                    getLog().info("javaspec: " + line);
+                }
+                if (end == output.length()) {
+                    break;
+                }
+                char terminator = output.charAt(end);
+                end++;
+                if (terminator == '\r' && end < output.length() && output.charAt(end) == '\n') {
+                    end++;
+                }
+                start = end;
+            }
+        } catch (UnsupportedEncodingException ex) {
+            getLog().warn("javaspec: UTF-8 is not available while rendering output: " + messageOf(ex));
+        } finally {
+            if (stream != null) {
+                stream.close();
+            }
+        }
+    }
+
+    private static String validFormatterNames(RunFormatterRegistry registry) {
+        List<String> names = registry.formatterNames();
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < names.size(); i++) {
+            if (i > 0) {
+                builder.append(", ");
+            }
+            builder.append(names.get(i));
+        }
+        return builder.toString();
     }
 
     private static String trimmedOrNull(String value) {

@@ -22,8 +22,10 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
@@ -62,6 +64,37 @@ public class JavaspecExtensionLoaderTest {
         RunFormatterRegistry registry = loadRegistry(serviceRoot);
 
         assertEquals(Arrays.asList("progress", "pretty", "extension"), registry.formatterNames());
+        assertEquals("extension formatter total=0\n", format(registry.lookup("extension")));
+    }
+
+    @Test
+    public void configuredExtensionClassesRegisterFormatterInOrderAfterDiscoveryAndPreserveDuplicates() throws Exception {
+        ConfiguredExtensionState.reset();
+
+        RunFormatterRegistry registry = JavaspecExtensionLoader.loadRunFormatterRegistry(
+                currentClassLoader(),
+                Arrays.asList(
+                        FirstConfiguredExtension.class.getName(),
+                        SecondConfiguredExtension.class.getName(),
+                        FirstConfiguredExtension.class.getName()
+                )
+        );
+
+        assertEquals(Arrays.asList("first", "second", "first"), ConfiguredExtensionState.events());
+        assertEquals(Arrays.asList("progress", "pretty", "configured-order"), registry.formatterNames());
+        assertEquals("configured extension order=first>second>first\n", format(registry.lookup("configured-order")));
+    }
+
+    @Test
+    public void emptyConfiguredExtensionListKeepsBuiltInAndServiceLoaderBehaviorUnchanged() throws Exception {
+        File serviceRoot = serviceRoot();
+        writeService(serviceRoot, RunFormatter.class, ServiceLoadedRunFormatter.class);
+        writeService(serviceRoot, JavaspecExtension.class, ServiceLoadedJavaspecExtension.class);
+
+        RunFormatterRegistry registry = loadRegistry(serviceRoot, Collections.<String>emptyList());
+
+        assertEquals(Arrays.asList("progress", "pretty", "external", "extension"), registry.formatterNames());
+        assertEquals("external formatter total=0 passed=0 failed=0\n", format(registry.lookup("external")));
         assertEquals("extension formatter total=0\n", format(registry.lookup("extension")));
     }
 
@@ -136,12 +169,19 @@ public class JavaspecExtensionLoaderTest {
     }
 
     private RunFormatterRegistry loadRegistry(File serviceRoot) throws Exception {
+        return loadRegistry(serviceRoot, null);
+    }
+
+    private RunFormatterRegistry loadRegistry(File serviceRoot, List<String> configuredExtensions) throws Exception {
         URLClassLoader classLoader = new URLClassLoader(
                 new URL[] {serviceRoot.toURI().toURL()},
                 JavaspecExtensionLoaderTest.class.getClassLoader()
         );
         try {
-            return JavaspecExtensionLoader.loadRunFormatterRegistry(classLoader);
+            if (configuredExtensions == null) {
+                return JavaspecExtensionLoader.loadRunFormatterRegistry(classLoader);
+            }
+            return JavaspecExtensionLoader.loadRunFormatterRegistry(classLoader, configuredExtensions);
         } finally {
             classLoader.close();
         }
@@ -170,5 +210,65 @@ public class JavaspecExtensionLoaderTest {
 
     private static RunResult emptyRunResult() {
         return RunResult.of(Collections.<SpecResult>emptyList());
+    }
+
+    private static ClassLoader currentClassLoader() {
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        if (classLoader != null) {
+            return classLoader;
+        }
+        return JavaspecExtensionLoaderTest.class.getClassLoader();
+    }
+
+    public static final class FirstConfiguredExtension implements JavaspecExtension {
+        public void configure(ExtensionContext context) {
+            ConfiguredExtensionState.record("first");
+            registerOrderFormatter(context);
+        }
+    }
+
+    public static final class SecondConfiguredExtension implements JavaspecExtension {
+        public void configure(ExtensionContext context) {
+            ConfiguredExtensionState.record("second");
+            registerOrderFormatter(context);
+        }
+    }
+
+    private static void registerOrderFormatter(ExtensionContext context) {
+        context.runFormatters().register("configured-order", new RunFormatter() {
+            public void format(RunResult runResult, PrintStream out) {
+                out.println("configured extension order=" + ConfiguredExtensionState.joinedEvents());
+            }
+        });
+    }
+
+    private static final class ConfiguredExtensionState {
+        private static final List<String> EVENTS = new ArrayList<String>();
+
+        private ConfiguredExtensionState() {
+        }
+
+        static synchronized void reset() {
+            EVENTS.clear();
+        }
+
+        static synchronized void record(String event) {
+            EVENTS.add(event);
+        }
+
+        static synchronized List<String> events() {
+            return new ArrayList<String>(EVENTS);
+        }
+
+        static synchronized String joinedEvents() {
+            StringBuilder builder = new StringBuilder();
+            for (int i = 0; i < EVENTS.size(); i++) {
+                if (i > 0) {
+                    builder.append('>');
+                }
+                builder.append(EVENTS.get(i));
+            }
+            return builder.toString();
+        }
     }
 }

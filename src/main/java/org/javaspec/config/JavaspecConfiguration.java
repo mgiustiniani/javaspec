@@ -19,6 +19,7 @@ public final class JavaspecConfiguration {
     public static final String DEFAULT_FORMATTER = "progress";
 
     private static final List<String> EMPTY_BOOTSTRAP_HOOKS = Collections.unmodifiableList(new ArrayList<String>());
+    private static final List<String> EMPTY_EXTENSIONS = Collections.unmodifiableList(new ArrayList<String>());
     private static final JavaspecConfiguration DEFAULT_CONFIGURATION = createDefaultConfiguration();
 
     private final TargetProfile profile;
@@ -28,6 +29,8 @@ public final class JavaspecConfiguration {
     private final String jsonReportFile;
     private final String junitXmlReportFile;
     private final List<String> bootstrapHooks;
+    private final List<String> extensions;
+    private final boolean bootstrapDiscovery;
     private final Map<String, JavaspecSuiteConfiguration> suites;
 
     private JavaspecConfiguration(
@@ -38,6 +41,8 @@ public final class JavaspecConfiguration {
             String jsonReportFile,
             String junitXmlReportFile,
             List<String> bootstrapHooks,
+            List<String> extensions,
+            boolean bootstrapDiscovery,
             List<JavaspecSuiteConfiguration> suites
     ) {
         this.profile = Objects.requireNonNull(profile, "profile must not be null");
@@ -47,6 +52,8 @@ public final class JavaspecConfiguration {
         this.jsonReportFile = validateOptionalValue("jsonReportFile", jsonReportFile);
         this.junitXmlReportFile = validateOptionalValue("junitXmlReportFile", junitXmlReportFile);
         this.bootstrapHooks = immutableBootstrapHooks(bootstrapHooks);
+        this.extensions = immutableExtensions(extensions);
+        this.bootstrapDiscovery = bootstrapDiscovery;
         this.suites = immutableSuites(suites, this.defaultSuiteName);
     }
 
@@ -92,6 +99,84 @@ public final class JavaspecConfiguration {
                 jsonReportFile,
                 junitXmlReportFile,
                 bootstrapHooks,
+                EMPTY_EXTENSIONS,
+                false,
+                suites
+        );
+    }
+
+    public static JavaspecConfiguration of(
+            TargetProfile profile,
+            String formatter,
+            ConstructorPolicy constructorPolicy,
+            String defaultSuiteName,
+            List<String> bootstrapHooks,
+            List<JavaspecSuiteConfiguration> suites,
+            String jsonReportFile,
+            String junitXmlReportFile,
+            boolean bootstrapDiscovery
+    ) {
+        return new JavaspecConfiguration(
+                profile,
+                formatter,
+                constructorPolicy,
+                defaultSuiteName,
+                jsonReportFile,
+                junitXmlReportFile,
+                bootstrapHooks,
+                EMPTY_EXTENSIONS,
+                bootstrapDiscovery,
+                suites
+        );
+    }
+
+    public static JavaspecConfiguration of(
+            TargetProfile profile,
+            String formatter,
+            ConstructorPolicy constructorPolicy,
+            String defaultSuiteName,
+            List<String> bootstrapHooks,
+            List<String> extensions,
+            List<JavaspecSuiteConfiguration> suites,
+            String jsonReportFile,
+            String junitXmlReportFile
+    ) {
+        return new JavaspecConfiguration(
+                profile,
+                formatter,
+                constructorPolicy,
+                defaultSuiteName,
+                jsonReportFile,
+                junitXmlReportFile,
+                bootstrapHooks,
+                extensions,
+                false,
+                suites
+        );
+    }
+
+    public static JavaspecConfiguration of(
+            TargetProfile profile,
+            String formatter,
+            ConstructorPolicy constructorPolicy,
+            String defaultSuiteName,
+            List<String> bootstrapHooks,
+            List<String> extensions,
+            List<JavaspecSuiteConfiguration> suites,
+            String jsonReportFile,
+            String junitXmlReportFile,
+            boolean bootstrapDiscovery
+    ) {
+        return new JavaspecConfiguration(
+                profile,
+                formatter,
+                constructorPolicy,
+                defaultSuiteName,
+                jsonReportFile,
+                junitXmlReportFile,
+                bootstrapHooks,
+                extensions,
+                bootstrapDiscovery,
                 suites
         );
     }
@@ -242,6 +327,51 @@ public final class JavaspecConfiguration {
         return bootstrapHooks;
     }
 
+    /**
+     * Returns whether top-level configuration opts into ServiceLoader discovery of
+     * {@code org.javaspec.bootstrap.BootstrapHook} providers.
+     *
+     * <p>The default is {@code false}. For a selected suite, discovery is enabled when either
+     * this top-level flag or the suite flag is enabled. Explicit configured hooks still run
+     * first in configured order; discovered providers are loaded from the run classloader and
+     * executed afterward in provider implementation class name order.</p>
+     */
+    public boolean bootstrapDiscovery() {
+        return bootstrapDiscovery;
+    }
+
+    public boolean isBootstrapDiscoveryEnabled() {
+        return bootstrapDiscovery;
+    }
+
+    public boolean getBootstrapDiscovery() {
+        return bootstrapDiscovery;
+    }
+
+    /**
+     * Returns the effective ServiceLoader bootstrap discovery flag for the selected suite.
+     * Discovery is enabled when either the top-level {@code bootstrapDiscovery} key or the
+     * selected suite's {@code bootstrapDiscovery} key is {@code true}.
+     */
+    public boolean effectiveBootstrapDiscovery(JavaspecSuiteConfiguration selectedSuite) {
+        Objects.requireNonNull(selectedSuite, "selectedSuite must not be null");
+        return bootstrapDiscovery || selectedSuite.bootstrapDiscovery();
+    }
+
+    /**
+     * Ordered, duplicate-preserving list of configured extension implementation class names.
+     * Each entry is the fully qualified name of a class implementing
+     * {@code org.javaspec.extension.JavaspecExtension} (or its {@code Extension} alias).
+     * Defaults to an empty immutable list when no {@code extensions} key is configured.
+     */
+    public List<String> extensions() {
+        return extensions;
+    }
+
+    public List<String> getExtensions() {
+        return extensions;
+    }
+
     public Map<String, JavaspecSuiteConfiguration> suites() {
         return suites;
     }
@@ -270,6 +400,8 @@ public final class JavaspecConfiguration {
                 && Objects.equals(jsonReportFile, that.jsonReportFile)
                 && Objects.equals(junitXmlReportFile, that.junitXmlReportFile)
                 && bootstrapHooks.equals(that.bootstrapHooks)
+                && extensions.equals(that.extensions)
+                && bootstrapDiscovery == that.bootstrapDiscovery
                 && suites.equals(that.suites);
     }
 
@@ -282,6 +414,8 @@ public final class JavaspecConfiguration {
         result = 31 * result + (jsonReportFile == null ? 0 : jsonReportFile.hashCode());
         result = 31 * result + (junitXmlReportFile == null ? 0 : junitXmlReportFile.hashCode());
         result = 31 * result + bootstrapHooks.hashCode();
+        result = 31 * result + extensions.hashCode();
+        result = 31 * result + (bootstrapDiscovery ? 1 : 0);
         result = 31 * result + suites.hashCode();
         return result;
     }
@@ -296,6 +430,8 @@ public final class JavaspecConfiguration {
                 + ", jsonReportFile='" + jsonReportFile + '\''
                 + ", junitXmlReportFile='" + junitXmlReportFile + '\''
                 + ", bootstrapHooks=" + bootstrapHooks
+                + ", extensions=" + extensions
+                + ", bootstrapDiscovery=" + bootstrapDiscovery
                 + ", suites=" + suites
                 + '}';
     }
@@ -311,6 +447,8 @@ public final class JavaspecConfiguration {
                 null,
                 null,
                 EMPTY_BOOTSTRAP_HOOKS,
+                EMPTY_EXTENSIONS,
+                false,
                 suites
         );
     }
@@ -351,6 +489,24 @@ public final class JavaspecConfiguration {
             hooks.add(trimmed);
         }
         return Collections.unmodifiableList(hooks);
+    }
+
+    private static List<String> immutableExtensions(List<String> extensions) {
+        Objects.requireNonNull(extensions, "extensions must not be null");
+        if (extensions.size() == 0) {
+            return EMPTY_EXTENSIONS;
+        }
+        List<String> copy = new ArrayList<String>();
+        for (int i = 0; i < extensions.size(); i++) {
+            String extension = extensions.get(i);
+            Objects.requireNonNull(extension, "extension must not be null");
+            String trimmed = extension.trim();
+            if (trimmed.length() == 0) {
+                throw new ConfigurationException("extension must not be blank.");
+            }
+            copy.add(trimmed);
+        }
+        return Collections.unmodifiableList(copy);
     }
 
     private static Map<String, JavaspecSuiteConfiguration> immutableSuites(

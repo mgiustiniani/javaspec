@@ -1,7 +1,10 @@
 package org.javaspec.cli;
 
+import org.javaspec.extension.ExtensionContext;
+import org.javaspec.extension.JavaspecExtension;
 import org.javaspec.fixtures.extension.ServiceLoadedRunFormatter;
 import org.javaspec.formatter.RunFormatter;
+import org.javaspec.runner.RunResult;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -66,6 +69,55 @@ public class MainExtensionFormatterCliTest {
     }
 
     @Test
+    public void runUsesFormatterRegisteredByConfiguredExtension() throws Exception {
+        File sourceRoot = temporaryFolder.newFolder("configured-extension-cli-source-root");
+        File configFile = temporaryFolder.newFile("configured-extension.conf");
+        writeFile(configFile, "extensions=" + ConfiguredCliFormatterExtension.class.getName() + "\n");
+
+        CommandResult result = run(
+                "run",
+                "--config", configFile.getAbsolutePath(),
+                "--spec-dir", testJavaRoot().getAbsolutePath(),
+                "--source-dir", sourceRoot.getAbsolutePath(),
+                "--class", "org.javaspec.fixtures.cli.FailingSubject",
+                "--example", "it_passes",
+                "--formatter", "configured-cli"
+        );
+
+        assertEquals(0, result.exitCode);
+        assertTrue(result.out.contains("configured cli formatter total=1 passed=1 failed=0"));
+        assertFalse(result.out.contains("Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped, 0 pending."));
+        assertEquals("", result.err);
+    }
+
+    @Test
+    public void configuredExtensionActivationFailureExitsWithUsageCodeBeforeReports() throws Exception {
+        File configFile = temporaryFolder.newFile("failing-extension.conf");
+        File jsonReport = new File(temporaryFolder.getRoot(), "reports/failing-extension.json");
+        File xmlReport = new File(temporaryFolder.getRoot(), "reports/failing-extension.xml");
+        writeFile(configFile,
+                "extensions=" + FailingCliExtension.class.getName() + "\n" +
+                        "report=" + jsonReport.getAbsolutePath() + "\n" +
+                        "junitXml=" + xmlReport.getAbsolutePath() + "\n");
+
+        CommandResult result = run(
+                "run",
+                "--config", configFile.getAbsolutePath(),
+                "--spec-dir", testJavaRoot().getAbsolutePath(),
+                "--class", "org.javaspec.fixtures.cli.FailingSubject",
+                "--example", "it_passes"
+        );
+
+        assertEquals(64, result.exitCode);
+        assertEquals("", result.out);
+        assertTrue(result.err.contains("Error: Extension activation failed:"));
+        assertTrue(result.err.contains(FailingCliExtension.class.getName()));
+        assertTrue(result.err.contains("phase 32 CLI extension failure"));
+        assertFalse(jsonReport.exists());
+        assertFalse(xmlReport.exists());
+    }
+
+    @Test
     public void invalidFormatterListsExternalFormatterNamesWhenServiceProviderIsLoaded() throws Exception {
         File serviceRoot = serviceRootWithFormatter();
 
@@ -112,6 +164,24 @@ public class MainExtensionFormatterCliTest {
 
     private static void writeFile(File file, String content) throws Exception {
         Files.write(file.toPath(), content.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public static final class ConfiguredCliFormatterExtension implements JavaspecExtension {
+        public void configure(ExtensionContext context) {
+            context.runFormatters().register("configured-cli", new RunFormatter() {
+                public void format(RunResult runResult, PrintStream out) {
+                    out.println("configured cli formatter total=" + runResult.totalExamples()
+                            + " passed=" + runResult.passedCount()
+                            + " failed=" + runResult.failedCount());
+                }
+            });
+        }
+    }
+
+    public static final class FailingCliExtension implements JavaspecExtension {
+        public void configure(ExtensionContext context) {
+            throw new IllegalStateException("phase 32 CLI extension failure");
+        }
     }
 
     private static final class CommandResult {

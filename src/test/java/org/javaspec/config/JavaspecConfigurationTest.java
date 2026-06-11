@@ -5,6 +5,7 @@ import org.javaspec.profile.TargetProfile;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -42,6 +43,11 @@ public class JavaspecConfigurationTest {
         assertNull(configuration.getJunitXmlReportFile());
         assertNull(configuration.getJUnitXmlReportFile());
         assertTrue(configuration.bootstrapHooks().isEmpty());
+        assertFalse(configuration.bootstrapDiscovery());
+        assertFalse(configuration.isBootstrapDiscoveryEnabled());
+        assertFalse(configuration.getBootstrapDiscovery());
+        assertTrue(configuration.extensions().isEmpty());
+        assertTrue(configuration.getExtensions().isEmpty());
         assertEquals(1, configuration.suites().size());
         assertEquals(1, configuration.suiteNames().size());
         assertEquals("default", configuration.suiteNames().get(0));
@@ -54,6 +60,201 @@ public class JavaspecConfigurationTest {
         assertEquals("spec", suite.specPackagePrefix());
         assertEquals("", suite.packagePrefix());
         assertTrue(suite.bootstrapHooks().isEmpty());
+        assertFalse(suite.bootstrapDiscovery());
+        assertFalse(suite.isBootstrapDiscoveryEnabled());
+        assertFalse(suite.getBootstrapDiscovery());
+        assertTrue(suite.extensions().isEmpty());
+        assertTrue(suite.getExtensions().isEmpty());
+    }
+
+    @Test
+    public void bootstrapDiscoveryIsExposedEffectiveAndParticipatesInValueSemantics() {
+        JavaspecSuiteConfiguration disabledSuite = JavaspecSuiteConfiguration.of(
+                "disabled",
+                "spec/disabled",
+                "src/disabled",
+                "spec",
+                "com.example",
+                new ArrayList<String>(),
+                false
+        );
+        JavaspecSuiteConfiguration enabledSuite = JavaspecSuiteConfiguration.of(
+                "enabled",
+                "spec/enabled",
+                "src/enabled",
+                "spec",
+                "com.example",
+                new ArrayList<String>(),
+                true
+        );
+        JavaspecConfiguration topLevelEnabled = JavaspecConfiguration.of(
+                TargetProfile.JAVA8,
+                "progress",
+                ConstructorPolicy.COMMENT,
+                "disabled",
+                new ArrayList<String>(),
+                Arrays.asList(disabledSuite, enabledSuite),
+                null,
+                null,
+                true
+        );
+        JavaspecConfiguration same = JavaspecConfiguration.of(
+                TargetProfile.JAVA8,
+                "progress",
+                ConstructorPolicy.COMMENT,
+                "disabled",
+                new ArrayList<String>(),
+                Arrays.asList(disabledSuite, enabledSuite),
+                null,
+                null,
+                true
+        );
+        JavaspecConfiguration topLevelDisabled = JavaspecConfiguration.of(
+                TargetProfile.JAVA8,
+                "progress",
+                ConstructorPolicy.COMMENT,
+                "disabled",
+                new ArrayList<String>(),
+                Arrays.asList(disabledSuite, enabledSuite),
+                null,
+                null,
+                false
+        );
+        JavaspecSuiteConfiguration suiteDisabledCopy = JavaspecSuiteConfiguration.of(
+                "enabled",
+                "spec/enabled",
+                "src/enabled",
+                "spec",
+                "com.example",
+                new ArrayList<String>(),
+                false
+        );
+        JavaspecConfiguration differentSuiteFlag = JavaspecConfiguration.of(
+                TargetProfile.JAVA8,
+                "progress",
+                ConstructorPolicy.COMMENT,
+                "disabled",
+                new ArrayList<String>(),
+                Arrays.asList(disabledSuite, suiteDisabledCopy),
+                null,
+                null,
+                true
+        );
+
+        assertTrue(topLevelEnabled.bootstrapDiscovery());
+        assertTrue(topLevelEnabled.isBootstrapDiscoveryEnabled());
+        assertTrue(topLevelEnabled.getBootstrapDiscovery());
+        assertTrue(enabledSuite.bootstrapDiscovery());
+        assertTrue(enabledSuite.isBootstrapDiscoveryEnabled());
+        assertTrue(enabledSuite.getBootstrapDiscovery());
+        assertTrue(topLevelEnabled.effectiveBootstrapDiscovery(disabledSuite));
+        assertTrue(topLevelEnabled.effectiveBootstrapDiscovery(enabledSuite));
+        assertFalse(topLevelDisabled.effectiveBootstrapDiscovery(disabledSuite));
+        assertTrue(topLevelDisabled.effectiveBootstrapDiscovery(enabledSuite));
+        assertEquals(same, topLevelEnabled);
+        assertEquals(same.hashCode(), topLevelEnabled.hashCode());
+        assertFalse(topLevelEnabled.equals(topLevelDisabled));
+        assertFalse(topLevelEnabled.equals(differentSuiteFlag));
+        assertTrue(topLevelEnabled.toString().contains("bootstrapDiscovery=true"));
+        assertTrue(enabledSuite.toString().contains("bootstrapDiscovery=true"));
+    }
+
+    @Test
+    public void configuredExtensionsAreTrimmedDefensivelyCopiedImmutableAndValueSemantic() {
+        List<String> extensions = new ArrayList<String>();
+        extensions.add("  org.example.Top  ");
+        extensions.add("org.example.Top");
+        List<String> suiteExtensions = new ArrayList<String>();
+        suiteExtensions.add("\torg.example.Suite\n");
+        JavaspecSuiteConfiguration suite = JavaspecSuiteConfiguration.of(
+                "custom",
+                "spec/custom",
+                "src/custom",
+                "spec",
+                "com.example",
+                new ArrayList<String>(),
+                suiteExtensions
+        );
+        List<JavaspecSuiteConfiguration> suites = new ArrayList<JavaspecSuiteConfiguration>();
+        suites.add(suite);
+
+        JavaspecConfiguration configuration = JavaspecConfiguration.of(
+                TargetProfile.JAVA11,
+                "pretty",
+                ConstructorPolicy.PRESERVE,
+                "custom",
+                new ArrayList<String>(),
+                extensions,
+                suites,
+                null,
+                null
+        );
+        JavaspecConfiguration same = JavaspecConfiguration.of(
+                TargetProfile.JAVA11,
+                "pretty",
+                ConstructorPolicy.PRESERVE,
+                "custom",
+                new ArrayList<String>(),
+                Arrays.asList("org.example.Top", "org.example.Top"),
+                suites,
+                null,
+                null
+        );
+        JavaspecConfiguration differentExtensions = JavaspecConfiguration.of(
+                TargetProfile.JAVA11,
+                "pretty",
+                ConstructorPolicy.PRESERVE,
+                "custom",
+                new ArrayList<String>(),
+                Arrays.asList("org.example.Other"),
+                suites,
+                null,
+                null
+        );
+        extensions.add("org.example.Mutated");
+        suiteExtensions.add("org.example.SuiteMutated");
+
+        assertEquals(Arrays.asList("org.example.Top", "org.example.Top"), configuration.extensions());
+        assertSame(configuration.extensions(), configuration.getExtensions());
+        assertEquals(Arrays.asList("org.example.Suite"), configuration.suite("custom").extensions());
+        assertSame(configuration.suite("custom").extensions(), configuration.suite("custom").getExtensions());
+        assertUnmodifiableList(configuration.extensions());
+        assertUnmodifiableList(configuration.suite("custom").extensions());
+        assertEquals(same, configuration);
+        assertEquals(same.hashCode(), configuration.hashCode());
+        assertFalse(configuration.equals(differentExtensions));
+        assertTrue(configuration.toString().contains("extensions=[org.example.Top, org.example.Top]"));
+        assertTrue(configuration.suite("custom").toString().contains("extensions=[org.example.Suite]"));
+    }
+
+    @Test
+    public void blankConfiguredExtensionsAreRejectedByConfigurationModel() {
+        try {
+            JavaspecSuiteConfiguration.of("custom", "spec", "src", "spec", "", new ArrayList<String>(),
+                    Arrays.asList("org.example.Valid", "  "));
+            fail("Expected blank suite extension to be rejected");
+        } catch (ConfigurationException expected) {
+            assertTrue(expected.getMessage().contains("extension"));
+            assertTrue(expected.getMessage().contains("blank"));
+        }
+
+        try {
+            JavaspecConfiguration.of(
+                    TargetProfile.JAVA8,
+                    "progress",
+                    ConstructorPolicy.COMMENT,
+                    "default",
+                    new ArrayList<String>(),
+                    Arrays.asList("org.example.Valid", "\t"),
+                    Arrays.asList(JavaspecSuiteConfiguration.defaults()),
+                    null,
+                    null
+            );
+            fail("Expected blank top-level extension to be rejected");
+        } catch (ConfigurationException expected) {
+            assertTrue(expected.getMessage().contains("extension"));
+            assertTrue(expected.getMessage().contains("blank"));
+        }
     }
 
     @Test

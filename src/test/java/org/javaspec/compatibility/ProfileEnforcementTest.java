@@ -3,6 +3,9 @@ package org.javaspec.compatibility;
 import org.javaspec.model.DescribedType;
 import org.javaspec.model.JavaTypeKind;
 import org.javaspec.model.MethodDescriptor;
+import org.javaspec.profile.ApiSymbol;
+import org.javaspec.profile.ApiSymbolCategory;
+import org.javaspec.profile.ProfileCatalog;
 import org.javaspec.profile.TargetProfile;
 import org.junit.Test;
 import org.junit.function.ThrowingRunnable;
@@ -70,6 +73,47 @@ public class ProfileEnforcementTest {
                         enforcement.isAllowed(allowedProfiles[profileIndex], describedType));
             }
         }
+    }
+
+    @Test
+    public void relationshipTypeReferencesDenyCatalogedPostProfileOwnersInSuperImplementedAndPermittedLocations() {
+        DescribedType describedType = DescribedType.of(
+                "com.example.ProfiledHierarchy",
+                JavaTypeKind.CLASS,
+                Arrays.asList("java.net.http.HttpClient"),
+                Arrays.asList("java.util.SequencedCollection"),
+                Arrays.asList("java.util.stream.Gatherer")
+        );
+
+        ProfileEnforcementReport report = enforcement.enforce(TargetProfile.JAVA8, describedType);
+
+        assertTrue(report.isDenied());
+        assertEquals(3, report.violations().size());
+        assertEquals("super type", report.violations().get(0).location());
+        assertEquals("java.net.http.HttpClient", report.violations().get(0).subject());
+        assertEquals(TargetProfile.JAVA11, report.violations().get(0).requiredProfile());
+        assertEquals("implemented type 1", report.violations().get(1).location());
+        assertEquals("java.util.SequencedCollection", report.violations().get(1).subject());
+        assertEquals(TargetProfile.JAVA21, report.violations().get(1).requiredProfile());
+        assertEquals("permitted type 1", report.violations().get(2).location());
+        assertEquals("java.util.stream.Gatherer", report.violations().get(2).subject());
+        assertEquals(TargetProfile.JAVA25, report.violations().get(2).requiredProfile());
+    }
+
+    @Test
+    public void relationshipTypeReferencesAllowUnknownProjectTypes() {
+        DescribedType describedType = DescribedType.of(
+                "com.example.ProjectHierarchy",
+                JavaTypeKind.CLASS,
+                Arrays.asList("com.example.ProjectBase"),
+                Arrays.asList("com.example.ProjectPort"),
+                Arrays.asList("com.example.ProjectImplementation")
+        );
+
+        ProfileEnforcementReport report = enforcement.enforce(TargetProfile.JAVA8, describedType);
+
+        assertTrue(report.isAllowed());
+        assertTrue(report.violations().isEmpty());
     }
 
     @Test
@@ -168,6 +212,120 @@ public class ProfileEnforcementTest {
         assertEquals("java.util.stream.Gatherer", denied.violations().get(2).subject());
 
         assertTrue(enforcement.enforce(TargetProfile.JAVA25, describedType).isAllowed());
+    }
+
+    @Test
+    public void methodSignatureNormalizationInspectsAnnotationsModifiersGenericArgumentsWildcardsArraysVarargsAndBinaryNestedNames() {
+        DescribedType describedType = DescribedType.of("com.example.DeepNormalizedService", JavaTypeKind.CLASS)
+                .withMethods(Arrays.asList(
+                        MethodDescriptor.of(
+                                "annotatedSequenced",
+                                "@com.example.NonNull final java.util.SequencedCollection"
+                        ),
+                        MethodDescriptor.voidMethod(
+                                "acceptNormalized",
+                                Arrays.asList(
+                                        "java.util.List<@com.example.NonNull ? super java.util.stream.Gatherer[]>",
+                                        "java.lang.Thread$Builder$OfVirtual...",
+                                        "@com.example.Readonly public java.util.SequencedCollection[]"
+                                ),
+                                Arrays.asList("gatherers", "builder", "collections")
+                        )
+                ));
+
+        ProfileEnforcementReport denied = enforcement.enforce(TargetProfile.JAVA17, describedType);
+
+        assertTrue(denied.isDenied());
+        assertEquals(4, denied.violations().size());
+        assertEquals("method annotatedSequenced return type", denied.violations().get(0).location());
+        assertEquals("java.util.SequencedCollection", denied.violations().get(0).subject());
+        assertEquals(TargetProfile.JAVA21, denied.violations().get(0).requiredProfile());
+        assertEquals("method acceptNormalized parameter 1 type", denied.violations().get(1).location());
+        assertEquals("java.util.stream.Gatherer", denied.violations().get(1).subject());
+        assertEquals(TargetProfile.JAVA25, denied.violations().get(1).requiredProfile());
+        assertEquals("method acceptNormalized parameter 2 type", denied.violations().get(2).location());
+        assertEquals("java.lang.Thread.Builder.OfVirtual", denied.violations().get(2).subject());
+        assertEquals(TargetProfile.JAVA21, denied.violations().get(2).requiredProfile());
+        assertEquals("method acceptNormalized parameter 3 type", denied.violations().get(3).location());
+        assertEquals("java.util.SequencedCollection", denied.violations().get(3).subject());
+        assertEquals(TargetProfile.JAVA21, denied.violations().get(3).requiredProfile());
+    }
+
+    @Test
+    public void methodTypeParameterBoundsDenyCatalogedBoundAndIgnoreTypeVariableReturn() {
+        DescribedType describedType = DescribedType.of("com.example.BoundedGenericService", JavaTypeKind.CLASS)
+                .withMethods(Arrays.asList(
+                        MethodDescriptor.of("identity", "<T extends java.util.SequencedCollection> T")
+                ));
+
+        ProfileEnforcementReport denied = enforcement.enforce(TargetProfile.JAVA17, describedType);
+
+        assertTrue(denied.isDenied());
+        assertEquals(1, denied.violations().size());
+        assertEquals("method identity return type", denied.violations().get(0).location());
+        assertEquals("java.util.SequencedCollection", denied.violations().get(0).subject());
+        assertEquals(TargetProfile.JAVA21, denied.violations().get(0).requiredProfile());
+        assertTrue(enforcement.enforce(TargetProfile.JAVA21, describedType).isAllowed());
+    }
+
+    @Test
+    public void intersectionBoundsInspectCatalogedOwnersAndIgnoreUnknownOrAllowedOwners() {
+        DescribedType describedType = DescribedType.of("com.example.IntersectionService", JavaTypeKind.CLASS)
+                .withMethods(Arrays.asList(
+                        MethodDescriptor.of("sequencedBound", "java.io.Serializable & java.util.SequencedCollection"),
+                        MethodDescriptor.of("gathererBound", "java.lang.Object & java.util.stream.Gatherer")
+                ));
+
+        ProfileEnforcementReport java17Report = enforcement.enforce(TargetProfile.JAVA17, describedType);
+
+        assertTrue(java17Report.isDenied());
+        assertEquals(2, java17Report.violations().size());
+        assertEquals("method sequencedBound return type", java17Report.violations().get(0).location());
+        assertEquals("java.util.SequencedCollection", java17Report.violations().get(0).subject());
+        assertEquals(TargetProfile.JAVA21, java17Report.violations().get(0).requiredProfile());
+        assertEquals("method gathererBound return type", java17Report.violations().get(1).location());
+        assertEquals("java.util.stream.Gatherer", java17Report.violations().get(1).subject());
+        assertEquals(TargetProfile.JAVA25, java17Report.violations().get(1).requiredProfile());
+
+        ProfileEnforcementReport java21Report = enforcement.enforce(TargetProfile.JAVA21, describedType);
+
+        assertTrue(java21Report.isDenied());
+        assertEquals(1, java21Report.violations().size());
+        assertEquals("java.util.stream.Gatherer", java21Report.violations().get(0).subject());
+    }
+
+    @Test
+    public void duplicateCatalogedOwnerInSameLocationProducesSingleViolation() {
+        DescribedType describedType = DescribedType.of("com.example.DuplicateOwnerService", JavaTypeKind.CLASS)
+                .withMethods(Arrays.asList(
+                        MethodDescriptor.of(
+                                "duplicateSequenced",
+                                "java.util.SequencedCollection<java.util.SequencedCollection[]>"
+                        )
+                ));
+
+        ProfileEnforcementReport report = enforcement.enforce(TargetProfile.JAVA17, describedType);
+
+        assertTrue(report.isDenied());
+        assertEquals(1, report.violations().size());
+        assertEquals("method duplicateSequenced return type", report.violations().get(0).location());
+        assertEquals("java.util.SequencedCollection", report.violations().get(0).subject());
+    }
+
+    @Test
+    public void ambiguousSimpleNamesRemainIgnored() {
+        ProfileCatalog catalog = ProfileCatalog.of(Arrays.asList(
+                ApiSymbol.type("com.alpha.SharedName", ApiSymbolCategory.UTILITY_CONTAINER, TargetProfile.JAVA21, "First ambiguous type."),
+                ApiSymbol.type("com.beta.SharedName", ApiSymbolCategory.UTILITY_CONTAINER, TargetProfile.JAVA25, "Second ambiguous type.")
+        ));
+        ProfileEnforcement ambiguousEnforcement = ProfileEnforcement.using(catalog);
+        DescribedType describedType = DescribedType.of("com.example.AmbiguousService", JavaTypeKind.CLASS)
+                .withMethods(Arrays.asList(MethodDescriptor.of("value", "SharedName")));
+
+        ProfileEnforcementReport report = ambiguousEnforcement.enforce(TargetProfile.JAVA8, describedType);
+
+        assertTrue(report.isAllowed());
+        assertTrue(report.violations().isEmpty());
     }
 
     @Test

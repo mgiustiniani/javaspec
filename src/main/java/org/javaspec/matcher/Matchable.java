@@ -2,6 +2,7 @@ package org.javaspec.matcher;
 
 import java.lang.reflect.Array;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -183,10 +184,29 @@ public final class Matchable<T> {
 
     /**
      * Asserts that arrays, collections, maps, character sequences, or iterables have the expected count.
+     * <p>
+     * For a generic {@link Iterable} that is not a {@link Collection}, the check is bounded: it
+     * iterates at most {@code expectedCount + 1} elements and fails fast when the bound is exceeded,
+     * so it is safe on infinite iterables.
+     * </p>
      */
     public void shouldHaveCount(int expectedCount) {
         if (expectedCount < 0) {
             throw new AssertionError("Expected count must not be negative: " + expectedCount);
+        }
+        if (isGenericIterable(value)) {
+            int limit = expectedCount < Integer.MAX_VALUE ? expectedCount + 1 : Integer.MAX_VALUE;
+            int boundedCount = boundedCountOf((Iterable<?>) value, limit);
+            if (boundedCount > expectedCount) {
+                throw new AssertionError(
+                        "Expected " + value + " to have count " + expectedCount
+                        + " but it has more than " + expectedCount + " elements"
+                );
+            }
+            if (boundedCount != expectedCount) {
+                throw new AssertionError("Expected " + value + " to have count " + expectedCount + " but got " + boundedCount);
+            }
+            return;
         }
         int actualCount = countOf(value);
         if (actualCount != expectedCount) {
@@ -196,20 +216,31 @@ public final class Matchable<T> {
 
     /**
      * Asserts that arrays, collections, maps, character sequences, or iterables are empty.
+     * <p>
+     * For a generic {@link Iterable} that is not a {@link Collection}, emptiness is determined via
+     * {@code iterator().hasNext()} without consuming the iterable, so the check is bounded and safe
+     * on infinite iterables.
+     * </p>
      */
     public void shouldBeEmpty() {
-        int actualCount = countOf(value);
-        if (actualCount != 0) {
-            throw new AssertionError("Expected " + value + " to be empty but had count " + actualCount);
+        if (!isEmptyValue(value)) {
+            if (isGenericIterable(value)) {
+                throw new AssertionError("Expected " + value + " to be empty but it has at least one element");
+            }
+            throw new AssertionError("Expected " + value + " to be empty but had count " + countOf(value));
         }
     }
 
     /**
      * Asserts that arrays, collections, maps, character sequences, or iterables are not empty.
+     * <p>
+     * For a generic {@link Iterable} that is not a {@link Collection}, emptiness is determined via
+     * {@code iterator().hasNext()} without consuming the iterable, so the check is bounded and safe
+     * on infinite iterables.
+     * </p>
      */
     public void shouldNotBeEmpty() {
-        int actualCount = countOf(value);
-        if (actualCount == 0) {
+        if (isEmptyValue(value)) {
             throw new AssertionError("Expected " + value + " not to be empty");
         }
     }
@@ -431,6 +462,43 @@ public final class Matchable<T> {
             return count;
         }
         throw new AssertionError("Expected a countable value but got " + typeName(actual));
+    }
+
+    /**
+     * Whether the value is a generic {@link Iterable} without a constant-time size, i.e. not a
+     * {@link Collection}. Such iterables may be infinite and must only be consumed with a bounded
+     * number of iteration steps.
+     */
+    private static boolean isGenericIterable(Object actual) {
+        return actual instanceof Iterable<?> && !(actual instanceof Collection<?>);
+    }
+
+    /**
+     * Determines whether a countable value is empty. Generic iterables are probed with a single
+     * {@code iterator().hasNext()} call instead of being fully consumed; all other countable types
+     * use their constant-time {@link #countOf(Object)} result. A {@code null} value fails with the
+     * standard "Expected a countable value but got null" error from {@link #countOf(Object)}.
+     */
+    private static boolean isEmptyValue(Object actual) {
+        if (isGenericIterable(actual)) {
+            return !((Iterable<?>) actual).iterator().hasNext();
+        }
+        return countOf(actual) == 0;
+    }
+
+    /**
+     * Counts the elements of an iterable, consuming at most {@code limit} elements. Returns
+     * {@code limit} when the iterable has {@code limit} or more elements, making the count safe
+     * on infinite iterables.
+     */
+    private static int boundedCountOf(Iterable<?> actual, int limit) {
+        int count = 0;
+        Iterator<?> iterator = actual.iterator();
+        while (count < limit && iterator.hasNext()) {
+            iterator.next();
+            count++;
+        }
+        return count;
     }
 
     private static Map<?, ?> mapOf(Object actual) {

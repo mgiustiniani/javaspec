@@ -1,5 +1,14 @@
 {
   "schemaVersion": 1,
+  "metadata": {
+    "timestamp": "2026-01-01T00:00:00Z",
+    "hostname": "ci.example.local",
+    "time": 0,
+    "properties": {
+      "javaspec.report.schemaVersion": "1",
+      "javaspec.report.tool": "javaspec"
+    }
+  },
   "summary": {
     "total": 1,
     "passed": 1,

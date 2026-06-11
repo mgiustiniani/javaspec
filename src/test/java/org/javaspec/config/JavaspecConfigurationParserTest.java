@@ -9,8 +9,10 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -53,6 +55,111 @@ public class JavaspecConfigurationParserTest {
         assertEquals("com.example", suite.packagePrefix());
         assertEquals(1, suite.bootstrapHooks().size());
         assertEquals("org.example.AcceptanceHook", suite.bootstrapHooks().get(0));
+    }
+
+    @Test
+    public void parsesBootstrapDiscoveryAliasesAndSuiteScopedForms() {
+        String[] topLevelAliases = new String[] {
+                "bootstrapDiscovery",
+                "bootstrap-discovery",
+                "discoverBootstrapHooks"
+        };
+        for (int i = 0; i < topLevelAliases.length; i++) {
+            JavaspecConfiguration enabled = JavaspecConfigurationParser.parse(topLevelAliases[i] + " = true\n");
+            assertTrue(enabled.bootstrapDiscovery());
+            assertTrue(enabled.effectiveBootstrapDiscovery(enabled.defaultSuite()));
+
+            JavaspecConfiguration disabled = JavaspecConfigurationParser.parse(topLevelAliases[i] + " = false\n");
+            assertFalse(disabled.bootstrapDiscovery());
+            assertFalse(disabled.effectiveBootstrapDiscovery(disabled.defaultSuite()));
+        }
+
+        String[] suiteAliases = new String[] {
+                "bootstrapDiscovery",
+                "bootstrap-discovery",
+                "discoverBootstrapHooks"
+        };
+        for (int i = 0; i < suiteAliases.length; i++) {
+            JavaspecConfiguration enabled = JavaspecConfigurationParser.parse(
+                    "suite.default." + suiteAliases[i] + " = true\n");
+            assertTrue(enabled.suite("default").bootstrapDiscovery());
+            assertTrue(enabled.effectiveBootstrapDiscovery(enabled.suite("default")));
+
+            JavaspecConfiguration disabled = JavaspecConfigurationParser.parse(
+                    "suite.default." + suiteAliases[i] + " = false\n");
+            assertFalse(disabled.suite("default").bootstrapDiscovery());
+            assertFalse(disabled.effectiveBootstrapDiscovery(disabled.suite("default")));
+        }
+
+        JavaspecConfiguration defaults = JavaspecConfigurationParser.parse("");
+        assertFalse(defaults.bootstrapDiscovery());
+        assertFalse(defaults.defaultSuite().bootstrapDiscovery());
+        assertFalse(defaults.effectiveBootstrapDiscovery(defaults.defaultSuite()));
+    }
+
+    @Test
+    public void rejectsInvalidBootstrapDiscoveryValuesAndDuplicateAliases() {
+        assertRejected("bootstrapDiscovery=   \n", "Line 1", "bootstrapDiscovery", "blank");
+        assertRejected("bootstrapDiscovery=maybe\n", "Line 1", "Invalid bootstrapDiscovery", "maybe", "Valid values");
+        assertRejected("suite.default.bootstrapDiscovery= \t\n", "Line 1", "suite 'default' bootstrapDiscovery", "blank");
+        assertRejected("suite.default.bootstrap-discovery=yes\n", "Line 1", "Invalid suite 'default' bootstrapDiscovery", "yes", "Valid values");
+        assertRejected(
+                "bootstrapDiscovery=true\n" +
+                        "bootstrap-discovery=false\n",
+                "Line 2", "Duplicate", "bootstrap-discovery", "line 1"
+        );
+        assertRejected(
+                "suite.default.bootstrapDiscovery=true\n" +
+                        "suite.default.discoverBootstrapHooks=false\n",
+                "Line 2", "Duplicate", "discoverBootstrapHooks", "line 1"
+        );
+    }
+
+    @Test
+    public void parsesTopLevelAndSuiteScopedExtensionsWithOrderAndDuplicatesPreserved() {
+        String content =
+                "extensions = org.example.TopOne , org.example.TopTwo, org.example.TopOne\n" +
+                "defaultSuite = integration\n" +
+                "suite.integration.specDir = specs/integration\n" +
+                "suite.integration.extension = org.example.SuiteOne, org.example.SuiteOne, org.example.SuiteTwo\n";
+
+        JavaspecConfiguration configuration = JavaspecConfigurationParser.parse(content);
+
+        assertEquals(Arrays.asList("org.example.TopOne", "org.example.TopTwo", "org.example.TopOne"),
+                configuration.extensions());
+        JavaspecSuiteConfiguration suite = configuration.defaultSuite();
+        assertEquals("integration", suite.name());
+        assertEquals(Arrays.asList("org.example.SuiteOne", "org.example.SuiteOne", "org.example.SuiteTwo"),
+                suite.extensions());
+    }
+
+    @Test
+    public void parsesExtensionAliasesAndRejectsDuplicateCanonicalExtensionKeys() {
+        JavaspecConfiguration topLevelAlias = JavaspecConfigurationParser.parse("extension = org.example.Alias\n");
+        assertEquals(Arrays.asList("org.example.Alias"), topLevelAlias.extensions());
+
+        JavaspecConfiguration suiteAlias = JavaspecConfigurationParser.parse(
+                "suite.default.extension = org.example.SuiteAlias\n");
+        assertEquals(Arrays.asList("org.example.SuiteAlias"), suiteAlias.suite("default").extensions());
+
+        assertRejected(
+                "extensions=org.example.One\n" +
+                        "extension=org.example.Two\n",
+                "Line 2", "Duplicate", "extension", "line 1"
+        );
+        assertRejected(
+                "suite.default.extensions=org.example.One\n" +
+                        "suite.default.extension=org.example.Two\n",
+                "Line 2", "Duplicate", "extension", "line 1"
+        );
+    }
+
+    @Test
+    public void rejectsBlankConfiguredExtensionsWithBootstrapStyleDiagnostics() {
+        assertRejected("extensions=   \n", "Line 1", "extensions", "blank");
+        assertRejected("extension=org.example.One,,org.example.Two\n", "Line 1", "extensions", "blank entry", "position 2");
+        assertRejected("suite.default.extensions=   \n", "Line 1", "suite 'default' extensions", "blank");
+        assertRejected("suite.default.extension=org.example.One,\n", "Line 1", "suite 'default' extensions", "blank entry", "position 2");
     }
 
     @Test

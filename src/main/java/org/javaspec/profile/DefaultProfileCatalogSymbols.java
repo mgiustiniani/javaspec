@@ -261,6 +261,33 @@ final class DefaultProfileCatalogSymbols {
 
         type(symbols, "java.lang.ref.Cleaner", ApiSymbolCategory.CLEANER, TargetProfile.JAVA11, "Reference cleanup support type.");
         nestedType(symbols, "java.lang.ref.Cleaner.Cleanable", ApiSymbolCategory.CLEANER, TargetProfile.JAVA11, "Registered cleanup action handle.");
+        staticMethod(symbols, "java.nio.file.Files", "readString", ApiSymbolCategory.FILE_IO, TargetProfile.JAVA11, "Read an entire file into a string.");
+        staticMethod(symbols, "java.nio.file.Files", "writeString", ApiSymbolCategory.FILE_IO, TargetProfile.JAVA11, "Write a character sequence to a file.");
+        type(symbols, "java.net.http.HttpClient", ApiSymbolCategory.HTTP_CLIENT, TargetProfile.JAVA11, "HTTP client type.");
+        nestedType(symbols, "java.net.http.HttpClient.Builder", ApiSymbolCategory.HTTP_CLIENT, TargetProfile.JAVA11, "HTTP client builder.");
+        nestedType(symbols, "java.net.http.HttpClient.Redirect", ApiSymbolCategory.HTTP_CLIENT, TargetProfile.JAVA11, "HTTP redirect policy enum.");
+        nestedType(symbols, "java.net.http.HttpClient.Version", ApiSymbolCategory.HTTP_CLIENT, TargetProfile.JAVA11, "HTTP protocol version enum.");
+        staticMethod(symbols, "java.net.http.HttpClient", "newHttpClient", ApiSymbolCategory.HTTP_CLIENT, TargetProfile.JAVA11, "Default HTTP client factory.");
+        staticMethod(symbols, "java.net.http.HttpClient", "newBuilder", ApiSymbolCategory.HTTP_CLIENT, TargetProfile.JAVA11, "HTTP client builder factory.");
+        type(symbols, "java.net.http.HttpRequest", ApiSymbolCategory.HTTP_CLIENT, TargetProfile.JAVA11, "HTTP request type.");
+        nestedType(symbols, "java.net.http.HttpRequest.Builder", ApiSymbolCategory.HTTP_CLIENT, TargetProfile.JAVA11, "HTTP request builder.");
+        nestedType(symbols, "java.net.http.HttpRequest.BodyPublisher", ApiSymbolCategory.HTTP_CLIENT, TargetProfile.JAVA11, "HTTP request body publisher.");
+        nestedType(symbols, "java.net.http.HttpRequest.BodyPublishers", ApiSymbolCategory.HTTP_CLIENT, TargetProfile.JAVA11, "HTTP request body publisher factories.");
+        staticMethod(symbols, "java.net.http.HttpRequest", "newBuilder", ApiSymbolCategory.HTTP_CLIENT, TargetProfile.JAVA11, "HTTP request builder factory.");
+        type(symbols, "java.net.http.HttpResponse", ApiSymbolCategory.HTTP_CLIENT, TargetProfile.JAVA11, "HTTP response type.");
+        nestedType(symbols, "java.net.http.HttpResponse.BodyHandler", ApiSymbolCategory.HTTP_CLIENT, TargetProfile.JAVA11, "HTTP response body handler.");
+        nestedType(symbols, "java.net.http.HttpResponse.BodyHandlers", ApiSymbolCategory.HTTP_CLIENT, TargetProfile.JAVA11, "HTTP response body handler factories.");
+        nestedType(symbols, "java.net.http.HttpResponse.BodySubscriber", ApiSymbolCategory.HTTP_CLIENT, TargetProfile.JAVA11, "HTTP response body subscriber.");
+        nestedType(symbols, "java.net.http.HttpResponse.BodySubscribers", ApiSymbolCategory.HTTP_CLIENT, TargetProfile.JAVA11, "HTTP response body subscriber factories.");
+        nestedType(symbols, "java.net.http.HttpResponse.PushPromiseHandler", ApiSymbolCategory.HTTP_CLIENT, TargetProfile.JAVA11, "HTTP/2 push promise handler.");
+        nestedType(symbols, "java.net.http.HttpResponse.ResponseInfo", ApiSymbolCategory.HTTP_CLIENT, TargetProfile.JAVA11, "HTTP response metadata view.");
+        type(symbols, "java.net.http.WebSocket", ApiSymbolCategory.HTTP_CLIENT, TargetProfile.JAVA11, "WebSocket client connection type.");
+        nestedType(symbols, "java.net.http.WebSocket.Builder", ApiSymbolCategory.HTTP_CLIENT, TargetProfile.JAVA11, "WebSocket builder.");
+        nestedType(symbols, "java.net.http.WebSocket.Listener", ApiSymbolCategory.HTTP_CLIENT, TargetProfile.JAVA11, "WebSocket listener.");
+        type(symbols, "java.net.http.HttpHeaders", ApiSymbolCategory.HTTP_CLIENT, TargetProfile.JAVA11, "HTTP header view.");
+        type(symbols, "java.net.http.HttpTimeoutException", ApiSymbolCategory.HTTP_CLIENT, TargetProfile.JAVA11, "HTTP timeout exception.");
+        type(symbols, "java.net.http.HttpConnectTimeoutException", ApiSymbolCategory.HTTP_CLIENT, TargetProfile.JAVA11, "HTTP connection timeout exception.");
+        type(symbols, "java.net.http.WebSocketHandshakeException", ApiSymbolCategory.HTTP_CLIENT, TargetProfile.JAVA11, "WebSocket handshake exception.");
         type(symbols, "java.util.concurrent.Flow", ApiSymbolCategory.DATA_FLOW, TargetProfile.JAVA11, "Reactive data-flow container namespace.");
         nestedType(symbols, "java.util.concurrent.Flow.Publisher", ApiSymbolCategory.DATA_FLOW, TargetProfile.JAVA11, "Data-flow publisher abstraction.");
         nestedType(symbols, "java.util.concurrent.Flow.Subscriber", ApiSymbolCategory.DATA_FLOW, TargetProfile.JAVA11, "Data-flow subscriber abstraction.");
@@ -293,6 +320,11 @@ final class DefaultProfileCatalogSymbols {
         method(symbols, "java.lang.Class", "isSealed", ApiSymbolCategory.LANGUAGE_MODELING, TargetProfile.JAVA17, "Reflection check for sealed classes and interfaces.");
         method(symbols, "java.lang.Class", "getPermittedSubclasses", ApiSymbolCategory.LANGUAGE_MODELING, TargetProfile.JAVA17, "Reflection access to permitted subclasses.");
         type(symbols, "java.util.HexFormat", ApiSymbolCategory.HEX_FORMAT, TargetProfile.JAVA17, "Byte and hex formatting utility.");
+        type(symbols, "java.time.InstantSource", ApiSymbolCategory.TIME_SOURCE, TargetProfile.JAVA17, "Source of instants for time-sensitive code.");
+        staticMethod(symbols, "java.time.InstantSource", "system", ApiSymbolCategory.TIME_SOURCE, TargetProfile.JAVA17, "System clock instant source factory.");
+        staticMethod(symbols, "java.time.InstantSource", "fixed", ApiSymbolCategory.TIME_SOURCE, TargetProfile.JAVA17, "Fixed instant source factory.");
+        staticMethod(symbols, "java.time.InstantSource", "offset", ApiSymbolCategory.TIME_SOURCE, TargetProfile.JAVA17, "Offset instant source factory.");
+        staticMethod(symbols, "java.time.InstantSource", "tick", ApiSymbolCategory.TIME_SOURCE, TargetProfile.JAVA17, "Ticking instant source factory.");
         type(symbols, "java.util.random.RandomGenerator", ApiSymbolCategory.RANDOM_GENERATOR, TargetProfile.JAVA17, "Base random generator interface.");
         nestedType(symbols, "java.util.random.RandomGenerator.SplittableGenerator", ApiSymbolCategory.RANDOM_GENERATOR, TargetProfile.JAVA17, "Splittable random generator interface.");
         nestedType(symbols, "java.util.random.RandomGenerator.StreamableGenerator", ApiSymbolCategory.RANDOM_GENERATOR, TargetProfile.JAVA17, "Streamable random generator interface.");
@@ -300,6 +332,9 @@ final class DefaultProfileCatalogSymbols {
         nestedType(symbols, "java.util.random.RandomGenerator.LeapableGenerator", ApiSymbolCategory.RANDOM_GENERATOR, TargetProfile.JAVA17, "Leapable random generator interface.");
         nestedType(symbols, "java.util.random.RandomGenerator.ArbitrarilyJumpableGenerator", ApiSymbolCategory.RANDOM_GENERATOR, TargetProfile.JAVA17, "Arbitrarily jumpable random generator interface.");
         type(symbols, "java.util.random.RandomGeneratorFactory", ApiSymbolCategory.RANDOM_GENERATOR, TargetProfile.JAVA17, "Random generator factory.");
+        staticMethod(symbols, "java.util.random.RandomGeneratorFactory", "all", ApiSymbolCategory.RANDOM_GENERATOR, TargetProfile.JAVA17, "All available random generator factories.");
+        staticMethod(symbols, "java.util.random.RandomGeneratorFactory", "getDefault", ApiSymbolCategory.RANDOM_GENERATOR, TargetProfile.JAVA17, "Default random generator factory.");
+        staticMethod(symbols, "java.util.random.RandomGeneratorFactory", "of", ApiSymbolCategory.RANDOM_GENERATOR, TargetProfile.JAVA17, "Named random generator factory lookup.");
     }
 
     private static void java21Symbols(List<ApiSymbol> symbols) {
@@ -330,14 +365,34 @@ final class DefaultProfileCatalogSymbols {
         method(symbols, "java.util.LinkedHashSet", "addLast", ApiSymbolCategory.SEQUENCED_COLLECTION, TargetProfile.JAVA21, "Retrofitted last-position insertion on linked sets.");
         method(symbols, "java.util.LinkedHashMap", "putFirst", ApiSymbolCategory.SEQUENCED_COLLECTION, TargetProfile.JAVA21, "Retrofitted first-position insertion on linked maps.");
         method(symbols, "java.util.LinkedHashMap", "putLast", ApiSymbolCategory.SEQUENCED_COLLECTION, TargetProfile.JAVA21, "Retrofitted last-position insertion on linked maps.");
+        nestedType(symbols, "java.lang.Thread.Builder", ApiSymbolCategory.VIRTUAL_THREAD, TargetProfile.JAVA21, "Thread builder abstraction.");
+        nestedType(symbols, "java.lang.Thread.Builder.OfPlatform", ApiSymbolCategory.VIRTUAL_THREAD, TargetProfile.JAVA21, "Platform thread builder.");
+        nestedType(symbols, "java.lang.Thread.Builder.OfVirtual", ApiSymbolCategory.VIRTUAL_THREAD, TargetProfile.JAVA21, "Virtual thread builder.");
+        staticMethod(symbols, "java.lang.Thread", "ofPlatform", ApiSymbolCategory.VIRTUAL_THREAD, TargetProfile.JAVA21, "Platform thread builder factory.");
+        staticMethod(symbols, "java.lang.Thread", "ofVirtual", ApiSymbolCategory.VIRTUAL_THREAD, TargetProfile.JAVA21, "Virtual thread builder factory.");
+        staticMethod(symbols, "java.lang.Thread", "startVirtualThread", ApiSymbolCategory.VIRTUAL_THREAD, TargetProfile.JAVA21, "Start a virtual thread for a task.");
+        method(symbols, "java.lang.Thread", "isVirtual", ApiSymbolCategory.VIRTUAL_THREAD, TargetProfile.JAVA21, "Virtual-thread status query.");
+        staticMethod(symbols, "java.util.concurrent.Executors", "newVirtualThreadPerTaskExecutor", ApiSymbolCategory.VIRTUAL_THREAD, TargetProfile.JAVA21, "Executor factory that creates one virtual thread per task.");
     }
 
     private static void java25Symbols(List<ApiSymbol> symbols) {
+        method(symbols, "java.util.stream.Stream", "gather", ApiSymbolCategory.STREAM_GATHERER, TargetProfile.JAVA25, "Gatherer-based stream intermediate operation.");
         type(symbols, "java.util.stream.Gatherer", ApiSymbolCategory.STREAM_GATHERER, TargetProfile.JAVA25, "Stream gatherer abstraction.");
+        staticMethod(symbols, "java.util.stream.Gatherer", "of", ApiSymbolCategory.STREAM_GATHERER, TargetProfile.JAVA25, "Gatherer factory family.");
+        staticMethod(symbols, "java.util.stream.Gatherer", "ofSequential", ApiSymbolCategory.STREAM_GATHERER, TargetProfile.JAVA25, "Sequential gatherer factory family.");
+        method(symbols, "java.util.stream.Gatherer", "initializer", ApiSymbolCategory.STREAM_GATHERER, TargetProfile.JAVA25, "Gatherer initializer function.");
+        method(symbols, "java.util.stream.Gatherer", "integrator", ApiSymbolCategory.STREAM_GATHERER, TargetProfile.JAVA25, "Gatherer integrator function.");
+        method(symbols, "java.util.stream.Gatherer", "combiner", ApiSymbolCategory.STREAM_GATHERER, TargetProfile.JAVA25, "Gatherer combiner function.");
+        method(symbols, "java.util.stream.Gatherer", "finisher", ApiSymbolCategory.STREAM_GATHERER, TargetProfile.JAVA25, "Gatherer finisher function.");
         nestedType(symbols, "java.util.stream.Gatherer.Downstream", ApiSymbolCategory.STREAM_GATHERER, TargetProfile.JAVA25, "Gatherer downstream control abstraction.");
         nestedType(symbols, "java.util.stream.Gatherer.Integrator", ApiSymbolCategory.STREAM_GATHERER, TargetProfile.JAVA25, "Gatherer integration abstraction.");
         nestedType(symbols, "java.util.stream.Gatherer.Integrator.Greedy", ApiSymbolCategory.STREAM_GATHERER, TargetProfile.JAVA25, "Greedy gatherer integrator marker.");
         type(symbols, "java.util.stream.Gatherers", ApiSymbolCategory.STREAM_GATHERER, TargetProfile.JAVA25, "Standard gatherer factory class.");
+        staticMethod(symbols, "java.util.stream.Gatherers", "fold", ApiSymbolCategory.STREAM_GATHERER, TargetProfile.JAVA25, "Stateful fold gatherer factory.");
+        staticMethod(symbols, "java.util.stream.Gatherers", "mapConcurrent", ApiSymbolCategory.STREAM_GATHERER, TargetProfile.JAVA25, "Concurrent mapping gatherer factory.");
+        staticMethod(symbols, "java.util.stream.Gatherers", "scan", ApiSymbolCategory.STREAM_GATHERER, TargetProfile.JAVA25, "Prefix scan gatherer factory.");
+        staticMethod(symbols, "java.util.stream.Gatherers", "windowFixed", ApiSymbolCategory.STREAM_GATHERER, TargetProfile.JAVA25, "Fixed-size window gatherer factory.");
+        staticMethod(symbols, "java.util.stream.Gatherers", "windowSliding", ApiSymbolCategory.STREAM_GATHERER, TargetProfile.JAVA25, "Sliding window gatherer factory.");
     }
 
     private static void type(List<ApiSymbol> symbols, String owner, ApiSymbolCategory category, TargetProfile profile, String notes) {

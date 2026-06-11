@@ -41,6 +41,7 @@ public class MainPhase11ReportCliTest {
         assertTrue(reportFile.isFile());
         String json = readFile(reportFile);
         assertContains(json, "\"schemaVersion\": 1");
+        assertDefaultReportMetadata(json);
         assertContains(json, "\"total\": 1");
         assertContains(json, "\"passed\": 1");
         assertContains(json, "\"successful\": true");
@@ -126,7 +127,7 @@ public class MainPhase11ReportCliTest {
         assertTrue(result.out.contains("No specifications found in " + specRoot.getAbsolutePath() + "."));
         assertEquals("", result.err);
         assertTrue(reportFile.isFile());
-        assertEquals(emptyReportJson(), readFile(reportFile));
+        assertEmptyReportJson(readFile(reportFile));
     }
 
     @Test
@@ -211,20 +212,26 @@ public class MainPhase11ReportCliTest {
         assertTrue(result.err.contains("Usage:"));
     }
 
-    private static String emptyReportJson() {
-        return "{\n" +
-                "  \"schemaVersion\": 1,\n" +
-                "  \"summary\": {\n" +
-                "    \"total\": 0,\n" +
-                "    \"passed\": 0,\n" +
-                "    \"failed\": 0,\n" +
-                "    \"broken\": 0,\n" +
-                "    \"skipped\": 0,\n" +
-                "    \"pending\": 0,\n" +
-                "    \"successful\": true\n" +
-                "  },\n" +
-                "  \"specs\": []\n" +
-                "}\n";
+    private static void assertEmptyReportJson(String json) {
+        assertContains(json, "\"schemaVersion\": 1");
+        assertDefaultReportMetadata(json);
+        assertContains(json, "\"summary\": {\n    \"total\": 0");
+        assertContains(json, "\"passed\": 0");
+        assertContains(json, "\"failed\": 0");
+        assertContains(json, "\"broken\": 0");
+        assertContains(json, "\"skipped\": 0");
+        assertContains(json, "\"pending\": 0");
+        assertContains(json, "\"successful\": true");
+        assertContains(json, "\"specs\": []");
+    }
+
+    private static void assertDefaultReportMetadata(String json) {
+        assertContains(json, "\"metadata\": {");
+        assertContains(json, "\"timestamp\": \"");
+        assertContains(json, "\"hostname\": \"");
+        assertContains(json, "\"time\": 0");
+        assertContains(json, "\"javaspec.report.schemaVersion\": \"1\"");
+        assertContains(json, "\"javaspec.report.tool\": \"javaspec\"");
     }
 
     private static File testJavaRoot() {

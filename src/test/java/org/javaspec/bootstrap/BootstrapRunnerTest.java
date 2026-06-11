@@ -3,9 +3,15 @@ package org.javaspec.bootstrap;
 import org.javaspec.discovery.DiscoveredSpec;
 import org.javaspec.discovery.SpecExample;
 import org.javaspec.model.DescribedClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -17,6 +23,9 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class BootstrapRunnerTest {
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
     @Test
     public void runsHooksInDeclarationOrderIncludingDuplicatesWithContextClassLoaderAndSpecs() {
         ClassLoader originalClassLoader = new ChildOnlyClassLoader(currentClassLoader());
@@ -41,6 +50,104 @@ public class BootstrapRunnerTest {
             assertSame(originalClassLoader, thread.getContextClassLoader());
         } finally {
             thread.setContextClassLoader(previousClassLoader);
+            RecordingHooks.reset(null, Collections.<DiscoveredSpec>emptyList());
+        }
+    }
+
+    @Test
+    public void serviceLoaderDiscoveryRunsAfterExplicitHooksInClassNameOrderAndPreservesExplicitDuplicates() throws Exception {
+        List<DiscoveredSpec> specs = Arrays.asList(spec("spec.example.DiscoveryOrderSpec", "example.DiscoveryOrder", "it_runs"));
+        URLClassLoader executionClassLoader = serviceClassLoader(ZDiscoveredHook.class, ADiscoveredHook.class);
+        try {
+            RecordingHooks.reset(executionClassLoader, specs);
+
+            BootstrapRunner.run(Arrays.asList(
+                    FirstHook.class.getName(),
+                    FirstHook.class.getName()
+            ), executionClassLoader, specs, true);
+
+            assertEquals(Arrays.asList(
+                    "first:tccl=true:contextClassLoader=true:specs=true:count=1",
+                    "first:tccl=true:contextClassLoader=true:specs=true:count=1",
+                    "discovered-a:tccl=true:contextClassLoader=true:specs=true:count=1",
+                    "discovered-z:tccl=true:contextClassLoader=true:specs=true:count=1"
+            ), RecordingHooks.events);
+        } finally {
+            executionClassLoader.close();
+            RecordingHooks.reset(null, Collections.<DiscoveredSpec>emptyList());
+        }
+    }
+
+    @Test
+    public void serviceLoaderDiscoveryDisabledLeavesProvidersUnexecuted() throws Exception {
+        URLClassLoader executionClassLoader = serviceClassLoader(ADiscoveredHook.class);
+        try {
+            RecordingHooks.reset(executionClassLoader, Collections.<DiscoveredSpec>emptyList());
+
+            BootstrapRunner.run(Collections.<String>emptyList(), executionClassLoader, Collections.<DiscoveredSpec>emptyList(), false);
+
+            assertTrue(RecordingHooks.events.isEmpty());
+        } finally {
+            executionClassLoader.close();
+            RecordingHooks.reset(null, Collections.<DiscoveredSpec>emptyList());
+        }
+    }
+
+    @Test
+    public void serviceLoaderDiscoveryEnabledWithNoProvidersIsNoOp() throws Exception {
+        URLClassLoader executionClassLoader = serviceClassLoader(new String[0]);
+        try {
+            RecordingHooks.reset(executionClassLoader, Collections.<DiscoveredSpec>emptyList());
+
+            BootstrapRunner.run(Collections.<String>emptyList(), executionClassLoader, Collections.<DiscoveredSpec>emptyList(), true);
+
+            assertTrue(RecordingHooks.events.isEmpty());
+        } finally {
+            executionClassLoader.close();
+            RecordingHooks.reset(null, Collections.<DiscoveredSpec>emptyList());
+        }
+    }
+
+    @Test
+    public void serviceLoaderProviderLoadingFailureIsWrappedInBootstrapException() throws Exception {
+        URLClassLoader executionClassLoader = serviceClassLoader("example.MissingBootstrapHook");
+        try {
+            BootstrapException exception = assertThrows(BootstrapException.class, new ThrowingRunnableAdapter() {
+                @Override
+                public void run() {
+                    BootstrapRunner.run(Collections.<String>emptyList(), executionClassLoader,
+                            Collections.<DiscoveredSpec>emptyList(), true);
+                }
+            });
+
+            assertTrue(exception.getMessage(), exception.getMessage().contains(
+                    "Could not load ServiceLoader BootstrapHook provider 'example.MissingBootstrapHook'"));
+            assertTrue(exception.getMessage(), exception.getMessage().contains(BootstrapHook.class.getName()));
+        } finally {
+            executionClassLoader.close();
+        }
+    }
+
+    @Test
+    public void discoveredProviderFailureIsWrappedInBootstrapException() throws Exception {
+        URLClassLoader executionClassLoader = serviceClassLoader(FailingDiscoveredHook.class);
+        try {
+            RecordingHooks.reset(executionClassLoader, Collections.<DiscoveredSpec>emptyList());
+
+            BootstrapException exception = assertThrows(BootstrapException.class, new ThrowingRunnableAdapter() {
+                @Override
+                public void run() {
+                    BootstrapRunner.run(Collections.<String>emptyList(), executionClassLoader,
+                            Collections.<DiscoveredSpec>emptyList(), true);
+                }
+            });
+
+            assertTrue(exception.getMessage(), exception.getMessage().contains(
+                    "ServiceLoader BootstrapHook provider '" + FailingDiscoveredHook.class.getName() + "' threw an exception"));
+            assertTrue(exception.getMessage(), exception.getMessage().contains("discovered failure"));
+            assertEquals(Arrays.asList("discovered-failing"), RecordingHooks.events);
+        } finally {
+            executionClassLoader.close();
             RecordingHooks.reset(null, Collections.<DiscoveredSpec>emptyList());
         }
     }
@@ -116,6 +223,30 @@ public class BootstrapRunnerTest {
         );
     }
 
+    private URLClassLoader serviceClassLoader(Class<?>... providerTypes) throws Exception {
+        String[] providerNames = new String[providerTypes.length];
+        for (int i = 0; i < providerTypes.length; i++) {
+            providerNames[i] = providerTypes[i].getName();
+        }
+        return serviceClassLoader(providerNames);
+    }
+
+    private URLClassLoader serviceClassLoader(String... providerNames) throws Exception {
+        File serviceRoot = temporaryFolder.newFolder("bootstrap-service-root-" + System.nanoTime());
+        if (providerNames.length > 0) {
+            File serviceFile = new File(new File(serviceRoot, "META-INF" + File.separator + "services"),
+                    BootstrapHook.class.getName());
+            File parent = serviceFile.getParentFile();
+            assertTrue(parent.isDirectory() || parent.mkdirs());
+            StringBuilder content = new StringBuilder();
+            for (int i = 0; i < providerNames.length; i++) {
+                content.append(providerNames[i]).append('\n');
+            }
+            Files.write(serviceFile.toPath(), content.toString().getBytes(StandardCharsets.UTF_8));
+        }
+        return new URLClassLoader(new URL[] {serviceRoot.toURI().toURL()}, currentClassLoader());
+    }
+
     private static ClassLoader currentClassLoader() {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         if (classLoader != null) {
@@ -143,6 +274,28 @@ public class BootstrapRunnerTest {
         public void bootstrap(BootstrapContext context) {
             RecordingHooks.events.add("failing");
             throw new IllegalStateException("outer failure", new IllegalArgumentException("root failure"));
+        }
+    }
+
+    public static final class ADiscoveredHook implements BootstrapHook {
+        @Override
+        public void bootstrap(BootstrapContext context) {
+            RecordingHooks.record("discovered-a", context);
+        }
+    }
+
+    public static final class ZDiscoveredHook implements BootstrapHook {
+        @Override
+        public void bootstrap(BootstrapContext context) {
+            RecordingHooks.record("discovered-z", context);
+        }
+    }
+
+    public static final class FailingDiscoveredHook implements BootstrapHook {
+        @Override
+        public void bootstrap(BootstrapContext context) {
+            RecordingHooks.events.add("discovered-failing");
+            throw new IllegalStateException("discovered failure");
         }
     }
 

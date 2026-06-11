@@ -187,9 +187,10 @@ public class JavaspecGradlePluginTest {
         String json = readFile(new File(projectDir, "build/reports/javaspec/passing.json"));
         assertContains(json, "\"total\": 1");
         assertContains(json, "\"status\": \"PASSED\"");
+        assertReportJsonDefaultMetadata(json);
         assertGradleReportJsonMetadata(json, specFile, "it_uses_main_output_on_default_test_runtime_classpath", 4);
         String xml = readFile(new File(projectDir, "build/reports/javaspec/passing.xml"));
-        assertContains(xml, "<testsuite name=\"javaspec\" tests=\"1\" failures=\"0\" errors=\"0\" skipped=\"0\" time=\"0\">");
+        assertJunitXmlSuiteMetadata(xml, 1, 0, 0, 0);
         assertGradleTestcaseHasSource(xml, specFile, "it_uses_main_output_on_default_test_runtime_classpath", 4);
         assertParsesAsXml(xml);
     }
@@ -219,6 +220,156 @@ public class JavaspecGradlePluginTest {
         assertContains(result.getOutput(), "Specification class not found: spec.com.example.UncompiledSpec");
         assertContains(result.getOutput(), "Gradle classpath contains");
         assertContains(result.getOutput(), "element(s); this task needs compiled spec classes and dependencies on its configured/default test runtime classpath.");
+    }
+
+    @Test
+    public void dslTaskAndProjectPropertyCompileOptInsCompileAndExecuteSourceOnlySpec() throws Exception {
+        assertGradleCompilationOptIn(
+                "phase34-dsl-compile",
+                "Phase34DslCompileSubject",
+                "    compile = true\n",
+                ""
+        );
+        assertGradleCompilationOptIn(
+                "phase34-task-compile",
+                "Phase34TaskCompileSubject",
+                "",
+                "tasks.named('javaspecRun') {\n" +
+                        "    compile = true\n" +
+                        "}\n"
+        );
+        assertGradleCompilationOptIn(
+                "phase34-property-compile",
+                "Phase34PropertyCompileSubject",
+                "",
+                "",
+                "-Pjavaspec.compile=true"
+        );
+    }
+
+    @Test
+    public void compileOutputOverridesImplyCompilationAndUseTaskExtensionProjectPrecedence() throws Exception {
+        File extensionProject = sourceOnlyCompilationProject(
+                "phase34-extension-compile-output",
+                "Phase34ExtensionOutputSubject",
+                "    compileOutput = file('extension-javaspec-classes')\n",
+                ""
+        );
+
+        BuildResult extensionResult = runGradle(extensionProject, "javaspecRun");
+
+        File extensionOutput = new File(extensionProject, "extension-javaspec-classes");
+        assertEquals(TaskOutcome.SUCCESS, extensionResult.task(":javaspecRun").getOutcome());
+        assertContains(extensionResult.getOutput(), "javaspec: compiled 2 source file(s) to " + extensionOutput.getPath() + ".");
+        assertTrue(classFileFor(extensionOutput, "spec.com.example.Phase34ExtensionOutputSubjectSpec").isFile());
+
+        File propertyProject = sourceOnlyCompilationProject(
+                "phase34-property-compile-output",
+                "Phase34PropertyOutputSubject",
+                "",
+                ""
+        );
+
+        BuildResult propertyResult = runGradle(
+                propertyProject,
+                "javaspecRun",
+                "-Pjavaspec.compileOutput=property-javaspec-classes"
+        );
+
+        File propertyOutput = new File(propertyProject, "property-javaspec-classes");
+        assertEquals(TaskOutcome.SUCCESS, propertyResult.task(":javaspecRun").getOutcome());
+        assertContains(propertyResult.getOutput(), "javaspec: compiled 2 source file(s) to " + propertyOutput.getPath() + ".");
+        assertTrue(classFileFor(propertyOutput, "spec.com.example.Phase34PropertyOutputSubjectSpec").isFile());
+
+        File precedenceProject = sourceOnlyCompilationProject(
+                "phase34-compile-output-precedence",
+                "Phase34PrecedenceOutputSubject",
+                "    compileOutput = file('extension-javaspec-classes')\n",
+                "tasks.named('javaspecRun') {\n" +
+                        "    compileOutput = file('task-javaspec-classes')\n" +
+                        "}\n"
+        );
+
+        BuildResult precedenceResult = runGradle(
+                precedenceProject,
+                "javaspecRun",
+                "-Pjavaspec.compileOutput=property-javaspec-classes"
+        );
+
+        File taskOutput = new File(precedenceProject, "task-javaspec-classes");
+        assertEquals(TaskOutcome.SUCCESS, precedenceResult.task(":javaspecRun").getOutcome());
+        assertContains(precedenceResult.getOutput(), "javaspec: compiled 2 source file(s) to " + taskOutput.getPath() + ".");
+        assertTrue(classFileFor(taskOutput, "spec.com.example.Phase34PrecedenceOutputSubjectSpec").isFile());
+        assertFalse(new File(precedenceProject, "extension-javaspec-classes").exists());
+        assertFalse(new File(precedenceProject, "property-javaspec-classes").exists());
+    }
+
+    @Test
+    public void noSpecCompileOptInSkipsOutputCreation() throws Exception {
+        File projectDir = newProject("phase34-no-spec-compile");
+        File compileOutput = new File(projectDir, "build/no-spec-javaspec-classes");
+        writeBuildFile(projectDir, javaPluginBuild(
+                "javaspec {\n" +
+                        "    configFile = file('javaspec.conf')\n" +
+                        "    compile = true\n" +
+                        "    compileOutput = file('build/no-spec-javaspec-classes')\n" +
+                        "}\n"
+        ));
+        writeFile(new File(projectDir, "javaspec.conf"),
+                "suite.default.specDir = empty-specs\n" +
+                        "suite.default.sourceDir = sources\n");
+        assertTrue(new File(projectDir, "empty-specs").mkdirs());
+        writeJavaSource(projectDir, "sources/com/example/BrokenNoSpecGradleSource.java",
+                "package com.example;\n\n" +
+                        "public class BrokenNoSpecGradleSource {\n" +
+                        "    public void broken( {\n" +
+                        "}\n");
+
+        BuildResult result = runGradle(projectDir, "javaspecRun");
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":javaspecRun").getOutcome());
+        assertContains(result.getOutput(), "javaspec: no specifications found.");
+        assertFalse(result.getOutput().contains("javaspec: compiled "));
+        assertFalse(compileOutput.exists());
+    }
+
+    @Test
+    public void compilationFailureFailsBeforeReportsAndShowsDiagnostics() throws Exception {
+        File projectDir = newProject("phase34-compilation-failure");
+        writeBuildFile(projectDir, javaPluginBuild(
+                "javaspec {\n" +
+                        "    configFile = file('javaspec.conf')\n" +
+                        "    compile = true\n" +
+                        "    jsonReportFile = file('build/reports/javaspec/compile-failure.json')\n" +
+                        "    junitXmlReportFile = file('build/reports/javaspec/compile-failure.xml')\n" +
+                        "}\n"
+        ));
+        writeFile(new File(projectDir, "javaspec.conf"),
+                "suite.default.specDir = specs\n" +
+                        "suite.default.sourceDir = sources\n");
+        writeJavaSource(projectDir, "sources/com/example/BrokenPhase34GradleSubject.java",
+                "package com.example;\n\n" +
+                        "public class BrokenPhase34GradleSubject {\n" +
+                        "    public String message() {\n" +
+                        "        return missingSymbol;\n" +
+                        "    }\n" +
+                        "}\n");
+        writeJavaSource(projectDir, "specs/spec/com/example/BrokenPhase34GradleSubjectSpec.java",
+                "package spec.com.example;\n\n" +
+                        "public class BrokenPhase34GradleSubjectSpec {\n" +
+                        "    public void it_would_run_after_successful_compilation() {\n" +
+                        "    }\n" +
+                        "}\n");
+
+        BuildResult result = runGradleAndFail(projectDir, "javaspecRun");
+
+        assertEquals(TaskOutcome.FAILED, result.task(":javaspecRun").getOutcome());
+        assertContains(result.getOutput(), "javaspec compilation failed: Compilation failed");
+        assertContains(result.getOutput(), "BrokenPhase34GradleSubject.java");
+        assertContains(result.getOutput(), "missingSymbol");
+        assertFalse(result.getOutput().contains("javaspec: Examples:"));
+        assertFalse(new File(projectDir, "build/reports/javaspec/compile-failure.json").exists());
+        assertFalse(new File(projectDir, "build/reports/javaspec/compile-failure.xml").exists());
     }
 
     @Test
@@ -259,8 +410,9 @@ public class JavaspecGradlePluginTest {
         assertContains(json, "\"pending\": 1");
         assertContains(json, "\"status\": \"PENDING\"");
         assertContains(json, "\"detail\": \"gradle pending\"");
+        assertReportJsonDefaultMetadata(json);
         String xml = readFile(new File(projectDir, "build/reports/javaspec/pending.xml"));
-        assertContains(xml, "<testsuite name=\"javaspec\" tests=\"1\" failures=\"0\" errors=\"0\" skipped=\"1\" time=\"0\">");
+        assertJunitXmlSuiteMetadata(xml, 1, 0, 0, 1);
         assertContains(xml, "<skipped message=\"Pending: gradle pending\"/>");
         assertParsesAsXml(xml);
     }
@@ -491,6 +643,120 @@ public class JavaspecGradlePluginTest {
     }
 
     @Test
+    public void dslTaskAndProjectPropertyBootstrapDiscoveryOptInsExecuteServiceLoaderHook() throws Exception {
+        assertBootstrapDiscoveryOptIn(
+                "dsl-bootstrap-discovery",
+                "javaspec {\n" +
+                        "    bootstrapDiscovery = true\n" +
+                        "}\n"
+        );
+        assertBootstrapDiscoveryOptIn(
+                "task-bootstrap-discovery",
+                "tasks.named('javaspecRun') {\n" +
+                        "    bootstrapDiscovery = true\n" +
+                        "}\n"
+        );
+        assertBootstrapDiscoveryOptIn(
+                "property-bootstrap-discovery",
+                "",
+                "-Pjavaspec.bootstrapDiscovery=true"
+        );
+    }
+
+    @Test
+    public void defaultBootstrapDiscoveryDoesNotExecuteServiceLoaderHook() throws Exception {
+        File projectDir = bootstrapDiscoveryProject("default-bootstrap-discovery", "", "");
+
+        BuildResult result = runGradle(projectDir, "javaspecRun");
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":javaspecRun").getOutcome());
+        assertContains(result.getOutput(), "javaspec: Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped, 0 pending.");
+        assertEquals("example:\n", readFile(bootstrapDiscoveryEventFile(projectDir)));
+    }
+
+    @Test
+    public void invalidBootstrapDiscoveryProjectPropertyFailsClearly() throws Exception {
+        File projectDir = newProject("invalid-bootstrap-discovery-property");
+        writeBuildFile(projectDir, javaPluginBuild(""));
+
+        BuildResult result = runGradleAndFail(projectDir, "javaspecRun", "-Pjavaspec.bootstrapDiscovery=maybe");
+
+        assertEquals(TaskOutcome.FAILED, result.task(":javaspecRun").getOutcome());
+        assertContains(result.getOutput(), "Invalid javaspec.bootstrapDiscovery: expected true or false but was 'maybe'.");
+    }
+
+    @Test
+    public void dslConfiguredExtensionRegistersSelectedFormatter() throws Exception {
+        File projectDir = phase32ConfiguredExtensionProject(
+                "dsl-configured-extension-formatter",
+                "javaspec {\n" +
+                        "    formatter = 'phase32-dsl'\n" +
+                        "    extensions 'support.DslPhase32Extension'\n" +
+                        "}\n"
+        );
+        writeGradleFormatterExtension(projectDir, "support.DslPhase32Extension", "phase32-dsl",
+                "gradle dsl extension formatter");
+
+        BuildResult result = runGradle(projectDir, "javaspecRun");
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":javaspecRun").getOutcome());
+        assertContains(result.getOutput(), "javaspec: formatter phase32-dsl.");
+        assertContains(result.getOutput(), "javaspec: gradle dsl extension formatter total=1 passed=1 failed=0");
+        assertFalse(result.getOutput().contains("javaspec: Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped, 0 pending."));
+    }
+
+    @Test
+    public void projectPropertyConfiguredExtensionRegistersSelectedFormatter() throws Exception {
+        File projectDir = phase32ConfiguredExtensionProject("project-property-configured-extension-formatter", "");
+        writeGradleFormatterExtension(projectDir, "support.PropertyPhase32Extension", "phase32-property",
+                "gradle property extension formatter");
+
+        BuildResult result = runGradle(
+                projectDir,
+                "javaspecRun",
+                "-Pjavaspec.extensions=support.PropertyPhase32Extension",
+                "-Pjavaspec.formatter=phase32-property"
+        );
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":javaspecRun").getOutcome());
+        assertContains(result.getOutput(), "javaspec: formatter phase32-property.");
+        assertContains(result.getOutput(), "javaspec: gradle property extension formatter total=1 passed=1 failed=0");
+    }
+
+    @Test
+    public void configuredExtensionActivationFailureFailsBeforeReports() throws Exception {
+        File projectDir = phase32ConfiguredExtensionProject(
+                "configured-extension-activation-failure",
+                "javaspec {\n" +
+                        "    extensions 'support.FailingPhase32Extension'\n" +
+                        "    jsonReportFile = file('build/reports/javaspec/extension-failure.json')\n" +
+                        "    junitXmlReportFile = file('build/reports/javaspec/extension-failure.xml')\n" +
+                        "}\n"
+        );
+        writeGradleFailingExtension(projectDir, "support.FailingPhase32Extension", "phase 32 Gradle extension failure");
+
+        BuildResult result = runGradleAndFail(projectDir, "javaspecRun");
+
+        assertEquals(TaskOutcome.FAILED, result.task(":javaspecRun").getOutcome());
+        assertContains(result.getOutput(), "javaspec extension activation failed:");
+        assertContains(result.getOutput(), "support.FailingPhase32Extension");
+        assertContains(result.getOutput(), "phase 32 Gradle extension failure");
+        assertFalse(result.getOutput().contains("javaspec: Examples:"));
+        assertFalse(new File(projectDir, "build/reports/javaspec/extension-failure.json").exists());
+        assertFalse(new File(projectDir, "build/reports/javaspec/extension-failure.xml").exists());
+    }
+
+    @Test
+    public void pluginRuntimeClasspathDeclarationStaysCoreOnly() throws Exception {
+        String build = readFile(new File("build.gradle"));
+
+        assertContains(build, "implementation \"org.javaspec:javaspec:${javaspecCoreVersion}\"");
+        assertFalse(build.contains("runtimeOnly"));
+        assertFalse(build.contains("implementation gradleTestKit()"));
+        assertFalse(build.contains("implementation \"junit:junit"));
+    }
+
+    @Test
     public void externalExtensionProviderOnTaskClasspathRendersSelectedFormatter() throws Exception {
         File projectDir = externalFormatterExtensionProject(
                 "external-extension-formatter",
@@ -565,6 +831,74 @@ public class JavaspecGradlePluginTest {
         assertFalse(source.contains("System.exit"));
     }
 
+    private void assertGradleCompilationOptIn(
+            String projectName,
+            String subjectSimpleName,
+            String javaspecBlock,
+            String extraBuildConfiguration,
+            String... additionalArguments
+    ) throws Exception {
+        File projectDir = sourceOnlyCompilationProject(
+                projectName,
+                subjectSimpleName,
+                javaspecBlock,
+                extraBuildConfiguration
+        );
+        String[] arguments = new String[additionalArguments.length + 1];
+        arguments[0] = "javaspecRun";
+        System.arraycopy(additionalArguments, 0, arguments, 1, additionalArguments.length);
+
+        BuildResult result = runGradle(projectDir, arguments);
+
+        File defaultOutput = new File(projectDir, "build/javaspec-classes");
+        assertEquals(TaskOutcome.SUCCESS, result.task(":javaspecRun").getOutcome());
+        assertContains(result.getOutput(), "javaspec: compiled 2 source file(s) to " + defaultOutput.getPath() + ".");
+        assertContains(result.getOutput(), "javaspec: found 1 specification(s).");
+        assertContains(result.getOutput(), "javaspec: Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped, 0 pending.");
+        assertTrue(classFileFor(defaultOutput, "com.example." + subjectSimpleName).isFile());
+        assertTrue(classFileFor(defaultOutput, "spec.com.example." + subjectSimpleName + "Spec").isFile());
+    }
+
+    private File sourceOnlyCompilationProject(
+            String projectName,
+            String subjectSimpleName,
+            String javaspecBlock,
+            String extraBuildConfiguration
+    ) throws Exception {
+        File projectDir = newProject(projectName);
+        writeBuildFile(projectDir, javaPluginBuild(
+                "javaspec {\n" +
+                        "    configFile = file('javaspec.conf')\n" +
+                        javaspecBlock +
+                        "}\n" +
+                        extraBuildConfiguration
+        ));
+        writeFile(new File(projectDir, "javaspec.conf"),
+                "suite.default.specDir = specs\n" +
+                        "suite.default.sourceDir = sources\n");
+        writePhase34CompilationSources(projectDir, subjectSimpleName);
+        return projectDir;
+    }
+
+    private static void writePhase34CompilationSources(File projectDir, String subjectSimpleName) throws IOException {
+        writeJavaSource(projectDir, "sources/com/example/" + subjectSimpleName + ".java",
+                "package com.example;\n\n" +
+                        "public class " + subjectSimpleName + " {\n" +
+                        "    public String message() {\n" +
+                        "        return \"compiled-by-gradle-plugin\";\n" +
+                        "    }\n" +
+                        "}\n");
+        writeJavaSource(projectDir, "specs/spec/com/example/" + subjectSimpleName + "Spec.java",
+                "package spec.com.example;\n\n" +
+                        "public class " + subjectSimpleName + "Spec {\n" +
+                        "    public void it_runs_after_gradle_plugin_compilation() {\n" +
+                        "        if (!\"compiled-by-gradle-plugin\".equals(new com.example." + subjectSimpleName + "().message())) {\n" +
+                        "            throw new AssertionError(\"Gradle plugin compilation output was not used\");\n" +
+                        "        }\n" +
+                        "    }\n" +
+                        "}\n");
+    }
+
     private void assertDuplicateReportAliasFailsGradleBuild(String projectName, String reportConfiguration, String duplicateKey) throws Exception {
         File projectDir = newProject(projectName);
         writeBuildFile(projectDir, javaPluginBuild(
@@ -580,6 +914,188 @@ public class JavaspecGradlePluginTest {
         assertEquals(TaskOutcome.FAILED, result.task(":javaspecRun").getOutcome());
         assertContains(result.getOutput(), "Invalid javaspec configuration:");
         assertContains(result.getOutput(), "Duplicate configuration key '" + duplicateKey + "'");
+    }
+
+    private void assertBootstrapDiscoveryOptIn(
+            String projectName,
+            String javaspecConfiguration,
+            String... additionalArguments
+    ) throws Exception {
+        File projectDir = bootstrapDiscoveryProject(projectName, javaspecConfiguration, "discovered");
+        String[] arguments = new String[additionalArguments.length + 1];
+        arguments[0] = "javaspecRun";
+        System.arraycopy(additionalArguments, 0, arguments, 1, additionalArguments.length);
+
+        BuildResult result = runGradle(projectDir, arguments);
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":javaspecRun").getOutcome());
+        assertContains(result.getOutput(), "javaspec: found 1 specification(s).");
+        assertContains(result.getOutput(), "javaspec: Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped, 0 pending.");
+        assertEquals("discovered:1\nexample:discovered\n", readFile(bootstrapDiscoveryEventFile(projectDir)));
+    }
+
+    private File bootstrapDiscoveryProject(
+            String projectName,
+            String javaspecConfiguration,
+            String expectedMarker
+    ) throws Exception {
+        File projectDir = newProject(projectName);
+        writeBuildFile(projectDir, javaPluginBuild(
+                "repositories {\n" +
+                        "    mavenLocal()\n" +
+                        "    mavenCentral()\n" +
+                        "}\n" +
+                        "\n" +
+                        "dependencies {\n" +
+                        "    testImplementation 'org.javaspec:javaspec:0.1.0-SNAPSHOT'\n" +
+                        "}\n" +
+                        "\n" +
+                        javaspecConfiguration
+        ));
+        writeBootstrapDiscoverySupportSources(projectDir);
+        writeFile(new File(projectDir, "src/test/resources/META-INF/services/org.javaspec.bootstrap.BootstrapHook"),
+                "support.DiscoveredBootstrapHook\n");
+        writeJavaSource(projectDir, "src/test/java/spec/com/example/BootstrapDiscoverySpec.java",
+                "package spec.com.example;\n\n" +
+                        "public class BootstrapDiscoverySpec {\n" +
+                        "    public void it_observes_bootstrap_discovery_marker() {\n" +
+                        "        String marker = support.DiscoveryState.marker();\n" +
+                        "        support.DiscoveryState.record(\"example:\" + marker);\n" +
+                        "        if (!\"" + expectedMarker + "\".equals(marker)) {\n" +
+                        "            throw new AssertionError(\"unexpected bootstrap discovery marker: \" + marker);\n" +
+                        "        }\n" +
+                        "    }\n" +
+                        "}\n");
+        return projectDir;
+    }
+
+    private static void writeBootstrapDiscoverySupportSources(File projectDir) throws IOException {
+        String eventFilePath = new File(projectDir, "build/bootstrap-discovery-events.txt")
+                .getAbsolutePath()
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"");
+        writeJavaSource(projectDir, "src/test/java/support/DiscoveryState.java",
+                "package support;\n\n" +
+                        "import java.io.File;\n" +
+                        "import java.io.IOException;\n" +
+                        "import java.nio.charset.StandardCharsets;\n" +
+                        "import java.nio.file.Files;\n" +
+                        "import java.nio.file.StandardOpenOption;\n\n" +
+                        "public final class DiscoveryState {\n" +
+                        "    private static String marker = \"\";\n" +
+                        "    private static final File EVENT_FILE = new File(\"" + eventFilePath + "\");\n\n" +
+                        "    private DiscoveryState() {\n" +
+                        "    }\n\n" +
+                        "    public static synchronized void reset() {\n" +
+                        "        marker = \"\";\n" +
+                        "        if (EVENT_FILE.exists() && !EVENT_FILE.delete()) {\n" +
+                        "            throw new IllegalStateException(\"could not reset bootstrap discovery event file: \" + EVENT_FILE);\n" +
+                        "        }\n" +
+                        "    }\n\n" +
+                        "    public static synchronized void appendMarker(String value) {\n" +
+                        "        if (marker.length() == 0) {\n" +
+                        "            marker = value;\n" +
+                        "        } else {\n" +
+                        "            marker = marker + \">\" + value;\n" +
+                        "        }\n" +
+                        "    }\n\n" +
+                        "    public static synchronized String marker() {\n" +
+                        "        return marker;\n" +
+                        "    }\n\n" +
+                        "    public static synchronized void record(String event) {\n" +
+                        "        File parent = EVENT_FILE.getParentFile();\n" +
+                        "        if (parent != null && !parent.isDirectory() && !parent.mkdirs()) {\n" +
+                        "            throw new IllegalStateException(\"could not create event directory: \" + parent);\n" +
+                        "        }\n" +
+                        "        try {\n" +
+                        "            Files.write(EVENT_FILE.toPath(), (event + \"\\n\").getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.APPEND);\n" +
+                        "        } catch (IOException ex) {\n" +
+                        "            throw new IllegalStateException(ex);\n" +
+                        "        }\n" +
+                        "    }\n" +
+                        "}\n");
+        writeJavaSource(projectDir, "src/test/java/support/DiscoveredBootstrapHook.java",
+                "package support;\n\n" +
+                        "import org.javaspec.bootstrap.BootstrapContext;\n" +
+                        "import org.javaspec.bootstrap.BootstrapHook;\n\n" +
+                        "public final class DiscoveredBootstrapHook implements BootstrapHook {\n" +
+                        "    public void bootstrap(BootstrapContext context) {\n" +
+                        "        DiscoveryState.reset();\n" +
+                        "        DiscoveryState.appendMarker(\"discovered\");\n" +
+                        "        DiscoveryState.record(\"discovered:\" + context.specs().size());\n" +
+                        "    }\n" +
+                        "}\n");
+    }
+
+    private static File bootstrapDiscoveryEventFile(File projectDir) {
+        return new File(projectDir, "build/bootstrap-discovery-events.txt");
+    }
+
+    private File phase32ConfiguredExtensionProject(String projectName, String javaspecConfiguration) throws Exception {
+        File projectDir = newProject(projectName);
+        writeBuildFile(projectDir, javaPluginBuild(
+                "repositories {\n" +
+                        "    mavenLocal()\n" +
+                        "    mavenCentral()\n" +
+                        "}\n" +
+                        "\n" +
+                        "dependencies {\n" +
+                        "    testImplementation 'org.javaspec:javaspec:0.1.0-SNAPSHOT'\n" +
+                        "}\n" +
+                        "\n" +
+                        javaspecConfiguration
+        ));
+        writeJavaSource(projectDir, "src/test/java/spec/com/example/Phase32GradleSpec.java",
+                "package spec.com.example;\n\n" +
+                        "public class Phase32GradleSpec {\n" +
+                        "    public void it_passes_with_configured_extension() {\n" +
+                        "    }\n" +
+                        "}\n");
+        return projectDir;
+    }
+
+    private static void writeGradleFormatterExtension(
+            File projectDir,
+            String qualifiedName,
+            String formatterName,
+            String linePrefix
+    ) throws IOException {
+        int lastDot = qualifiedName.lastIndexOf('.');
+        String packageName = qualifiedName.substring(0, lastDot);
+        String simpleName = qualifiedName.substring(lastDot + 1);
+        writeJavaSource(projectDir, "src/test/java/" + qualifiedName.replace('.', '/') + ".java",
+                "package " + packageName + ";\n\n" +
+                        "import org.javaspec.extension.ExtensionContext;\n" +
+                        "import org.javaspec.extension.JavaspecExtension;\n" +
+                        "import org.javaspec.formatter.RunFormatter;\n" +
+                        "import org.javaspec.runner.RunResult;\n\n" +
+                        "import java.io.PrintStream;\n\n" +
+                        "public final class " + simpleName + " implements JavaspecExtension {\n" +
+                        "    public void configure(ExtensionContext context) {\n" +
+                        "        context.runFormatters().register(\"" + formatterName + "\", new RunFormatter() {\n" +
+                        "            public void format(RunResult runResult, PrintStream out) {\n" +
+                        "                out.println(\"" + linePrefix + " total=\" + runResult.totalExamples()\n" +
+                        "                        + \" passed=\" + runResult.passedCount()\n" +
+                        "                        + \" failed=\" + runResult.failedCount());\n" +
+                        "            }\n" +
+                        "        });\n" +
+                        "    }\n" +
+                        "}\n");
+    }
+
+    private static void writeGradleFailingExtension(File projectDir, String qualifiedName, String message) throws IOException {
+        int lastDot = qualifiedName.lastIndexOf('.');
+        String packageName = qualifiedName.substring(0, lastDot);
+        String simpleName = qualifiedName.substring(lastDot + 1);
+        writeJavaSource(projectDir, "src/test/java/" + qualifiedName.replace('.', '/') + ".java",
+                "package " + packageName + ";\n\n" +
+                        "import org.javaspec.extension.ExtensionContext;\n" +
+                        "import org.javaspec.extension.JavaspecExtension;\n\n" +
+                        "public final class " + simpleName + " implements JavaspecExtension {\n" +
+                        "    public void configure(ExtensionContext context) {\n" +
+                        "        throw new IllegalStateException(\"" + message + "\");\n" +
+                        "    }\n" +
+                        "}\n");
     }
 
     private File externalFormatterExtensionProject(String projectName, String javaspecConfiguration) throws Exception {
@@ -741,6 +1257,10 @@ public class JavaspecGradlePluginTest {
         return new File(projectDir, "src/test/java/spec/com/example/bootstrap-events.txt");
     }
 
+    private static File classFileFor(File root, String qualifiedName) {
+        return new File(root, qualifiedName.replace('.', File.separatorChar) + ".class");
+    }
+
     private static String javaPluginBuild(String extraConfiguration) {
         return "plugins {\n" +
                 "    id 'org.javaspec'\n" +
@@ -834,6 +1354,22 @@ public class JavaspecGradlePluginTest {
         return DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(
                 new java.io.ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8))
         );
+    }
+
+    private static void assertJunitXmlSuiteMetadata(String xml, int tests, int failures, int errors, int skipped) {
+        assertContains(xml, "<testsuite name=\"javaspec\" tests=\"" + tests + "\" failures=\"" + failures
+                + "\" errors=\"" + errors + "\" skipped=\"" + skipped + "\" timestamp=\"");
+        assertContains(xml, "\" time=\"0\">");
+        assertContains(xml, "<properties>");
+        assertContains(xml, "<property name=\"javaspec.report.schemaVersion\" value=\"1\"/>");
+        assertContains(xml, "<property name=\"javaspec.report.tool\" value=\"javaspec\"/>");
+    }
+
+    private static void assertReportJsonDefaultMetadata(String json) {
+        assertContains(json, "\"metadata\": {");
+        assertContains(json, "\"time\": 0");
+        assertContains(json, "\"javaspec.report.schemaVersion\": \"1\"");
+        assertContains(json, "\"javaspec.report.tool\": \"javaspec\"");
     }
 
     private static void assertGradleReportJsonMetadata(String json, File specFile, String methodName, int lineNumber) {

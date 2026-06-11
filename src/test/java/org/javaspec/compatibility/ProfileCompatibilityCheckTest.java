@@ -69,6 +69,37 @@ public class ProfileCompatibilityCheckTest {
     }
 
     @Test
+    public void phase36ApiSymbolsRespectProfileBoundaries() {
+        ProfileCompatibilityCheck check = ProfileCompatibilityCheck.defaultCheck();
+
+        CompatibilityResult deniedHttpClient = check.checkApiSymbol(TargetProfile.JAVA8, "java.net.http.HttpClient", null);
+        assertTrue(deniedHttpClient.isDenied());
+        assertEquals(TargetProfile.JAVA11, deniedHttpClient.requiredProfile());
+        assertFalse(check.isApiSymbolAllowed(TargetProfile.JAVA8, "java.net.http.HttpClient", null));
+
+        CompatibilityResult allowedHttpClient = check.checkApiSymbol(TargetProfile.JAVA11, "java.net.http.HttpClient", null);
+        assertTrue(allowedHttpClient.isAllowed());
+        assertEquals(TargetProfile.JAVA11, allowedHttpClient.requiredProfile());
+
+        CompatibilityResult deniedVirtualBuilder = check.checkApiSymbol(TargetProfile.JAVA17, "java.lang.Thread.Builder.OfVirtual", null);
+        assertTrue(deniedVirtualBuilder.isDenied());
+        assertEquals(TargetProfile.JAVA21, deniedVirtualBuilder.requiredProfile());
+
+        CompatibilityResult allowedVirtualBuilder = check.checkApiSymbol(TargetProfile.JAVA21, "java.lang.Thread.Builder.OfVirtual", null);
+        assertTrue(allowedVirtualBuilder.isAllowed());
+        assertEquals(TargetProfile.JAVA21, allowedVirtualBuilder.requiredProfile());
+
+        CompatibilityResult deniedGather = check.checkApiSymbol(TargetProfile.JAVA21, "java.util.stream.Stream", "gather");
+        assertTrue(deniedGather.isDenied());
+        assertEquals(TargetProfile.JAVA25, deniedGather.requiredProfile());
+        assertFalse(check.isApiSymbolAllowed(TargetProfile.JAVA21, "java.util.stream.Stream", "gather"));
+
+        CompatibilityResult allowedGather = check.checkApiSymbol(TargetProfile.JAVA25, "java.util.stream.Stream", "gather");
+        assertTrue(allowedGather.isAllowed());
+        assertEquals(TargetProfile.JAVA25, allowedGather.requiredProfile());
+    }
+
+    @Test
     public void unknownApiSymbolIsDeniedWithoutRequiredProfile() {
         CompatibilityCheck check = CompatibilityCheck.defaultCheck();
 

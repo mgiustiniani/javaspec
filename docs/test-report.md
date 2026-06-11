@@ -1,5 +1,427 @@
 # Test and Quality Report
 
+## Phase 37 verification update
+
+Date: 2026-06-11
+
+This report records completed Phase 37 verification for the standalone optional bytecode doubles adapter. A new `javaspec-bytecode-doubles` artifact provides concrete-class double creation via ByteBuddy subclass generation without touching the zero-runtime-dependency core. The core SPI (`ConcreteDoubleProvider`, `ConcreteDoubleRegistry`) was added with no new runtime dependencies; `Doubles.concreteDouble(Class<T>)` and alias `classDouble(Class<T>)` delegate to a `ServiceLoader`-discovered provider, or throw `IllegalStateException` when no provider is registered. `BytebuddyConcreteDoubleProvider`, in the `javaspec-bytecode-doubles` standalone artifact, lives in the split package `org.javaspec.doubles` to access package-private constructors, uses ByteBuddy subclass generation with `InvocationHandlerAdapter` to route all non-final/non-private/non-static methods to `DoubleInvocationHandler`, and rejects interface, final, enum, array, annotation, and primitive types. A `META-INF/services` file registers the provider for `ServiceLoader` discovery. `scripts/verify-all.sh` was updated to verify and dependency-audit the new adapter module. All tests pass and no Java 8 compatibility regressions or unintended runtime dependency additions to the core were reported. No blockers were reported.
+
+## Phase 37 executive summary
+
+| Area | Result | Notes |
+|---|---|---|
+| Core SPI — `ConcreteDoubleProvider` interface | PASS | Public SPI interface added to zero-dependency core; discovered via `ServiceLoader` with thread context classloader. |
+| Core SPI — `ConcreteDoubleRegistry` | PASS | Package-private internal registry; returns first `supports()`-matching provider or null when absent. |
+| `Doubles.concreteDouble()` / `classDouble()` API | PASS | Validates type, looks up provider, delegates, or throws `IllegalStateException("No ConcreteDoubleProvider is registered...")` when absent. |
+| Bytecode adapter artifact — `javaspec-bytecode-doubles` | PASS | Standalone artifact; Java 8, ByteBuddy 1.14.18, javaspec core compile-scope. |
+| `supports()` correctness | PASS | Accepts non-final concrete classes only; rejects interface, final, enum, array, annotation, and primitive types. |
+| `createDouble()` ByteBuddy subclass generation | PASS | Uses ByteBuddy subclass + `InvocationHandlerAdapter` to route all eligible methods to `DoubleInvocationHandler`. |
+| Stub/verify delegation | PASS | All stub and call-history/verify behaviours from `DoubleInvocationHandler` work through bytecode-generated subclasses. |
+| ServiceLoader discovery | PASS | `META-INF/services/org.javaspec.doubles.ConcreteDoubleProvider` registration file present; provider loaded automatically when adapter is on classpath. |
+| Scripts update | PASS | `scripts/verify-all.sh` updated to include bytecode doubles adapter verify and dependency tree audit steps. |
+| Runtime compatibility | PASS | Root Maven runtime tree unchanged: `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT` only. Adapter runtime tree carries ByteBuddy intentionally as an adapter-scope dependency, not in core. |
+| Blockers | PASS | None reported. |
+
+## Phase 37 verified commands
+
+```bash
+mvn -q test
+# PASS: root Surefire 549 tests, 0 failures, 0 errors, 0 skipped
+
+mvn -q -DskipTests install
+# PASS
+
+mvn -q -f javaspec-bytecode-doubles/pom.xml verify
+# PASS: 17 tests, 0 failures, 0 errors, 0 skipped
+
+mvn -q -f javaspec-maven-plugin/pom.xml verify
+# PASS: 30 tests, 0 failures, 0 errors, 0 skipped
+
+mvn -q -f javaspec-junit-platform-engine/pom.xml verify
+# PASS: 19 tests, 0 failures, 0 errors, 0 skipped
+
+/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin clean test
+# PASS: 32 tests, 0 failures, 0 errors, 0 skipped
+```
+
+Runtime dependency audit outputs:
+
+- Root Maven runtime tree: `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT` only.
+- Bytecode doubles adapter runtime tree: `org.javaspec:javaspec-bytecode-doubles:jar:0.1.0-SNAPSHOT` with `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT:compile` and `net.bytebuddy:byte-buddy:jar:1.14.18:compile` (ByteBuddy intentionally included as adapter-scope dependency, not in core).
+- Gradle `runtimeClasspath`: only `org.javaspec:javaspec:0.1.0-SNAPSHOT`.
+
+## Phase 36 verification update
+
+Date: 2026-06-11
+
+This report records completed Phase 36 verification for deeper target-profile enforcement. `ProfileEnforcement` now checks super/extends/implements/permits relationship-type references in `DescribedType` against the profile catalog. Type-string normalization was improved to handle annotations, modifiers, type-parameter bounds, intersection bounds, and `$`-spelled nested class names. `DefaultProfileCatalogSymbols` was broadened with additional Java 11, 17, 21, and 25 types. Nine new tests were added to `ProfileEnforcementTest` covering relationship-type reference violations, super type location labeling, intersection bounds, and method type-parameter bounds. All tests pass and no new runtime dependencies or Java 8 compatibility regressions were reported. No blockers were reported.
+
+## Phase 36 executive summary
+
+| Area | Result | Notes |
+|---|---|---|
+| Profile enforcement — relationship-type references | PASS | `ProfileEnforcement` now checks super/extends/implements/permits type references in `DescribedType` against the profile catalog. |
+| Type-string normalization | PASS | Improved to strip annotations, modifiers, type-parameter bounds, intersection bounds, and `$`-spelled nested class names. |
+| Catalog broadening — Java 11 | PASS | Added HTTP Client types: `java.net.http.*`. |
+| Catalog broadening — Java 17 | PASS | Added `java.time.InstantSource`, `java.util.random.RandomGeneratorFactory`. |
+| Catalog broadening — Java 21 | PASS | Added virtual-thread `Thread.Builder` variants: `Thread.Builder.OfVirtual`, `Thread.Builder.OfPlatform`. |
+| Catalog broadening — Java 25 | PASS | Added `java.util.stream.Gatherer`, `Gatherer$Downstream`, `Gatherer$Integrator`, `Gatherer$Integrator$Greedy`, `java.util.stream.Gatherers`. |
+| Tests | PASS | Root core: 544 tests, 0 failures, 0 errors. Maven plugin: 30 tests. JUnit Platform engine: 19 tests. Gradle plugin: 32 tests. |
+| Runtime compatibility | PASS | No new runtime dependencies; Java 8 compatibility preserved. |
+| Blockers | PASS | None reported. |
+
+## Phase 36 verified commands
+
+```bash
+mvn -q verify
+# PASS: root Surefire 544 tests, 0 failures, 0 errors, 0 skipped
+
+mvn -q -DskipTests install
+# PASS
+
+mvn -q -f javaspec-maven-plugin verify
+# PASS: 30 tests, 0 failures, 0 errors, 0 skipped
+
+mvn -q -f javaspec-junit-platform-engine verify
+# PASS: 19 tests, 0 failures, 0 errors, 0 skipped
+
+/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin clean test build
+# PASS: 32 tests, 0 failures, 0 errors, 0 skipped
+```
+
+Runtime dependency audit outputs:
+
+- Root Maven runtime dependency tree: `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT` only.
+- Gradle `runtimeClasspath`: only `org.javaspec:javaspec:0.1.0-SNAPSHOT`.
+
+## Phase 35 verification update
+
+Date: 2026-06-11
+
+This report records completed Phase 35 verification for additive, dependency-free report enrichment. JSON reports remain `schemaVersion: 1`, JUnit XML-compatible reports gained additive suite-level metadata, existing schemaVersion 1 reports without metadata remain valid, and no new runtime dependencies or Java 8 compatibility regressions were reported. No blockers were reported.
+
+## Phase 35 executive summary
+
+| Area | Result | Notes |
+|---|---|---|
+| Report metadata model | PASS | Added `ReportMetadata` with current/default metadata and deterministic factory overloads. |
+| JSON reports | PASS | Still emit `schemaVersion: 1` and add optional top-level `metadata` with `timestamp`, `hostname`, `time`, and ordered report properties. |
+| JUnit XML-compatible reports | PASS | Root `<testsuite>` adds `timestamp`, `hostname`, and `time`, followed by an immediate `<properties>` block; testcase `time="0"` remains because runner models do not yet carry per-example duration. |
+| Schema, goldens, and docs | PASS | Updated additively; older schemaVersion 1 reports without metadata still validate. |
+| Verification scripts | PASS | Updated to assert dynamic metadata robustly. |
+| Runtime compatibility | PASS | No new runtime dependencies; Java 8 compatibility preserved. |
+| Verification | PASS | Root, adapter, engine, Gradle plugin, and example verification all passed. |
+| Blockers | PASS | None reported. |
+
+## Phase 35 verified commands
+
+```bash
+mvn -q verify
+# PASS: root Surefire 535 tests, 0 failures, 0 errors, 0 skipped
+
+mvn -q -DskipTests install
+# PASS
+
+mvn -q -f javaspec-maven-plugin verify
+# PASS: 30 tests, 0 failures, 0 errors, 0 skipped
+# Note: tester used this pi-guard-safe Maven-equivalent form; equivalent to -f javaspec-maven-plugin/pom.xml
+
+mvn -q -f javaspec-junit-platform-engine verify
+# PASS: 19 tests, 0 failures, 0 errors, 0 skipped
+
+/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin clean test build
+# PASS: 32 tests, 0 failures, 0 errors, 0 skipped
+
+JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-examples.sh full
+# PASS: examples XML 3 tests, 0 failures, 0 errors, 0 skipped
+```
+
+Runtime dependency audit outputs:
+
+- Root Maven runtime dependency tree: `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT` only.
+- Maven plugin runtime tree: `org.javaspec:javaspec-maven-plugin:maven-plugin:0.1.0-SNAPSHOT` with only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT:compile`.
+- Gradle `runtimeClasspath`: only `org.javaspec:javaspec:0.1.0-SNAPSHOT`.
+
+## Phase 35 verification details
+
+- Schema/golden sanity: `docs/schemas/run-report-v1.schema.json` and both golden JSON reports parsed with Python `json`.
+- `jsonschema` 4.26.0 validated both golden JSON reports.
+- Aggregate XML count reported by tester: 75 XML files, 619 tests, 0 failures, 0 errors, 0 skipped.
+
+## Phase 34 verification update
+
+Date: 2026-06-11
+
+This report records completed Phase 34 verification for opt-in source/spec compilation in programmatic invocation and the Maven/Gradle adapters. JUnit Platform was regression-only for Phase 34; no Phase 34 production changes were made there. Existing behavior remains disabled by default, and Phase 34 intentionally does not add dependency resolution, forked `javac`, source-level management, or incremental compilation caching. No blockers were reported.
+
+## Phase 34 executive summary
+
+| Area | Result | Notes |
+|---|---|---|
+| Core programmatic API | PASS | Added explicit compilation opt-in through `JavaspecInvocation.withCompilation(...)`, exposes `SourceCompilationResult` from `JavaspecInvocationResult`, and throws `SourceCompilationException` for unavailable compiler, compilation failure, or I/O errors. |
+| Launcher behavior | PASS | Discovers specs first, skips compilation for no-spec runs, compiles before bootstrap/examples, and uses a temporary classloader with compilation output first. |
+| Maven adapter | PASS | Supports `javaspec.compile`, `javaspec.compileOutput`, and alias `javaspec.compileOutputDirectory`; output override implies compilation; default output is `target/javaspec-classes`; compilation failures fail before report writes and diagnostics are logged. |
+| Gradle adapter | PASS | Supports DSL/task/project opt-in `compile` / `javaspec.compile` and `compileOutput` / `javaspec.compileOutput`; precedence is task > extension > project property; default output is `build/javaspec-classes`; compilation failures fail before report writes and diagnostics are visible. |
+| JUnit Platform | PASS | Regression-only for Phase 34; `mvn -q -f javaspec-junit-platform-engine/pom.xml verify` passed with 19 tests and no failures/errors/skips. |
+| Root verification | PASS | `mvn -q verify` passed; root surefire total 528 tests, 0 failures/errors/skips. |
+| Adapter verification | PASS | Maven plugin 30 tests, JUnit Platform engine 19 tests, and Gradle plugin 32 tests all passed. |
+| Runtime dependency audits | PASS | Root runtime tree contains only core `org.javaspec:javaspec`; Maven plugin runtime tree contains only the plugin plus core javaspec; Gradle `runtimeClasspath` contains only core javaspec. |
+| Blockers | PASS | None reported. |
+
+## Phase 34 verified commands
+
+```bash
+mvn -q verify
+# PASS: 528 tests, 0 failures, 0 errors, 0 skipped
+
+mvn -q -DskipTests install
+# PASS
+
+mvn -q -f javaspec-maven-plugin/pom.xml verify
+# PASS: 30 tests, 0 failures, 0 errors, 0 skipped
+
+mvn -q -f javaspec-junit-platform-engine/pom.xml verify
+# PASS: 19 tests, 0 failures, 0 errors, 0 skipped
+
+/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin clean test build
+# PASS: 32 tests, 0 failures, 0 errors, 0 skipped
+```
+
+Runtime dependency audit outputs:
+
+- Root Maven runtime dependency tree: `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT` only.
+- Maven plugin runtime tree: `org.javaspec:javaspec-maven-plugin:maven-plugin:0.1.0-SNAPSHOT` with only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT:compile`.
+- Gradle `runtimeClasspath`: only `org.javaspec:javaspec:0.1.0-SNAPSHOT`.
+
+## Phase 34 verification details
+
+- Root core tests cover invocation model defaults, validation, defensive copies, reset/preservation, launcher source-only compile success, bootstrap visibility, no-spec compile skip, compile failure exception/diagnostics/no bootstrap, and unchanged default-disabled behavior.
+- Maven plugin tests cover opt-in compile success, output override/alias/precedence, no-spec skip, compile failure diagnostics, and no report writes on compilation failure.
+- Gradle plugin tests cover project/DSL/task opt-in compile success, output override precedence, no-spec skip, compile failure diagnostics/no reports, and `runtimeClasspath` remaining core-only.
+
+## Phase 33 verification update
+
+Date: 2026-06-11
+
+This report records completed Phase 33 verification for opt-in `ServiceLoader` discovery of `BootstrapHook` providers. The Java tester added targeted core, CLI, Maven, Gradle, and JUnit Platform tests only; no production code or `docs/test-report.md` changes were made by the tester. No blockers were reported.
+
+## Phase 33 executive summary
+
+| Area | Result | Notes |
+|---|---|---|
+| Tester production modifications | PASS | Tester made no production changes. Production `git status --porcelain` shows only implementation-agent changes. |
+| Config parser/model coverage | PASS | Covered top-level `bootstrapDiscovery`, aliases, suite-scoped forms, defaults, true/false parsing, invalid/blank rejection, effective OR semantics, and value semantics. |
+| BootstrapRunner coverage | PASS | Covered explicit-before-discovered ordering, explicit duplicates, discovered class-name sorting, disabled discovery, enabled/no-provider no-op, and provider load/execution failure wrapping. |
+| Invocation/launcher coverage | PASS | Covered `withBootstrapDiscovery(true)`, default false behavior, discovered hook execution before examples, and bootstrap failure preventing examples. |
+| CLI coverage | PASS | Covered config-enabled discovery, failure exit `64` with `Error: Bootstrap execution failed`, no report writes on failure, and verbose `Bootstrap discovery: true` only when enabled. |
+| Maven adapter coverage | PASS | Covered config opt-in, `javaspec.bootstrapDiscovery` property opt-in, default false, and invalid property diagnostics. |
+| Gradle adapter coverage | PASS | Covered DSL, task, and project-property opt-ins, default false, and invalid project-property diagnostics. |
+| JUnit Platform coverage | PASS | Covered `javaspec.bootstrapDiscovery=true`, absent/false behavior, and invalid parameter diagnostics. |
+| Root verification | PASS | `mvn -q verify` passed; root tests `506 -> 521`, with `521` tests and `0` failures/errors/skipped. |
+| Adapter verification | PASS | Maven plugin `26` tests, JUnit Platform engine `19` tests, Gradle plugin `28` tests all passed. |
+| Runtime dependency audits | PASS | Root runtime tree has no external runtime dependencies; Maven plugin runtime tree contains only core javaspec; Gradle runtimeClasspath contains only core javaspec. |
+| Blockers | PASS | None reported. |
+
+## Phase 33 verified commands
+
+```bash
+mvn -q verify
+# PASS: 521 tests, 0 failures, 0 errors, 0 skipped
+
+mvn -q -DskipTests install
+# PASS
+
+mvn -q -f javaspec-maven-plugin/pom.xml verify
+# PASS: 26 tests
+
+mvn -q -f javaspec-junit-platform-engine/pom.xml verify
+# PASS: 19 tests
+
+/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin clean test build
+# PASS: 28 tests; Java 8 obsolete source/target warnings only
+
+mvn dependency:tree -Dscope=runtime
+# PASS: org.javaspec:javaspec only
+
+mvn -f javaspec-maven-plugin/pom.xml dependency:tree -Dscope=runtime
+# PASS: org.javaspec:javaspec-maven-plugin -> org.javaspec:javaspec only
+
+mvn -f javaspec-junit-platform-engine/pom.xml dependency:tree -Dscope=runtime
+# PASS: expected core + JUnit Platform engine runtime dependencies
+
+/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin dependencies --configuration runtimeClasspath
+# PASS: org.javaspec:javaspec:0.1.0-SNAPSHOT only
+
+git status --porcelain src/main/java javaspec-maven-plugin/src/main/java javaspec-gradle-plugin/src/main/java javaspec-junit-platform-engine/src/main/java
+# PASS: only implementation-agent production changes present; no tester production changes
+```
+
+## Phase 33 verification details
+
+- Added `src/test/java/org/javaspec/cli/MainPhase33BootstrapDiscoveryCliTest.java` with 3 CLI integration tests.
+- Extended root tests:
+  - `JavaspecConfigurationParserTest`: +2 tests.
+  - `JavaspecConfigurationTest`: +1 test.
+  - `BootstrapRunnerTest`: +5 tests.
+  - `JavaspecInvocationTest`: +1 test.
+  - `JavaspecLauncherBootstrapHookTest`: +3 tests.
+- Extended adapter tests:
+  - `javaspec-maven-plugin/src/test/java/org/javaspec/maven/JavaspecRunMojoTest.java`: +4 tests.
+  - `javaspec-gradle-plugin/src/test/java/org/javaspec/gradle/JavaspecGradlePluginTest.java`: +3 tests.
+  - `javaspec-junit-platform-engine/src/test/java/org/javaspec/junit/platform/JavaspecTestEnginePhase17Test.java`: +3 tests.
+- Total targeted Phase 33 test additions: 25 test methods.
+- All tests follow existing Java 8/JUnit style per module.
+
+## Phase 32 verification update
+
+Date: 2026-06-11
+
+This report records the completed Phase 32 verification results for configuration-driven extension activation and adapter formatter controls. The Java tester added targeted core, CLI, Maven, Gradle, and JUnit Platform tests only; no production code or `docs/test-report.md` changes were made by the tester. No blockers were reported.
+
+## Phase 32 executive summary
+
+| Area | Result | Notes |
+|---|---|---|
+| Tester production modifications | PASS | Tester made no production changes. Production `git status --porcelain` shows only implementation-agent changes, including `JavaspecExtensionActivator.java` and Phase 32 adapter/core files. |
+| Config parser/model coverage | PASS | Top-level `extensions`/`extension`, suite-scoped extensions, order, duplicates, blank rejection, immutability, and value semantics covered. |
+| Activator/loader coverage | PASS | Supplied classloader loading, configured order, duplicate preservation, `Extension` alias, wrong type, missing class diagnostics, no public no-arg constructor, configure failure, custom formatter registration, and empty-list ServiceLoader regression covered. |
+| Invocation/launcher coverage | PASS | `withExtensions`, registry exposure, activation before examples, and activation failure before example execution covered. |
+| CLI coverage | PASS | Configured extension formatter selection and activation failure exit `64` before reports covered. |
+| Maven adapter coverage | PASS | Formatter parameter precedence, configured + suite + `javaspec.extensions` ordering, extension formatter output, invalid formatter names, and activation failure/no reports covered. |
+| Gradle adapter coverage | PASS | DSL extensions, project-property extensions, extension formatter output, activation failure/no reports, and runtimeClasspath core-only declaration covered. |
+| JUnit Platform coverage | PASS | `javaspec.extensions`, semicolon-delimited values, `javaspec.formatter`, extension formatter output, invalid formatter diagnostics, and activation failure `JUnitException` diagnostics covered. |
+| Root verification | PASS | `mvn -q verify` passed; root tests inferred `488 -> 506`, with `506` tests and `0` failures/errors/skipped after Phase 32 tests. |
+| Adapter verification | PASS | Maven plugin `22` tests, JUnit Platform engine `16` tests, Gradle plugin `25` tests all passed. |
+| Runtime dependency audits | PASS | Root runtime tree has no external runtime dependencies; Maven plugin runtime tree contains only core javaspec; Gradle runtimeClasspath contains only core javaspec. |
+| Blockers | PASS | None reported. |
+
+## Phase 32 verified commands
+
+```bash
+mvn -q verify
+# PASS: 506 tests, 0 failures, 0 errors, 0 skipped
+
+mvn -q -DskipTests install
+# PASS
+
+mvn -q -f javaspec-maven-plugin/pom.xml verify
+# PASS: 22 tests
+
+mvn -q -f javaspec-junit-platform-engine/pom.xml verify
+# PASS: 16 tests
+
+cd javaspec-gradle-plugin && /tmp/gradle-8.8/bin/gradle clean test build
+# PASS: 25 tests; Java 8 obsolete source/target warnings only
+
+mvn dependency:tree -Dscope=runtime
+# PASS: org.javaspec:javaspec only
+
+mvn -f javaspec-maven-plugin/pom.xml dependency:tree -Dscope=runtime
+# PASS: org.javaspec:javaspec-maven-plugin -> org.javaspec:javaspec only
+
+mvn -f javaspec-junit-platform-engine/pom.xml dependency:tree -Dscope=runtime
+# PASS: expected core + JUnit Platform engine runtime dependencies
+
+cd javaspec-gradle-plugin && /tmp/gradle-8.8/bin/gradle dependencies --configuration runtimeClasspath
+# PASS: org.javaspec:javaspec:0.1.0-SNAPSHOT only
+
+git status --porcelain src/main/java javaspec-maven-plugin/src/main/java javaspec-gradle-plugin/src/main/java javaspec-junit-platform-engine/src/main/java
+# PASS: only implementation-agent production changes present; no tester production changes
+```
+
+## Phase 32 verification details
+
+- Added `JavaspecExtensionActivatorTest` with five JUnit 4 tests for configured extension activation semantics and diagnostics.
+- Added or extended root tests across configuration parsing/model, extension loader, invocation, launcher, and CLI integration for configuration-driven formatter registration and failure paths.
+- Extended Maven plugin tests with four JUnit 4 cases covering formatter override precedence, extension ordering, custom formatter availability, invalid formatter diagnostics, and activation failure before report writes.
+- Extended Gradle plugin tests with four JUnit 4/TestKit cases covering DSL extensions, project-property extensions, activation failure before reports, and runtimeClasspath core-only declaration.
+- Extended JUnit Platform engine tests with three JUnit Jupiter cases covering configuration parameter extension activation, formatter selection/output, invalid formatter diagnostics, and activation failure diagnostics.
+- All tests follow existing Java 8 conventions and adapter-specific test styles.
+
+## Phase 31 verification update
+
+Date: 2026-06-10
+
+This report records the completed Phase 31 verification results provided by the Java tester for PLAN.md Phase 31 / ADR 0023 (superseding the deferral half of ADR 0009) — source-preserving updates of existing sealed interfaces in `org.javaspec.generation.ClassMethodUpdater`. The tester made no production changes; the only `src/main/java` changes are the implementation agent's `ClassMethodUpdater.java` (Phase 31) and `Matchable.java` (Phase 30). The obsolete ADR-0009 no-op skip test was replaced with Phase 31 behavior tests. No blockers were reported.
+
+## Phase 31 executive summary
+
+| Area | Result | Notes |
+|---|---|---|
+| Tester production modifications | PASS | Tester made no production changes; `git status --porcelain src/main/java` shows only the implementation agent's `ClassMethodUpdater.java` and the Phase 30 `Matchable.java`. |
+| Obsolete test replacement | PASS | `ClassMethodUpdaterTest.skipsSealedInterfaceExistingSourceUpdatesEvenWhenMethodsWouldBeMissing` (asserting the superseded ADR-0009 no-op skip) replaced by `updatesSealedInterfaceExistingSourceWhenMethodsAreMissing`. |
+| New test class | PASS | `src/test/java/org/javaspec/generation/ClassMethodUpdaterSealedInterfaceTest.java` with 10 JUnit 4 tests following existing fixture conventions. |
+| Sealed root insertion | PASS | Missing non-static method declarations (ending `;`) are inserted into the sealed root body; static descriptors are never inserted. |
+| Nested permitted class bodies | PASS | In-file nested permitted class implementations (named in the permits clause or described permitted type names) receive `public` method bodies with Java default returns; existing implementations are preserved. |
+| Generated default `Permitted` implementation | PASS | A nested `Permitted` class receives bodies even when not named in the permits clause or described permitted type names. |
+| Nested permitted interface declarations | PASS | Nested permitted interfaces receive declarations (`;`), never bodies or default returns. |
+| Per-scope de-duplication | PASS | A method declared only in the root is added only to nested bodies, and a method implemented only in a nested body is added only to the root; second pass is a no-op. |
+| Out-of-file permitted types | PASS | A permits clause referencing a type not declared in the file succeeds deterministically: root and in-file nested scopes updated, the out-of-file name remains a permits-clause mention only. |
+| Idempotency and no-rewrite | PASS | Double `updateSource` yields identical output; a complete sealed interface returns unchanged source and `updateFile` does not rewrite the file (last-modified timestamp preserved). |
+| `hasMissingMethods` consistency | PASS | Returns true before update, false after update and for complete sealed-interface sources. |
+| Other type-kind regression | PASS | All pre-existing `ClassMethodUpdaterTest` tests for CLASS, INTERFACE, ANNOTATION, and static factories pass unchanged. |
+| Root verification | PASS | Root `mvn -q verify` passed with totals 478 (1 failure, obsolete skip test) → 488 tests (0 failures/errors/skipped), including the runtime dependency enforcer. |
+| Blockers | PASS | None reported. |
+
+## Phase 31 verified commands
+
+```bash
+mvn -q surefire:test -Dtest=ClassMethodUpdaterTest
+# Baseline: 7 tests, 1 failure (obsolete ADR-0009 skip test); suite baseline 478 tests, 1 failure
+mvn -q test-compile surefire:test -Dtest='ClassMethodUpdaterTest,ClassMethodUpdaterSealedInterfaceTest'
+# 17 tests, 0 failures
+mvn -q verify
+# After: 488 tests, 0 failures, 0 errors, 0 skipped; runtime dependency enforcer passed
+git status --porcelain src/main/java
+```
+
+## Phase 31 verification details
+
+- The 10 new test methods are: `insertsMissingNonStaticDeclarationsIntoSealedRootBodyAndSkipsStaticDescriptors`, `insertsDefaultReturnBodiesIntoNestedPermittedClassImplementations`, `insertsBodiesIntoGeneratedDefaultNestedPermittedImplementation`, `insertsDeclarationsNotBodiesIntoNestedPermittedInterface`, `deduplicatesSignaturesPerScopeAcrossRootAndNestedImplementations`, `leavesOutOfFilePermittedTypesUntouchedAndUpdatesInFileScopesDeterministically`, `updateSourceIsIdempotentAndLeavesCompleteSealedInterfaceUnchanged`, `updateFileWritesUpdatedSealedInterfaceSource`, `updateFileDoesNotRewriteSealedInterfaceFileWithoutMissingMethods`, and `hasMissingMethodsIsConsistentForSealedInterfacesBeforeAndAfterUpdate`.
+- The replacement test in `ClassMethodUpdaterTest`, `updatesSealedInterfaceExistingSourceWhenMethodsAreMissing`, reuses the old skip-test fixture (single-line nested `{ }` body) and asserts root declarations, nested bodies, idempotency, and `hasMissingMethods` true-before/false-after.
+- File-based assertions use `TemporaryFolder`; the no-rewrite check pins the file's last-modified timestamp before `updateFile` and asserts it is unchanged afterward.
+- The test classes follow JUnit 4.13.2 / Java 8 / English-comment conventions matching the existing `ClassMethodUpdaterTest`.
+- De-duplication note: ordinary INTERFACE update regression is already covered by the existing `insertsMissingInterfaceDeclarationsAndDoesNotDuplicateOnSecondPass` test, which passes unchanged; no duplicate regression test was added.
+
+## Phase 30 verification update
+
+Date: 2026-06-10
+
+This report records the completed Phase 30 verification results provided by the Java tester for PLAN.md Phase 30 / ADR 0023 item 1 — bounded generic `Iterable` matcher checks in `org.javaspec.matcher.Matchable`. The tester made no production changes; the only `src/main/java` change is the implementation agent's `Matchable.java`. No blockers were reported.
+
+## Phase 30 executive summary
+
+| Area | Result | Notes |
+|---|---|---|
+| Tester production modifications | PASS | Tester made no production changes; the only `src/main/java` change is the implementation agent's `Matchable.java`. |
+| New test class | PASS | `src/test/java/org/javaspec/matcher/MatchableBoundedIterableTest.java` with 10 JUnit 4 tests, timeout-guarded. |
+| Infinite-iterable safety | PASS | Empty check fails fast with "at least one element", not-empty check passes, count check fails fast with "more than 3 elements". |
+| Bounded consumption proof | PASS | ≤ 4 elements consumed for count 3; ≤ 1 `hasNext()` / 0 `next()` for emptiness checks. |
+| Finite generic-iterable regression | PASS | Exact count passes; undercount reports "count 3 ... got 2"; overcount reports "more than 1 elements". |
+| Null handling | PASS | "Expected a countable value but got null" for all three methods, newly covered. |
+| Collection/Map/CharSequence/array regression | PASS | Covered by existing unchanged `MatchableTest`. |
+| Targeted tests | PASS | Targeted tests pass. |
+| Root verification | PASS | Root `mvn -q verify` passed with totals 468 → 478 tests (0 failures/errors/skipped both runs), including the runtime dependency enforcer. |
+| Blockers | PASS | None reported. |
+
+## Phase 30 verified commands
+
+```bash
+mvn -q verify
+# Baseline: 468 tests
+mvn -q -Dtest=MatchableBoundedIterableTest,MatchableTest test
+mvn -q verify
+# After: 478 tests
+git status --porcelain src/main/java
+```
+
+## Phase 30 verification details
+
+- The 10 test methods are: `shouldBeEmptyFailsFastOnInfiniteIterable`, `shouldNotBeEmptyPassesOnInfiniteIterableWithoutHanging`, `shouldHaveCountFailsFastOnInfiniteIterable`, `shouldHaveCountConsumesAtMostExpectedPlusOneElements`, `emptinessChecksConsumeAtMostOneProbe`, `shouldHaveCountPassesForExactFiniteGenericIterable`, `shouldHaveCountReportsActualCountForUndercountedFiniteGenericIterable`, `shouldHaveCountFailsFastForOvercountedFiniteGenericIterable`, `shouldBeEmptyFailureOnFiniteGenericIterableMentionsAtLeastOneElement`, and `nullSubjectStillFailsCountAndEmptinessChecksWithCountableMessage`.
+- The tests use an infinite-iterable fixture and a `CountingIterable` consumption-counting wrapper.
+- The test class follows JUnit 4.13.2 / Java 8 / English-comment conventions matching `MatchableTest`.
+- De-duplication note: existing `MatchableTest` count/emptiness tests already cover Collection/Map/CharSequence/array and finite pass cases and still pass unchanged.
+
 ## Remote GitHub Actions status update after Phase 20/21/22 push
 
 Date: 2026-06-04

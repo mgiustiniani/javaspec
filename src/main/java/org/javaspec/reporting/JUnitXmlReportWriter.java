@@ -11,6 +11,7 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -22,9 +23,15 @@ public final class JUnitXmlReportWriter {
 
     public static void write(RunResult runResult, File file) throws IOException {
         Objects.requireNonNull(file, "file must not be null");
+        write(runResult, file, ReportMetadata.current());
+    }
+
+    public static void write(RunResult runResult, File file, ReportMetadata metadata) throws IOException {
+        Objects.requireNonNull(file, "file must not be null");
+        Objects.requireNonNull(metadata, "metadata must not be null");
         Writer writer = new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8);
         try {
-            write(runResult, writer);
+            write(runResult, writer, metadata);
         } finally {
             writer.close();
         }
@@ -32,28 +39,62 @@ public final class JUnitXmlReportWriter {
 
     public static void write(RunResult runResult, Writer writer) throws IOException {
         Objects.requireNonNull(writer, "writer must not be null");
-        writer.write(toXml(runResult));
+        write(runResult, writer, ReportMetadata.current());
+    }
+
+    public static void write(RunResult runResult, Writer writer, ReportMetadata metadata) throws IOException {
+        Objects.requireNonNull(writer, "writer must not be null");
+        writer.write(toXml(runResult, metadata));
     }
 
     public static String toXml(RunResult runResult) {
         Objects.requireNonNull(runResult, "runResult must not be null");
+        return toXml(runResult, ReportMetadata.current());
+    }
+
+    public static String toXml(RunResult runResult, ReportMetadata metadata) {
+        Objects.requireNonNull(runResult, "runResult must not be null");
+        Objects.requireNonNull(metadata, "metadata must not be null");
         StringBuilder builder = new StringBuilder();
-        appendRunResult(builder, runResult);
+        appendRunResult(builder, runResult, metadata);
         return builder.toString();
     }
 
-    private static void appendRunResult(StringBuilder builder, RunResult runResult) {
+    private static void appendRunResult(StringBuilder builder, RunResult runResult, ReportMetadata metadata) {
         builder.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
         builder.append("<testsuite name=\"javaspec\" tests=\"").append(runResult.totalCount())
                 .append("\" failures=\"").append(runResult.failedCount())
                 .append("\" errors=\"").append(runResult.brokenCount())
                 .append("\" skipped=\"").append(runResult.skippedOrPendingCount())
-                .append("\" time=\"0\">\n");
+                .append("\" timestamp=\"");
+        appendXmlAttribute(builder, metadata.timestamp());
+        builder.append("\" hostname=\"");
+        appendXmlAttribute(builder, metadata.hostname());
+        builder.append("\" time=\"");
+        appendXmlAttribute(builder, metadata.timeSeconds());
+        builder.append("\">\n");
+        appendProperties(builder, metadata.properties());
         List<ExampleResult> examples = runResult.exampleResults();
         for (int i = 0; i < examples.size(); i++) {
             appendTestCase(builder, examples.get(i));
         }
         builder.append("</testsuite>\n");
+    }
+
+    private static void appendProperties(StringBuilder builder, Map<String, String> properties) {
+        if (properties.isEmpty()) {
+            builder.append("  <properties/>\n");
+            return;
+        }
+        builder.append("  <properties>\n");
+        for (Map.Entry<String, String> entry : properties.entrySet()) {
+            builder.append("    <property name=\"");
+            appendXmlAttribute(builder, entry.getKey());
+            builder.append("\" value=\"");
+            appendXmlAttribute(builder, entry.getValue());
+            builder.append("\"/>\n");
+        }
+        builder.append("  </properties>\n");
     }
 
     private static void appendTestCase(StringBuilder builder, ExampleResult example) {

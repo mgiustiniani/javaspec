@@ -21,7 +21,12 @@ import java.util.Objects;
 import java.util.TreeMap;
 
 /**
- * Zero-dependency adapter around the JDK compiler API for CLI opt-in compilation.
+ * Zero-dependency adapter around the current JDK compiler API for opt-in source/spec compilation.
+ *
+ * <p>This compiler uses {@code javax.tools.JavaCompiler} from the runtime JDK. It does not
+ * resolve dependencies, fork {@code javac}, manage source/release levels, or maintain an
+ * incremental cache. Callers provide source roots, an output directory, and any explicit
+ * classpath entries they need for the compile.</p>
  */
 public final class SourceCompiler {
     private static final String JAVA_SUFFIX = ".java";

@@ -1389,3 +1389,177 @@ Acceptance criteria status:
 - Build-tool and JUnit Platform adapters continue to rely on their host build/runtime classpaths.
 - Compile failures stop before bootstrap/examples/reports, preserving deterministic failure boundaries.
 - Java 8 compatibility and zero-runtime-dependency policies remain intact.
+
+## Known-Limitations Resolution Program (Phases 30-36)
+
+**Relevant ADRs:** ADR 0023. [ADR 0023](docs/adr/0023-course-correction-resolve-deferred-known-limitations.md) records the course correction: the maintainer requires that the documented README known limitations be resolved, replacing the previous intentional scope fences from Phases 25, 27, 28, and 29 and the ADR 0009 sealed-interface update deferral with a phased resolution program.
+
+Program-wide gates, valid for every phase below:
+
+- Java 8 source/target compatibility remains a release gate (ADR 0001).
+- The core artifact keeps zero runtime dependencies (ADR 0002).
+- The repository stays non-multi-module: root `mvn verify` remains core-only and standalone adapters stay outside the root Maven reactor.
+- Public publishing, deploying, signing, and credential handling remain out of scope for every phase.
+- README, CHANGELOG, and ARC42 synchronization for the whole program happens in the finalization documentation phase after implementation, not per phase.
+
+### Excluded from the program
+
+Two known limitations are explicitly excluded from Phases 30-36, as recorded in ADR 0023:
+
+1. **Public publication remains postponed** — GPG signing keys, Central Portal credentials, Gradle Plugin Portal credentials, the final release version/tag, and final publish approval can only be supplied by the maintainer and are not resolvable by code.
+2. **Concrete-class doubles — now resolved by maintainer decision** — originally deferred because a bytecode-manipulation library in the core would violate the zero-runtime-dependency policy (ADR 0002, ADR 0007); ADR 0023 listed the candidate options (status quo, `javax.tools` runtime subclass generation, standalone optional bytecode adapter artifact) without choosing one. The maintainer has since selected the standalone optional bytecode adapter artifact (option c), recorded in [ADR 0024](docs/adr/0024-standalone-optional-bytecode-doubles-adapter.md) and planned as Phase 37.
+
+### Phase 30 — Bounded Iterable Matcher Checks (Completed)
+
+**Owner:** Java implementation, tester/quality, and documenter agents as delegated by the parent workflow.
+
+**Status:** Completed.
+
+**Relevant ADRs:** ADR 0023.
+
+Planned scope:
+
+1. Fix `org.javaspec.matcher.Matchable` so `shouldBeEmpty()` and `shouldNotBeEmpty()` on a generic `Iterable` use `iterator().hasNext()` instead of fully consuming the iterable.
+2. Fix `shouldHaveCount(int expected)` on a generic `Iterable` so it iterates at most `expected + 1` elements and fails fast with a "more than `<expected>` elements" style message when the bound is exceeded.
+3. Keep behavior unchanged for `CharSequence`, `Collection`, `Map`, and arrays, which already have constant-time or size-based checks.
+
+Acceptance criteria:
+
+- Infinite iterables never hang count/empty checks.
+- Existing matcher tests still pass.
+
+### Phase 31 — Sealed-Interface Source Updates (Completed)
+
+**Owner:** Java implementation, tester/quality, and documenter agents as delegated by the parent workflow.
+
+**Status:** Completed.
+
+**Relevant ADRs:** ADR 0023, ADR 0009. Phase 31 supersedes the deferral half of ADR 0009; the interface-style and annotation generation decisions in ADR 0009 remain in force.
+
+Planned scope:
+
+1. Implement source-preserving updates of existing sealed interfaces: insert generated method declarations into the sealed root and update nested permitted implementations with generated method bodies.
+2. Retain the Java 8-compatible text-based generation heuristics; no full Java parser is introduced.
+
+Acceptance criteria:
+
+- Previously skipped sealed-interface updates are written source-preservingly.
+- Java 8 text-based generation heuristics are retained.
+
+### Phase 32 — Configuration-Driven Extension Activation and Adapter Formatter Controls (Completed)
+
+**Owner:** Java implementation, tester/quality, and documenter agents as delegated by the parent workflow.
+
+**Status:** Completed.
+
+**Relevant ADRs:** ADR 0023, ADR 0018. Phase 32 relaxes the Phase 25 scope fence.
+
+Planned scope:
+
+1. Add configuration keys to activate discovered extensions/formatters from configuration.
+2. Add Maven plugin formatter output controls.
+3. Add JUnit Platform engine formatter configuration parameters.
+
+Acceptance criteria:
+
+- Formatter selection has parity across CLI, Maven, Gradle, and JUnit Platform.
+
+### Phase 33 — ServiceLoader Bootstrap Hook Discovery (Completed)
+
+**Owner:** Java implementation, tester/quality, and documenter agents as delegated by the parent workflow.
+
+**Status:** Completed.
+
+**Relevant ADRs:** ADR 0023, ADR 0020. Phase 33 relaxes the Phase 27 scope fence.
+
+Planned scope:
+
+1. Add optional `ServiceLoader` discovery of `org.javaspec.bootstrap.BootstrapHook` providers in addition to explicitly configured hooks.
+2. Preserve explicit config hook order first; discovered hooks execute afterward in a deterministic order.
+3. Add zero new dependencies.
+
+Acceptance criteria:
+
+- Explicitly configured hooks keep their order and run before discovered hooks.
+- Discovered hook execution is deterministic.
+- No new runtime dependencies are added.
+
+### Phase 34 — Adapter and Programmatic Opt-In Compilation (Completed)
+
+**Owner:** Java implementation, tester/quality, and documenter agents as delegated by the parent workflow.
+
+**Status:** Completed.
+
+**Relevant ADRs:** ADR 0023, ADR 0022. Phase 34 relaxes the Phase 29 CLI-only scope fence.
+
+Planned scope:
+
+1. Extend the Phase 29 `javax.tools` current-JDK opt-in compilation to `JavaspecInvocation`/`JavaspecLauncher` programmatic runs.
+2. Extend the same opt-in compilation to the Maven and Gradle adapters as explicit opt-in settings.
+3. Keep the Phase 29 boundaries: no dependency resolution, no forked `javac`, and no default compilation.
+
+Acceptance criteria:
+
+- Programmatic, Maven, and Gradle runs can explicitly opt into current-JDK compilation.
+- Default behavior of all execution paths remains unchanged without the explicit opt-in.
+
+### Phase 35 — Additive Report Enrichment (Completed)
+
+**Owner:** Java implementation, tester/quality, and documenter agents as delegated by the parent workflow.
+
+**Status:** Completed.
+
+**Relevant ADRs:** ADR 0023, ADR 0010. Phase 35 keeps reporting additive and dependency-free.
+
+Planned scope:
+
+1. Enrich the dependency-free JUnit XML-compatible writer with `timestamp`, `hostname`, and `time` attributes plus a properties block.
+2. Add additive JSON report fields while remaining schemaVersion 1-compatible.
+3. Update `docs/schemas/run-report-v1.schema.json` additively and the golden reports under `docs/examples/reports/`.
+
+Acceptance criteria:
+
+- JSON reports remain schemaVersion 1-compatible with only additive fields.
+- The JUnit XML-compatible writer remains dependency-free.
+- Schema and golden-report documentation stay synchronized with the writers.
+
+### Phase 36 — Deeper Target-Profile Enforcement (Completed)
+
+**Owner:** Java implementation, tester/quality, and documenter agents as delegated by the parent workflow.
+
+**Status:** Completed.
+
+**Relevant ADRs:** ADR 0023, ADR 0019.
+
+Planned scope:
+
+1. Broaden the profile catalog coverage used by enforcement.
+2. Broaden enforcement signature resolution.
+3. Remain source/generation-scoped: enforcement is explicitly NOT an integrated compiler.
+
+Acceptance criteria:
+
+- More incompatible generation/update work is caught before writes.
+- Enforcement remains conservative and explicit about its non-compiler-grade boundary.
+
+### Phase 37 — Standalone Optional Bytecode Doubles Adapter (Completed)
+
+**Owner:** Java implementation, tester/quality, and documenter agents as delegated by the parent workflow.
+
+**Status:** Completed.
+
+**Relevant ADRs:** ADR 0024, ADR 0007, ADR 0021, ADR 0002, ADR 0011. [ADR 0024](docs/adr/0024-standalone-optional-bytecode-doubles-adapter.md) records the maintainer decision (option c) that resolves exclusion (b) of ADR 0023.
+
+Planned scope:
+
+1. Core: add a zero-dependency doubles provider SPI in `org.javaspec.doubles` — interface-only contracts, `ServiceLoader`-discoverable, no behavior change when no provider is present.
+2. New standalone artifact `javaspec-bytecode-doubles/` outside the root Maven reactor with ByteBuddy-based concrete-class double support for non-final classes, delegating matcher/stub/answer semantics to the existing core double contracts.
+3. Extend `scripts/verify-all.sh` and the CI aggregate verification to the new artifact.
+4. Examples and documentation are deferred to the finalization documentation phase.
+
+Acceptance criteria:
+
+- Root `mvn verify` stays green and the core runtime dependency tree is unchanged (enforcer passes).
+- The new artifact builds and tests standalone after a core snapshot install.
+- Interface doubles behavior is unchanged when the adapter is absent.
+- Final-class, static, and constructor mocking are explicitly rejected with clear diagnostics.

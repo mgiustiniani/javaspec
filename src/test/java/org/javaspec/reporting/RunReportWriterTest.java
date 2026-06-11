@@ -9,18 +9,33 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class RunReportWriterTest {
+    private static final String TIMESTAMP = "2026-06-11T12:34:56Z";
+    private static final String HOSTNAME = "ci-host";
+    private static final ReportMetadata METADATA = ReportMetadata.of(TIMESTAMP, HOSTNAME, 1234L);
+
     @Test
-    public void emptyRunResultJsonIncludesSchemaZeroSummaryAndEmptySpecs() {
-        String json = RunReportWriter.toJson(RunResult.of(Collections.<SpecResult>emptyList()));
+    public void emptyRunResultJsonIncludesSchemaMetadataZeroSummaryAndEmptySpecs() {
+        String json = RunReportWriter.toJson(RunResult.of(Collections.<SpecResult>emptyList()), METADATA);
 
         assertEquals(
                 "{\n" +
                         "  \"schemaVersion\": 1,\n" +
+                        "  \"metadata\": {\n" +
+                        "    \"timestamp\": \"2026-06-11T12:34:56Z\",\n" +
+                        "    \"hostname\": \"ci-host\",\n" +
+                        "    \"time\": 1.234,\n" +
+                        "    \"properties\": {\n" +
+                        "      \"javaspec.report.schemaVersion\": \"1\",\n" +
+                        "      \"javaspec.report.tool\": \"javaspec\"\n" +
+                        "    }\n" +
+                        "  },\n" +
                         "  \"summary\": {\n" +
                         "    \"total\": 0,\n" +
                         "    \"passed\": 0,\n" +
@@ -54,9 +69,17 @@ public class RunReportWriterTest {
 
         String json = RunReportWriter.toJson(RunResult.of(Collections.singletonList(
                 SpecResult.of(specName, sourceFile, Collections.singletonList(passed))
-        )));
+        )), METADATA);
 
         assertContains(json, "\"schemaVersion\": 1");
+        assertContains(json, "\"metadata\": {");
+        assertContains(json, "\"summary\": {\n    \"total\": 1");
+        assertContains(json, "\"passed\": 1");
+        assertContains(json, "\"failed\": 0");
+        assertContains(json, "\"broken\": 0");
+        assertContains(json, "\"skipped\": 0");
+        assertContains(json, "\"pending\": 0");
+        assertContains(json, "\"successful\": true");
         assertContains(json, "\"name\": \"spec.example.MetadataSpec\"");
         assertContains(json, "\"id\": \"spec.example.MetadataSpec\"");
         assertContains(json, "\"stableId\": \"spec.example.MetadataSpec\"");
@@ -73,6 +96,35 @@ public class RunReportWriterTest {
         assertContains(json, "\"line\": 42");
         assertContains(json, "\"status\": \"PASSED\"");
         assertContains(json, "\"failure\": null");
+    }
+
+    @Test
+    public void metadataStringsAndPropertiesAreEscapedInJson() {
+        String emoji = "\uD83D\uDE00";
+        Map<String, String> properties = new LinkedHashMap<String, String>();
+        properties.put(
+                "prop\"name\\path\ncontrol" + '\u0001' + emoji,
+                "value\treturn\rcontrol" + '\u0002' + " emoji " + emoji
+        );
+        ReportMetadata metadata = ReportMetadata.of(
+                "2026-06-11T12:34:56Z \"quote\" \\slash\ncontrol " + '\u0003' + " emoji " + emoji,
+                "host\"name\\path\tcontrol" + '\u0004' + " emoji " + emoji,
+                1500L,
+                properties
+        );
+
+        String json = RunReportWriter.toJson(RunResult.of(Collections.<SpecResult>emptyList()), metadata);
+
+        assertContains(json, "\"timestamp\": \"2026-06-11T12:34:56Z \\\"quote\\\" \\\\slash\\ncontrol \\u0003 emoji \\ud83d\\ude00\"");
+        assertContains(json, "\"hostname\": \"host\\\"name\\\\path\\tcontrol\\u0004 emoji \\ud83d\\ude00\"");
+        assertContains(json, "\"time\": 1.5");
+        assertContains(json, "\"prop\\\"name\\\\path\\ncontrol\\u0001\\ud83d\\ude00\": \"value\\treturn\\rcontrol\\u0002 emoji \\ud83d\\ude00\"");
+        assertEquals(-1, json.indexOf('\u0001'));
+        assertEquals(-1, json.indexOf('\u0002'));
+        assertEquals(-1, json.indexOf('\u0003'));
+        assertEquals(-1, json.indexOf('\u0004'));
+        assertEquals(-1, json.indexOf('\uD83D'));
+        assertEquals(-1, json.indexOf('\uDE00'));
     }
 
     @Test
@@ -99,7 +151,7 @@ public class RunReportWriterTest {
 
         String json = RunReportWriter.toJson(RunResult.of(Collections.singletonList(
                 SpecResult.of(specName, Arrays.asList(skipped, pending))
-        )));
+        )), METADATA);
 
         assertContains(json, "\"summary\": {\n    \"total\": 2");
         assertContains(json, "\"passed\": 0");
@@ -149,9 +201,10 @@ public class RunReportWriterTest {
 
         String json = RunReportWriter.toJson(RunResult.of(Collections.singletonList(
                 SpecResult.of(specName, Arrays.asList(failed, brokenResult))
-        )));
+        )), METADATA);
 
         assertContains(json, "\"schemaVersion\": 1");
+        assertContains(json, "\"metadata\": {");
         assertContains(json, "\"total\": 2");
         assertContains(json, "\"passed\": 0");
         assertContains(json, "\"failed\": 1");

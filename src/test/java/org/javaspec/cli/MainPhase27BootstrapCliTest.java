@@ -109,8 +109,8 @@ public class MainPhase27BootstrapCliTest {
         assertTrue(BootstrapEventLog.events().isEmpty());
         assertTrue(requestedJsonReport.isFile());
         assertTrue(configuredJunitXmlReport.isFile());
-        assertEquals(emptyReportJson(), readFile(requestedJsonReport));
-        assertEquals(emptyJUnitXml(), readFile(configuredJunitXmlReport));
+        assertEmptyReportJson(readFile(requestedJsonReport));
+        assertEmptyJUnitXml(readFile(configuredJunitXmlReport));
     }
 
     @Test
@@ -211,26 +211,32 @@ public class MainPhase27BootstrapCliTest {
         return new File(System.getProperty("user.dir"), "src/test/java");
     }
 
-    private static String emptyReportJson() {
-        return "{\n" +
-                "  \"schemaVersion\": 1,\n" +
-                "  \"summary\": {\n" +
-                "    \"total\": 0,\n" +
-                "    \"passed\": 0,\n" +
-                "    \"failed\": 0,\n" +
-                "    \"broken\": 0,\n" +
-                "    \"skipped\": 0,\n" +
-                "    \"pending\": 0,\n" +
-                "    \"successful\": true\n" +
-                "  },\n" +
-                "  \"specs\": []\n" +
-                "}\n";
+    private static void assertEmptyReportJson(String json) {
+        assertContains(json, "\"schemaVersion\": 1");
+        assertContains(json, "\"metadata\": {");
+        assertContains(json, "\"timestamp\": \"");
+        assertContains(json, "\"hostname\": \"");
+        assertContains(json, "\"time\": 0");
+        assertContains(json, "\"javaspec.report.schemaVersion\": \"1\"");
+        assertContains(json, "\"javaspec.report.tool\": \"javaspec\"");
+        assertContains(json, "\"summary\": {\n    \"total\": 0");
+        assertContains(json, "\"passed\": 0");
+        assertContains(json, "\"failed\": 0");
+        assertContains(json, "\"broken\": 0");
+        assertContains(json, "\"skipped\": 0");
+        assertContains(json, "\"pending\": 0");
+        assertContains(json, "\"successful\": true");
+        assertContains(json, "\"specs\": []");
     }
 
-    private static String emptyJUnitXml() {
-        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-                "<testsuite name=\"javaspec\" tests=\"0\" failures=\"0\" errors=\"0\" skipped=\"0\" time=\"0\">\n" +
-                "</testsuite>\n";
+    private static void assertEmptyJUnitXml(String xml) {
+        assertContains(xml, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+        assertContains(xml, "<testsuite name=\"javaspec\" tests=\"0\" failures=\"0\" errors=\"0\" skipped=\"0\" timestamp=\"");
+        assertContains(xml, "\" hostname=\"");
+        assertContains(xml, "\" time=\"0\">\n  <properties>\n");
+        assertContains(xml, "    <property name=\"javaspec.report.schemaVersion\" value=\"1\"/>\n");
+        assertContains(xml, "    <property name=\"javaspec.report.tool\" value=\"javaspec\"/>\n");
+        assertContains(xml, "  </properties>\n</testsuite>\n");
     }
 
     private static CommandResult run(String... args) {

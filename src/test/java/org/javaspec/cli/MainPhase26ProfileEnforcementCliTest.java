@@ -179,6 +179,51 @@ public class MainPhase26ProfileEnforcementCliTest {
     }
 
     @Test
+    public void runGenerateWithJava8ProfileRejectsPostProfileRelationshipTypesBeforeWritingReports() throws Exception {
+        File specRoot = temporaryFolder.newFolder("phase36-relationship-spec-root");
+        File sourceRoot = temporaryFolder.newFolder("phase36-relationship-source-root");
+        File jsonReport = new File(temporaryFolder.getRoot(), "phase36-relationship-report.json");
+        File junitXmlReport = new File(temporaryFolder.getRoot(), "phase36-relationship-junit.xml");
+        writeSpec(
+                specRoot,
+                "spec.com.example.HttpProfileSpec",
+                "    public void it_declares_post_profile_relationships() {\n" +
+                "        shouldExtend(java.net.http.HttpRequest.class);\n" +
+                "        shouldImplement(java.net.http.HttpClient.class);\n" +
+                "    }\n"
+        );
+        File targetFile = sourceFileFor(sourceRoot, "com.example.HttpProfile");
+        File supportFile = sourceFileFor(specRoot, "spec.com.example.HttpProfileSpecSupport");
+
+        CommandResult result = run(
+                "run",
+                "--spec-dir", specRoot.getAbsolutePath(),
+                "--source-dir", sourceRoot.getAbsolutePath(),
+                "--profile", "java8",
+                "--generate",
+                "--report", jsonReport.getAbsolutePath(),
+                "--junit-xml", junitXmlReport.getAbsolutePath()
+        );
+
+        assertEquals(64, result.exitCode);
+        assertContains(result.out, "Found 1 specification(s) in " + specRoot.getAbsolutePath() + ".");
+        assertContains(result.err, "Profile compatibility error");
+        assertContains(result.err, "java.net.http.HttpRequest requires Java 11");
+        assertContains(result.err, "Selected profile: java8 (Java 8)");
+        assertContains(result.err, "Spec/type: spec.com.example.HttpProfileSpec -> com.example.HttpProfile");
+        assertContains(result.err, "super type: java.net.http.HttpRequest requires Java 11");
+        assertContains(result.err, "implemented type 1: java.net.http.HttpClient requires Java 11");
+        assertFalse(result.out.contains("Generated class skeleton"));
+        assertFalse(result.out.contains("Updated specification support"));
+        assertFalse(targetFile.exists());
+        assertFalse(supportFile.exists());
+        assertFalse(jsonReport.exists());
+        assertFalse(junitXmlReport.exists());
+        assertEquals(0, countFiles(sourceRoot));
+        assertEquals(1, countFiles(specRoot));
+    }
+
+    @Test
     public void describeWithConfiguredProfileStillGeneratesSpecificationOnly() throws Exception {
         File specRoot = temporaryFolder.newFolder("describe-config-profile-spec-root");
         File sourceRoot = temporaryFolder.newFolder("describe-config-profile-source-root");

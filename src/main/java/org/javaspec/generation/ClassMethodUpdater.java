@@ -19,6 +19,12 @@ import java.util.regex.Pattern;
 
 /**
  * Inserts missing public method skeletons into existing class-like source without rewriting the body.
+ *
+ * <p>For sealed interfaces, missing non-static method declarations are inserted into the sealed
+ * root body, and missing method implementations are inserted into nested permitted implementations
+ * declared in the same source file. Permitted types declared in other source files are
+ * deliberately left untouched: the updater deterministically modifies only the sealed root and its
+ * in-file nested permitted implementations.</p>
  */
 public final class ClassMethodUpdater {
     private static final Pattern METHOD_SIGNATURE_PATTERN = Pattern.compile(
@@ -28,6 +34,10 @@ public final class ClassMethodUpdater {
             "([A-Za-z_$][A-Za-z0-9_$.<>?\\[\\]]*(?:\\s*\\[\\])?)\\s+" +
             "([A-Za-z_$][A-Za-z0-9_$]*)\\s*\\(([^)]*)\\)"
     );
+    private static final Pattern NESTED_TYPE_PATTERN = Pattern.compile(
+            "\\b(class|interface|enum|record)\\s+([A-Za-z_$][A-Za-z0-9_$]*)\\b"
+    );
+    private static final Pattern PERMITS_KEYWORD_PATTERN = Pattern.compile("\\bpermits\\b");
     private ClassMethodUpdater() {
     }
 
@@ -37,6 +47,9 @@ public final class ClassMethodUpdater {
 
         if (!describedType.hasMethods()) {
             return existingSource;
+        }
+        if (JavaTypeKind.SEALED_INTERFACE.equals(describedType.kind())) {
+            return updateSealedInterfaceSource(existingSource, describedType);
         }
 
         List<MethodDescriptor> missingMethods = missingMethods(existingSource, describedType);
@@ -54,28 +67,15 @@ public final class ClassMethodUpdater {
         if (insertion.length() == 0) {
             return existingSource;
         }
-        String prefix = existingSource.substring(0, closingBrace);
-        String suffix = existingSource.substring(closingBrace);
-
-        StringBuilder builder = new StringBuilder();
-        builder.append(prefix);
-        if (!prefix.endsWith("\n")) {
-            builder.append("\n");
-        }
-        if (!endsWithBlankLine(builder)) {
-            builder.append("\n");
-        }
-        builder.append(insertion);
-        if (!insertion.endsWith("\n")) {
-            builder.append("\n");
-        }
-        builder.append(suffix);
-        return builder.toString();
+        return insertBeforeClosingBrace(existingSource, closingBrace, insertion);
     }
 
     public static boolean hasMissingMethods(String existingSource, DescribedType describedType) {
         Objects.requireNonNull(existingSource, "existingSource must not be null");
         Objects.requireNonNull(describedType, "describedType must not be null");
+        if (JavaTypeKind.SEALED_INTERFACE.equals(describedType.kind())) {
+            return !updateSealedInterfaceSource(existingSource, describedType).equals(existingSource);
+        }
         return !missingMethods(existingSource, describedType).isEmpty();
     }
 
@@ -89,6 +89,207 @@ public final class ClassMethodUpdater {
             Files.write(classFile.toPath(), updatedSource.getBytes(StandardCharsets.UTF_8));
         }
         return updatedSource;
+    }
+
+    /**
+     * Inserts missing sealed-interface members source-preservingly.
+     *
+     * <p>Missing non-static method declarations are inserted into the sealed root body. Nested
+     * permitted implementations declared inside the same source file (nested types named in the
+     * root {@code permits} clause, named by the described permitted types, or the generated
+     * default nested {@code Permitted} implementation) receive missing method implementations
+     * with Java default returns; permitted entries that are themselves nested interfaces receive
+     * method declarations instead. Permitted types declared in other source files are out of
+     * scope and deliberately left untouched.</p>
+     */
+    private static String updateSealedInterfaceSource(String existingSource, DescribedType describedType) {
+        List<MethodDescriptor> methods = interfaceMethods(describedType);
+        if (methods.isEmpty()) {
+            return existingSource;
+        }
+        String masked = maskNonCode(existingSource);
+        int rootOpenBrace = findPrimaryTypeOpenBrace(masked, describedType.simpleName());
+        if (rootOpenBrace < 0) {
+            return existingSource;
+        }
+        int rootClosingBrace = findMatchingBraceInMasked(masked, rootOpenBrace);
+        if (rootClosingBrace < 0) {
+            return existingSource;
+        }
+        List<NestedTypeRegion> nestedRegions = nestedTypeRegions(masked, rootOpenBrace, rootClosingBrace);
+        Set<String> permittedNames = permittedSimpleNames(masked, describedType);
+
+        String result = existingSource;
+
+        // The root closing brace is the highest insertion offset, so it is applied first; nested
+        // regions are then applied from last to first so earlier offsets stay valid.
+        List<MethodDescriptor> rootMissing = missingMethodsInScope(
+                rootScopeText(masked, rootOpenBrace, rootClosingBrace, nestedRegions), methods);
+        if (!rootMissing.isEmpty()) {
+            String indent = indentationBefore(existingSource, rootClosingBrace) + "    ";
+            String insertion = renderInterfaceDeclarations(rootMissing, describedType, indent);
+            result = insertBeforeClosingBraceKeepingIndent(result, rootClosingBrace, insertion);
+        }
+        for (int i = nestedRegions.size() - 1; i >= 0; i--) {
+            NestedTypeRegion region = nestedRegions.get(i);
+            if (!permittedNames.contains(region.simpleName)) {
+                continue;
+            }
+            List<MethodDescriptor> nestedMissing = missingMethodsInScope(
+                    masked.substring(region.openBrace + 1, region.closingBrace), methods);
+            if (nestedMissing.isEmpty()) {
+                continue;
+            }
+            String indent = indentationBefore(existingSource, region.closingBrace) + "    ";
+            String insertion = "interface".equals(region.keyword)
+                    ? renderInterfaceDeclarations(nestedMissing, describedType, indent)
+                    : renderMethods(nestedMissing, describedType, indent);
+            result = insertBeforeClosingBraceKeepingIndent(result, region.closingBrace, insertion);
+        }
+        return result;
+    }
+
+    /**
+     * Inserts before a closing brace while keeping the brace's indentation, both when the brace
+     * sits on its own indented line and when it closes a single-line {@code { }} body.
+     */
+    private static String insertBeforeClosingBraceKeepingIndent(String source, int closingBrace, String insertion) {
+        int cutPosition = insertionCutPosition(source, closingBrace);
+        String closingIndent = cutPosition == closingBrace ? indentationBefore(source, closingBrace) : "";
+        return insertBeforeClosingBrace(source, cutPosition, insertion, closingIndent);
+    }
+
+    /**
+     * Finds nested type declarations placed directly inside the sealed root body.
+     */
+    private static List<NestedTypeRegion> nestedTypeRegions(String masked, int rootOpenBrace, int rootClosingBrace) {
+        List<NestedTypeRegion> regions = new ArrayList<NestedTypeRegion>();
+        Matcher matcher = NESTED_TYPE_PATTERN.matcher(masked);
+        matcher.region(rootOpenBrace + 1, rootClosingBrace);
+        while (matcher.find()) {
+            if (braceDepthBetween(masked, rootOpenBrace + 1, matcher.start()) != 0) {
+                continue;
+            }
+            int openBrace = masked.indexOf('{', matcher.end());
+            if (openBrace < 0 || openBrace >= rootClosingBrace) {
+                continue;
+            }
+            int closingBrace = findMatchingBraceInMasked(masked, openBrace);
+            if (closingBrace < 0 || closingBrace >= rootClosingBrace) {
+                continue;
+            }
+            regions.add(new NestedTypeRegion(matcher.group(1), matcher.group(2), matcher.start(), openBrace, closingBrace));
+        }
+        return regions;
+    }
+
+    private static int braceDepthBetween(String masked, int start, int end) {
+        int depth = 0;
+        for (int i = start; i < end; i++) {
+            char c = masked.charAt(i);
+            if (c == '{') {
+                depth++;
+            } else if (c == '}') {
+                depth--;
+            }
+        }
+        return depth;
+    }
+
+    /**
+     * Returns the masked sealed root body with nested type declarations blanked out, so that
+     * signature de-duplication for the root scope ignores nested implementation members.
+     */
+    private static String rootScopeText(String masked, int rootOpenBrace, int rootClosingBrace, List<NestedTypeRegion> nestedRegions) {
+        char[] scope = masked.substring(rootOpenBrace + 1, rootClosingBrace).toCharArray();
+        for (int r = 0; r < nestedRegions.size(); r++) {
+            NestedTypeRegion region = nestedRegions.get(r);
+            int from = Math.max(0, region.declarationStart - rootOpenBrace - 1);
+            int to = Math.min(scope.length, region.closingBrace + 1 - rootOpenBrace - 1);
+            for (int i = from; i < to; i++) {
+                scope[i] = blankedChar(scope[i]);
+            }
+        }
+        return new String(scope);
+    }
+
+    /**
+     * Collects the simple names of permitted implementations targeted for in-file updates: names
+     * from the source {@code permits} clause, names from the described permitted types, and the
+     * generated default nested {@code Permitted} implementation name.
+     */
+    private static Set<String> permittedSimpleNames(String masked, DescribedType describedType) {
+        Set<String> names = new LinkedHashSet<String>();
+        Matcher headerMatcher = primaryTypePattern(describedType.simpleName()).matcher(masked);
+        if (headerMatcher.find()) {
+            String header = headerMatcher.group();
+            Matcher permitsMatcher = PERMITS_KEYWORD_PATTERN.matcher(header);
+            if (permitsMatcher.find()) {
+                String clause = header.substring(permitsMatcher.end(), header.length() - 1);
+                String[] entries = clause.split(",");
+                for (int i = 0; i < entries.length; i++) {
+                    String entry = entries[i].trim();
+                    if (entry.length() > 0) {
+                        names.add(simpleNameOf(entry));
+                    }
+                }
+            }
+        }
+        List<String> permittedTypeNames = describedType.permittedTypeNames();
+        for (int i = 0; i < permittedTypeNames.size(); i++) {
+            names.add(simpleNameOf(permittedTypeNames.get(i)));
+        }
+        names.add("Permitted");
+        return names;
+    }
+
+    private static String simpleNameOf(String typeName) {
+        String trimmed = typeName.trim();
+        int lastDot = trimmed.lastIndexOf('.');
+        if (lastDot < 0) {
+            return trimmed;
+        }
+        return trimmed.substring(lastDot + 1);
+    }
+
+    /**
+     * Moves the insertion cut to the start of the closing-brace line when the brace is preceded
+     * only by indentation, so indented nested closing braces keep their indentation.
+     */
+    private static int insertionCutPosition(String source, int closingBrace) {
+        int index = closingBrace - 1;
+        while (index >= 0 && (source.charAt(index) == ' ' || source.charAt(index) == '\t')) {
+            index--;
+        }
+        if (index >= 0 && source.charAt(index) == '\n') {
+            return index + 1;
+        }
+        return closingBrace;
+    }
+
+    private static String insertBeforeClosingBrace(String source, int cutPosition, String insertion) {
+        return insertBeforeClosingBrace(source, cutPosition, insertion, "");
+    }
+
+    private static String insertBeforeClosingBrace(String source, int cutPosition, String insertion, String closingIndent) {
+        String prefix = source.substring(0, cutPosition);
+        String suffix = source.substring(cutPosition);
+
+        StringBuilder builder = new StringBuilder();
+        builder.append(prefix);
+        if (!prefix.endsWith("\n")) {
+            builder.append("\n");
+        }
+        if (!endsWithBlankLine(builder)) {
+            builder.append("\n");
+        }
+        builder.append(insertion);
+        if (!insertion.endsWith("\n")) {
+            builder.append("\n");
+        }
+        builder.append(closingIndent);
+        builder.append(suffix);
+        return builder.toString();
     }
 
     private static boolean supportsMethodBodies(JavaTypeKind kind) {
@@ -108,10 +309,13 @@ public final class ClassMethodUpdater {
     }
 
     private static List<MethodDescriptor> missingMethods(String source, DescribedType describedType) {
-        Set<String> existingSignatures = existingMethodSignatures(source);
+        return missingMethodsInScope(source, eligibleMethods(describedType));
+    }
+
+    private static List<MethodDescriptor> missingMethodsInScope(String scopeSource, List<MethodDescriptor> methods) {
+        Set<String> existingSignatures = existingMethodSignatures(scopeSource);
         List<MethodDescriptor> missing = new ArrayList<MethodDescriptor>();
         Set<String> plannedSignatures = new LinkedHashSet<String>();
-        List<MethodDescriptor> methods = eligibleMethods(describedType);
         for (int i = 0; i < methods.size(); i++) {
             MethodDescriptor method = methods.get(i);
             String key = signatureKey(method.methodName(), method.parameterTypes());
@@ -413,68 +617,33 @@ public final class ClassMethodUpdater {
     }
 
     private static int findPrimaryTypeClosingBrace(String source, String simpleName) {
-        Pattern pattern = Pattern.compile("\\b(?:class|interface|enum|record)\\s+" + Pattern.quote(simpleName) + "\\b[^\\{]*\\{", Pattern.DOTALL);
-        Matcher matcher = pattern.matcher(source);
-        if (!matcher.find()) {
+        int openBrace = findPrimaryTypeOpenBrace(source, simpleName);
+        if (openBrace < 0) {
             return -1;
         }
-        int openBrace = matcher.end() - 1;
         return findMatchingBrace(source, openBrace);
     }
 
-    private static int findMatchingBrace(String source, int openBrace) {
-        int depth = 0;
-        boolean inString = false;
-        boolean inChar = false;
-        boolean inLineComment = false;
-        boolean inBlockComment = false;
-        boolean escaped = false;
-        for (int i = openBrace; i < source.length(); i++) {
-            char c = source.charAt(i);
-            char next = i + 1 < source.length() ? source.charAt(i + 1) : '\0';
+    private static int findPrimaryTypeOpenBrace(String source, String simpleName) {
+        Matcher matcher = primaryTypePattern(simpleName).matcher(source);
+        if (!matcher.find()) {
+            return -1;
+        }
+        return matcher.end() - 1;
+    }
 
-            if (inLineComment) {
-                if (c == '\n') {
-                    inLineComment = false;
-                }
-                continue;
-            }
-            if (inBlockComment) {
-                if (c == '*' && next == '/') {
-                    inBlockComment = false;
-                    i++;
-                }
-                continue;
-            }
-            if (escaped) {
-                escaped = false;
-                continue;
-            }
-            if ((inString || inChar) && c == '\\') {
-                escaped = true;
-                continue;
-            }
-            if (!inString && !inChar && c == '/' && next == '/') {
-                inLineComment = true;
-                i++;
-                continue;
-            }
-            if (!inString && !inChar && c == '/' && next == '*') {
-                inBlockComment = true;
-                i++;
-                continue;
-            }
-            if (!inChar && c == '"') {
-                inString = !inString;
-                continue;
-            }
-            if (!inString && c == '\'') {
-                inChar = !inChar;
-                continue;
-            }
-            if (inString || inChar) {
-                continue;
-            }
+    private static Pattern primaryTypePattern(String simpleName) {
+        return Pattern.compile("\\b(?:class|interface|enum|record)\\s+" + Pattern.quote(simpleName) + "\\b[^\\{]*\\{", Pattern.DOTALL);
+    }
+
+    private static int findMatchingBrace(String source, int openBrace) {
+        return findMatchingBraceInMasked(maskNonCode(source), openBrace);
+    }
+
+    private static int findMatchingBraceInMasked(String masked, int openBrace) {
+        int depth = 0;
+        for (int i = openBrace; i < masked.length(); i++) {
+            char c = masked.charAt(i);
             if (c == '{') {
                 depth++;
             } else if (c == '}') {
@@ -485,6 +654,86 @@ public final class ClassMethodUpdater {
             }
         }
         return -1;
+    }
+
+    /**
+     * Returns a copy of the source where comments, string literals, and char literals are blanked
+     * with spaces while offsets and line breaks are preserved, so that structural scanning can
+     * tolerate braces and keywords inside non-code text.
+     */
+    private static String maskNonCode(String source) {
+        char[] chars = source.toCharArray();
+        boolean inString = false;
+        boolean inChar = false;
+        boolean inLineComment = false;
+        boolean inBlockComment = false;
+        boolean escaped = false;
+        for (int i = 0; i < chars.length; i++) {
+            char c = chars[i];
+            char next = i + 1 < chars.length ? chars[i + 1] : '\0';
+
+            if (inLineComment) {
+                if (c == '\n') {
+                    inLineComment = false;
+                } else {
+                    chars[i] = blankedChar(c);
+                }
+                continue;
+            }
+            if (inBlockComment) {
+                if (c == '*' && next == '/') {
+                    inBlockComment = false;
+                    chars[i] = ' ';
+                    chars[i + 1] = ' ';
+                    i++;
+                } else {
+                    chars[i] = blankedChar(c);
+                }
+                continue;
+            }
+            if (escaped) {
+                chars[i] = ' ';
+                escaped = false;
+                continue;
+            }
+            if ((inString || inChar) && c == '\\') {
+                chars[i] = ' ';
+                escaped = true;
+                continue;
+            }
+            if (!inString && !inChar && c == '/' && next == '/') {
+                inLineComment = true;
+                chars[i] = ' ';
+                chars[i + 1] = ' ';
+                i++;
+                continue;
+            }
+            if (!inString && !inChar && c == '/' && next == '*') {
+                inBlockComment = true;
+                chars[i] = ' ';
+                chars[i + 1] = ' ';
+                i++;
+                continue;
+            }
+            if (!inChar && c == '"') {
+                inString = !inString;
+                chars[i] = ' ';
+                continue;
+            }
+            if (!inString && c == '\'') {
+                inChar = !inChar;
+                chars[i] = ' ';
+                continue;
+            }
+            if (inString || inChar) {
+                chars[i] = blankedChar(c);
+            }
+        }
+        return new String(chars);
+    }
+
+    private static char blankedChar(char c) {
+        return c == '\n' || c == '\r' ? c : ' ';
     }
 
     private static String indentationBefore(String source, int position) {
@@ -708,5 +957,24 @@ public final class ClassMethodUpdater {
             return typeName.substring(packageName.length() + 1);
         }
         return typeName;
+    }
+
+    /**
+     * Region of a nested type declaration found inside the sealed root body.
+     */
+    private static final class NestedTypeRegion {
+        private final String keyword;
+        private final String simpleName;
+        private final int declarationStart;
+        private final int openBrace;
+        private final int closingBrace;
+
+        private NestedTypeRegion(String keyword, String simpleName, int declarationStart, int openBrace, int closingBrace) {
+            this.keyword = keyword;
+            this.simpleName = simpleName;
+            this.declarationStart = declarationStart;
+            this.openBrace = openBrace;
+            this.closingBrace = closingBrace;
+        }
     }
 }

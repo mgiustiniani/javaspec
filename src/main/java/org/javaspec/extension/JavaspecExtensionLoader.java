@@ -5,6 +5,7 @@ import org.javaspec.formatter.RunFormatterRegistry;
 
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Objects;
 import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
@@ -29,12 +30,50 @@ public final class JavaspecExtensionLoader {
         return registry;
     }
 
+    /**
+     * Loads the run formatter registry and then activates the configured extensions.
+     *
+     * <p>Activation order is deterministic: built-in formatters first, ServiceLoader-discovered
+     * providers next, then the configured extension class names in list order (duplicates
+     * preserved). All configured classes are loaded from the effective classloader (the supplied
+     * classloader, or the default classloader when {@code null} is supplied), which is the same
+     * classloader used for ServiceLoader discovery, so the configured extensions act on the same
+     * registry instance later used for formatter selection.</p>
+     *
+     * @param classLoader                 classloader for discovery and configured extension
+     *                                    loading; {@code null} selects the default classloader
+     * @param configuredExtensionClassNames ordered list of fully qualified
+     *                                    {@link JavaspecExtension}/{@link Extension}
+     *                                    implementation class names; {@code null} or empty
+     *                                    leaves the registry unchanged
+     * @return the registry with built-in, discovered, and configured contributions applied
+     * @throws ExtensionLoadingException when discovery or configured extension activation fails
+     */
+    public static RunFormatterRegistry loadRunFormatterRegistry(
+            ClassLoader classLoader,
+            List<String> configuredExtensionClassNames
+    ) {
+        ClassLoader effectiveClassLoader = effectiveClassLoader(classLoader);
+        RunFormatterRegistry registry = loadRunFormatterRegistry(effectiveClassLoader);
+        if (configuredExtensionClassNames != null && !configuredExtensionClassNames.isEmpty()) {
+            JavaspecExtensionActivator.activate(configuredExtensionClassNames, effectiveClassLoader, registry);
+        }
+        return registry;
+    }
+
     public static RunFormatterRegistry loadRunFormatters() {
         return loadRunFormatterRegistry();
     }
 
     public static RunFormatterRegistry loadRunFormatters(ClassLoader classLoader) {
         return loadRunFormatterRegistry(classLoader);
+    }
+
+    public static RunFormatterRegistry loadRunFormatters(
+            ClassLoader classLoader,
+            List<String> configuredExtensionClassNames
+    ) {
+        return loadRunFormatterRegistry(classLoader, configuredExtensionClassNames);
     }
 
     private static void loadRunFormatterProviders(RunFormatterRegistry registry, ClassLoader classLoader) {

@@ -12,6 +12,7 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -25,9 +26,15 @@ public final class RunReportWriter {
 
     public static void write(RunResult runResult, File file) throws IOException {
         Objects.requireNonNull(file, "file must not be null");
+        write(runResult, file, ReportMetadata.current());
+    }
+
+    public static void write(RunResult runResult, File file, ReportMetadata metadata) throws IOException {
+        Objects.requireNonNull(file, "file must not be null");
+        Objects.requireNonNull(metadata, "metadata must not be null");
         Writer writer = new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8);
         try {
-            write(runResult, writer);
+            write(runResult, writer, metadata);
         } finally {
             writer.close();
         }
@@ -35,19 +42,33 @@ public final class RunReportWriter {
 
     public static void write(RunResult runResult, Writer writer) throws IOException {
         Objects.requireNonNull(writer, "writer must not be null");
-        writer.write(toJson(runResult));
+        write(runResult, writer, ReportMetadata.current());
+    }
+
+    public static void write(RunResult runResult, Writer writer, ReportMetadata metadata) throws IOException {
+        Objects.requireNonNull(writer, "writer must not be null");
+        writer.write(toJson(runResult, metadata));
     }
 
     public static String toJson(RunResult runResult) {
         Objects.requireNonNull(runResult, "runResult must not be null");
+        return toJson(runResult, ReportMetadata.current());
+    }
+
+    public static String toJson(RunResult runResult, ReportMetadata metadata) {
+        Objects.requireNonNull(runResult, "runResult must not be null");
+        Objects.requireNonNull(metadata, "metadata must not be null");
         StringBuilder builder = new StringBuilder();
-        appendRunResult(builder, runResult);
+        appendRunResult(builder, runResult, metadata);
         return builder.toString();
     }
 
-    private static void appendRunResult(StringBuilder builder, RunResult runResult) {
+    private static void appendRunResult(StringBuilder builder, RunResult runResult, ReportMetadata metadata) {
         builder.append("{\n");
         builder.append("  \"schemaVersion\": 1,\n");
+        builder.append("  \"metadata\": ");
+        appendMetadata(builder, metadata, "  ");
+        builder.append(",\n");
         builder.append("  \"summary\": ");
         appendSummary(builder,
                 runResult.totalCount(),
@@ -63,6 +84,42 @@ public final class RunReportWriter {
         appendSpecs(builder, runResult.specResults());
         builder.append("\n");
         builder.append("}\n");
+    }
+
+    private static void appendMetadata(StringBuilder builder, ReportMetadata metadata, String indent) {
+        builder.append("{\n");
+        builder.append(indent).append("  \"timestamp\": ");
+        appendJsonString(builder, metadata.timestamp());
+        builder.append(",\n");
+        builder.append(indent).append("  \"hostname\": ");
+        appendJsonString(builder, metadata.hostname());
+        builder.append(",\n");
+        builder.append(indent).append("  \"time\": ").append(metadata.timeSeconds()).append(",\n");
+        builder.append(indent).append("  \"properties\": ");
+        appendProperties(builder, metadata.properties(), indent + "  ");
+        builder.append("\n");
+        builder.append(indent).append("}");
+    }
+
+    private static void appendProperties(StringBuilder builder, Map<String, String> properties, String indent) {
+        if (properties.isEmpty()) {
+            builder.append("{}");
+            return;
+        }
+        builder.append("{\n");
+        int index = 0;
+        for (Map.Entry<String, String> entry : properties.entrySet()) {
+            if (index > 0) {
+                builder.append(",\n");
+            }
+            builder.append(indent).append("  ");
+            appendJsonString(builder, entry.getKey());
+            builder.append(": ");
+            appendJsonString(builder, entry.getValue());
+            index++;
+        }
+        builder.append("\n");
+        builder.append(indent).append("}");
     }
 
     private static void appendSpecs(StringBuilder builder, List<SpecResult> specs) {

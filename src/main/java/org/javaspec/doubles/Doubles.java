@@ -32,6 +32,56 @@ public final class Doubles {
     }
 
     /**
+     * Creates a typed double handle for a concrete (non-interface) class.
+     *
+     * <p>Requires a {@link ConcreteDoubleProvider} on the classpath (e.g. javaspec-bytecode-doubles).
+     *
+     * @throws IllegalArgumentException if {@code type} is null, primitive, array, annotation,
+     *                                  enum, or an interface
+     * @throws IllegalStateException    if no {@link ConcreteDoubleProvider} is registered
+     */
+    public static <T> InterfaceDouble<T> concreteDouble(Class<T> type) {
+        if (type == null) {
+            throw new IllegalArgumentException("Cannot create a concrete double for null type.");
+        }
+        if (type.isPrimitive()) {
+            throw new IllegalArgumentException("Cannot create a concrete double for primitive type "
+                    + type.getName() + ".");
+        }
+        if (type.isArray()) {
+            throw new IllegalArgumentException("Cannot create a concrete double for array type "
+                    + type.getCanonicalName() + ".");
+        }
+        if (type.isAnnotation()) {
+            throw new IllegalArgumentException("Cannot create a concrete double for annotation type "
+                    + type.getCanonicalName() + ".");
+        }
+        if (type.isEnum()) {
+            throw new IllegalArgumentException("Cannot create a concrete double for enum type "
+                    + type.getCanonicalName() + ".");
+        }
+        if (type.isInterface()) {
+            throw new IllegalArgumentException("Cannot create a concrete double for interface type "
+                    + type.getName()
+                    + "; use Doubles.interfaceDouble() for interfaces.");
+        }
+        ConcreteDoubleProvider provider = ConcreteDoubleRegistry.findProvider(type);
+        if (provider == null) {
+            throw new IllegalStateException("No ConcreteDoubleProvider is registered. "
+                    + "Add javaspec-bytecode-doubles (or another provider) to the classpath "
+                    + "to enable concrete-class doubles.");
+        }
+        return provider.createDouble(type);
+    }
+
+    /**
+     * Alias for {@link #concreteDouble(Class)}.
+     */
+    public static <T> InterfaceDouble<T> classDouble(Class<T> type) {
+        return concreteDouble(type);
+    }
+
+    /**
      * Creates a typed double handle containing both proxy and control API.
      */
     public static <T> InterfaceDouble<T> interfaceDouble(Class<T> interfaceType) {
@@ -123,6 +173,41 @@ public final class Doubles {
      */
     public static ArgumentMatcher equalTo(Object expected) {
         return ArgumentMatchers.equalTo(expected);
+    }
+
+    /**
+     * Creates a new double invocation handler for the given type.
+     *
+     * <p>This low-level factory is intended for use by {@link ConcreteDoubleProvider}
+     * implementations. The returned handler may be passed to
+     * {@link #assembleFromHandler(Class, Object, java.lang.reflect.InvocationHandler)}.
+     *
+     * @param forType the described type (used for identity and diagnostics)
+     * @return a fresh {@link java.lang.reflect.InvocationHandler} backed by javaspec stub/verify semantics
+     */
+    public static InvocationHandler newDoubleHandler(Class<?> forType) {
+        return new DoubleInvocationHandler(forType, DoubleIdentity.nextId());
+    }
+
+    /**
+     * Assembles an {@link InterfaceDouble} from an externally-supplied proxy and a handler
+     * previously returned by {@link #newDoubleHandler(Class)}.
+     *
+     * <p>This low-level factory is intended for use by {@link ConcreteDoubleProvider}
+     * implementations that generate subclass proxies (e.g. ByteBuddy) where the proxy is
+     * not a JDK {@link java.lang.reflect.Proxy}.
+     *
+     * @throws IllegalArgumentException if {@code handler} was not created by
+     *         {@link #newDoubleHandler(Class)}
+     */
+    public static <T> InterfaceDouble<T> assembleFromHandler(Class<T> type, T proxy,
+            InvocationHandler handler) {
+        if (!(handler instanceof DoubleInvocationHandler)) {
+            throw new IllegalArgumentException(
+                    "handler must be created by Doubles.newDoubleHandler(); got: "
+                    + handler.getClass().getName());
+        }
+        return new InterfaceDouble<T>(type, proxy, new DoubleControl((DoubleInvocationHandler) handler));
     }
 
     private static DoubleInvocationHandler handlerFor(Object doubleInstance) {

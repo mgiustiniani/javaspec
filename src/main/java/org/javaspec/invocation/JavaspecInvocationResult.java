@@ -1,6 +1,8 @@
 package org.javaspec.invocation;
 
+import org.javaspec.compilation.SourceCompilationResult;
 import org.javaspec.discovery.DiscoveredSpec;
+import org.javaspec.formatter.RunFormatterRegistry;
 import org.javaspec.runner.RunResult;
 
 import java.util.ArrayList;
@@ -17,19 +19,54 @@ public final class JavaspecInvocationResult {
     private final List<DiscoveredSpec> discoveredSpecs;
     private final RunResult runResult;
     private final int exitCode;
+    private final RunFormatterRegistry runFormatterRegistry;
+    private final SourceCompilationResult sourceCompilationResult;
 
-    private JavaspecInvocationResult(List<DiscoveredSpec> discoveredSpecs, RunResult runResult, int exitCode) {
+    private JavaspecInvocationResult(
+            List<DiscoveredSpec> discoveredSpecs,
+            RunResult runResult,
+            int exitCode,
+            RunFormatterRegistry runFormatterRegistry,
+            SourceCompilationResult sourceCompilationResult
+    ) {
         this.discoveredSpecs = immutableSpecs(discoveredSpecs);
         this.runResult = Objects.requireNonNull(runResult, "runResult must not be null");
         this.exitCode = exitCode;
+        this.runFormatterRegistry = runFormatterRegistry;
+        this.sourceCompilationResult = sourceCompilationResult;
     }
 
     public static JavaspecInvocationResult of(List<DiscoveredSpec> discoveredSpecs, RunResult runResult) {
-        return new JavaspecInvocationResult(discoveredSpecs, runResult, JavaspecExitCode.from(runResult));
+        return new JavaspecInvocationResult(discoveredSpecs, runResult, JavaspecExitCode.from(runResult), null, null);
     }
 
     public static JavaspecInvocationResult of(List<DiscoveredSpec> discoveredSpecs, RunResult runResult, int exitCode) {
-        return new JavaspecInvocationResult(discoveredSpecs, runResult, exitCode);
+        return new JavaspecInvocationResult(discoveredSpecs, runResult, exitCode, null, null);
+    }
+
+    public static JavaspecInvocationResult of(
+            List<DiscoveredSpec> discoveredSpecs,
+            RunResult runResult,
+            int exitCode,
+            RunFormatterRegistry runFormatterRegistry
+    ) {
+        return new JavaspecInvocationResult(discoveredSpecs, runResult, exitCode, runFormatterRegistry, null);
+    }
+
+    public static JavaspecInvocationResult of(
+            List<DiscoveredSpec> discoveredSpecs,
+            RunResult runResult,
+            int exitCode,
+            RunFormatterRegistry runFormatterRegistry,
+            SourceCompilationResult sourceCompilationResult
+    ) {
+        return new JavaspecInvocationResult(
+                discoveredSpecs,
+                runResult,
+                exitCode,
+                runFormatterRegistry,
+                sourceCompilationResult
+        );
     }
 
     public List<DiscoveredSpec> discoveredSpecs() {
@@ -74,6 +111,45 @@ public final class JavaspecInvocationResult {
 
     public boolean hasFailures() {
         return runResult.hasFailures();
+    }
+
+    /**
+     * Run formatter registry the launcher built and activated configured extensions against,
+     * or {@code null} when the invocation declared no configured extensions. When present,
+     * callers should resolve formatters from this same instance so configured extension
+     * contributions are visible. The registry has reference semantics and is intentionally
+     * excluded from {@link #equals(Object)} and {@link #hashCode()}.
+     */
+    public RunFormatterRegistry runFormatterRegistry() {
+        return runFormatterRegistry;
+    }
+
+    public RunFormatterRegistry getRunFormatterRegistry() {
+        return runFormatterRegistry;
+    }
+
+    public boolean hasRunFormatterRegistry() {
+        return runFormatterRegistry != null;
+    }
+
+    /**
+     * Successful source/spec compilation result for this invocation, or {@code null} when
+     * compilation was disabled, skipped because no specs were discovered, or failed before a
+     * result could be returned. Failed compilation raises
+     * {@code org.javaspec.compilation.SourceCompilationException} instead of returning a runner
+     * result. This diagnostic metadata is intentionally excluded from {@link #equals(Object)} and
+     * {@link #hashCode()} to preserve existing invocation result value semantics.
+     */
+    public SourceCompilationResult sourceCompilationResult() {
+        return sourceCompilationResult;
+    }
+
+    public SourceCompilationResult getSourceCompilationResult() {
+        return sourceCompilationResult;
+    }
+
+    public boolean hasSourceCompilationResult() {
+        return sourceCompilationResult != null;
     }
 
     @Override

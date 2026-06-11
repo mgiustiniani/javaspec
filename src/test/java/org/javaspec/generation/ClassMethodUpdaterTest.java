@@ -82,7 +82,7 @@ public class ClassMethodUpdaterTest {
     }
 
     @Test
-    public void skipsSealedInterfaceExistingSourceUpdatesEvenWhenMethodsWouldBeMissing() {
+    public void updatesSealedInterfaceExistingSourceWhenMethodsAreMissing() {
         String source = "package com.example;\n\n" +
                 "public sealed interface Shape permits Shape.Circle {\n" +
                 "    final class Circle implements Shape { }\n" +
@@ -100,8 +100,16 @@ public class ClassMethodUpdaterTest {
                 )
         );
 
-        assertEquals(source, ClassMethodUpdater.updateSource(source, type));
-        assertTrue(!ClassMethodUpdater.hasMissingMethods(source, type));
+        String updated = ClassMethodUpdater.updateSource(source, type);
+        String updatedAgain = ClassMethodUpdater.updateSource(updated, type);
+
+        assertEquals(updated, updatedAgain);
+        assertEquals(1, countOccurrences(updated, "int sides();"));
+        assertEquals(1, countOccurrences(updated, "String name();"));
+        assertEquals(1, countOccurrences(updated, "public int sides()"));
+        assertEquals(1, countOccurrences(updated, "public String name()"));
+        assertTrue(ClassMethodUpdater.hasMissingMethods(source, type));
+        assertTrue(!ClassMethodUpdater.hasMissingMethods(updated, type));
     }
 
     @Test

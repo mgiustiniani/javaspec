@@ -3,6 +3,10 @@ package org.javaspec.invocation;
 import org.javaspec.discovery.DiscoveredSpec;
 import org.javaspec.discovery.SpecDiscoveryRequest;
 import org.javaspec.discovery.SpecExample;
+import org.javaspec.extension.ExtensionContext;
+import org.javaspec.extension.ExtensionLoadingException;
+import org.javaspec.extension.JavaspecExtension;
+import org.javaspec.formatter.RunFormatter;
 import org.javaspec.model.DescribedClass;
 import org.javaspec.runner.RunResult;
 import org.junit.Test;
@@ -10,12 +14,14 @@ import org.junit.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class JavaspecLauncherTest {
@@ -58,6 +64,8 @@ public class JavaspecLauncherTest {
         JavaspecInvocationResult noSpecResult = JavaspecLauncher.run(
                 JavaspecInvocation.forSpecs(Collections.<DiscoveredSpec>emptyList(), currentClassLoader())
         );
+        assertFalse(noSpecResult.hasRunFormatterRegistry());
+        assertEquals(null, noSpecResult.runFormatterRegistry());
         assertEquals(0, noSpecResult.exitCode());
         assertTrue(noSpecResult.successful());
         assertEquals(0, noSpecResult.discoveredSpecs().size());
@@ -76,6 +84,55 @@ public class JavaspecLauncherTest {
                 "org.javaspec.fixtures.cli.Phase9BrokenStopSubject",
                 "it_breaks_first"
         ));
+    }
+
+    @Test
+    public void configuredExtensionsActivateBeforeExamplesAndExposeFormatterRegistry() throws Exception {
+        LauncherExtensionState.reset();
+        List<DiscoveredSpec> specs = Collections.singletonList(spec(
+                ExtensionAwareSpec.class.getName(),
+                ExtensionAwareSpec.class.getName(),
+                "it_runs_after_extension_activation"
+        ));
+
+        JavaspecInvocationResult result = JavaspecLauncher.run(
+                JavaspecInvocation.forSpecs(specs, currentClassLoader())
+                        .withExtension(LauncherFormatterExtension.class.getName())
+        );
+
+        assertEquals(0, result.exitCode());
+        assertEquals(1, result.runResult().passedCount());
+        assertEquals(list("extension", "example"), LauncherExtensionState.events());
+        assertTrue(result.hasRunFormatterRegistry());
+        assertTrue(result.runFormatterRegistry().contains("launcher-custom"));
+        ByteArrayOutputStream formatted = new ByteArrayOutputStream();
+        result.runFormatterRegistry().lookup("launcher-custom")
+                .format(result.runResult(), new PrintStream(formatted));
+        assertEquals("launcher custom total=1\n", new String(formatted.toByteArray(), "UTF-8"));
+    }
+
+    @Test
+    public void configuredExtensionFailurePropagatesBeforeExamplesRun() {
+        FailingExtensionSpec.runs = 0;
+        List<DiscoveredSpec> specs = Collections.singletonList(spec(
+                FailingExtensionSpec.class.getName(),
+                FailingExtensionSpec.class.getName(),
+                "it_would_run_if_activation_succeeded"
+        ));
+
+        ExtensionLoadingException failure = assertThrows(ExtensionLoadingException.class, new org.junit.function.ThrowingRunnable() {
+            @Override
+            public void run() {
+                JavaspecLauncher.run(
+                        JavaspecInvocation.forSpecs(specs, currentClassLoader())
+                                .withExtension(FailingLauncherExtension.class.getName())
+                );
+            }
+        });
+
+        assertTrue(failure.getMessage().contains(FailingLauncherExtension.class.getName()));
+        assertTrue(failure.getMessage().contains("phase 32 launcher extension failure"));
+        assertEquals(0, FailingExtensionSpec.runs);
     }
 
     @Test
@@ -184,6 +241,66 @@ public class JavaspecLauncherTest {
             output.write(buffer, 0, read);
         }
         return new String(output.toByteArray(), "UTF-8");
+    }
+
+    public static final class LauncherFormatterExtension implements JavaspecExtension {
+        public void configure(ExtensionContext context) {
+            LauncherExtensionState.record("extension");
+            context.runFormatters().register("launcher-custom", new RunFormatter() {
+                public void format(RunResult runResult, PrintStream out) {
+                    out.println("launcher custom total=" + runResult.totalExamples());
+                }
+            });
+        }
+    }
+
+    public static final class ExtensionAwareSpec {
+        public void it_runs_after_extension_activation() {
+            if (!LauncherExtensionState.events().contains("extension")) {
+                throw new AssertionError("extension did not activate before the example");
+            }
+            LauncherExtensionState.record("example");
+        }
+    }
+
+    public static final class FailingLauncherExtension implements JavaspecExtension {
+        public void configure(ExtensionContext context) {
+            throw new IllegalStateException("phase 32 launcher extension failure");
+        }
+    }
+
+    public static final class FailingExtensionSpec {
+        static int runs;
+
+        public void it_would_run_if_activation_succeeded() {
+            runs++;
+        }
+    }
+
+    private static final class LauncherExtensionState {
+        private static final List<String> EVENTS = new ArrayList<String>();
+
+        private LauncherExtensionState() {
+        }
+
+        static synchronized void reset() {
+            EVENTS.clear();
+        }
+
+        static synchronized void record(String event) {
+            EVENTS.add(event);
+        }
+
+        static synchronized List<String> events() {
+            return new ArrayList<String>(EVENTS);
+        }
+    }
+
+    private static List<String> list(String first, String second) {
+        List<String> values = new ArrayList<String>();
+        values.add(first);
+        values.add(second);
+        return values;
     }
 
     public static final class NoExitProbe {

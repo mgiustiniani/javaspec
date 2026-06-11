@@ -8,6 +8,11 @@ import java.util.Objects;
 
 /**
  * Result of an opt-in source/spec compilation attempt.
+ *
+ * <p>Results describe compilation through the current JDK {@code javax.tools.JavaCompiler}.
+ * A successful result with {@code sourceFileCount() == 0} means no source files were found and
+ * no output classloader is required. Compiler-unavailable and compile-failure results are used
+ * by callers to report failures without adding runtime dependencies.</p>
  */
 public final class SourceCompilationResult {
     private static final List<String> EMPTY_DIAGNOSTICS = Collections.unmodifiableList(new ArrayList<String>());

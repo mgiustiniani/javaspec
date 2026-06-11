@@ -8,6 +8,10 @@ import org.javaspec.discovery.SpecDiscovery;
 import org.javaspec.discovery.SpecDiscoveryRequest;
 import org.javaspec.discovery.SpecExample;
 import org.javaspec.discovery.SpecNamingConvention;
+import org.javaspec.extension.ExtensionLoadingException;
+import org.javaspec.extension.JavaspecExtensionLoader;
+import org.javaspec.formatter.RunFormatter;
+import org.javaspec.formatter.RunFormatterRegistry;
 import org.javaspec.invocation.JavaspecInvocation;
 import org.javaspec.invocation.JavaspecInvocationResult;
 import org.javaspec.invocation.JavaspecLauncher;
@@ -64,6 +68,9 @@ public final class JavaspecTestEngine implements TestEngine {
     private static final String EXAMPLE_FILTER_KEY = "javaspec.exampleFilter";
     private static final String EXAMPLE_KEY = "javaspec.example";
     private static final String STOP_ON_FAILURE_KEY = "javaspec.stopOnFailure";
+    private static final String BOOTSTRAP_DISCOVERY_KEY = "javaspec.bootstrapDiscovery";
+    private static final String FORMATTER_KEY = "javaspec.formatter";
+    private static final String EXTENSIONS_KEY = "javaspec.extensions";
 
     public String getId() {
         return ENGINE_ID;
@@ -109,15 +116,25 @@ public final class JavaspecTestEngine implements TestEngine {
             }
 
             JavaspecEngineDescriptor engineDescriptor = (JavaspecEngineDescriptor) rootDescriptor;
+            EngineSettings settings = engineDescriptor.settings();
             List<JavaspecSpecDescriptor> specDescriptors = specDescriptorsOf(engineDescriptor);
             List<DiscoveredSpec> executionSpecs = executionSpecsOf(specDescriptors);
 
             JavaspecInvocation invocation = JavaspecInvocation
-                    .forSpecs(executionSpecs, engineDescriptor.settings().classLoader())
-                    .withStopOnFailure(engineDescriptor.settings().stopOnFailure());
-            JavaspecInvocationResult invocationResult = JavaspecLauncher.run(invocation);
+                    .forSpecs(executionSpecs, settings.classLoader())
+                    .withBootstrapDiscovery(settings.bootstrapDiscovery())
+                    .withExtensions(settings.extensions())
+                    .withStopOnFailure(settings.stopOnFailure());
+            JavaspecInvocationResult invocationResult;
+            try {
+                invocationResult = JavaspecLauncher.run(invocation);
+            } catch (ExtensionLoadingException ex) {
+                throw new JUnitException("javaspec extension activation failed: " + messageOf(ex), ex);
+            }
+            RunResult runResult = invocationResult.runResult();
 
-            publishResults(listener, specDescriptors, invocationResult.runResult());
+            publishResults(listener, specDescriptors, runResult);
+            renderFormattedOutput(runResult, settings, invocationResult);
             listener.executionFinished(rootDescriptor, TestExecutionResult.successful());
         } catch (Throwable throwable) {
             listener.executionFinished(rootDescriptor, TestExecutionResult.failed(throwable));
@@ -324,22 +341,81 @@ public final class JavaspecTestEngine implements TestEngine {
         return value == null || value.trim().length() == 0;
     }
 
+    private static void renderFormattedOutput(
+            RunResult runResult,
+            EngineSettings settings,
+            JavaspecInvocationResult invocationResult
+    ) {
+        if (!settings.renderFormatterOutput()) {
+            return;
+        }
+        RunFormatterRegistry registry = invocationResult.hasRunFormatterRegistry()
+                ? invocationResult.runFormatterRegistry()
+                : settings.runFormatterRegistry();
+        if (registry == null) {
+            return;
+        }
+        RunFormatter formatter = registry.lookup(settings.formatterName());
+        if (formatter == null) {
+            return;
+        }
+        // JUnit Platform TestEngine does not provide an adapter-owned console logger;
+        // selected formatter output is therefore written directly to System.out.
+        formatter.format(runResult, System.out);
+        System.out.flush();
+    }
+
+    private static String validFormatterNames(RunFormatterRegistry registry) {
+        List<String> names = registry.formatterNames();
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < names.size(); i++) {
+            if (i > 0) {
+                builder.append(", ");
+            }
+            builder.append(names.get(i));
+        }
+        return builder.toString();
+    }
+
+    private static String messageOf(Throwable throwable) {
+        String message = throwable.getMessage();
+        if (message == null || message.length() == 0) {
+            return throwable.getClass().getName();
+        }
+        return message;
+    }
+
     private static final class EngineSettings {
         private final SpecDiscoveryRequest discoveryRequest;
         private final boolean stopOnFailure;
+        private final boolean bootstrapDiscovery;
         private final ClassLoader classLoader;
         private final SelectorFilter selectorFilter;
+        private final List<String> extensions;
+        private final RunFormatterRegistry runFormatterRegistry;
+        private final String formatterName;
+        private final boolean renderFormatterOutput;
 
         private EngineSettings(
                 SpecDiscoveryRequest discoveryRequest,
                 boolean stopOnFailure,
+                boolean bootstrapDiscovery,
                 ClassLoader classLoader,
-                SelectorFilter selectorFilter
+                SelectorFilter selectorFilter,
+                List<String> extensions,
+                RunFormatterRegistry runFormatterRegistry,
+                String formatterName,
+                boolean renderFormatterOutput
         ) {
             this.discoveryRequest = discoveryRequest;
             this.stopOnFailure = stopOnFailure;
+            this.bootstrapDiscovery = bootstrapDiscovery;
             this.classLoader = classLoader;
             this.selectorFilter = selectorFilter;
+            this.extensions = extensions;
+            this.runFormatterRegistry = runFormatterRegistry;
+            this.formatterName = formatterName;
+            this.renderFormatterOutput = renderFormatterOutput;
         }
 
         static EngineSettings from(EngineDiscoveryRequest request, UniqueId engineUniqueId) {
@@ -370,11 +446,25 @@ public final class JavaspecTestEngine implements TestEngine {
                     .forSuite(selectedSuite.name(), new File(specRoot), namingConvention);
             discoveryRequest = addFilters(discoveryRequest, classFiltersFrom(parameters), exampleFiltersFrom(parameters));
 
+            ClassLoader classLoader = classLoaderFrom(request);
+            List<String> extensions = extensionsFrom(configuration, selectedSuite, parameters);
+            FormatterSettings formatterSettings = formatterSettingsFrom(
+                    configuration,
+                    optionalParameter(parameters, FORMATTER_KEY),
+                    extensions,
+                    classLoader
+            );
+
             return new EngineSettings(
                     discoveryRequest,
                     stopOnFailureFrom(parameters),
-                    classLoaderFrom(request),
-                    SelectorFilter.from(request, engineUniqueId)
+                    bootstrapDiscoveryFrom(configuration, selectedSuite, parameters),
+                    classLoader,
+                    SelectorFilter.from(request, engineUniqueId),
+                    extensions,
+                    formatterSettings.runFormatterRegistry(),
+                    formatterSettings.formatterName(),
+                    formatterSettings.renderFormatterOutput()
             );
         }
 
@@ -386,12 +476,32 @@ public final class JavaspecTestEngine implements TestEngine {
             return stopOnFailure;
         }
 
+        boolean bootstrapDiscovery() {
+            return bootstrapDiscovery;
+        }
+
         ClassLoader classLoader() {
             return classLoader;
         }
 
         SelectorFilter selectorFilter() {
             return selectorFilter;
+        }
+
+        List<String> extensions() {
+            return extensions;
+        }
+
+        RunFormatterRegistry runFormatterRegistry() {
+            return runFormatterRegistry;
+        }
+
+        String formatterName() {
+            return formatterName;
+        }
+
+        boolean renderFormatterOutput() {
+            return renderFormatterOutput;
         }
 
         private static JavaspecConfiguration configurationFrom(String configFile) {
@@ -459,9 +569,76 @@ public final class JavaspecTestEngine implements TestEngine {
             return configuredValues(parameters, EXAMPLE_FILTERS_KEY, EXAMPLE_FILTER_KEY, EXAMPLE_KEY);
         }
 
+        private static List<String> extensionsFrom(
+                JavaspecConfiguration configuration,
+                JavaspecSuiteConfiguration selectedSuite,
+                ConfigurationParameters parameters
+        ) {
+            List<String> extensions = new ArrayList<String>();
+            extensions.addAll(configuration.extensions());
+            extensions.addAll(selectedSuite.extensions());
+            addConfiguredValues(extensions, parameters, EXTENSIONS_KEY);
+            if (extensions.isEmpty()) {
+                return Collections.emptyList();
+            }
+            return Collections.unmodifiableList(extensions);
+        }
+
+        private static FormatterSettings formatterSettingsFrom(
+                JavaspecConfiguration configuration,
+                String configuredFormatter,
+                List<String> extensions,
+                ClassLoader classLoader
+        ) {
+            boolean renderFormatterOutput = configuredFormatter != null || !extensions.isEmpty();
+            if (!renderFormatterOutput) {
+                return FormatterSettings.disabled();
+            }
+            RunFormatterRegistry runFormatters = runFormatterRegistry(classLoader, extensions);
+            String selectedFormatter = configuredFormatter == null ? configuration.formatter() : configuredFormatter;
+            String normalizedFormatter = RunFormatterRegistry.normalizeName(selectedFormatter);
+            if (normalizedFormatter == null || !runFormatters.contains(normalizedFormatter)) {
+                throw new JUnitException("Invalid javaspec formatter: " + selectedFormatter
+                        + ". Valid values: " + validFormatterNames(runFormatters) + ".");
+            }
+            return FormatterSettings.enabled(runFormatters, normalizedFormatter);
+        }
+
+        private static RunFormatterRegistry runFormatterRegistry(ClassLoader classLoader, List<String> extensions) {
+            try {
+                return JavaspecExtensionLoader.loadRunFormatterRegistry(classLoader, extensions);
+            } catch (ExtensionLoadingException ex) {
+                throw new JUnitException("javaspec extension activation failed: " + messageOf(ex), ex);
+            }
+        }
+
         private static boolean stopOnFailureFrom(ConfigurationParameters parameters) {
             Optional<Boolean> value = parameters.getBoolean(STOP_ON_FAILURE_KEY);
             return value.isPresent() && value.get().booleanValue();
+        }
+
+        private static boolean bootstrapDiscoveryFrom(
+                JavaspecConfiguration configuration,
+                JavaspecSuiteConfiguration selectedSuite,
+                ConfigurationParameters parameters
+        ) {
+            boolean parameterValue = booleanParameter(parameters, BOOTSTRAP_DISCOVERY_KEY, false);
+            return configuration.effectiveBootstrapDiscovery(selectedSuite) || parameterValue;
+        }
+
+        private static boolean booleanParameter(ConfigurationParameters parameters, String key, boolean defaultValue) {
+            String value = optionalParameter(parameters, key);
+            if (value == null) {
+                return defaultValue;
+            }
+            if ("true".equalsIgnoreCase(value)) {
+                return true;
+            }
+            if ("false".equalsIgnoreCase(value)) {
+                return false;
+            }
+            throw new JUnitException("Invalid javaspec configuration parameter '" + key
+                    + "': expected true or false but was '" + value + "'.");
         }
 
         private static ClassLoader classLoaderFrom(EngineDiscoveryRequest request) {
@@ -484,6 +661,42 @@ public final class JavaspecTestEngine implements TestEngine {
                 return contextClassLoader;
             }
             return JavaspecTestEngine.class.getClassLoader();
+        }
+    }
+
+    private static final class FormatterSettings {
+        private final RunFormatterRegistry runFormatterRegistry;
+        private final String formatterName;
+        private final boolean renderFormatterOutput;
+
+        private FormatterSettings(
+                RunFormatterRegistry runFormatterRegistry,
+                String formatterName,
+                boolean renderFormatterOutput
+        ) {
+            this.runFormatterRegistry = runFormatterRegistry;
+            this.formatterName = formatterName;
+            this.renderFormatterOutput = renderFormatterOutput;
+        }
+
+        static FormatterSettings disabled() {
+            return new FormatterSettings(null, null, false);
+        }
+
+        static FormatterSettings enabled(RunFormatterRegistry runFormatterRegistry, String formatterName) {
+            return new FormatterSettings(runFormatterRegistry, formatterName, true);
+        }
+
+        RunFormatterRegistry runFormatterRegistry() {
+            return runFormatterRegistry;
+        }
+
+        String formatterName() {
+            return formatterName;
+        }
+
+        boolean renderFormatterOutput() {
+            return renderFormatterOutput;
         }
     }
 

@@ -2,14 +2,17 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://javaspec.org/schemas/run-report-v1.schema.json",
   "title": "javaspec run report v1",
-  "description": "JSON report emitted by javaspec run with schemaVersion 1.",
+  "description": "JSON report emitted by javaspec run with schemaVersion 1. Phase 35 writers emit optional run metadata, but metadata remains optional so older additive-compatible schemaVersion 1 reports still validate.",
   "type": "object",
   "required": ["schemaVersion", "summary", "specs"],
   "additionalProperties": true,
   "properties": {
     "schemaVersion": {
       "const": 1,
-      "description": "Report schema version. Version 1 is additive-compatible."
+      "description": "Report schema version. Version 1 is additive-compatible; Phase 35 metadata is optional."
+    },
+    "metadata": {
+      "$ref": "#/$defs/metadata"
     },
     "summary": {
       "$ref": "#/$defs/summary"
@@ -22,6 +25,41 @@
     }
   },
   "$defs": {
+    "metadata": {
+      "type": "object",
+      "required": ["timestamp", "hostname", "time", "properties"],
+      "additionalProperties": true,
+      "description": "Run-level metadata emitted by Phase 35 default report writers. Optional at the top level so older schemaVersion 1 reports without metadata remain valid.",
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Report creation timestamp, typically an ISO-8601 instant."
+        },
+        "hostname": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Host name observed by the report writer."
+        },
+        "time": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Run-level elapsed time in seconds."
+        },
+        "properties": {
+          "type": "object",
+          "description": "String-valued report properties such as schema version and tool name.",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "summary": {
       "type": "object",
       "required": ["total", "passed", "failed", "broken", "skipped", "successful"],
