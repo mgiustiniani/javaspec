@@ -30,12 +30,13 @@ final class DescribeCommandHandler implements CommandHandler {
 
         SpecNamingConvention namingConvention = parsed.namingConvention;
         File specRoot = new File(parsed.specRoot);
+        File supportRoot = new File(Main.DEFAULT_GENERATED_SOURCES);
         DescribedType describedType = DescribedType.of(describedClass);
         SpecGenerationPlan plan;
         SpecGenerationPlan supportPlan;
         try {
             plan = SpecSkeletonGenerator.plan(describedType, specRoot, namingConvention);
-            supportPlan = SpecSkeletonGenerator.supportPlan(describedType, specRoot, namingConvention);
+            supportPlan = SpecSkeletonGenerator.supportPlan(describedType, specRoot, supportRoot, namingConvention);
         } catch (IllegalArgumentException ex) {
             UsagePrinter.printUsageError(err, "Naming error: " + ConfigurationHelper.messageOf(ex));
             return Main.EXIT_USAGE;

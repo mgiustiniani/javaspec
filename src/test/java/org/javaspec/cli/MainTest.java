@@ -14,16 +14,45 @@ import java.nio.file.Files;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.io.IOException;
 
 public class MainTest {
+
+    @org.junit.Before
+    public void cleanGeneratedSources() throws Exception {
+        File dir = new File(TEST_GENERATED_SOURCES);
+        if (dir.exists()) {
+            Files.walkFileTree(dir.toPath(), new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    Files.deleteIfExists(file);
+                    return FileVisitResult.CONTINUE;
+                }
+                @Override
+                public FileVisitResult postVisitDirectory(Path dirPath, IOException exc) throws IOException {
+                    if (!dirPath.equals(dir.toPath())) {
+                        Files.deleteIfExists(dirPath);
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        }
+    }
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    private static final String TEST_GENERATED_SOURCES = "target/generated-sources/javaspec";
 
     @Test
     public void describeCreatesPhpspecStyleSpecSkeletonOnly() throws Exception {
         File specRoot = temporaryFolder.newFolder("spec-root");
         File specFile = new File(specRoot, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "CalculatorSpec.java");
-        File supportFile = new File(specRoot, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "CalculatorSpecSupport.java");
+        File supportFile = new File(TEST_GENERATED_SOURCES, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "CalculatorSpecSupport.java");
 
         CommandResult result = run("describe", "com.example.Calculator", "--spec-dir", specRoot.getAbsolutePath());
 
@@ -50,14 +79,14 @@ public class MainTest {
                 "        super(Calculator.class);\n" +
                 "    }\n" +
                 "}\n", readFile(supportFile));
-        assertEquals(2, countFiles(specRoot));
+        assertEquals(1, countFiles(specRoot));
     }
 
     @Test
     public void describeExistingSpecDoesNotOverwrite() throws Exception {
         File specRoot = temporaryFolder.newFolder("existing-spec-root");
         File specFile = new File(specRoot, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "ExistingSpec.java");
-        File supportFile = new File(specRoot, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "ExistingSpecSupport.java");
+        File supportFile = new File(TEST_GENERATED_SOURCES, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "ExistingSpecSupport.java");
         assertTrue(specFile.getParentFile().mkdirs());
         Files.write(specFile.toPath(), "existing spec\n".getBytes(StandardCharsets.UTF_8));
 
@@ -70,7 +99,7 @@ public class MainTest {
         assertEquals("", result.err);
         assertEquals("existing spec\n", readFile(specFile));
         assertTrue(supportFile.isFile());
-        assertEquals(2, countFiles(specRoot));
+        assertEquals(1, countFiles(specRoot));
     }
 
     @Test
@@ -374,7 +403,7 @@ public class MainTest {
                 "        shouldThrow(IllegalArgumentException.class).duringSetRating(-3);\n" +
                 "    }\n");
         File sourceFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "Book.java");
-        File supportFile = new File(specRoot, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "BookSpecSupport.java");
+        File supportFile = new File(TEST_GENERATED_SOURCES, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "BookSpecSupport.java");
 
         CommandResult result = run("run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath(), "--generate");
 

@@ -19,13 +19,15 @@ public class MainPhase26ProfileEnforcementCliTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
+    private static final String TEST_GENERATED_SOURCES = "target/generated-sources/javaspec";
+
     @Test
     public void runGenerateWithJava8ProfileRejectsRecordSpecBeforeWritingFiles() throws Exception {
         File specRoot = temporaryFolder.newFolder("java8-record-spec-root");
         File sourceRoot = temporaryFolder.newFolder("java8-record-source-root");
         writeRecordSpec(specRoot, "spec.com.example.ProfiledRecordSpec");
         File targetFile = sourceFileFor(sourceRoot, "com.example.ProfiledRecord");
-        File supportFile = sourceFileFor(specRoot, "spec.com.example.ProfiledRecordSpecSupport");
+        File supportFile = sourceFileFor(new File(TEST_GENERATED_SOURCES), "spec.com.example.ProfiledRecordSpecSupport");
 
         CommandResult result = run(
                 "run",
@@ -121,7 +123,7 @@ public class MainPhase26ProfileEnforcementCliTest {
         File junitXmlReport = new File(temporaryFolder.getRoot(), "dry-run-profile-junit.xml");
         writeRecordSpec(specRoot, "spec.com.example.DryRunRecordSpec");
         File targetFile = sourceFileFor(sourceRoot, "com.example.DryRunRecord");
-        File supportFile = sourceFileFor(specRoot, "spec.com.example.DryRunRecordSpecSupport");
+        File supportFile = sourceFileFor(new File(TEST_GENERATED_SOURCES), "spec.com.example.DryRunRecordSpecSupport");
 
         CommandResult result = run(
                 "run",
@@ -156,7 +158,7 @@ public class MainPhase26ProfileEnforcementCliTest {
                 "    }\n"
         );
         File targetFile = sourceFileFor(sourceRoot, "com.example.SequencedConsumer");
-        File supportFile = sourceFileFor(specRoot, "spec.com.example.SequencedConsumerSpecSupport");
+        File supportFile = sourceFileFor(new File(TEST_GENERATED_SOURCES), "spec.com.example.SequencedConsumerSpecSupport");
 
         CommandResult result = run(
                 "run",
@@ -193,7 +195,7 @@ public class MainPhase26ProfileEnforcementCliTest {
                 "    }\n"
         );
         File targetFile = sourceFileFor(sourceRoot, "com.example.HttpProfile");
-        File supportFile = sourceFileFor(specRoot, "spec.com.example.HttpProfileSpecSupport");
+        File supportFile = sourceFileFor(new File(TEST_GENERATED_SOURCES), "spec.com.example.HttpProfileSpecSupport");
 
         CommandResult result = run(
                 "run",
@@ -234,7 +236,7 @@ public class MainPhase26ProfileEnforcementCliTest {
                 "suite.custom.specDir=" + specRoot.getAbsolutePath() + "\n" +
                 "suite.custom.sourceDir=" + sourceRoot.getAbsolutePath() + "\n");
         File specFile = sourceFileFor(specRoot, "spec.com.example.DescribedWithProfileSpec");
-        File supportFile = sourceFileFor(specRoot, "spec.com.example.DescribedWithProfileSpecSupport");
+        File supportFile = sourceFileFor(new File(TEST_GENERATED_SOURCES), "spec.com.example.DescribedWithProfileSpecSupport");
 
         CommandResult result = run(
                 "describe",
@@ -250,6 +252,7 @@ public class MainPhase26ProfileEnforcementCliTest {
         assertContains(result.out, "No production class was generated");
         assertTrue(specFile.isFile());
         assertTrue(supportFile.isFile());
+        assertFalse(sourceFileFor(specRoot, "spec.com.example.DescribedWithProfileSpecSupport").exists());
         assertEquals(0, countFiles(sourceRoot));
     }
 

@@ -16,6 +16,7 @@ public final class Main {
     static final String DEFAULT_SOURCE_ROOT = "src/main/java";
     static final String DEFAULT_SPEC_ROOT = "src/test/java";
     static final String DEFAULT_COMPILE_OUTPUT = "target/javaspec-classes";
+    static final String DEFAULT_GENERATED_SOURCES = "target/generated-sources/javaspec";
 
     private Main() {
     }

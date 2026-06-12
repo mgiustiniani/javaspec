@@ -19,13 +19,15 @@ public class MainConfigurationIntegrationTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
+    private static final String TEST_GENERATED_SOURCES = "target/generated-sources/javaspec";
+
     @Test
     public void describeUsesConfiguredSuiteSpecDirectory() throws Exception {
         File specRoot = temporaryFolder.newFolder("describe-config-spec");
         File sourceRoot = temporaryFolder.newFolder("describe-config-source");
         File configFile = writeConfig("describe.conf", suiteConfig("custom", specRoot, sourceRoot));
         File specFile = new File(specRoot, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "BookSpec.java");
-        File supportFile = new File(specRoot, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "BookSpecSupport.java");
+        File supportFile = new File(TEST_GENERATED_SOURCES, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "BookSpecSupport.java");
 
         CommandResult result = run("describe", "com.example.Book", "--config", configFile.getAbsolutePath(), "--suite", "custom");
 
@@ -35,6 +37,7 @@ public class MainConfigurationIntegrationTest {
         assertEquals("", result.err);
         assertTrue(specFile.isFile());
         assertTrue(supportFile.isFile());
+        assertFalse(new File(specRoot, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "BookSpecSupport.java").exists());
         assertEquals(0, countFiles(sourceRoot));
     }
 

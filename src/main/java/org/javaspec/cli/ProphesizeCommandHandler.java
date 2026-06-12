@@ -51,7 +51,7 @@ final class ProphesizeCommandHandler implements CommandHandler {
 
         String outputDir = parsed.prophesizeOutputDir;
         if (outputDir == null) {
-            outputDir = "src/main/java";
+            outputDir = Main.DEFAULT_GENERATED_SOURCES;
         }
 
         String wrapperSimpleName = interfaceType.getSimpleName() + "Prophecy";

@@ -59,11 +59,25 @@ public final class SpecSkeletonGenerator {
     }
 
     public static SpecGenerationPlan supportPlan(DescribedType describedType, File specRoot, SpecNamingConvention namingConvention) {
+        return supportPlan(describedType, specRoot, specRoot, namingConvention);
+    }
+
+    /**
+     * Creates a support plan, writing the target file to {@code supportRoot} instead of {@code specRoot}.
+     *
+     * @param describedType the described type
+     * @param specRoot      the spec root directory (used for package resolution)
+     * @param supportRoot   the root directory for the generated support file (e.g. target/generated-sources/javaspec)
+     * @param namingConvention the spec naming convention
+     * @return a spec generation plan for the support file
+     */
+    public static SpecGenerationPlan supportPlan(DescribedType describedType, File specRoot, File supportRoot, SpecNamingConvention namingConvention) {
         Objects.requireNonNull(describedType, "describedType must not be null");
         Objects.requireNonNull(specRoot, "specRoot must not be null");
+        Objects.requireNonNull(supportRoot, "supportRoot must not be null");
         Objects.requireNonNull(namingConvention, "namingConvention must not be null");
 
-        File targetFile = new File(specRoot, namingConvention.supportSourceRelativePath(describedType.describedClass()));
+        File targetFile = new File(supportRoot, namingConvention.supportSourceRelativePath(describedType.describedClass()));
         return SpecGenerationPlan.of(
                 describedType,
                 namingConvention.supportQualifiedName(describedType.describedClass()),

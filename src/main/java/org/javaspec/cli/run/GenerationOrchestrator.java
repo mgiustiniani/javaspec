@@ -75,6 +75,43 @@ public final class GenerationOrchestrator {
             ClassLoader classLoader,
             ConstructorPolicy constructorPolicy
     ) {
+        return execute(specs, specRoot, sourceRoot, input, out, err, generate, dryRun,
+                namingConvention, classLoader, constructorPolicy,
+                new File("target/generated-sources/javaspec"));
+    }
+
+    /**
+     * Runs the generation/update loop over the given specs.
+     *
+     * @param specs              the discovered specs (may be extended with related specs)
+     * @param specRoot           spec root directory
+     * @param sourceRoot         source root directory
+     * @param input              buffered reader for interactive prompting
+     * @param out                output stream
+     * @param err                error stream
+     * @param generate           whether to auto-generate without prompting
+     * @param dryRun             whether to run in dry-run mode
+     * @param namingConvention   the spec naming convention
+     * @param classLoader        the class loader for type existence checks
+     * @param constructorPolicy  the constructor handling policy
+     * @param generatedSourcesRoot root directory for generated source files (support, prophecy)
+     * @return a {@link GenerationOrchestratorResult} indicating exit code and
+     *         whether execution should proceed
+     */
+    public static GenerationOrchestratorResult execute(
+            List<DiscoveredSpec> specs,
+            File specRoot,
+            File sourceRoot,
+            BufferedReader input,
+            PrintStream out,
+            PrintStream err,
+            boolean generate,
+            boolean dryRun,
+            SpecNamingConvention namingConvention,
+            ClassLoader classLoader,
+            ConstructorPolicy constructorPolicy,
+            File generatedSourcesRoot
+    ) {
         boolean missingWithoutGeneration = false;
         boolean dryRunPendingChanges = false;
 
@@ -92,7 +129,8 @@ public final class GenerationOrchestrator {
                         generate,
                         dryRun,
                         namingConvention,
-                        classLoader
+                        classLoader,
+                        generatedSourcesRoot
                 );
                 if (!relatedSpecResult.allAccepted()) {
                     missingWithoutGeneration = true;
@@ -109,7 +147,7 @@ public final class GenerationOrchestrator {
             }
 
             if ((generate || dryRun) && describedType.hasMethods()) {
-                SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(describedType, specRoot, namingConvention);
+                SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(describedType, specRoot, generatedSourcesRoot, namingConvention);
                 try {
                     if (dryRun) {
                         if (reportSupportDryRun(supportPlan, out, "specification support")) {
@@ -253,7 +291,7 @@ public final class GenerationOrchestrator {
         boolean prophecyWrappersGenerated;
         try {
             prophecyWrappersGenerated = ensureProphecyWrappers(
-                    specs, specRoot, sourceRoot, input, out, err, generate, dryRun, classLoader
+                    specs, specRoot, sourceRoot, input, out, err, generate, dryRun, classLoader, generatedSourcesRoot
             );
         } catch (IOException ex) {
             err.println("I/O error while checking prophecy wrappers: " + messageOf(ex));
@@ -293,7 +331,8 @@ public final class GenerationOrchestrator {
             boolean generate,
             boolean dryRun,
             SpecNamingConvention namingConvention,
-            ClassLoader classLoader
+            ClassLoader classLoader,
+            File generatedSourcesRoot
     ) throws IOException {
         boolean allAccepted = true;
         boolean pendingChanges = false;
@@ -314,7 +353,7 @@ public final class GenerationOrchestrator {
                     + " is missing.");
             out.println("Spec target path: " + specPlan.targetFile().getPath());
             if (dryRun) {
-                SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(relatedType, specRoot, namingConvention);
+                SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(relatedType, specRoot, generatedSourcesRoot, namingConvention);
                 if (reportSupportDryRun(supportPlan, out, "related specification support")) {
                     pendingChanges = true;
                 }
@@ -330,7 +369,7 @@ public final class GenerationOrchestrator {
                 continue;
             }
 
-            SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(relatedType, specRoot, namingConvention);
+            SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(relatedType, specRoot, generatedSourcesRoot, namingConvention);
             File generatedSupport = SpecSupportFileGenerator.writeOrUpdate(supportPlan);
             File generatedSpec = SpecFileGenerator.write(specPlan);
             out.println("Generated related specification support: " + generatedSupport.getPath());
@@ -551,7 +590,8 @@ public final class GenerationOrchestrator {
             PrintStream err,
             boolean generate,
             boolean dryRun,
-            ClassLoader classLoader
+            ClassLoader classLoader,
+            File generatedSourcesRoot
     ) throws IOException {
         // Collect spec files
         List<File> specFiles = new ArrayList<File>();
@@ -602,9 +642,9 @@ public final class GenerationOrchestrator {
             String packagePath = packageName.replace('.', '/');
             File targetFile;
             if (packagePath.length() > 0) {
-                targetFile = new File(sourceRoot, packagePath + "/" + wrapperSimpleName + ".java");
+                targetFile = new File(generatedSourcesRoot, packagePath + "/" + wrapperSimpleName + ".java");
             } else {
-                targetFile = new File(sourceRoot, wrapperSimpleName + ".java");
+                targetFile = new File(generatedSourcesRoot, wrapperSimpleName + ".java");
             }
 
             String sourceCode = ProphecySkeletonGenerator.render(interfaceType, packageName);

@@ -16,10 +16,39 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.io.IOException;
 
 public class MainPhase9CliTest {
+
+    @org.junit.Before
+    public void cleanGeneratedSources() throws Exception {
+        File dir = new File(TEST_GENERATED_SOURCES);
+        if (dir.exists()) {
+            Files.walkFileTree(dir.toPath(), new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    Files.deleteIfExists(file);
+                    return FileVisitResult.CONTINUE;
+                }
+                @Override
+                public FileVisitResult postVisitDirectory(Path dirPath, IOException exc) throws IOException {
+                    if (!dirPath.equals(dir.toPath())) {
+                        Files.deleteIfExists(dirPath);
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        }
+    }
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    private static final String TEST_GENERATED_SOURCES = "target/generated-sources/javaspec";
 
     @Test
     public void dryRunReportsMissingProductionWithoutWritingOrPrompting() throws Exception {
@@ -59,7 +88,7 @@ public class MainPhase9CliTest {
                 "        getTitle().shouldReturn(\"Wizard\");\n" +
                 "    }\n");
         File sourceFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "Book.java");
-        File supportFile = new File(specRoot, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "BookSpecSupport.java");
+        File supportFile = new File(TEST_GENERATED_SOURCES, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "BookSpecSupport.java");
         String originalSource =
                 "package com.example;\n" +
                 "\n" +
@@ -89,6 +118,7 @@ public class MainPhase9CliTest {
         assertEquals("", result.err);
         assertEquals(originalSource, readFile(sourceFile));
         assertFalse(supportFile.exists());
+        assertFalse(new File(specRoot, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "BookSpecSupport.java").exists());
     }
 
     @Test

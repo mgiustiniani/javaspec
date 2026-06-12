@@ -51,7 +51,7 @@ final class UsagePrinter {
         stream.println("  --example <name>      With run, filter examples by method name, display name, or order index (repeatable).");
         stream.println();
         stream.println("Prophesize options:");
-        stream.println("  --output <dir>        Output directory for the generated wrapper (default: " + Main.DEFAULT_SOURCE_ROOT + ").");
+        stream.println("  --output <dir>        Output directory for the generated wrapper (default: " + Main.DEFAULT_GENERATED_SOURCES + ").");
         stream.println("  --package <name>      Target package name for the generated wrapper.");
         stream.println("  --overwrite           Overwrite existing wrapper file.");
         stream.println("  --dry-run             Print generated source without writing files.");
