@@ -1,9 +1,11 @@
 package org.javaspec.doubles.prophecy;
 
 import org.javaspec.doubles.DoubleControl;
+import org.javaspec.doubles.DoubleInvocation;
 import org.javaspec.doubles.StubAnswer;
 
 import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * A prophecy about a specific method call on a prophesized object.
@@ -20,6 +22,7 @@ public final class MethodProphecy<R> {
     private final String methodName;
     private final Object[] arguments;
     private final PredictionRegistry registry;
+    private final ObjectProphecy<?> prophObject;
     private Promise<R> promise;
     private Prediction prediction;
 
@@ -31,7 +34,7 @@ public final class MethodProphecy<R> {
      * @param arguments  the method arguments (may contain {@code ArgumentMatcher} instances)
      */
     public MethodProphecy(DoubleControl control, String methodName, Object... arguments) {
-        this(control, null, methodName, arguments);
+        this(control, null, null, methodName, arguments);
     }
 
     /**
@@ -43,8 +46,23 @@ public final class MethodProphecy<R> {
      * @param arguments  the method arguments (may contain {@code ArgumentMatcher} instances)
      */
     public MethodProphecy(DoubleControl control, PredictionRegistry registry, String methodName, Object... arguments) {
+        this(control, registry, null, methodName, arguments);
+    }
+
+    /**
+     * Creates a method prophecy with an optional prediction registry and prophecy object reference.
+     *
+     * @param control    the double control for stubbing/verification
+     * @param registry   the prediction registry (may be null)
+     * @param prophObject the prophesized object (may be null)
+     * @param methodName the method name
+     * @param arguments  the method arguments
+     */
+    public MethodProphecy(DoubleControl control, PredictionRegistry registry, ObjectProphecy<?> prophObject,
+                          String methodName, Object... arguments) {
         this.control = Objects.requireNonNull(control, "control must not be null");
         this.registry = registry;
+        this.prophObject = prophObject;
         this.methodName = Objects.requireNonNull(methodName, "methodName must not be null");
         this.arguments = arguments.clone();
     }
@@ -81,6 +99,41 @@ public final class MethodProphecy<R> {
      */
     public MethodProphecy<R> will(StubAnswer answer) {
         this.promise = Promise.will(answer);
+        applyPromise();
+        return this;
+    }
+
+    /**
+     * Configures this method prophecy with a callback that receives the prophecy object
+     * and can configure additional stubs dynamically at call time.
+     * <p>
+     * Inspired by PHP Prophecy's {@code will(function () { ... })} pattern where
+     * {@code $this} inside the callback refers to the prophecy object.
+     * </p>
+     *
+     * <pre>{@code
+     * mailer.setName("everzet").will(self -> self.getName().willReturn("everzet"));
+     * }</pre>
+     *
+     * @param callback a consumer that receives the prophecy object and configures stubs
+     * @return this method prophecy (for chaining)
+     * @throws IllegalStateException if this method prophecy was not created via an ObjectProphecy
+     */
+    @SuppressWarnings("unchecked")
+    public MethodProphecy<R> will(Consumer<ObjectProphecy<?>> callback) {
+        if (prophObject == null) {
+            throw new IllegalStateException(
+                    "will(Consumer) requires a reference to the ObjectProphecy. "
+                    + "Use MethodProphecy created via ObjectProphecy.method().");
+        }
+        ObjectProphecy<?> captured = prophObject;
+        this.promise = Promise.will(new StubAnswer() {
+            @Override
+            public Object answer(DoubleInvocation invocation) throws Throwable {
+                callback.accept(captured);
+                return null;
+            }
+        });
         applyPromise();
         return this;
     }

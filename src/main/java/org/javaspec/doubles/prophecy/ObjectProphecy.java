@@ -56,7 +56,7 @@ public final class ObjectProphecy<T> {
      */
     @SuppressWarnings("unchecked")
     public <R> MethodProphecy<R> method(String methodName, Object... args) {
-        return new MethodProphecy<R>(control, registry, methodName, args);
+        return new MethodProphecy<R>(control, registry, this, methodName, args);
     }
 
     /**
