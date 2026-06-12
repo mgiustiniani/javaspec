@@ -1,9 +1,5 @@
 package org.javaspec.cli;
 
-import org.javaspec.bootstrap.BootstrapException;
-import org.javaspec.bootstrap.BootstrapRunner;
-import org.javaspec.compilation.SourceCompilationResult;
-import org.javaspec.compilation.SourceCompiler;
 import org.javaspec.compatibility.ProfileEnforcement;
 import org.javaspec.compatibility.ProfileEnforcementReport;
 import org.javaspec.compatibility.ProfileViolation;
@@ -15,32 +11,30 @@ import org.javaspec.discovery.DiscoveredSpec;
 import org.javaspec.discovery.SpecDiscovery;
 import org.javaspec.discovery.SpecDiscoveryRequest;
 import org.javaspec.discovery.SpecNamingConvention;
-import org.javaspec.discovery.TypeCheckResult;
-import org.javaspec.discovery.TypeExistenceChecker;
-import org.javaspec.extension.ExtensionLoadingException;
-import org.javaspec.extension.JavaspecExtensionActivator;
-import org.javaspec.extension.JavaspecExtensionLoader;
+import org.javaspec.generation.ConstructorPolicy;
 import org.javaspec.generation.SpecFileGenerator;
 import org.javaspec.generation.SpecGenerationPlan;
 import org.javaspec.generation.SpecSkeletonGenerator;
 import org.javaspec.generation.SpecSupportFileGenerator;
-import org.javaspec.generation.ClassConstructorUpdater;
-import org.javaspec.generation.ClassMethodUpdater;
-import org.javaspec.generation.ConstructorPolicy;
-import org.javaspec.generation.TypeFileGenerator;
-import org.javaspec.generation.TypeGenerationPlan;
-import org.javaspec.generation.TypeSkeletonGenerator;
 import org.javaspec.model.DescribedClass;
 import org.javaspec.model.DescribedType;
 import org.javaspec.formatter.RunFormatter;
 import org.javaspec.formatter.RunFormatterRegistry;
 import org.javaspec.model.JavaTypeKind;
+import org.javaspec.cli.run.ClasspathArgument;
+import org.javaspec.cli.run.ClasspathResolver;
+import org.javaspec.cli.run.ClasspathSelection;
+import org.javaspec.cli.CliArgumentParser;
+import org.javaspec.cli.run.BootstrapOrchestrator;
+import org.javaspec.cli.run.CompilationOrchestrator;
+import org.javaspec.cli.run.ExtensionOrchestrator;
+import org.javaspec.cli.run.GenerationOrchestrator;
+import org.javaspec.cli.run.GenerationOrchestratorResult;
+import org.javaspec.cli.run.ReportOrchestrator;
+import org.javaspec.cli.run.RunOrchestratorResult;
 import org.javaspec.invocation.JavaspecExitCode;
 import org.javaspec.profile.TargetProfile;
-import org.javaspec.reporting.JUnitXmlReportWriter;
-import org.javaspec.reporting.RunReportWriter;
 import org.javaspec.runner.RunResult;
-import org.javaspec.runner.SpecResult;
 import org.javaspec.runner.SpecRunner;
 
 import java.io.BufferedReader;
@@ -51,10 +45,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -92,7 +83,7 @@ public final class Main {
             return EXIT_USAGE;
         }
 
-        ParsedArguments parsed = parse(args);
+        ParsedArguments parsed = CliArgumentParser.parse(args);
         if (parsed.helpRequested) {
             printUsage(out);
             return EXIT_OK;
@@ -107,10 +98,13 @@ public final class Main {
             return configurationExitCode;
         }
 
+        CommandHandler handler;
         if ("run".equals(parsed.command)) {
-            return runSpecifications(parsed, in, out, err);
+            handler = new RunCommandHandler();
+        } else {
+            handler = new DescribeCommandHandler();
         }
-        return describeClass(parsed, out, err);
+        return handler.execute(parsed, in, out, err);
     }
 
     private static int applyConfiguration(ParsedArguments parsed, PrintStream err) {
@@ -217,7 +211,7 @@ public final class Main {
         return ConstructorPolicy.defaultPolicy();
     }
 
-    private static int describeClass(ParsedArguments parsed, PrintStream out, PrintStream err) {
+    static int describeClass(ParsedArguments parsed, PrintStream out, PrintStream err) {
         DescribedClass describedClass;
         try {
             describedClass = DescribedClass.of(parsed.className);
@@ -279,24 +273,26 @@ public final class Main {
         }
     }
 
-    private static int runSpecifications(ParsedArguments parsed, InputStream in, PrintStream out, PrintStream err) {
+    static int runSpecifications(ParsedArguments parsed, InputStream in, PrintStream out, PrintStream err) {
         File specRoot = new File(parsed.specRoot);
         File sourceRoot = new File(parsed.sourceRoot);
         BufferedReader input = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
 
-        ClasspathSelection classpathSelection = selectClasspath(parsed, err);
+        ClasspathSelection classpathSelection = ClasspathResolver.select(
+                parsed.classpathArguments,
+                err
+        );
         if (classpathSelection.exitCode() != EXIT_OK) {
             return classpathSelection.exitCode();
         }
         ClassLoader selectedClassLoader = classpathSelection.classLoader();
-        RunFormatterRegistry runFormatters;
-        try {
-            runFormatters = JavaspecExtensionLoader.loadRunFormatterRegistry(selectedClassLoader);
-        } catch (ExtensionLoadingException ex) {
-            err.println("Error: Could not load javaspec extensions: " + messageOf(ex));
-            return EXIT_USAGE;
+        ExtensionOrchestrator.LoadResult<RunFormatterRegistry> loadResult =
+                ExtensionOrchestrator.loadFormatterRegistry(selectedClassLoader, err);
+        if (!loadResult.isSuccess()) {
+            return loadResult.exitCode();
         }
-        int extensionActivationExitCode = activateConfiguredExtensions(
+        RunFormatterRegistry runFormatters = loadResult.value();
+        int extensionActivationExitCode = ExtensionOrchestrator.activateExtensions(
                 parsed.effectiveExtensions,
                 selectedClassLoader,
                 runFormatters,
@@ -305,8 +301,13 @@ public final class Main {
         if (extensionActivationExitCode != EXIT_OK) {
             return extensionActivationExitCode;
         }
-        int formatterExitCode = validateEffectiveFormatter(parsed, runFormatters, err);
+        int formatterExitCode = ExtensionOrchestrator.validateFormatter(
+                parsed.effectiveFormatter,
+                runFormatters,
+                err
+        );
         if (formatterExitCode != EXIT_OK) {
+            printUsage(err);
             return formatterExitCode;
         }
 
@@ -337,7 +338,12 @@ public final class Main {
 
         if (specs.size() == 0) {
             out.println("No specifications found in " + specRoot.getPath() + ".");
-            return writeRequestedReports(emptyRunResult(), parsed, err);
+            return ReportOrchestrator.writeRequested(
+                    ReportOrchestrator.emptyResult(),
+                    parsed.reportPath,
+                    parsed.junitXmlPath,
+                    err
+            );
         }
 
         out.println("Found " + specs.size() + " specification(s) in " + specRoot.getPath() + ".");
@@ -345,198 +351,41 @@ public final class Main {
         if (profileEnforcementExitCode != EXIT_OK) {
             return profileEnforcementExitCode;
         }
-        boolean missingWithoutGeneration = false;
-        boolean dryRunPendingChanges = false;
-        for (int i = 0; i < specs.size(); i++) {
-            DiscoveredSpec spec = specs.get(i);
-            DescribedType describedType = spec.describedType();
-            try {
-                RelatedSpecCheckResult relatedSpecResult = ensureRelatedSpecs(
-                        describedType,
-                        specs,
-                        specRoot,
-                        sourceRoot,
-                        input,
-                        out,
-                        parsed.generate,
-                        parsed.dryRun,
-                        parsed.namingConvention,
-                        selectedClassLoader
-                );
-                if (!relatedSpecResult.allAccepted()) {
-                    missingWithoutGeneration = true;
-                }
-                if (relatedSpecResult.hasPendingChanges()) {
-                    dryRunPendingChanges = true;
-                }
-            } catch (IOException ex) {
-                err.println("I/O error while generating related specification: " + messageOf(ex));
-                return EXIT_IO_ERROR;
-            } catch (SecurityException ex) {
-                err.println("I/O error while generating related specification: " + messageOf(ex));
-                return EXIT_IO_ERROR;
-            }
-
-            if ((parsed.generate || parsed.dryRun) && describedType.hasMethods()) {
-                SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(describedType, specRoot, parsed.namingConvention);
-                try {
-                    if (parsed.dryRun) {
-                        if (reportSupportDryRun(supportPlan, out, "specification support")) {
-                            dryRunPendingChanges = true;
-                        }
-                    } else {
-                        File supportFile = SpecSupportFileGenerator.writeOrUpdate(supportPlan);
-                        out.println("Updated specification support: " + supportFile.getPath());
-                    }
-                } catch (IOException ex) {
-                    err.println("I/O error while updating specification support: " + messageOf(ex));
-                    err.println("Target path: " + supportPlan.targetFile().getPath());
-                    return EXIT_IO_ERROR;
-                } catch (SecurityException ex) {
-                    err.println("I/O error while updating specification support: " + messageOf(ex));
-                    err.println("Target path: " + supportPlan.targetFile().getPath());
-                    return EXIT_IO_ERROR;
-                }
-            }
-
-            TypeCheckResult checkResult;
-            try {
-                checkResult = TypeExistenceChecker.check(describedType, sourceRoot, selectedClassLoader);
-            } catch (SecurityException ex) {
-                err.println("I/O error while checking type existence: " + messageOf(ex));
-                err.println("Described type: " + describedType.qualifiedName());
-                return EXIT_IO_ERROR;
-            }
-
-            if (checkResult.isPresent()) {
-                out.println(presentMessage(spec, checkResult));
-                if (checkResult.sourceFilePresent()) {
-                    out.println("Source file: " + checkResult.sourceFile().getPath());
-                }
-                if (checkResult.classpathPresent()) {
-                    out.println("Classpath: present");
-                    if (checkResult.classpathKind() != null && !checkResult.classpathKindMatches()) {
-                        out.println("Classpath type kind: " + checkResult.classpathKind().displayName()
-                                + " (expected " + describedType.kind().displayName() + ")");
-                    }
-                }
-                String dryRunSource = null;
-                if (describedType.hasConstructors() && checkResult.sourceFilePresent()) {
-                    ConstructorPolicy policy = resolveConstructorPolicy(parsed);
-                    File sourceFile = checkResult.sourceFile();
-                    try {
-                        if (parsed.dryRun) {
-                            dryRunSource = new String(Files.readAllBytes(sourceFile.toPath()), StandardCharsets.UTF_8);
-                            String updatedSource = ClassConstructorUpdater.updateSource(dryRunSource, describedType, policy);
-                            if (!dryRunSource.equals(updatedSource)) {
-                                dryRunPendingChanges = true;
-                                out.println("Would update constructors in " + sourceFile.getPath()
-                                        + " (policy: " + policyOptionName(policy) + ")");
-                            }
-                            dryRunSource = updatedSource;
-                        } else {
-                            ClassConstructorUpdater.updateFile(sourceFile, describedType, policy);
-                            out.println("Updated constructors in " + sourceFile.getPath()
-                                    + " (policy: " + policyOptionName(policy) + ")");
-                        }
-                    } catch (IOException ex) {
-                        err.println("I/O error while updating constructors: " + messageOf(ex));
-                        err.println("Target path: " + sourceFile.getPath());
-                        return EXIT_IO_ERROR;
-                    }
-                }
-                if (describedType.hasMethods() && checkResult.sourceFilePresent()) {
-                    File sourceFile = checkResult.sourceFile();
-                    try {
-                        String existingSource = parsed.dryRun && dryRunSource != null
-                                ? dryRunSource
-                                : new String(Files.readAllBytes(sourceFile.toPath()), StandardCharsets.UTF_8);
-                        String updatedSource = ClassMethodUpdater.updateSource(existingSource, describedType);
-                        if (!existingSource.equals(updatedSource)) {
-                            if (parsed.dryRun) {
-                                dryRunPendingChanges = true;
-                                out.println("Would update methods in " + sourceFile.getPath());
-                            } else {
-                                boolean accepted = parsed.generate || askToUpdateMethods(input, out, sourceFile, describedType);
-                                if (!accepted) {
-                                    missingWithoutGeneration = true;
-                                    continue;
-                                }
-                                Files.write(sourceFile.toPath(), updatedSource.getBytes(StandardCharsets.UTF_8));
-                                out.println("Updated methods in " + sourceFile.getPath());
-                            }
-                        }
-                    } catch (IOException ex) {
-                        err.println("I/O error while updating methods: " + messageOf(ex));
-                        err.println("Target path: " + sourceFile.getPath());
-                        return EXIT_IO_ERROR;
-                    }
-                }
-                continue;
-            }
-
-            TypeGenerationPlan plan = TypeSkeletonGenerator.plan(describedType, sourceRoot);
-            out.println(spec.specQualifiedName() + " describes missing " + describedType.kind().displayName() + " " + describedType.qualifiedName() + ".");
-            out.println("Spec file: " + spec.specFile().getPath());
-            out.println("Target path: " + plan.targetFile().getPath());
-
-            if (parsed.dryRun) {
-                dryRunPendingChanges = true;
-                out.println("Would generate " + plan.describedType().kind().displayName() + " skeleton: " + plan.targetFile().getPath());
-                continue;
-            }
-
-            if (!parsed.generate) {
-                boolean accepted;
-                try {
-                    accepted = askToGenerate(input, out, plan);
-                } catch (IOException ex) {
-                    err.println("I/O error while reading generation confirmation: " + messageOf(ex));
-                    return EXIT_IO_ERROR;
-                }
-                if (!accepted) {
-                    missingWithoutGeneration = true;
-                    continue;
-                }
-            }
-
-            try {
-                File generatedFile = TypeFileGenerator.write(plan);
-                out.println("Generated " + plan.describedType().kind().displayName() + " skeleton: " + generatedFile.getPath());
-            } catch (IOException ex) {
-                err.println("I/O error while generating " + plan.describedType().kind().displayName() + " skeleton: " + messageOf(ex));
-                err.println("Target path: " + plan.targetFile().getPath());
-                return EXIT_IO_ERROR;
-            } catch (SecurityException ex) {
-                err.println("I/O error while generating " + plan.describedType().kind().displayName() + " skeleton: " + messageOf(ex));
-                err.println("Target path: " + plan.targetFile().getPath());
-                return EXIT_IO_ERROR;
-            }
-        }
-
-        if (parsed.dryRun) {
-            if (dryRunPendingChanges) {
-                out.println("Dry-run found pending generation/update work; no files were written.");
-                return EXIT_MISSING_NOT_GENERATED;
-            }
-            out.println("Dry-run found no pending generation/update work.");
-        }
-
-        if (missingWithoutGeneration) {
-            out.println("No production files were written.");
-            return EXIT_MISSING_NOT_GENERATED;
+        GenerationOrchestratorResult genResult = GenerationOrchestrator.execute(
+                specs,
+                specRoot,
+                sourceRoot,
+                input,
+                out,
+                err,
+                parsed.generate,
+                parsed.dryRun,
+                parsed.namingConvention,
+                selectedClassLoader,
+                resolveConstructorPolicy(parsed)
+        );
+        if (!genResult.shouldProceed()) {
+            return genResult.exitCode();
         }
 
         ClasspathSelection executionClasspathSelection = classpathSelection;
         if (parsed.compile && !parsed.dryRun) {
-            executionClasspathSelection = compileSourcesForRun(parsed, sourceRoot, specRoot, classpathSelection, out, err);
+            executionClasspathSelection = CompilationOrchestrator.compile(
+                    parsed.compileOutputPath,
+                    sourceRoot,
+                    specRoot,
+                    classpathSelection,
+                    out,
+                    err
+            );
+
             if (executionClasspathSelection.exitCode() != EXIT_OK) {
                 return executionClasspathSelection.exitCode();
             }
             selectedClassLoader = executionClasspathSelection.classLoader();
         }
 
-        int bootstrapExitCode = executeBootstrapHooks(
+        int bootstrapExitCode = BootstrapOrchestrator.execute(
                 parsed.effectiveBootstrapHooks,
                 parsed.effectiveBootstrapDiscovery,
                 selectedClassLoader,
@@ -550,7 +399,12 @@ public final class Main {
         RunResult runResult = SpecRunner.run(specs, selectedClassLoader, parsed.stopOnFailure);
         printRunnerSummary(runResult, out, parsed.effectiveFormatter, runFormatters);
         printExecutionDiagnostics(runResult, out, executionClasspathSelection);
-        int reportExitCode = writeRequestedReports(runResult, parsed, err);
+        int reportExitCode = ReportOrchestrator.writeRequested(
+                runResult,
+                parsed.reportPath,
+                parsed.junitXmlPath,
+                err
+        );
         if (reportExitCode != EXIT_OK) {
             return reportExitCode;
         }
@@ -630,250 +484,12 @@ public final class Main {
         }
     }
 
-    private static RunResult emptyRunResult() {
-        return RunResult.of(Collections.<SpecResult>emptyList());
-    }
 
-    private static ClasspathSelection compileSourcesForRun(
-            ParsedArguments parsed,
-            File sourceRoot,
-            File specRoot,
-            ClasspathSelection classpathSelection,
-            PrintStream out,
-            PrintStream err
-    ) {
-        File outputDirectory = new File(parsed.compileOutputPath);
-        SourceCompilationResult result;
-        try {
-            result = SourceCompiler.compile(
-                    compilationSourceRoots(sourceRoot, specRoot),
-                    outputDirectory,
-                    classpathSelection.entries()
-            );
-        } catch (NoClassDefFoundError ex) {
-            printCompilerUnavailable(err);
-            return classpathSelection.withExitCode(EXIT_USAGE);
-        } catch (IOException ex) {
-            err.println("I/O error while compiling sources: " + messageOf(ex));
-            err.println("Target path: " + outputDirectory.getPath());
-            return classpathSelection.withExitCode(EXIT_IO_ERROR);
-        } catch (SecurityException ex) {
-            err.println("I/O error while compiling sources: " + messageOf(ex));
-            err.println("Target path: " + outputDirectory.getPath());
-            return classpathSelection.withExitCode(EXIT_IO_ERROR);
+    private static String promptTarget(DescribedType describedType) {
+        if (JavaTypeKind.CLASS.equals(describedType.kind())) {
+            return describedType.qualifiedName();
         }
-
-        if (!result.compilerAvailable()) {
-            printCompilerUnavailable(err);
-            return classpathSelection.withExitCode(EXIT_USAGE);
-        }
-        if (!result.successful()) {
-            printCompilationFailure(result, err);
-            return classpathSelection.withExitCode(EXIT_COMPILATION_FAILED);
-        }
-        if (result.sourceFileCount() == 0) {
-            return classpathSelection;
-        }
-
-        out.println("Compiled " + result.sourceFileCount() + " source file(s) to "
-                + result.outputDirectory().getPath() + ".");
-        return selectClasspathWithCompileOutput(result.outputDirectory(), classpathSelection, err);
-    }
-
-    private static List<File> compilationSourceRoots(File sourceRoot, File specRoot) {
-        List<File> roots = new ArrayList<File>();
-        roots.add(sourceRoot);
-        roots.add(specRoot);
-        return roots;
-    }
-
-    private static void printCompilerUnavailable(PrintStream err) {
-        err.println("Error: Java compiler is not available. Run javaspec with a JDK or omit --compile.");
-    }
-
-    private static void printCompilationFailure(SourceCompilationResult result, PrintStream err) {
-        err.println("Compilation failed:");
-        List<String> diagnostics = result.diagnostics();
-        for (int i = 0; i < diagnostics.size(); i++) {
-            err.println("  " + diagnostics.get(i));
-        }
-    }
-
-    /**
-     * Activates configuration-declared extensions, in configured order, against the same
-     * registry instance later used for formatter selection. Failures follow the bootstrap
-     * failure convention: an "Error: Extension activation failed" message and exit code 64,
-     * with no reports written.
-     */
-    private static int activateConfiguredExtensions(
-            List<String> extensionClassNames,
-            ClassLoader classLoader,
-            RunFormatterRegistry runFormatters,
-            PrintStream err
-    ) {
-        if (extensionClassNames == null || extensionClassNames.isEmpty()) {
-            return EXIT_OK;
-        }
-        try {
-            JavaspecExtensionActivator.activate(extensionClassNames, classLoader, runFormatters);
-            return EXIT_OK;
-        } catch (ExtensionLoadingException ex) {
-            err.println("Error: Extension activation failed: " + messageOf(ex));
-            return EXIT_USAGE;
-        }
-    }
-
-    private static int executeBootstrapHooks(
-            List<String> bootstrapHooks,
-            boolean bootstrapDiscovery,
-            ClassLoader classLoader,
-            List<DiscoveredSpec> specs,
-            PrintStream err
-    ) {
-        List<String> hooks = bootstrapHooks == null ? Collections.<String>emptyList() : bootstrapHooks;
-        if (hooks.isEmpty() && !bootstrapDiscovery) {
-            return EXIT_OK;
-        }
-        try {
-            BootstrapRunner.run(hooks, classLoader, specs, bootstrapDiscovery);
-            return EXIT_OK;
-        } catch (BootstrapException ex) {
-            err.println("Error: Bootstrap execution failed: " + messageOf(ex));
-            return EXIT_USAGE;
-        }
-    }
-
-    private static int writeRequestedReports(RunResult runResult, ParsedArguments parsed, PrintStream err) {
-        if (parsed.reportPath != null) {
-            int reportExitCode = writeRunReport(runResult, parsed, err);
-            if (reportExitCode != EXIT_OK) {
-                return reportExitCode;
-            }
-        }
-        if (parsed.junitXmlPath != null) {
-            int reportExitCode = writeJUnitXmlReport(runResult, parsed, err);
-            if (reportExitCode != EXIT_OK) {
-                return reportExitCode;
-            }
-        }
-        return EXIT_OK;
-    }
-
-    private static int writeRunReport(RunResult runResult, ParsedArguments parsed, PrintStream err) {
-        File reportFile = new File(parsed.reportPath);
-        try {
-            RunReportWriter.write(runResult, reportFile);
-            return EXIT_OK;
-        } catch (IOException ex) {
-            err.println("I/O error while writing run report: " + messageOf(ex));
-            err.println("Report path: " + reportFile.getPath());
-            return EXIT_IO_ERROR;
-        } catch (SecurityException ex) {
-            err.println("I/O error while writing run report: " + messageOf(ex));
-            err.println("Report path: " + reportFile.getPath());
-            return EXIT_IO_ERROR;
-        }
-    }
-
-    private static int writeJUnitXmlReport(RunResult runResult, ParsedArguments parsed, PrintStream err) {
-        File reportFile = new File(parsed.junitXmlPath);
-        try {
-            JUnitXmlReportWriter.write(runResult, reportFile);
-            return EXIT_OK;
-        } catch (IOException ex) {
-            err.println("I/O error while writing JUnit XML report: " + messageOf(ex));
-            err.println("JUnit XML path: " + reportFile.getPath());
-            return EXIT_IO_ERROR;
-        } catch (SecurityException ex) {
-            err.println("I/O error while writing JUnit XML report: " + messageOf(ex));
-            err.println("JUnit XML path: " + reportFile.getPath());
-            return EXIT_IO_ERROR;
-        }
-    }
-
-    private static RelatedSpecCheckResult ensureRelatedSpecs(
-            DescribedType owner,
-            List<DiscoveredSpec> specs,
-            File specRoot,
-            File sourceRoot,
-            BufferedReader input,
-            PrintStream out,
-            boolean generate,
-            boolean dryRun,
-            SpecNamingConvention namingConvention,
-            ClassLoader classLoader
-    ) throws IOException {
-        boolean allAccepted = true;
-        boolean pendingChanges = false;
-        List<DescribedType> relatedTypes = relatedTypesOf(owner);
-        for (int i = 0; i < relatedTypes.size(); i++) {
-            DescribedType relatedType = relatedTypes.get(i);
-            TypeCheckResult checkResult = TypeExistenceChecker.check(relatedType, sourceRoot, classLoader);
-            if (checkResult.isPresent()) {
-                continue;
-            }
-
-            SpecGenerationPlan specPlan = SpecSkeletonGenerator.plan(relatedType, specRoot, namingConvention);
-            if (specPlan.targetFile().exists() || isSpecKnown(specs, specPlan.specQualifiedName())) {
-                continue;
-            }
-
-            out.println("Related " + relatedType.kind().displayName() + " " + relatedType.qualifiedName() + " is missing.");
-            out.println("Spec target path: " + specPlan.targetFile().getPath());
-            if (dryRun) {
-                SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(relatedType, specRoot, namingConvention);
-                if (reportSupportDryRun(supportPlan, out, "related specification support")) {
-                    pendingChanges = true;
-                }
-                out.println("Would generate related specification: " + specPlan.targetFile().getPath());
-                pendingChanges = true;
-                specs.add(DiscoveredSpec.of(specPlan.targetFile(), specPlan.specQualifiedName(), relatedType));
-                continue;
-            }
-
-            boolean accepted = generate || askToGenerateSpec(input, out, specPlan);
-            if (!accepted) {
-                allAccepted = false;
-                continue;
-            }
-
-            SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(relatedType, specRoot, namingConvention);
-            File generatedSupport = SpecSupportFileGenerator.writeOrUpdate(supportPlan);
-            File generatedSpec = SpecFileGenerator.write(specPlan);
-            out.println("Generated related specification support: " + generatedSupport.getPath());
-            out.println("Generated related specification: " + generatedSpec.getPath());
-            specs.add(DiscoveredSpec.of(generatedSpec, specPlan.specQualifiedName(), relatedType));
-        }
-        return RelatedSpecCheckResult.of(allAccepted, pendingChanges);
-    }
-
-    private static boolean reportSupportDryRun(
-            SpecGenerationPlan supportPlan,
-            PrintStream out,
-            String artifactName
-    ) throws IOException {
-        File targetFile = supportPlan.targetFile();
-        if (!targetFile.exists()) {
-            out.println("Would generate " + artifactName + ": " + targetFile.getPath());
-            return true;
-        }
-
-        String existingSource = new String(Files.readAllBytes(targetFile.toPath()), StandardCharsets.UTF_8);
-        String updatedSource = SpecSupportFileGenerator.updateSource(existingSource, supportPlan.describedType());
-        if (!existingSource.equals(updatedSource)) {
-            out.println("Would update " + artifactName + ": " + targetFile.getPath());
-            return true;
-        }
-        return false;
-    }
-
-    private static boolean isSpecKnown(List<DiscoveredSpec> specs, String specQualifiedName) {
-        for (int i = 0; i < specs.size(); i++) {
-            if (specQualifiedName.equals(specs.get(i).specQualifiedName())) {
-                return true;
-            }
-        }
-        return false;
+        return describedType.kind().displayName() + " " + describedType.qualifiedName();
     }
 
     private static List<DescribedType> relatedTypesOf(DescribedType owner) {
@@ -932,134 +548,6 @@ public final class Main {
             }
         }
         relatedTypes.add(candidate);
-    }
-
-    private static String presentMessage(DiscoveredSpec spec, TypeCheckResult checkResult) {
-        DescribedType describedType = spec.describedType();
-        if (JavaTypeKind.CLASS.equals(describedType.kind())) {
-            return spec.specQualifiedName() + " describes " + describedType.qualifiedName() + "; class exists.";
-        }
-        return spec.specQualifiedName() + " describes " + describedType.kind().displayName() + " "
-                + describedType.qualifiedName() + "; type exists.";
-    }
-
-    private static ClasspathSelection selectClasspath(ParsedArguments parsed, PrintStream err) {
-        ClassLoader parent = effectiveClassLoader();
-        if (!parsed.hasExplicitClasspath()) {
-            return ClasspathSelection.of(parent, Collections.<File>emptyList(), EXIT_OK, parent, false);
-        }
-
-        List<File> entries = new ArrayList<File>();
-        for (int i = 0; i < parsed.classpathArguments.size(); i++) {
-            ClasspathArgument argument = parsed.classpathArguments.get(i);
-            if (argument.isFile()) {
-                int exitCode = addClasspathFileEntries(argument.value(), entries, err);
-                if (exitCode != EXIT_OK) {
-                    return ClasspathSelection.of(parent, entries, exitCode, parent, false);
-                }
-            } else {
-                addPathListEntries(argument.value(), entries);
-            }
-        }
-
-        URL[] urls = new URL[entries.size()];
-        for (int i = 0; i < entries.size(); i++) {
-            try {
-                urls[i] = entries.get(i).toURI().toURL();
-            } catch (MalformedURLException ex) {
-                printUsageError(err, "Invalid classpath entry: " + entries.get(i).getPath() + " (" + messageOf(ex) + ").");
-                return ClasspathSelection.of(parent, entries, EXIT_USAGE, parent, false);
-            } catch (SecurityException ex) {
-                err.println("I/O error while preparing explicit classpath: " + messageOf(ex));
-                err.println("Classpath entry: " + entries.get(i).getPath());
-                return ClasspathSelection.of(parent, entries, EXIT_IO_ERROR, parent, false);
-            }
-        }
-        return ClasspathSelection.of(new URLClassLoader(urls, parent), entries, EXIT_OK, parent, false);
-    }
-
-    private static ClasspathSelection selectClasspathWithCompileOutput(
-            File compileOutputDirectory,
-            ClasspathSelection baseSelection,
-            PrintStream err
-    ) {
-        List<File> entries = new ArrayList<File>();
-        entries.add(compileOutputDirectory);
-        entries.addAll(baseSelection.entries());
-
-        URL[] urls = new URL[entries.size()];
-        for (int i = 0; i < entries.size(); i++) {
-            try {
-                urls[i] = entries.get(i).toURI().toURL();
-            } catch (MalformedURLException ex) {
-                printUsageError(err, "Invalid classpath entry: " + entries.get(i).getPath()
-                        + " (" + messageOf(ex) + ").");
-                return baseSelection.withExitCode(EXIT_USAGE);
-            } catch (SecurityException ex) {
-                err.println("I/O error while preparing compilation classpath: " + messageOf(ex));
-                err.println("Target path: " + compileOutputDirectory.getPath());
-                return baseSelection.withExitCode(EXIT_IO_ERROR);
-            }
-        }
-        return ClasspathSelection.of(
-                new URLClassLoader(urls, baseSelection.parentClassLoader()),
-                entries,
-                EXIT_OK,
-                baseSelection.parentClassLoader(),
-                true
-        );
-    }
-
-    private static int addClasspathFileEntries(String classpathFilePath, List<File> entries, PrintStream err) {
-        File classpathFile = new File(classpathFilePath);
-        BufferedReader reader = null;
-        try {
-            reader = Files.newBufferedReader(classpathFile.toPath(), StandardCharsets.UTF_8);
-            String line;
-            while ((line = reader.readLine()) != null) {
-                String entry = line.trim();
-                if (entry.length() == 0 || entry.startsWith("#")) {
-                    continue;
-                }
-                entries.add(new File(entry));
-            }
-            return EXIT_OK;
-        } catch (IOException ex) {
-            err.println("I/O error while reading classpath file: " + messageOf(ex));
-            err.println("Classpath file: " + classpathFile.getPath());
-            return EXIT_IO_ERROR;
-        } catch (SecurityException ex) {
-            err.println("I/O error while reading classpath file: " + messageOf(ex));
-            err.println("Classpath file: " + classpathFile.getPath());
-            return EXIT_IO_ERROR;
-        } finally {
-            if (reader != null) {
-                try {
-                    reader.close();
-                } catch (IOException ignored) {
-                    // Ignore close failures after the classpath file has already been consumed.
-                }
-            }
-        }
-    }
-
-    private static void addPathListEntries(String pathList, List<File> entries) {
-        int start = 0;
-        while (start <= pathList.length()) {
-            int separatorIndex = pathList.indexOf(File.pathSeparator, start);
-            String rawEntry;
-            if (separatorIndex < 0) {
-                rawEntry = pathList.substring(start);
-                start = pathList.length() + 1;
-            } else {
-                rawEntry = pathList.substring(start, separatorIndex);
-                start = separatorIndex + File.pathSeparator.length();
-            }
-            String entry = rawEntry.trim();
-            if (entry.length() > 0) {
-                entries.add(new File(entry));
-            }
-        }
     }
 
     private static void printRunnerSummary(
@@ -1206,417 +694,6 @@ public final class Main {
         return builder.toString();
     }
 
-    private static String validProfileKeys() {
-        StringBuilder builder = new StringBuilder();
-        List<TargetProfile> profiles = TargetProfile.orderedProfiles();
-        for (int i = 0; i < profiles.size(); i++) {
-            if (i > 0) {
-                builder.append(", ");
-            }
-            builder.append(profiles.get(i).key());
-        }
-        return builder.toString();
-    }
-
-    private static String promptTarget(DescribedType describedType) {
-        if (JavaTypeKind.CLASS.equals(describedType.kind())) {
-            return describedType.qualifiedName();
-        }
-        return describedType.kind().displayName() + " " + describedType.qualifiedName();
-    }
-
-    private static boolean askToGenerateSpec(BufferedReader input, PrintStream out, SpecGenerationPlan plan) throws IOException {
-        while (true) {
-            out.println("Do you want me to create specification " + plan.specQualifiedName()
-                    + " for " + promptTarget(plan.describedType()) + "? [Y/n]");
-            String answer = input.readLine();
-            if (answer == null) {
-                return false;
-            }
-
-            String normalized = answer.trim();
-            if (normalized.length() == 0 || "y".equalsIgnoreCase(normalized) || "yes".equalsIgnoreCase(normalized)) {
-                return true;
-            }
-            if ("n".equalsIgnoreCase(normalized) || "no".equalsIgnoreCase(normalized)) {
-                return false;
-            }
-            out.println("Please answer y or n.");
-        }
-    }
-
-    private static boolean askToGenerate(BufferedReader input, PrintStream out, TypeGenerationPlan plan) throws IOException {
-        while (true) {
-            out.println("Do you want me to create " + promptTarget(plan.describedType()) + " for you? [Y/n]");
-            String answer = input.readLine();
-            if (answer == null) {
-                return false;
-            }
-
-            String normalized = answer.trim();
-            if (normalized.length() == 0 || "y".equalsIgnoreCase(normalized) || "yes".equalsIgnoreCase(normalized)) {
-                return true;
-            }
-            if ("n".equalsIgnoreCase(normalized) || "no".equalsIgnoreCase(normalized)) {
-                return false;
-            }
-            out.println("Please answer y or n.");
-        }
-    }
-
-    private static boolean askToUpdateMethods(
-            BufferedReader input,
-            PrintStream out,
-            File sourceFile,
-            DescribedType describedType
-    ) throws IOException {
-        while (true) {
-            out.println("Do you want me to add missing method skeletons to "
-                    + promptTarget(describedType) + " in " + sourceFile.getPath() + "? [Y/n]");
-            String answer = input.readLine();
-            if (answer == null) {
-                return false;
-            }
-
-            String normalized = answer.trim();
-            if (normalized.length() == 0 || "y".equalsIgnoreCase(normalized) || "yes".equalsIgnoreCase(normalized)) {
-                return true;
-            }
-            if ("n".equalsIgnoreCase(normalized) || "no".equalsIgnoreCase(normalized)) {
-                return false;
-            }
-            out.println("Please answer y or n.");
-        }
-    }
-
-    private static ParsedArguments parse(String[] args) {
-        ParsedArguments parsed = new ParsedArguments();
-        parsed.sourceRoot = DEFAULT_SOURCE_ROOT;
-        parsed.specRoot = DEFAULT_SPEC_ROOT;
-        parsed.compileOutputPath = DEFAULT_COMPILE_OUTPUT;
-
-        List<String> operands = new ArrayList<String>();
-        int index = 0;
-        while (index < args.length) {
-            String arg = args[index];
-            if ("--help".equals(arg) || "-h".equals(arg)) {
-                parsed.helpRequested = true;
-                return parsed;
-            } else if ("--generate".equals(arg)) {
-                parsed.generate = true;
-                index++;
-            } else if ("--dry-run".equals(arg)) {
-                parsed.dryRun = true;
-                index++;
-            } else if ("--stop-on-failure".equals(arg)) {
-                parsed.stopOnFailure = true;
-                index++;
-            } else if ("--verbose".equals(arg)) {
-                parsed.verbose = true;
-                index++;
-            } else if ("--report".equals(arg) || "--report-file".equals(arg)) {
-                if (index + 1 >= args.length) {
-                    parsed.errorMessage = "Missing value for " + arg + ".";
-                    return parsed;
-                }
-                parsed.reportPath = args[index + 1];
-                parsed.reportOption = arg;
-                parsed.reportSpecified = true;
-                if (parsed.reportPath.length() == 0) {
-                    parsed.errorMessage = "Report file must not be empty.";
-                    return parsed;
-                }
-                index += 2;
-            } else if ("--junit-xml".equals(arg) || "--junit-xml-file".equals(arg)) {
-                if (index + 1 >= args.length) {
-                    parsed.errorMessage = "Missing value for " + arg + ".";
-                    return parsed;
-                }
-                parsed.junitXmlPath = args[index + 1];
-                parsed.junitXmlOption = arg;
-                parsed.junitXmlSpecified = true;
-                if (parsed.junitXmlPath.length() == 0) {
-                    parsed.errorMessage = "JUnit XML report file must not be empty.";
-                    return parsed;
-                }
-                index += 2;
-            } else if ("--formatter".equals(arg)) {
-                if (index + 1 >= args.length) {
-                    parsed.errorMessage = "Missing value for " + arg + ".";
-                    return parsed;
-                }
-                parsed.formatter = args[index + 1].trim();
-                parsed.formatterSpecified = true;
-                if (parsed.formatter.length() == 0) {
-                    parsed.errorMessage = "Formatter must not be empty.";
-                    return parsed;
-                }
-                index += 2;
-            } else if ("--profile".equals(arg)) {
-                if (index + 1 >= args.length) {
-                    parsed.errorMessage = "Missing value for " + arg + ".";
-                    return parsed;
-                }
-                parsed.profile = args[index + 1].trim();
-                parsed.profileSpecified = true;
-                if (parsed.profile.length() == 0) {
-                    parsed.errorMessage = "Profile must not be empty.";
-                    return parsed;
-                }
-                index += 2;
-            } else if ("--config".equals(arg)) {
-                if (index + 1 >= args.length) {
-                    parsed.errorMessage = "Missing value for " + arg + ".";
-                    return parsed;
-                }
-                parsed.configPath = args[index + 1];
-                if (parsed.configPath.length() == 0) {
-                    parsed.errorMessage = "Configuration file must not be empty.";
-                    return parsed;
-                }
-                index += 2;
-            } else if ("--suite".equals(arg)) {
-                if (index + 1 >= args.length) {
-                    parsed.errorMessage = "Missing value for " + arg + ".";
-                    return parsed;
-                }
-                parsed.suiteName = args[index + 1].trim();
-                if (parsed.suiteName.length() == 0) {
-                    parsed.errorMessage = "Suite name must not be empty.";
-                    return parsed;
-                }
-                index += 2;
-            } else if ("--source-dir".equals(arg) || "--source-root".equals(arg)) {
-                if (index + 1 >= args.length) {
-                    parsed.errorMessage = "Missing value for " + arg + ".";
-                    return parsed;
-                }
-                parsed.sourceRoot = args[index + 1];
-                parsed.sourceRootSpecified = true;
-                if (parsed.sourceRoot.length() == 0) {
-                    parsed.errorMessage = "Source directory must not be empty.";
-                    return parsed;
-                }
-                index += 2;
-            } else if ("--classpath".equals(arg)) {
-                if (index + 1 >= args.length) {
-                    parsed.errorMessage = "Missing value for " + arg + ".";
-                    return parsed;
-                }
-                String classpath = args[index + 1];
-                if (classpath.length() == 0) {
-                    parsed.errorMessage = "Classpath must not be empty.";
-                    return parsed;
-                }
-                parsed.addClasspathArgument(ClasspathArgument.pathList(arg, classpath));
-                index += 2;
-            } else if ("--classpath-file".equals(arg)) {
-                if (index + 1 >= args.length) {
-                    parsed.errorMessage = "Missing value for " + arg + ".";
-                    return parsed;
-                }
-                String classpathFile = args[index + 1];
-                if (classpathFile.length() == 0) {
-                    parsed.errorMessage = "Classpath file must not be empty.";
-                    return parsed;
-                }
-                parsed.addClasspathArgument(ClasspathArgument.file(arg, classpathFile));
-                index += 2;
-            } else if ("--compile".equals(arg)) {
-                parsed.compile = true;
-                index++;
-            } else if ("--compile-output".equals(arg)) {
-                if (index + 1 >= args.length) {
-                    parsed.errorMessage = "Missing value for " + arg + ".";
-                    return parsed;
-                }
-                parsed.compileOutputPath = args[index + 1];
-                parsed.compileOutputSpecified = true;
-                parsed.compile = true;
-                if (parsed.compileOutputPath.length() == 0) {
-                    parsed.errorMessage = "Compile output directory must not be empty.";
-                    return parsed;
-                }
-                index += 2;
-            } else if ("--spec-dir".equals(arg) || "--spec-root".equals(arg)) {
-                if (index + 1 >= args.length) {
-                    parsed.errorMessage = "Missing value for " + arg + ".";
-                    return parsed;
-                }
-                parsed.specRoot = args[index + 1];
-                parsed.specRootSpecified = true;
-                if (parsed.specRoot.length() == 0) {
-                    parsed.errorMessage = "Spec directory must not be empty.";
-                    return parsed;
-                }
-                index += 2;
-            } else if ("--class".equals(arg)) {
-                if (index + 1 >= args.length) {
-                    parsed.errorMessage = "Missing value for " + arg + ".";
-                    return parsed;
-                }
-                if (parsed.classFilters == null) {
-                    parsed.classFilters = new ArrayList<String>();
-                }
-                String filterValue = args[index + 1].trim();
-                if (filterValue.length() == 0) {
-                    parsed.errorMessage = "Class filter must not be empty.";
-                    return parsed;
-                }
-                parsed.classFilters.add(filterValue);
-                index += 2;
-            } else if ("--example".equals(arg)) {
-                if (index + 1 >= args.length) {
-                    parsed.errorMessage = "Missing value for " + arg + ".";
-                    return parsed;
-                }
-                if (parsed.exampleFilters == null) {
-                    parsed.exampleFilters = new ArrayList<String>();
-                }
-                String filterValue = args[index + 1].trim();
-                if (filterValue.length() == 0) {
-                    parsed.errorMessage = "Example filter must not be empty.";
-                    return parsed;
-                }
-                parsed.exampleFilters.add(filterValue);
-                index += 2;
-            } else if ("--constructor-policy".equals(arg)) {
-                if (index + 1 >= args.length) {
-                    parsed.errorMessage = "Missing value for " + arg + ".";
-                    return parsed;
-                }
-                parsed.constructorPolicy = args[index + 1];
-                if ("delete".equals(parsed.constructorPolicy)) {
-                    parsed.constructorPolicyOverride = ConstructorPolicy.DELETE;
-                } else if ("preserve".equals(parsed.constructorPolicy)) {
-                    parsed.constructorPolicyOverride = ConstructorPolicy.PRESERVE;
-                } else if ("comment".equals(parsed.constructorPolicy)) {
-                    parsed.constructorPolicyOverride = ConstructorPolicy.COMMENT;
-                } else {
-                    parsed.errorMessage = "Invalid constructor policy: " + parsed.constructorPolicy
-                            + ". Valid values: delete, preserve, comment.";
-                    return parsed;
-                }
-                index += 2;
-            } else if (arg.startsWith("-")) {
-                parsed.errorMessage = "Unknown option: " + arg;
-                return parsed;
-            } else {
-                operands.add(arg);
-                index++;
-            }
-        }
-
-        if (operands.size() == 0) {
-            parsed.errorMessage = "Missing command.";
-            return parsed;
-        }
-
-        parsed.command = operands.get(0);
-        if ("describe".equals(parsed.command) || "desc".equals(parsed.command)) {
-            if (operands.size() == 1) {
-                parsed.errorMessage = "Missing class name.";
-                return parsed;
-            }
-            if (operands.size() > 2) {
-                parsed.errorMessage = "Unexpected argument: " + operands.get(2);
-                return parsed;
-            }
-            if (parsed.generate) {
-                parsed.errorMessage = "The --generate option belongs to run; describe creates only a specification skeleton.";
-                return parsed;
-            }
-            if (parsed.dryRun) {
-                parsed.errorMessage = "The --dry-run option belongs to run; describe creates only a specification skeleton.";
-                return parsed;
-            }
-            if (parsed.stopOnFailure) {
-                parsed.errorMessage = "The --stop-on-failure option belongs to run; describe does not execute examples.";
-                return parsed;
-            }
-            if (parsed.formatterSpecified) {
-                parsed.errorMessage = "The --formatter option belongs to run; describe does not execute examples.";
-                return parsed;
-            }
-            if (parsed.profileSpecified) {
-                parsed.errorMessage = "The --profile option belongs to run; describe does not execute examples.";
-                return parsed;
-            }
-            if (parsed.verbose) {
-                parsed.errorMessage = "The --verbose option belongs to run; describe does not discover specifications.";
-                return parsed;
-            }
-            if (parsed.reportSpecified) {
-                parsed.errorMessage = "The " + parsed.reportOption + " option belongs to run; describe does not execute examples.";
-                return parsed;
-            }
-            if (parsed.junitXmlSpecified) {
-                parsed.errorMessage = "The " + parsed.junitXmlOption + " option belongs to run; describe does not execute examples.";
-                return parsed;
-            }
-            if (parsed.hasExplicitClasspath()) {
-                parsed.errorMessage = "The " + parsed.firstClasspathOption() + " option belongs to run; describe does not execute examples.";
-                return parsed;
-            }
-            if (parsed.compileOutputSpecified) {
-                parsed.errorMessage = "The --compile-output option belongs to run; describe does not execute examples.";
-                return parsed;
-            }
-            if (parsed.compile) {
-                parsed.errorMessage = "The --compile option belongs to run; describe does not execute examples.";
-                return parsed;
-            }
-            if (parsed.sourceRootSpecified) {
-                parsed.errorMessage = "The source directory is used by run; describe writes only to the spec directory.";
-                return parsed;
-            }
-            if (parsed.classFilters != null) {
-                parsed.errorMessage = "The --class option belongs to run; describe does not support class filters.";
-                return parsed;
-            }
-            if (parsed.exampleFilters != null) {
-                parsed.errorMessage = "The --example option belongs to run; describe does not support example filters.";
-                return parsed;
-            }
-            parsed.className = operands.get(1);
-            return parsed;
-        }
-
-        if ("run".equals(parsed.command)) {
-            if (operands.size() > 1) {
-                parsed.errorMessage = "Unexpected argument: " + operands.get(1);
-                return parsed;
-            }
-            if (parsed.formatterSpecified) {
-                parsed.formatterOverride = normalizeFormatter(parsed.formatter);
-                if (parsed.formatterOverride == null) {
-                    parsed.errorMessage = "Formatter must not be empty.";
-                    return parsed;
-                }
-            }
-            if (parsed.profileSpecified) {
-                try {
-                    parsed.profileOverride = TargetProfile.parse(parsed.profile);
-                } catch (IllegalArgumentException ex) {
-                    parsed.errorMessage = "Invalid profile: " + parsed.profile
-                            + ". Valid profiles: " + validProfileKeys() + ".";
-                    return parsed;
-                }
-            }
-            return parsed;
-        }
-
-        parsed.errorMessage = "Unknown command: " + operands.get(0);
-        return parsed;
-    }
-
-    private static ClassLoader effectiveClassLoader() {
-        ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
-        if (contextClassLoader != null) {
-            return contextClassLoader;
-        }
-        return Main.class.getClassLoader();
-    }
 
     private static void printUsageError(PrintStream err, String message) {
         err.println("Error: " + message);
@@ -1691,192 +768,5 @@ public final class Main {
         }
     }
 
-    private static final class RelatedSpecCheckResult {
-        private final boolean allAccepted;
-        private final boolean pendingChanges;
 
-        private RelatedSpecCheckResult(boolean allAccepted, boolean pendingChanges) {
-            this.allAccepted = allAccepted;
-            this.pendingChanges = pendingChanges;
-        }
-
-        static RelatedSpecCheckResult of(boolean allAccepted, boolean pendingChanges) {
-            return new RelatedSpecCheckResult(allAccepted, pendingChanges);
-        }
-
-        boolean allAccepted() {
-            return allAccepted;
-        }
-
-        boolean hasPendingChanges() {
-            return pendingChanges;
-        }
-    }
-
-    private static final class ClasspathArgument {
-        private final String optionName;
-        private final String value;
-        private final boolean file;
-
-        private ClasspathArgument(String optionName, String value, boolean file) {
-            this.optionName = optionName;
-            this.value = value;
-            this.file = file;
-        }
-
-        static ClasspathArgument pathList(String optionName, String value) {
-            return new ClasspathArgument(optionName, value, false);
-        }
-
-        static ClasspathArgument file(String optionName, String value) {
-            return new ClasspathArgument(optionName, value, true);
-        }
-
-        String optionName() {
-            return optionName;
-        }
-
-        String value() {
-            return value;
-        }
-
-        boolean isFile() {
-            return file;
-        }
-    }
-
-    private static final class ClasspathSelection {
-        private final ClassLoader classLoader;
-        private final List<File> entries;
-        private final int exitCode;
-        private final ClassLoader parentClassLoader;
-        private final boolean includesCompileOutput;
-
-        private ClasspathSelection(
-                ClassLoader classLoader,
-                List<File> entries,
-                int exitCode,
-                ClassLoader parentClassLoader,
-                boolean includesCompileOutput
-        ) {
-            this.classLoader = classLoader;
-            if (entries.isEmpty()) {
-                this.entries = Collections.emptyList();
-            } else {
-                this.entries = Collections.unmodifiableList(new ArrayList<File>(entries));
-            }
-            this.exitCode = exitCode;
-            this.parentClassLoader = parentClassLoader;
-            this.includesCompileOutput = includesCompileOutput;
-        }
-
-        static ClasspathSelection of(
-                ClassLoader classLoader,
-                List<File> entries,
-                int exitCode,
-                ClassLoader parentClassLoader,
-                boolean includesCompileOutput
-        ) {
-            return new ClasspathSelection(classLoader, entries, exitCode, parentClassLoader, includesCompileOutput);
-        }
-
-        ClasspathSelection withExitCode(int newExitCode) {
-            return new ClasspathSelection(classLoader, entries, newExitCode, parentClassLoader, includesCompileOutput);
-        }
-
-        ClassLoader classLoader() {
-            return classLoader;
-        }
-
-        ClassLoader parentClassLoader() {
-            return parentClassLoader;
-        }
-
-        List<File> entries() {
-            return entries;
-        }
-
-        boolean hasExplicitEntries() {
-            return !entries.isEmpty();
-        }
-
-        boolean includesCompileOutput() {
-            return includesCompileOutput;
-        }
-
-        File compiledOutputDirectory() {
-            if (!includesCompileOutput || entries.isEmpty()) {
-                return null;
-            }
-            return entries.get(0);
-        }
-
-        int exitCode() {
-            return exitCode;
-        }
-    }
-
-    private static final class ParsedArguments {
-        private String command;
-        private String className;
-        private String sourceRoot;
-        private String specRoot;
-        private boolean sourceRootSpecified;
-        private boolean specRootSpecified;
-        private boolean generate;
-        private boolean dryRun;
-        private boolean stopOnFailure;
-        private boolean verbose;
-        private boolean compile;
-        private String compileOutputPath;
-        private boolean compileOutputSpecified;
-        private boolean helpRequested;
-        private String errorMessage;
-        private String configPath;
-        private String suiteName;
-        private String reportPath;
-        private String reportOption;
-        private boolean reportSpecified;
-        private String junitXmlPath;
-        private String junitXmlOption;
-        private boolean junitXmlSpecified;
-        private List<ClasspathArgument> classpathArguments;
-        private String formatter;
-        private boolean formatterSpecified;
-        private String formatterOverride;
-        private String effectiveFormatter;
-        private String profile;
-        private boolean profileSpecified;
-        private TargetProfile profileOverride;
-        private TargetProfile effectiveProfile;
-        private String constructorPolicy;
-        private ConstructorPolicy constructorPolicyOverride;
-        private ConstructorPolicy effectiveConstructorPolicy;
-        private JavaspecConfiguration configuration;
-        private JavaspecSuiteConfiguration selectedSuite;
-        private List<String> effectiveBootstrapHooks;
-        private boolean effectiveBootstrapDiscovery;
-        private List<String> effectiveExtensions;
-        private SpecNamingConvention namingConvention;
-        private List<String> classFilters;
-        private List<String> exampleFilters;
-
-        void addClasspathArgument(ClasspathArgument argument) {
-            if (classpathArguments == null) {
-                classpathArguments = new ArrayList<ClasspathArgument>();
-            }
-            classpathArguments.add(argument);
-        }
-
-        boolean hasExplicitClasspath() {
-            return classpathArguments != null && !classpathArguments.isEmpty();
-        }
-
-        String firstClasspathOption() {
-            if (!hasExplicitClasspath()) {
-                return "--classpath";
-            }
-            return classpathArguments.get(0).optionName();
-        }
-    }
 }
