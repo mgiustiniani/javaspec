@@ -105,7 +105,7 @@ final class RunCommandHandler implements CommandHandler {
         }
 
         out.println("Found " + specs.size() + " specification(s) in " + specRoot.getPath() + ".");
-        int profileEnforcementExitCode = Main.enforceProfileCompatibility(parsed.effectiveProfile, specs, err);
+        int profileEnforcementExitCode = new ProfileEnforcementOrchestrator().enforceProfileCompatibility(parsed.effectiveProfile, specs, err);
         if (profileEnforcementExitCode != Main.EXIT_OK) {
             return profileEnforcementExitCode;
         }
