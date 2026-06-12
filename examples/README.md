@@ -38,6 +38,18 @@ Outputs:
 - `examples/junit-platform-basic/target/surefire-reports/`
 - `examples/bytecode-doubles-basic/target/javaspec/run-report.json`
 - `examples/bytecode-doubles-basic/target/javaspec/junit-report.xml`
+- `examples/prophecy-basic/target/javaspec/run-report.json`
+- `examples/prophecy-basic/target/javaspec/junit-report.xml`
+
+## Prophecy-style doubles example
+
+[`examples/prophecy-basic/`](prophecy-basic/) demonstrates the Prophecy-style doubles API with:
+
+- `Mailer.java` — an interface to prophesize
+- `MailerSpec.java` — a javaspec spec using `prophesize()`, `MethodProphecy`, argument matchers,
+  promises (`willReturn`, `willThrow`), and predictions (`shouldBeCalled`, `shouldNotBeCalled`,
+  `shouldBeCalledTimes`)
+- `Verify.java` — a standalone verification test exercising the API programmatically
 
 Specs can explicitly skip or mark examples pending without adding dependencies:
 

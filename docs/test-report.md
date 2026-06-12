@@ -1,5 +1,36 @@
 # Test and Quality Report
 
+## Phase E documentation verification update
+
+Date: 2026-06-12
+
+This update records completed Phase E documentation for the Prophecy-style doubles API.
+
+Phase E deliverables:
+
+| Item | Status |
+|---|---|
+| E1 — README Prophecy section | PASS |
+| E2 — Example project `examples/prophecy-basic/` | PASS |
+| E3 — Migration guide `docs/migration-guide.md` | PASS |
+| E4 — ByteBuddy note `docs/bytecode-doubles.md` | PASS |
+
+New documentation and example files:
+- `docs/migration-guide.md` — migrating from `Doubles.create()` / `DoubleControl` to Prophecy API
+- `docs/bytecode-doubles.md` — concrete-class doubles and Prophecy wrapper usage notes
+- `examples/prophecy-basic/pom.xml` — Maven build for prophecy example
+- `examples/prophecy-basic/src/main/java/com/example/Mailer.java` — interface to prophesize
+- `examples/prophecy-basic/src/test/java/spec/com/example/MailerSpec.java` — spec using prophecy API
+- `examples/prophecy-basic/src/test/java/com/example/Verify.java` — standalone verification test
+
+README.md was updated with a "Prophecy-Style Doubles" section covering reflective API, typed
+wrapper API, CLI wrapper generation, auto-generation during `javaspec run`, argument matchers,
+and auto-check predictions.
+
+`examples/README.md` was updated to include the prophecy-basic example.
+
+All existing tests remain unchanged. No new runtime dependencies were added.
+
 ## Finalization documentation and examples verification update
 
 Date: 2026-06-11

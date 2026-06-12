@@ -117,6 +117,18 @@ assert_file_contains "Maven JUnit XML report" "$maven_xml" 'classname="spec.com.
 assert_file_contains "Maven JUnit XML report" "$maven_xml" 'name="it_adds_two_numbers"'
 assert_file_contains "Maven JUnit XML report" "$maven_xml" 'line="11"'
 
+remove_path "Clean previous prophecy basic example reports" examples/prophecy-basic/target/javaspec
+run_at_root "Verify prophecy basic example" "${MAVEN_BIN}" -q -f examples/prophecy-basic/pom.xml verify
+prophecy_json="${repo_root}/examples/prophecy-basic/target/javaspec/run-report.json"
+prophecy_xml="${repo_root}/examples/prophecy-basic/target/javaspec/junit-report.xml"
+assert_file_exists "Prophecy JSON report" "$prophecy_json"
+assert_file_exists "Prophecy JUnit XML report" "$prophecy_xml"
+assert_file_contains "Prophecy JSON report" "$prophecy_json" '"schemaVersion": 1'
+assert_file_contains "Prophecy JSON report" "$prophecy_json" '"status": "PASSED"'
+assert_file_contains "Prophecy JSON report" "$prophecy_json" '"stableId": "spec.com.example.MailerSpec'
+assert_file_contains "Prophecy JUnit XML report" "$prophecy_xml" '<testsuite name="javaspec"'
+assert_file_contains "Prophecy JUnit XML report" "$prophecy_xml" 'classname="spec.com.example.MailerSpec"'
+
 if [ "${JAVASPEC_SKIP_BYTECODE_DOUBLES_EXAMPLE:-0}" = "1" ]; then
   printf '\nWARNING: Skipping bytecode doubles basic example because JAVASPEC_SKIP_BYTECODE_DOUBLES_EXAMPLE=1.\n'
 else

@@ -452,6 +452,142 @@ match(subject().save("item")).shouldReturn(true);
 
 The adapter is ByteBuddy-based and lives outside the core artifact. It supports non-final concrete classes only and explicitly rejects final classes, enums, arrays, annotations, primitives, and interfaces. Static method mocking, constructor mocking, and final-class mocking remain unsupported. See [`examples/bytecode-doubles-basic/`](examples/bytecode-doubles-basic/).
 
+## Prophecy-Style Doubles
+
+Inspired by [phpspec/prophecy](https://github.com/phpspec/prophecy), javaspec provides a
+declarative doubles API built around prophecies, promises, and predictions.
+
+### Reflective API
+
+The core prophecy types live in `org.javaspec.doubles.prophecy`:
+
+| Type | Purpose |
+|---|---|
+| `ObjectProphecy<T>` | Prophecy about an object of type `T` — wraps an `InterfaceDouble<T>` |
+| `MethodProphecy<R>` | Prophecy about a specific method call — stub setup and predictions |
+| `Promise<R>` | A promised return value or side-effect (`willReturn`, `willThrow`, `will`) |
+| `Prediction` | A verification that a method was called, not called, or called N times |
+| `PredictionRegistry` | Collects predictions and checks them all at once |
+| `Argument` / `Arg` | Static matcher DSL (`any()`, `eq()`, `containingString()`, `isNull()`, `notNull()`) |
+
+Use the reflective API in specs via `ObjectBehavior.prophesize(Class<T>)`:
+
+```java
+import static org.javaspec.doubles.prophecy.Argument.*;
+
+public class MailerSpec extends ObjectBehavior<Mailer> {
+    public MailerSpec() {
+        super(Mailer.class);
+    }
+
+    public void it_sends_an_email() {
+        ObjectProphecy<Mailer> mailer = prophesize(Mailer.class);
+
+        // Promise: stub the method to return true
+        mailer.method("send", any(String.class), eq("hello"), any(String.class))
+                .willReturn(true);
+
+        // Use the proxy in code under test
+        match(mailer.reveal().send("user@example.com", "hello", "Greetings!"))
+                .shouldReturn(true);
+
+        // Prediction: verify the method was called
+        mailer.method("send", any(String.class), eq("hello"), any(String.class))
+                .shouldBeCalled();
+    }
+}
+```
+
+Predictions are checked by calling `checkPredictions()` at the end of an example, or
+automatically when `--auto-check-predictions` is enabled.
+
+### Typed wrapper API
+
+For concise, method-name-safe syntax, generate typed `*Prophecy` wrapper classes using the
+reflection-based generator:
+
+```sh
+javaspec prophesize com.example.Mailer
+```
+
+This produces `MailerProphecy extends BaseObjectProphecy<Mailer>` with typed delegation methods:
+
+```java
+// Generated wrapper — no string method names needed
+MailerProphecy mailer = new MailerProphecy(
+    Doubles.interfaceDouble(Mailer.class),
+    new PredictionRegistry()
+);
+
+mailer.send(any(String.class), eq("hello"), any(String.class))
+    .willReturn(true)
+    .shouldBeCalled();
+```
+
+### Generating wrappers via CLI
+
+```sh
+javaspec prophesize <fqcn>                  # generate wrapper to generated-sources/
+javaspec prophesize <fqcn> --output <dir>   # custom output directory
+javaspec prophesize <fqcn> --package <pkg>  # custom target package
+javaspec prophesize <fqcn> --overwrite      # replace existing file
+javaspec prophesize <fqcn> --dry-run        # preview without writing
+```
+
+### Auto-generation during `javaspec run`
+
+When `javaspec run --generate` is used, javaspec scans spec files for `prophesize(...)` and
+`prophecy(...)` calls, detects missing wrapper classes, and generates them automatically:
+
+```sh
+javaspec run --generate --compile --formatter pretty
+```
+
+### Argument matchers
+
+Import from `Argument` or `Arg`:
+
+```java
+import static org.javaspec.doubles.prophecy.Argument.*;
+// or the shorter alias:
+import static org.javaspec.doubles.prophecy.Arg.*;
+```
+
+| Matcher | Description |
+|---|---|
+| `any()` | Matches any value, including null |
+| `any(Class<?>)` | Matches null or any value assignable to the type |
+| `eq(Object)` | Matches using javaspec's array-aware equality |
+| `isNull()` | Matches only null |
+| `notNull()` | Matches any non-null argument |
+| `containingString(String)` | Matches strings containing a substring |
+
+### Auto-check predictions
+
+Enable automatic prediction verification after each example via CLI flag:
+
+```sh
+javaspec run --auto-check-predictions
+```
+
+Or programmatically in a spec:
+
+```java
+public MailerSpec() {
+    super(Mailer.class);
+    setAutoCheckPredictions(true);
+}
+```
+
+When enabled, the runner calls `checkPredictions()` after each example. If any prediction fails,
+the example is marked FAILED with a descriptive message.
+
+### Full example
+
+See [`examples/prophecy-basic/`](examples/prophecy-basic/) for a complete working example with
+an interface to prophesize, a spec using both reflective and typed-wrapper syntax, and a
+standalone verification test.
+
 ## Reports
 
 The CLI and adapters can write both JSON and JUnit XML-compatible reports:
