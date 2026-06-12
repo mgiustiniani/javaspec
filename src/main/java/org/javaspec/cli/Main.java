@@ -3,23 +3,13 @@ package org.javaspec.cli;
 import org.javaspec.compatibility.ProfileEnforcement;
 import org.javaspec.compatibility.ProfileEnforcementReport;
 import org.javaspec.compatibility.ProfileViolation;
-import org.javaspec.config.ConfigurationException;
-import org.javaspec.config.JavaspecConfiguration;
-import org.javaspec.config.JavaspecSuiteConfiguration;
 import org.javaspec.diagnostics.RunDiagnostics;
 import org.javaspec.discovery.DiscoveredSpec;
-import org.javaspec.discovery.SpecNamingConvention;
 import org.javaspec.generation.ConstructorPolicy;
-import org.javaspec.generation.SpecFileGenerator;
-import org.javaspec.generation.SpecGenerationPlan;
-import org.javaspec.generation.SpecSkeletonGenerator;
-import org.javaspec.generation.SpecSupportFileGenerator;
-import org.javaspec.model.DescribedClass;
 import org.javaspec.model.DescribedType;
 import org.javaspec.formatter.RunFormatter;
 import org.javaspec.formatter.RunFormatterRegistry;
 import org.javaspec.model.JavaTypeKind;
-import org.javaspec.cli.run.ClasspathArgument;
 import org.javaspec.cli.run.ClasspathSelection;
 import org.javaspec.cli.CliArgumentParser;
 import org.javaspec.cli.run.ExtensionOrchestrator;
@@ -80,7 +70,7 @@ public final class Main {
             return EXIT_USAGE;
         }
 
-        int configurationExitCode = applyConfiguration(parsed, err);
+        int configurationExitCode = new ConfigurationOrchestrator().applyConfiguration(parsed, err);
         if (configurationExitCode != EXIT_OK) {
             return configurationExitCode;
         }
@@ -94,102 +84,7 @@ public final class Main {
         return handler.execute(parsed, in, out, err);
     }
 
-    private static int applyConfiguration(ParsedArguments parsed, PrintStream err) {
-        JavaspecConfiguration configuration;
-        if (parsed.configPath == null) {
-            configuration = JavaspecConfiguration.defaults();
-        } else {
-            File configFile = new File(parsed.configPath);
-            try {
-                configuration = JavaspecConfiguration.load(configFile);
-            } catch (ConfigurationException ex) {
-                err.println("Error: Invalid configuration: " + messageOf(ex));
-                return EXIT_USAGE;
-            } catch (IOException ex) {
-                err.println("Error: I/O error while reading configuration: " + messageOf(ex));
-                err.println("Config path: " + configFile.getPath());
-                return EXIT_IO_ERROR;
-            } catch (SecurityException ex) {
-                err.println("Error: I/O error while reading configuration: " + messageOf(ex));
-                err.println("Config path: " + configFile.getPath());
-                return EXIT_IO_ERROR;
-            }
-        }
 
-        String selectedSuiteName = parsed.suiteName == null ? configuration.defaultSuiteName() : parsed.suiteName;
-        JavaspecSuiteConfiguration selectedSuite;
-        try {
-            selectedSuite = configuration.suite(selectedSuiteName);
-        } catch (ConfigurationException ex) {
-            err.println("Error: Invalid configuration: " + messageOf(ex));
-            return EXIT_USAGE;
-        }
-
-        parsed.configuration = configuration;
-        parsed.selectedSuite = selectedSuite;
-        parsed.effectiveBootstrapHooks = bootstrapHooksFor(configuration, selectedSuite);
-        parsed.effectiveBootstrapDiscovery = configuration.effectiveBootstrapDiscovery(selectedSuite);
-        parsed.effectiveExtensions = extensionsFor(configuration, selectedSuite);
-        if (!parsed.specRootSpecified) {
-            parsed.specRoot = selectedSuite.specDirectory();
-        }
-        if (!parsed.sourceRootSpecified) {
-            parsed.sourceRoot = selectedSuite.sourceDirectory();
-        }
-        parsed.effectiveConstructorPolicy = parsed.constructorPolicyOverride == null
-                ? configuration.constructorPolicy()
-                : parsed.constructorPolicyOverride;
-        parsed.effectiveProfile = parsed.profileOverride == null
-                ? configuration.profile()
-                : parsed.profileOverride;
-        parsed.effectiveFormatter = parsed.formatterOverride == null
-                ? formatterFromConfiguration(configuration.formatter())
-                : parsed.formatterOverride;
-        if ("run".equals(parsed.command)) {
-            if (!parsed.reportSpecified && configuration.jsonReportFile() != null) {
-                parsed.reportPath = configuration.jsonReportFile();
-            }
-            if (!parsed.junitXmlSpecified && configuration.junitXmlReportFile() != null) {
-                parsed.junitXmlPath = configuration.junitXmlReportFile();
-            }
-        }
-        try {
-            parsed.namingConvention = SpecNamingConvention.from(selectedSuite);
-        } catch (IllegalArgumentException ex) {
-            err.println("Error: Invalid naming metadata: " + messageOf(ex));
-            return EXIT_USAGE;
-        } catch (RuntimeException ex) {
-            err.println("Error: Invalid naming metadata: " + messageOf(ex));
-            return EXIT_USAGE;
-        }
-        return EXIT_OK;
-    }
-
-    private static List<String> bootstrapHooksFor(
-            JavaspecConfiguration configuration,
-            JavaspecSuiteConfiguration selectedSuite
-    ) {
-        List<String> hooks = new ArrayList<String>();
-        hooks.addAll(configuration.bootstrapHooks());
-        hooks.addAll(selectedSuite.bootstrapHooks());
-        if (hooks.isEmpty()) {
-            return Collections.emptyList();
-        }
-        return Collections.unmodifiableList(hooks);
-    }
-
-    private static List<String> extensionsFor(
-            JavaspecConfiguration configuration,
-            JavaspecSuiteConfiguration selectedSuite
-    ) {
-        List<String> extensions = new ArrayList<String>();
-        extensions.addAll(configuration.extensions());
-        extensions.addAll(selectedSuite.extensions());
-        if (extensions.isEmpty()) {
-            return Collections.emptyList();
-        }
-        return Collections.unmodifiableList(extensions);
-    }
 
     static ConstructorPolicy resolveConstructorPolicy(ParsedArguments parsed) {
         if (parsed.effectiveConstructorPolicy != null) {
