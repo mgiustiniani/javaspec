@@ -8,8 +8,6 @@ import org.javaspec.config.JavaspecConfiguration;
 import org.javaspec.config.JavaspecSuiteConfiguration;
 import org.javaspec.diagnostics.RunDiagnostics;
 import org.javaspec.discovery.DiscoveredSpec;
-import org.javaspec.discovery.SpecDiscovery;
-import org.javaspec.discovery.SpecDiscoveryRequest;
 import org.javaspec.discovery.SpecNamingConvention;
 import org.javaspec.generation.ConstructorPolicy;
 import org.javaspec.generation.SpecFileGenerator;
@@ -22,29 +20,18 @@ import org.javaspec.formatter.RunFormatter;
 import org.javaspec.formatter.RunFormatterRegistry;
 import org.javaspec.model.JavaTypeKind;
 import org.javaspec.cli.run.ClasspathArgument;
-import org.javaspec.cli.run.ClasspathResolver;
 import org.javaspec.cli.run.ClasspathSelection;
 import org.javaspec.cli.CliArgumentParser;
-import org.javaspec.cli.run.BootstrapOrchestrator;
-import org.javaspec.cli.run.CompilationOrchestrator;
 import org.javaspec.cli.run.ExtensionOrchestrator;
-import org.javaspec.cli.run.GenerationOrchestrator;
-import org.javaspec.cli.run.GenerationOrchestratorResult;
-import org.javaspec.cli.run.ReportOrchestrator;
 import org.javaspec.cli.run.RunOrchestratorResult;
-import org.javaspec.invocation.JavaspecExitCode;
 import org.javaspec.profile.TargetProfile;
 import org.javaspec.runner.RunResult;
-import org.javaspec.runner.SpecRunner;
 
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -204,152 +191,14 @@ public final class Main {
         return Collections.unmodifiableList(extensions);
     }
 
-    private static ConstructorPolicy resolveConstructorPolicy(ParsedArguments parsed) {
+    static ConstructorPolicy resolveConstructorPolicy(ParsedArguments parsed) {
         if (parsed.effectiveConstructorPolicy != null) {
             return parsed.effectiveConstructorPolicy;
         }
         return ConstructorPolicy.defaultPolicy();
     }
 
-    static int runSpecifications(ParsedArguments parsed, InputStream in, PrintStream out, PrintStream err) {
-        File specRoot = new File(parsed.specRoot);
-        File sourceRoot = new File(parsed.sourceRoot);
-        BufferedReader input = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
-
-        ClasspathSelection classpathSelection = ClasspathResolver.select(
-                parsed.classpathArguments,
-                err
-        );
-        if (classpathSelection.exitCode() != EXIT_OK) {
-            return classpathSelection.exitCode();
-        }
-        ClassLoader selectedClassLoader = classpathSelection.classLoader();
-        ExtensionOrchestrator.LoadResult<RunFormatterRegistry> loadResult =
-                ExtensionOrchestrator.loadFormatterRegistry(selectedClassLoader, err);
-        if (!loadResult.isSuccess()) {
-            return loadResult.exitCode();
-        }
-        RunFormatterRegistry runFormatters = loadResult.value();
-        int extensionActivationExitCode = ExtensionOrchestrator.activateExtensions(
-                parsed.effectiveExtensions,
-                selectedClassLoader,
-                runFormatters,
-                err
-        );
-        if (extensionActivationExitCode != EXIT_OK) {
-            return extensionActivationExitCode;
-        }
-        int formatterExitCode = ExtensionOrchestrator.validateFormatter(
-                parsed.effectiveFormatter,
-                runFormatters,
-                err
-        );
-        if (formatterExitCode != EXIT_OK) {
-            printUsage(err);
-            return formatterExitCode;
-        }
-
-        if (parsed.verbose) {
-            printRunConfiguration(parsed, out, classpathSelection);
-        }
-
-        SpecDiscoveryRequest discoveryRequest = SpecDiscoveryRequest.of(specRoot, parsed.namingConvention);
-        if (parsed.classFilters != null) {
-            for (int fi = 0; fi < parsed.classFilters.size(); fi++) {
-                discoveryRequest = discoveryRequest.withClassFilter(parsed.classFilters.get(fi));
-            }
-        }
-        if (parsed.exampleFilters != null) {
-            for (int fi = 0; fi < parsed.exampleFilters.size(); fi++) {
-                discoveryRequest = discoveryRequest.withExampleFilter(parsed.exampleFilters.get(fi));
-            }
-        }
-
-        List<DiscoveredSpec> specs;
-        try {
-            specs = SpecDiscovery.discover(discoveryRequest);
-        } catch (SecurityException ex) {
-            err.println("I/O error while discovering specifications: " + messageOf(ex));
-            err.println("Spec root: " + specRoot.getPath());
-            return EXIT_IO_ERROR;
-        }
-
-        if (specs.size() == 0) {
-            out.println("No specifications found in " + specRoot.getPath() + ".");
-            return ReportOrchestrator.writeRequested(
-                    ReportOrchestrator.emptyResult(),
-                    parsed.reportPath,
-                    parsed.junitXmlPath,
-                    err
-            );
-        }
-
-        out.println("Found " + specs.size() + " specification(s) in " + specRoot.getPath() + ".");
-        int profileEnforcementExitCode = enforceProfileCompatibility(parsed.effectiveProfile, specs, err);
-        if (profileEnforcementExitCode != EXIT_OK) {
-            return profileEnforcementExitCode;
-        }
-        GenerationOrchestratorResult genResult = GenerationOrchestrator.execute(
-                specs,
-                specRoot,
-                sourceRoot,
-                input,
-                out,
-                err,
-                parsed.generate,
-                parsed.dryRun,
-                parsed.namingConvention,
-                selectedClassLoader,
-                resolveConstructorPolicy(parsed)
-        );
-        if (!genResult.shouldProceed()) {
-            return genResult.exitCode();
-        }
-
-        ClasspathSelection executionClasspathSelection = classpathSelection;
-        if (parsed.compile && !parsed.dryRun) {
-            executionClasspathSelection = CompilationOrchestrator.compile(
-                    parsed.compileOutputPath,
-                    sourceRoot,
-                    specRoot,
-                    classpathSelection,
-                    out,
-                    err
-            );
-
-            if (executionClasspathSelection.exitCode() != EXIT_OK) {
-                return executionClasspathSelection.exitCode();
-            }
-            selectedClassLoader = executionClasspathSelection.classLoader();
-        }
-
-        int bootstrapExitCode = BootstrapOrchestrator.execute(
-                parsed.effectiveBootstrapHooks,
-                parsed.effectiveBootstrapDiscovery,
-                selectedClassLoader,
-                specs,
-                err
-        );
-        if (bootstrapExitCode != EXIT_OK) {
-            return bootstrapExitCode;
-        }
-
-        RunResult runResult = SpecRunner.run(specs, selectedClassLoader, parsed.stopOnFailure);
-        printRunnerSummary(runResult, out, parsed.effectiveFormatter, runFormatters);
-        printExecutionDiagnostics(runResult, out, executionClasspathSelection);
-        int reportExitCode = ReportOrchestrator.writeRequested(
-                runResult,
-                parsed.reportPath,
-                parsed.junitXmlPath,
-                err
-        );
-        if (reportExitCode != EXIT_OK) {
-            return reportExitCode;
-        }
-        return JavaspecExitCode.from(runResult);
-    }
-
-    private static int enforceProfileCompatibility(
+    static int enforceProfileCompatibility(
             TargetProfile targetProfile,
             List<DiscoveredSpec> specs,
             PrintStream err
@@ -488,7 +337,7 @@ public final class Main {
         relatedTypes.add(candidate);
     }
 
-    private static void printRunnerSummary(
+    static void printRunnerSummary(
             RunResult runResult,
             PrintStream out,
             String formatter,
@@ -501,7 +350,7 @@ public final class Main {
         runFormatter.format(runResult, out);
     }
 
-    private static void printExecutionDiagnostics(
+    static void printExecutionDiagnostics(
             RunResult runResult,
             PrintStream out,
             ClasspathSelection classpathSelection
@@ -528,7 +377,7 @@ public final class Main {
         }
     }
 
-    private static void printRunConfiguration(ParsedArguments parsed, PrintStream out, ClasspathSelection classpathSelection) {
+    static void printRunConfiguration(ParsedArguments parsed, PrintStream out, ClasspathSelection classpathSelection) {
         out.println("Run configuration:");
         out.println("  Selected suite: " + parsed.selectedSuite.name());
         out.println("  Spec root: " + parsed.specRoot);
