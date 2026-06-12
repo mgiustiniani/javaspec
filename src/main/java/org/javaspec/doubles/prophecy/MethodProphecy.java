@@ -6,6 +6,7 @@ import org.javaspec.doubles.StubAnswer;
 
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * A prophecy about a specific method call on a prophesized object.
@@ -22,7 +23,7 @@ public final class MethodProphecy<R> {
     private final String methodName;
     private final Object[] arguments;
     private final PredictionRegistry registry;
-    private final ObjectProphecy<?> prophObject;
+    private final BaseObjectProphecy<?> prophObject;
     private Promise<R> promise;
     private Prediction prediction;
 
@@ -58,7 +59,7 @@ public final class MethodProphecy<R> {
      * @param methodName the method name
      * @param arguments  the method arguments
      */
-    public MethodProphecy(DoubleControl control, PredictionRegistry registry, ObjectProphecy<?> prophObject,
+    public MethodProphecy(DoubleControl control, PredictionRegistry registry, BaseObjectProphecy<?> prophObject,
                           String methodName, Object... arguments) {
         this.control = Objects.requireNonNull(control, "control must not be null");
         this.registry = registry;
@@ -120,13 +121,13 @@ public final class MethodProphecy<R> {
      * @throws IllegalStateException if this method prophecy was not created via an ObjectProphecy
      */
     @SuppressWarnings("unchecked")
-    public MethodProphecy<R> will(Consumer<ObjectProphecy<?>> callback) {
+    public MethodProphecy<R> will(Consumer<BaseObjectProphecy<?>> callback) {
         if (prophObject == null) {
             throw new IllegalStateException(
-                    "will(Consumer) requires a reference to the ObjectProphecy. "
-                    + "Use MethodProphecy created via ObjectProphecy.method().");
+                    "will(Consumer) requires a reference to the prophecy object. "
+                    + "Use MethodProphecy created via BaseObjectProphecy.method().");
         }
-        ObjectProphecy<?> captured = prophObject;
+        BaseObjectProphecy<?> captured = prophObject;
         this.promise = Promise.will(new StubAnswer() {
             @Override
             public Object answer(DoubleInvocation invocation) throws Throwable {
