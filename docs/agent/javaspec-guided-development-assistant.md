@@ -144,8 +144,34 @@ Stop here until the user confirms the next slice.
 
 ### Specification style example
 
-Prefer specifications that read like behavior documentation. Keep each example focused on one
-observable result.
+#### Primary style: proxy style
+
+Prefer the PHPSpec-inspired proxy style where the spec extends `ObjectBehavior<Subject>`
+and uses `match(subject()...)` / `match(...).shouldReturn(...)`.
+
+```java
+import static org.javaspec.api.ObjectBehavior.*;
+
+public final class GreetingSpec extends /* generated support class extending ObjectBehavior<Greeting> */ {
+    public static void main(String[] args) {
+        Greeting greeting = new Greeting();
+
+        String message = greeting.forName("Ada");
+
+        match(message).shouldReturn("Hello, Ada!");
+    }
+}
+```
+
+After javaspec generation, the generated support class provides typed proxy methods:
+
+```java
+match(subject().forName("Ada")).shouldReturn("Hello, Ada!");
+```
+
+#### Alternative style: expectation style
+
+The expectation style (`describe`/`it`/`expect`) is also supported as an alternative.
 
 ```java
 import static org.javaspec.Javaspec.describe;
@@ -179,18 +205,14 @@ Guidelines:
 Use small construction helpers when they reduce noise and keep the behavior visible.
 
 ```java
-public final class UserRegistrationSpec {
+public final class UserRegistrationSpec extends /* generated support class extending ObjectBehavior<RegistrationService> */ {
     public static void main(String[] args) {
-        describe("User registration", spec -> {
-            spec.it("rejects an empty email address", () -> {
-                RegistrationService service = registrationService();
+        RegistrationService service = registrationService();
 
-                RegistrationResult result = service.register(userWithEmail(""));
+        RegistrationResult result = service.register(userWithEmail(""));
 
-                expect(result.isAccepted()).toEqual(false);
-                expect(result.error()).toEqual("email is required");
-            });
-        });
+        match(result.isAccepted()).shouldReturn(false);
+        match(result.error()).shouldReturn("email is required");
     }
 
     private static RegistrationService registrationService() {
@@ -201,6 +223,12 @@ public final class UserRegistrationSpec {
         return new RegistrationRequest(email, "Ada");
     }
 }
+```
+
+Or with the generated typed proxy:
+
+```java
+match(subject().register(userWithEmail(""))).shouldReturn(false);
 ```
 
 Helper rules:
@@ -215,19 +243,15 @@ Helper rules:
 For interface dependencies, prefer simple hand-written doubles in the spec.
 
 ```java
-public final class WelcomeEmailSpec {
+public final class WelcomeEmailSpec extends /* generated support class extending ObjectBehavior<WelcomeService> */ {
     public static void main(String[] args) {
-        describe("Welcome email", spec -> {
-            spec.it("sends one message to the new user", () -> {
-                RecordingMailer mailer = new RecordingMailer();
-                WelcomeService service = new WelcomeService(mailer);
+        RecordingMailer mailer = new RecordingMailer();
+        WelcomeService service = new WelcomeService(mailer);
 
-                service.welcome("ada@example.test");
+        service.welcome("ada@example.test");
 
-                expect(mailer.sentCount()).toEqual(1);
-                expect(mailer.lastRecipient()).toEqual("ada@example.test");
-            });
-        });
+        match(mailer.sentCount()).shouldReturn(1);
+        match(mailer.lastRecipient()).shouldReturn("ada@example.test");
     }
 
     private static final class RecordingMailer implements Mailer {
@@ -273,29 +297,32 @@ Maven dependency snippet:
 </dependency>
 ```
 
-Example shape:
+Example shape using `Doubles.concreteDouble()`, `Doubles.control()`, and `Doubles.calls()`:
 
 ```java
-import static org.javaspec.Javaspec.describe;
-import static org.javaspec.Javaspec.expect;
-import static org.javaspec.doubles.BytecodeDoubles.doubleFor;
+import static org.javaspec.doubles.Doubles.*;
 
-public final class InvoicePrinterSpec {
+public final class InvoicePrinterSpec extends /* generated support class extending ObjectBehavior<InvoicePrinter> */ {
     public static void main(String[] args) {
-        describe("Invoice printer", spec -> {
-            spec.it("loads the invoice before printing", () -> {
-                InvoiceRepository repository = doubleFor(InvoiceRepository.class);
-                repository.whenCall("load", "INV-1").thenReturn(new Invoice("INV-1"));
-                InvoicePrinter printer = new InvoicePrinter(repository);
+        InvoiceRepository repository = concreteDouble(InvoiceRepository.class).instance();
+        DoubleControl control = control(repository);
+        control.whenCall("load", "INV-1").thenReturn(new Invoice("INV-1"));
+        InvoicePrinter printer = new InvoicePrinter(repository);
 
-                String output = printer.print("INV-1");
+        String output = printer.print("INV-1");
 
-                expect(output).toContain("INV-1");
-                repository.verifyCall("load", "INV-1");
-            });
-        });
+        match(output).shouldContain("INV-1");
+        control.shouldHaveBeenCalled("load", "INV-1");
     }
 }
+```
+
+Or using `InterfaceDouble` for a combined proxy+control handle:
+
+```java
+InterfaceDouble<InvoiceRepository> repositoryDouble = concreteDouble(InvoiceRepository.class);
+repositoryDouble.control().whenCall("load", "INV-1").thenReturn(new Invoice("INV-1"));
+InvoicePrinter printer = new InvoicePrinter(repositoryDouble.instance());
 ```
 
 Adapter rules:
@@ -304,6 +331,21 @@ Adapter rules:
 - Keep the adapter optional.
 - Do not add the adapter as a runtime dependency of javaspec core.
 - Prefer interface-oriented design and hand-written doubles when practical.
+
+For interface doubles (no bytecode dependency needed), use:
+
+```java
+InterfaceDouble<Mailer> mailerDouble = interfaceDouble(Mailer.class);
+mailerDouble.control().whenCall("send", "ada@example.test", any(), any()).thenReturnNothing();
+WelcomeService service = new WelcomeService(mailerDouble.instance());
+```
+
+Or simply:
+
+```java
+Mailer mailer = Doubles.create(Mailer.class);
+DoubleControl control = Doubles.control(mailer);
+```
 
 ### Unsupported doubles limits
 
@@ -330,22 +372,23 @@ CLI examples:
 ```bash
 javac -source 8 -target 8 -cp <classpath> <spec-file>.java
 java -cp <classpath> <spec-main-class>
+bin/javaspec run --classpath <classpath> --compile
 ```
 
 Maven examples:
 
 ```bash
-mvn -pl <module> -Dtest=<SpecClassName> test
-mvn -pl <module> -DskipTests compile
-mvn -pl <module> test
+mvn javaspec:run
+mvn -pl <module> javaspec:run -Djavaspec.classFilters=<SpecClassName>
+mvn -pl <module> javaspec:run -Djavaspec.compile=true
 ```
 
 Gradle examples:
 
 ```bash
-./gradlew :<module>:test --tests '<SpecClassName>'
-./gradlew :<module>:compileJava
-./gradlew :<module>:test
+./gradlew :<module>:javaspecRun -Pjavaspec.classFilters=<SpecClassName>
+./gradlew :<module>:javaspecRun -Pjavaspec.compile=true
+./gradlew :<module>:javaspecRun
 ```
 
 Rules:
@@ -355,6 +398,16 @@ Rules:
   convention requires it.
 - Preserve Java 8 source and target settings unless a selected target profile allows a newer level.
 
+### JUnit Platform Engine (optional)
+
+javaspec also provides a `javaspec-junit-platform-engine` module that exposes specifications as
+JUnit Platform tests. When using the JUnit Platform engine, standard JUnit commands apply:
+
+```bash
+mvn -pl <module> test
+./gradlew :<module>:test
+```
+
 ### Reports commands and schemaVersion 1 metadata note
 
 When report generation is part of the slice, verify the smallest report-producing command available.
@@ -362,22 +415,22 @@ When report generation is part of the slice, verify the smallest report-producin
 CLI examples:
 
 ```bash
-java -jar javaspec-cli.jar run --reports-dir build/javaspec-reports <spec-main-class>
-java -jar javaspec-cli.jar report --input build/javaspec-reports --format json
+bin/javaspec run --report build/javaspec-reports/run-report.json --junit-xml build/javaspec-reports/junit.xml
+bin/javaspec run --report run-report.json
 ```
 
 Maven examples:
 
 ```bash
-mvn -pl <module> javaspec:run -Djavaspec.reportsDir=target/javaspec-reports
-mvn -pl <module> javaspec:report -Djavaspec.reportsDir=target/javaspec-reports
+mvn javaspec:run -Djavaspec.reportFile=target/javaspec-reports/run-report.json -Djavaspec.junitXmlFile=target/javaspec-reports/junit.xml
+mvn javaspec:run -Djavaspec.reportFile=run-report.json
 ```
 
 Gradle examples:
 
 ```bash
-./gradlew :<module>:javaspecRun -PjavaspecReportsDir=build/javaspec-reports
-./gradlew :<module>:javaspecReport -PjavaspecReportsDir=build/javaspec-reports
+./gradlew :<module>:javaspecRun -Pjavaspec.reportFile=build/javaspec-reports/run-report.json -Pjavaspec.junitXmlFile=build/javaspec-reports/junit.xml
+./gradlew :<module>:javaspecRun -Pjavaspec.reportFile=run-report.json
 ```
 
 Report metadata must preserve `schemaVersion` 1 unless a dedicated compatibility-changing slice
@@ -392,6 +445,56 @@ stable, for example:
   }
 }
 ```
+
+### Maven plugin parameters
+
+When using `javaspec-maven-plugin` (goal `javaspec:run`), configure via `-Djavaspec.*`:
+
+| Parameter | Description |
+|-----------|-------------|
+| `javaspec.configFile` | Path to javaspec configuration file |
+| `javaspec.suiteName` | Suite name to select |
+| `javaspec.classFilters` | Comma-delimited class name filters |
+| `javaspec.exampleFilters` | Comma-delimited example filters |
+| `javaspec.compile` | Enable compilation (true/false) |
+| `javaspec.generate` | Enable generation prompts (true/false) |
+| `javaspec.dryRun` | Report pending work without writing (true/false) |
+| `javaspec.stopOnFailure` | Stop after first failure (true/false) |
+| `javaspec.formatter` | Output formatter (progress/pretty) |
+| `javaspec.profile` | Target profile (java8/java11/java17/java21/java25) |
+| `javaspec.reportFile` | JSON report output path |
+| `javaspec.junitXmlFile` | JUnit XML report output path |
+| `javaspec.bootstrapDiscovery` | Enable bootstrap discovery (true/false) |
+| `javaspec.bootstrapHooks` | Bootstrap hook class names |
+| `javaspec.extensions` | Extension class names |
+| `javaspec.constructorPolicy` | Constructor handling (delete/preserve/comment) |
+| `javaspec.testClasspath` | Maven test classpath (readonly) |
+| `javaspec.compileOutputDirectory` | Compilation output directory |
+
+### Gradle plugin parameters
+
+When using `javaspec-gradle-plugin` (task `javaspecRun`), configure via extension or `-Pjavaspec.*`:
+
+| Parameter | Description |
+|-----------|-------------|
+| `javaspecConfig` / `javaspec.configFile` | Path to javaspec configuration file |
+| `javaspecSuite` / `javaspec.suite` | Suite name to select |
+| `javaspecClassFilters` / `javaspec.classFilters` | Class name filters |
+| `javaspecExampleFilters` / `javaspec.exampleFilters` | Example filters |
+| `javaspecCompile` / `javaspec.compile` | Enable compilation |
+| `javaspecGenerate` / `javaspec.generate` | Enable generation prompts |
+| `javaspecDryRun` / `javaspec.dryRun` | Report pending work without writing |
+| `javaspecStopOnFailure` / `javaspec.stopOnFailure` | Stop after first failure |
+| `javaspecFormatter` / `javaspec.formatter` | Output formatter |
+| `javaspecProfile` / `javaspec.profile` | Target profile |
+| `javaspecReportFile` / `javaspec.reportFile` | JSON report output path |
+| `javaspecJunitXmlFile` / `javaspec.junitXmlFile` | JUnit XML report output path |
+| `javaspecBootstrapDiscovery` / `javaspec.bootstrapDiscovery` | Enable bootstrap discovery |
+| `javaspecBootstrapHooks` / `javaspec.bootstrapHooks` | Bootstrap hook class names |
+| `javaspecExtensions` / `javaspec.extensions` | Extension class names |
+| `javaspecConstructorPolicy` / `javaspec.constructorPolicy` | Constructor handling |
+| `javaspecTestClasspath` / `javaspec.testClasspath` | Test classpath |
+| `javaspecCompileOutputDir` / `javaspec.compileOutput` | Compilation output directory |
 
 ## Safety Rules
 
