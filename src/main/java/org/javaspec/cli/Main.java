@@ -52,11 +52,11 @@ import java.util.List;
 import java.util.Locale;
 
 public final class Main {
-    private static final int EXIT_OK = 0;
-    private static final int EXIT_MISSING_NOT_GENERATED = 1;
-    private static final int EXIT_COMPILATION_FAILED = 1;
-    private static final int EXIT_USAGE = 64;
-    private static final int EXIT_IO_ERROR = 70;
+    static final int EXIT_OK = 0;
+    static final int EXIT_MISSING_NOT_GENERATED = 1;
+    static final int EXIT_COMPILATION_FAILED = 1;
+    static final int EXIT_USAGE = 64;
+    static final int EXIT_IO_ERROR = 70;
 
     private static final String DEFAULT_SOURCE_ROOT = "src/main/java";
     private static final String DEFAULT_SPEC_ROOT = "src/test/java";
@@ -209,68 +209,6 @@ public final class Main {
             return parsed.effectiveConstructorPolicy;
         }
         return ConstructorPolicy.defaultPolicy();
-    }
-
-    static int describeClass(ParsedArguments parsed, PrintStream out, PrintStream err) {
-        DescribedClass describedClass;
-        try {
-            describedClass = DescribedClass.of(parsed.className);
-        } catch (IllegalArgumentException ex) {
-            printUsageError(err, "Invalid class name: " + ex.getMessage());
-            return EXIT_USAGE;
-        }
-
-        SpecNamingConvention namingConvention = parsed.namingConvention;
-        File specRoot = new File(parsed.specRoot);
-        DescribedType describedType = DescribedType.of(describedClass);
-        SpecGenerationPlan plan;
-        SpecGenerationPlan supportPlan;
-        try {
-            plan = SpecSkeletonGenerator.plan(describedType, specRoot, namingConvention);
-            supportPlan = SpecSkeletonGenerator.supportPlan(describedType, specRoot, namingConvention);
-        } catch (IllegalArgumentException ex) {
-            printUsageError(err, "Naming error: " + messageOf(ex));
-            return EXIT_USAGE;
-        }
-        if (plan.targetFile().exists()) {
-            out.println("Specification " + plan.specQualifiedName() + " exists; no generation needed.");
-            out.println("Spec file: " + plan.targetFile().getPath());
-            try {
-                if (!supportPlan.targetFile().exists()) {
-                    File generatedSupport = SpecSupportFileGenerator.writeOrUpdate(supportPlan);
-                    out.println("Generated specification support: " + generatedSupport.getPath());
-                }
-            } catch (IOException ex) {
-                err.println("I/O error while generating specification support: " + messageOf(ex));
-                err.println("Target path: " + supportPlan.targetFile().getPath());
-                return EXIT_IO_ERROR;
-            } catch (SecurityException ex) {
-                err.println("I/O error while generating specification support: " + messageOf(ex));
-                err.println("Target path: " + supportPlan.targetFile().getPath());
-                return EXIT_IO_ERROR;
-            }
-            out.println("No production class was generated.");
-            return EXIT_OK;
-        }
-
-        try {
-            File generatedSupport = SpecSupportFileGenerator.writeOrUpdate(supportPlan);
-            File generatedFile = SpecFileGenerator.write(plan);
-            out.println("Generated specification support: " + generatedSupport.getPath());
-            out.println("Generated specification: " + generatedFile.getPath());
-            out.println("Specification class: " + plan.specQualifiedName());
-            out.println("Described class: " + describedClass.qualifiedName());
-            out.println("No production class was generated. Run `javaspec run` to continue the PHPSpec-style workflow.");
-            return EXIT_OK;
-        } catch (IOException ex) {
-            err.println("I/O error while generating specification: " + messageOf(ex));
-            err.println("Target path: " + plan.targetFile().getPath());
-            return EXIT_IO_ERROR;
-        } catch (SecurityException ex) {
-            err.println("I/O error while generating specification: " + messageOf(ex));
-            err.println("Target path: " + plan.targetFile().getPath());
-            return EXIT_IO_ERROR;
-        }
     }
 
     static int runSpecifications(ParsedArguments parsed, InputStream in, PrintStream out, PrintStream err) {
@@ -695,12 +633,12 @@ public final class Main {
     }
 
 
-    private static void printUsageError(PrintStream err, String message) {
+    static void printUsageError(PrintStream err, String message) {
         err.println("Error: " + message);
         printUsage(err);
     }
 
-    private static void printUsage(PrintStream stream) {
+    static void printUsage(PrintStream stream) {
         stream.println("Usage:");
         stream.println("  javaspec describe <ClassName> [--config <file>] [--suite <name>] [--spec-dir <dir>]");
         stream.println("  javaspec desc <ClassName> [--config <file>] [--suite <name>] [--spec-root <dir>]");
@@ -738,7 +676,7 @@ public final class Main {
         stream.println("  --help, -h            Show this help.");
     }
 
-    private static String messageOf(Throwable throwable) {
+    static String messageOf(Throwable throwable) {
         String message = throwable.getMessage();
         if (message == null || message.length() == 0) {
             return throwable.getClass().getName();
