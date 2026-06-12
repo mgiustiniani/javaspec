@@ -25,6 +25,7 @@ public class ObjectBehavior<T> {
     private final AssertionDispatcher assertions;
     private final DoubleFacade doubles;
     private final SpecLifecycleSignals signals;
+    private final SubjectTypeMarkers<T> subjectTypeMarkers;
     private MatcherRegistry matcherRegistry;
 
     /**
@@ -45,6 +46,7 @@ public class ObjectBehavior<T> {
         this.assertions = new AssertionDispatcher(this.matcherRegistry);
         this.doubles = new DoubleFacade();
         this.signals = new SpecLifecycleSignals();
+        this.subjectTypeMarkers = new SubjectTypeMarkers<T>(this.lifecycle);
     }
 
     // --- Subject access ---
@@ -465,67 +467,51 @@ public class ObjectBehavior<T> {
     // --- Discovery marker and runtime construction methods ---
 
     public void shouldHaveType(Class<?> expectedType) {
-        if (expectedType == null) {
-            throw new AssertionError("Expected type must not be null");
-        }
-        if (!lifecycle.isInstantiated() && lifecycle.getSubjectType() == null) {
-            return;
-        }
-        T current = lifecycle.subject();
-        if (current == null) {
-            throw new AssertionError("Expected an instance of " + expectedType.getName() + " but got null");
-        }
-        Class<?> actualType = current.getClass();
-        if (!expectedType.isAssignableFrom(actualType)) {
-            throw new AssertionError(
-                    "Expected an instance of " + expectedType.getName()
-                    + " but got " + actualType.getName()
-            );
-        }
+        subjectTypeMarkers.shouldHaveType(expectedType);
     }
 
     public void shouldBeAClass() {
-        // Marker used by discovery and generation.
+        subjectTypeMarkers.shouldBeAClass();
     }
 
     public void shouldBeAFinalClass() {
-        // Marker used by discovery and generation.
+        subjectTypeMarkers.shouldBeAFinalClass();
     }
 
     public void shouldBeAnInterface() {
-        // Marker used by discovery and generation.
+        subjectTypeMarkers.shouldBeAnInterface();
     }
 
     public void shouldBeAnEnum() {
-        // Marker used by discovery and generation.
+        subjectTypeMarkers.shouldBeAnEnum();
     }
 
     public void shouldBeAnAnnotation() {
-        // Marker used by discovery and generation.
+        subjectTypeMarkers.shouldBeAnAnnotation();
     }
 
     public void shouldBeARecord() {
-        // Marker used by discovery and generation.
+        subjectTypeMarkers.shouldBeARecord();
     }
 
     public void shouldBeASealedClass() {
-        // Marker used by discovery and generation.
+        subjectTypeMarkers.shouldBeASealedClass();
     }
 
     public void shouldBeASealedInterface() {
-        // Marker used by discovery and generation.
+        subjectTypeMarkers.shouldBeASealedInterface();
     }
 
     public void shouldExtend(Class<?>... extendedTypes) {
-        // Marker used by discovery and generation.
+        subjectTypeMarkers.shouldExtend(extendedTypes);
     }
 
     public void shouldImplement(Class<?>... implementedTypes) {
-        // Marker used by discovery and generation.
+        subjectTypeMarkers.shouldImplement(implementedTypes);
     }
 
     public void shouldPermit(Class<?>... permittedTypes) {
-        // Marker used by discovery and generation.
+        subjectTypeMarkers.shouldPermit(permittedTypes);
     }
 
     /**
