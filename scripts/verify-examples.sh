@@ -125,7 +125,7 @@ assert_file_exists "Prophecy JSON report" "$prophecy_json"
 assert_file_exists "Prophecy JUnit XML report" "$prophecy_xml"
 assert_file_contains "Prophecy JSON report" "$prophecy_json" '"schemaVersion": 1'
 assert_file_contains "Prophecy JSON report" "$prophecy_json" '"status": "PASSED"'
-assert_file_contains "Prophecy JSON report" "$prophecy_json" '"stableId": "spec.com.example.MailerSpec'
+assert_file_contains "Prophecy JSON report" "$prophecy_json" '"stableId": "spec.com.example.UserServiceSpec'
 assert_file_contains "Prophecy JUnit XML report" "$prophecy_xml" '<testsuite name="javaspec"'
 assert_file_contains "Prophecy JUnit XML report" "$prophecy_xml" 'classname="spec.com.example.MailerSpec"'
 

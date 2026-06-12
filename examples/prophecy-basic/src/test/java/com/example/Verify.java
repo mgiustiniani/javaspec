@@ -8,7 +8,8 @@ import org.javaspec.doubles.prophecy.PredictionRegistry;
 import static org.javaspec.doubles.prophecy.Argument.*;
 
 /**
- * Verification test that exercises the Prophecy-style doubles API programmatically.
+ * Verification test that exercises the Prophecy-style doubles API programmatically
+ * with {@link UserService} and its {@link Mailer} dependency.
  *
  * This test runs without the full javaspec runner to demonstrate that the
  * prophecy API works independently from spec infrastructure.
@@ -16,7 +17,7 @@ import static org.javaspec.doubles.prophecy.Argument.*;
 public class Verify {
 
     public static void main(String[] args) {
-        System.out.println("Running Verify for Prophecy-style doubles...");
+        System.out.println("Running Verify for Prophecy-style doubles with UserService...");
 
         // --- Test 1: Basic stub + prediction ---
         System.out.print("  Test 1 (stub + prediction)... ");
@@ -25,17 +26,14 @@ public class Verify {
             PredictionRegistry registry = new PredictionRegistry();
             ObjectProphecy<Mailer> mailer = new ObjectProphecy<>(id, registry);
 
-            mailer.method("send", any(String.class), eq("hello"), any(String.class))
+            mailer.method("send", any(String.class), any(String.class), any(String.class))
                     .willReturn(true);
-            mailer.method("send", any(String.class), eq("hello"), any(String.class))
+            mailer.method("send", any(String.class), any(String.class), any(String.class))
                     .shouldBeCalled();
 
-            Mailer proxy = mailer.reveal();
-            boolean result = proxy.send("user@example.com", "hello", "Greetings!");
-
-            if (!result) {
-                throw new AssertionError("Expected true but got false");
-            }
+            UserService service = new UserService();
+            service.setMailer(mailer.reveal());
+            service.sendWelcomeEmail("user@example.com");
 
             registry.checkAll();
             System.out.println("PASS");
@@ -51,9 +49,10 @@ public class Verify {
             mailer.method("send", any(), any(), any())
                     .willThrow(new RuntimeException("Connection refused"));
 
-            Mailer proxy = mailer.reveal();
+            UserService service = new UserService();
+            service.setMailer(mailer.reveal());
             try {
-                proxy.send("x@y.z", "fail", "body");
+                service.sendWelcomeEmail("x@y.z");
                 throw new AssertionError("Expected exception was not thrown");
             } catch (RuntimeException e) {
                 if (!"Connection refused".equals(e.getMessage())) {
@@ -70,13 +69,16 @@ public class Verify {
             PredictionRegistry registry = new PredictionRegistry();
             ObjectProphecy<Mailer> mailer = new ObjectProphecy<>(id, registry);
 
-            mailer.method("name").willReturn("TestMailer");
+            mailer.method("send", any(), any(), any())
+                    .willReturn(true);
 
-            Mailer proxy = mailer.reveal();
-            String name = proxy.name();
+            UserService service = new UserService();
+            service.setMailer(mailer.reveal());
 
-            if (!"TestMailer".equals(name)) {
-                throw new AssertionError("Expected 'TestMailer' but got: " + name);
+            // Call greet() which does NOT touch mailer
+            String greeting = service.greet("World");
+            if (!"Hello, World".equals(greeting)) {
+                throw new AssertionError("Expected 'Hello, World' but got: " + greeting);
             }
 
             mailer.method("send", any(), any(), any())
@@ -95,13 +97,34 @@ public class Verify {
 
             mailer.method("send", any(), any(), any()).willReturn(true);
 
-            Mailer proxy = mailer.reveal();
-            proxy.send("a@b.com", "subj1", "body1");
-            proxy.send("c@d.com", "subj2", "body2");
+            UserService service = new UserService();
+            service.setMailer(mailer.reveal());
+            service.sendWelcomeEmail("a@example.com");
+            service.sendWelcomeEmail("b@example.com");
 
             mailer.method("send", any(), any(), any())
                     .shouldBeCalledTimes(2);
 
+            registry.checkAll();
+            System.out.println("PASS");
+        }
+
+        // --- Test 5: Argument matchers ---
+        System.out.print("  Test 5 (argument matchers)... ");
+        {
+            InterfaceDouble<Mailer> id = Doubles.interfaceDouble(Mailer.class);
+            PredictionRegistry registry = new PredictionRegistry();
+            ObjectProphecy<Mailer> mailer = new ObjectProphecy<>(id, registry);
+
+            mailer.method("send", eq("email"), any(String.class), containingString("Welcome"))
+                    .willReturn(true);
+            mailer.method("send", eq("email"), any(String.class), containingString("Welcome"))
+                    .shouldBeCalled();
+
+            UserService service = new UserService();
+            service.setMailer(mailer.reveal());
+
+            service.sendWelcomeEmail("user@example.com");
             registry.checkAll();
             System.out.println("PASS");
         }

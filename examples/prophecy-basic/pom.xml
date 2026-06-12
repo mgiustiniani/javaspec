@@ -117,6 +117,7 @@
                                 --junit-xml-file ${project.build.directory}/javaspec/junit-report.xml
                                 --spec-dir src/test/java
                                 --source-dir src/main/java
+                                --generate
                             </commandlineArgs>
                         </configuration>
                     </execution>

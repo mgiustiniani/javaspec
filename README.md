@@ -63,7 +63,7 @@ public class PriceCalculatorSpec extends PriceCalculatorSpecSupport {
 }
 ```
 
-The proxy style works because `javaspec describe` generates a support class with typed wrapper methods. If you prefer the explicit form, `match(subject().total(10.0, 2.5)).shouldReturn(12.5)` is also supported.
+The `subject().method()` style is the standard way to invoke the subject under test; generated support classes provide sugar on top so you can call `method()` directly. The explicit form `match(subject().total(10.0, 2.5)).shouldReturn(12.5)` is also supported.
 
 **Step 3 — Run specs:** the generation prompt fires because the production class is missing. `--generate` accepts automatically; `--compile` recompiles before execution; `--formatter pretty` shows descriptive output.
 
@@ -457,6 +457,9 @@ The adapter is ByteBuddy-based and lives outside the core artifact. It supports 
 Inspired by [phpspec/prophecy](https://github.com/phpspec/prophecy), javaspec provides a
 declarative doubles API built around prophecies, promises, and predictions.
 
+Doubles replace **dependencies** of the subject under test — interfaces that the subject
+collaborates with — not the subject itself.
+
 ### Reflective API
 
 The core prophecy types live in `org.javaspec.doubles.prophecy`:
@@ -470,30 +473,34 @@ The core prophecy types live in `org.javaspec.doubles.prophecy`:
 | `PredictionRegistry` | Collects predictions and checks them all at once |
 | `Argument` / `Arg` | Static matcher DSL (`any()`, `eq()`, `containingString()`, `isNull()`, `notNull()`) |
 
-Use the reflective API in specs via `ObjectBehavior.prophesize(Class<T>)`:
+Use the reflective API in specs via `ObjectBehavior.prophesize(Class<T>)`. The subject
+under test accesses dependencies via `subject()`:
 
 ```java
 import static org.javaspec.doubles.prophecy.Argument.*;
 
-public class MailerSpec extends ObjectBehavior<Mailer> {
-    public MailerSpec() {
-        super(Mailer.class);
+public class UserServiceSpec extends ObjectBehavior<UserService> {
+    public UserServiceSpec() {
+        super(UserService.class);
     }
 
-    public void it_sends_an_email() {
+    public void it_sends_a_welcome_email() {
         ObjectProphecy<Mailer> mailer = prophesize(Mailer.class);
 
-        // Promise: stub the method to return true
-        mailer.method("send", any(String.class), eq("hello"), any(String.class))
+        // Promise: stub the dependency method
+        mailer.method("send", any(String.class), any(String.class), any(String.class))
                 .willReturn(true);
 
-        // Use the proxy in code under test
-        match(mailer.reveal().send("user@example.com", "hello", "Greetings!"))
-                .shouldReturn(true);
+        // Inject the double into the subject
+        subject().setMailer(mailer.reveal());
 
-        // Prediction: verify the method was called
-        mailer.method("send", any(String.class), eq("hello"), any(String.class))
+        // Execute — subject uses the double
+        subject().sendWelcomeEmail("user@example.com");
+
+        // Prediction: verify the dependency was called as expected
+        mailer.method("send", any(String.class), any(String.class), any(String.class))
                 .shouldBeCalled();
+        checkPredictions();
     }
 }
 ```
@@ -510,16 +517,16 @@ reflection-based generator:
 javaspec prophesize com.example.Mailer
 ```
 
-This produces `MailerProphecy extends BaseObjectProphecy<Mailer>` with typed delegation methods:
+This produces `MailerProphecy extends BaseObjectProphecy<Mailer>` with typed delegation methods,
+so you can call `mailer.send(...)` instead of `mailer.method("send", ...)`:
 
 ```java
-// Generated wrapper — no string method names needed
 MailerProphecy mailer = new MailerProphecy(
     Doubles.interfaceDouble(Mailer.class),
     new PredictionRegistry()
 );
 
-mailer.send(any(String.class), eq("hello"), any(String.class))
+mailer.send(any(String.class), any(String.class), any(String.class))
     .willReturn(true)
     .shouldBeCalled();
 ```
@@ -545,12 +552,10 @@ javaspec run --generate --compile --formatter pretty
 
 ### Argument matchers
 
-Import from `Argument` or `Arg`:
+Import from `Argument`:
 
 ```java
 import static org.javaspec.doubles.prophecy.Argument.*;
-// or the shorter alias:
-import static org.javaspec.doubles.prophecy.Arg.*;
 ```
 
 | Matcher | Description |
@@ -573,8 +578,8 @@ javaspec run --auto-check-predictions
 Or programmatically in a spec:
 
 ```java
-public MailerSpec() {
-    super(Mailer.class);
+public UserServiceSpec() {
+    super(UserService.class);
     setAutoCheckPredictions(true);
 }
 ```
@@ -704,7 +709,7 @@ Start here:
 - [`examples/gradle-basic/`](examples/gradle-basic/) — Gradle plugin adoption.
 - [`examples/junit-platform-basic/`](examples/junit-platform-basic/) — JUnit Platform adoption.
 - [`examples/bytecode-doubles-basic/`](examples/bytecode-doubles-basic/) — optional concrete-class doubles.
-- [`docs/usermanual/Home.md`](docs/usermanual/Home.md) — user manual with more CLI and migration notes.
+- [`docs/usermanual/Home.md`](docs/usermanual/Home.md) — user manual with more CLI details.
 - [`javaspec-gradle-plugin/README.md`](javaspec-gradle-plugin/README.md) — Gradle plugin details.
 - [`javaspec-junit-platform-engine/README.md`](javaspec-junit-platform-engine/README.md) — JUnit Platform engine details.
 - [`CHANGELOG.md`](CHANGELOG.md) — release-change log scaffold.
