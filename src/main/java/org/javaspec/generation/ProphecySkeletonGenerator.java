@@ -66,11 +66,27 @@ public final class ProphecySkeletonGenerator {
         builder.append("    }\n");
 
         Method[] methods = interfaceType.getMethods();
-        boolean first = true;
+        // Deduplicate methods with identical signatures
+        List<Method> uniqueMethods = new ArrayList<Method>();
         for (Method method : methods) {
-            if (shouldSkip(method)) {
+            if (shouldSkip(method, interfaceType)) {
                 continue;
             }
+            // Check if we already have a method with the same name and parameter types
+            boolean duplicate = false;
+            for (Method existing : uniqueMethods) {
+                if (method.getName().equals(existing.getName())
+                        && java.util.Arrays.equals(method.getParameterTypes(), existing.getParameterTypes())) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate) {
+                uniqueMethods.add(method);
+            }
+        }
+        boolean first = true;
+        for (Method method : uniqueMethods) {
             if (first) {
                 builder.append("\n");
                 first = false;
@@ -83,6 +99,10 @@ public final class ProphecySkeletonGenerator {
     }
 
     private static boolean shouldSkip(Method method) {
+        return shouldSkip(method, null);
+    }
+
+    private static boolean shouldSkip(Method method, Class<?> interfaceType) {
         int modifiers = method.getModifiers();
         if (Modifier.isStatic(modifiers)) {
             return true;
@@ -94,12 +114,16 @@ public final class ProphecySkeletonGenerator {
             return true;
         }
         // Skip methods from Object (toString, equals, hashCode, etc.)
-        try {
-            Object.class.getMethod(method.getName(), method.getParameterTypes());
+        // Also skip methods declared in superclasses that are not Object
+        Class<?> declaringClass = method.getDeclaringClass();
+        if (declaringClass == Object.class) {
             return true;
-        } catch (NoSuchMethodException e) {
-            return false;
         }
+        if (interfaceType != null && declaringClass != interfaceType && !declaringClass.isInterface()) {
+            // Method is from a superclass, not from the interface hierarchy
+            return true;
+        }
+        return false;
     }
 
     private static void appendMethod(StringBuilder builder, Method method, String interfaceSimpleName) {
@@ -159,7 +183,7 @@ public final class ProphecySkeletonGenerator {
 
     private static String boxedType(Class<?> type) {
         if (!type.isPrimitive()) {
-            return type.getName();
+            return sourceTypeName(type);
         }
         if (boolean.class.equals(type)) return "Boolean";
         if (byte.class.equals(type)) return "Byte";
@@ -170,5 +194,12 @@ public final class ProphecySkeletonGenerator {
         if (double.class.equals(type)) return "Double";
         if (char.class.equals(type)) return "Character";
         return "Void";
+    }
+
+    private static String sourceTypeName(Class<?> type) {
+        if (type.isArray()) {
+            return sourceTypeName(type.getComponentType()) + "[]";
+        }
+        return type.getName();
     }
 }
