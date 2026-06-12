@@ -3157,3 +3157,134 @@ Acceptance criteria:
 This finalization pass synchronized README, CHANGELOG, examples documentation, user manual
 navigation, ARC42 sections, PLAN, and the test report after Phase 37. Public publication remains
 intentionally postponed and out of scope.
+
+---
+
+## Integrated Refactoring and Prophecy-Style Doubles API Plan
+
+This section defines the combined roadmap for:
+1. Completing the responsibility-concentration refactoring of `Main.java` and `ObjectBehavior.java`
+2. Adding a Prophecy-inspired doubles API to javaspec core
+
+### Context
+
+`Main.java` (originally 1882 lines) and `ObjectBehavior.java` (originally 872 lines) are being
+refactored into focused components. Phase 1 (CLI) extracted orchestrators, parsers, and command
+handlers from Main (now ~772 lines). Phase 2 (API) extracted SubjectLifecycle, AssertionDispatcher,
+DoubleFacade, and SpecLifecycleSignals from ObjectBehavior (now ~614 lines).
+
+The Prophecy-style doubles API adds PHPSpec/Prophecy-inspired syntax (`willReturn`,
+`shouldBeCalled`, `Argument.any()`) on top of the existing `DoubleControl` / `InterfaceDouble` /
+`ArgumentMatchers` infrastructure.
+
+### Guiding principles
+
+1. **Prophecy API goes in core** — it is a user-facing syntax, not an adapter. ByteBuddy remains
+the only optional backend for concrete classes.
+2. **No Mockito** — zero external dependency for doubles.
+3. **No API breakage** — existing `interfaceDouble()` / `DoubleControl` / `Doubles` remain valid.
+4. **Refactoring prepares for prophecy** — each extraction step makes space for prophecy components.
+5. **Java 8 compatibility preserved** — no language features past Java 8 in core.
+
+### Phase A — Complete refactoring (current)
+
+| Step | Description | Target | Lines est. | Why for prophecy |
+|---|---|---|---|---|
+| A1 | Extract `SubjectTypeMarkers` from `ObjectBehavior` | `ObjectBehavior` | −40 | Frees space for `prophesize()`/`prophecy()`/`checkPredictions()` |
+| A2 | Move `describeClass()` logic into `DescribeCommandHandler` | `Main` | −50 | Template for new `prophesize` command |
+| A3 | Move `runSpecifications()` logic into `RunCommandHandler` | `Main` | −130 | Localizes `run --generate` prophecy-wrapper integration |
+| A4 | Extract `UsagePrinter` from `Main` | `Main` | −50 | Shared help/error printing for run, describe, prophesize |
+| A5 | Extract `ConfigurationOrchestrator` from `Main` | `Main` | −60 | Reusable for prophesize command configuration loading |
+| A6 | Extract `ProfileEnforcementOrchestrator` from `Main` | `Main` | −70 | Independent cleanup |
+| A7 | Extract `RunDiagnosticsPrinter` from `Main` | `Main` | −60 | Reusable diagnostics output |
+| A8 | Extract `FormatterHelper` from `Main` | `Main` | −30 | Independent cleanup |
+| A9 | Extract `ConfigurationHelper` from `Main` | `Main` | −40 | Shared bootstrap/extension/policy helpers |
+
+**After Phase A**: `Main.java` ~120 lines, `ObjectBehavior.java` ~450 lines.
+
+### Phase B — Prophecy API core
+
+New package: `org.javaspec.doubles.prophecy`.
+
+| Component | Description | Depends on |
+|---|---|---|
+| B1 | `ObjectProphecy<T>` / `BaseObjectProphecy<T>` / `MethodProphecy<R>` / `DefaultMethodProphecy<R>` / `Promise<R>` | `DoubleControl`, `InterfaceDouble`, `Doubles` |
+| B2 | `willReturn(R)` / `willThrow(Throwable)` / `will(Promise<R>)` stub methods | `DoubleControl.when().thenReturn/thenThrow/thenAnswer` |
+| B3 | `Prediction` / `PredictionMode` / `PredictionRegistry` / `PredictionFailure` — declare and verify future calls | `DoubleControl.verifyCalled/verifyNotCalled/verifyCallCount` |
+| B4 | `shouldHaveBeenCalled()` — immediate spy verification | `DoubleControl.verifyCalled(name, args)` |
+| B5 | `ObjectBehavior.prophesize(Class<T>)`, `ObjectBehavior.prophecy(Class<P>)`, `ObjectBehavior.checkPredictions()` | `PredictionRegistry`, lifecycle reset |
+| B6 | `Argument` / `Arg` — fluent wrappers over `ArgumentMatchers`, add `containingString()` | `ArgumentMatchers` |
+
+**After Phase B**: ~860 new lines in core, all 554 existing tests green.
+
+### Phase C — Prophecy wrapper generator
+
+| Component | Description | Depends on |
+|---|---|---|
+| C1 | Reflection-based generator producing `*Prophecy extends BaseObjectProphecy<T>` with typed methods, overload support, varargs, boxing, exclusion of final/static/private/Object methods | Phase B, `SpecSkeletonGenerator` patterns |
+| C2 | CLI command `javaspec prophesize <fqcn>` with `--output`, `--package`, `--overwrite`, `--dry-run` flags | Phase A2/A4/A5 (handler, UsagePrinter, ConfigurationOrchestrator) |
+| C3 | `javaspec run --generate` integration: detect missing prophecy wrappers, prompt generation | Phase A3 (RunCommandHandler isolated) |
+
+### Phase D — Optional auto-check predictions
+
+| Component | Description |
+|---|---|
+| D1 | Runner auto-calls `checkPredictions()` after each example. Configurable per-instance and via `--auto-check-predictions`. Default: `false` |
+| D2 | Future: change default to `true` after validation |
+
+### Phase E — Documentation
+
+| Component | Description |
+|---|---|
+| E1 | README Prophecy-style doubles section |
+| E2 | Examples: `examples/prophecy-basic/`, `examples/prophecy-concrete/` |
+| E3 | Migration guide from existing doubles API |
+| E4 | ByteBuddy backend note |
+
+### Dependency graph
+
+```
+A1 (SubjectTypeMarkers) ──→ B5 (ObjectBehavior integration)
+A2 (DescribeCommandHandler) ──→ C2 (CLI prophesize)
+A3 (RunCommandHandler) ──→ C3 (run --generate integration)
+A4 (UsagePrinter) ──→ C2 (CLI prophesize)
+A5 (ConfigurationOrchestrator) ──→ C2 (CLI prophesize)
+A6–A9 (orchestrators/helpers) ──→ independent cleanup
+
+B1–B6 (Prophecy API) ──→ C1 (wrapper generator)
+C1–C3 (generator + CLI) ──→ D1 (auto-check)
+D1 ──→ D2 (auto-check default)
+B1–D2 ──→ E1–E4 (documentation)
+```
+
+### Execution order
+
+```text
+Week 1:   A1 → A2 → A3   (SubjectTypeMarkers + autonomous handlers)
+Week 2:   A4 → A5 → A6 → A7 → A8 → A9   (orchestrators/helpers)
+Week 3:   B1 → B2 → B3   (Prophecy API + predictions)
+Week 4:   B4 → B5 → B6   (ObjectBehavior integration + Argument)
+Week 5:   C1 → C2   (generator + CLI)
+Week 6:   C3 → D1 → D2   (run integration + auto-check)
+Week 7:   E1 → E2 → E3 → E4   (documentation)
+```
+
+### Non-goals
+
+- No Mockito dependency in core.
+- No prophecy API in ByteBuddy module.
+- No removal of existing `InterfaceDouble` / `DoubleControl` / `Doubles` API.
+- No incompatible changes to `DoubleControl`, `InterfaceDouble`, `Doubles`, `ArgumentMatchers`.
+- No CLI `prophesize` command before A2–A5 are complete.
+- No `run --generate` prophecy integration before A3 is complete.
+- No auto-check default `true` before D1 validation.
+
+### Size estimate
+
+| Phase | New lines | Main.java | ObjectBehavior.java |
+|---|---|---|---|
+| A (refactoring) | ~650 | ~120 | ~450 |
+| B (Prophecy API) | ~860 | ~120 | ~480 |
+| C (generator+CLI) | ~380 | ~220 | ~480 |
+| D (auto-check) | ~40 | ~220 | ~520 |
+| E (docs) | — | ~220 | ~520 |
