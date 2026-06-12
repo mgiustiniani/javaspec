@@ -4,6 +4,8 @@ import org.javaspec.doubles.Call;
 import org.javaspec.doubles.DoubleControl;
 import org.javaspec.doubles.Doubles;
 import org.javaspec.doubles.InterfaceDouble;
+import org.javaspec.doubles.prophecy.ObjectProphecy;
+import org.javaspec.doubles.prophecy.PredictionRegistry;
 import org.javaspec.matcher.Matchable;
 import org.javaspec.matcher.MatcherRegistry;
 
@@ -238,6 +240,71 @@ public class ObjectBehavior<T> {
             Object... exactArguments
     ) {
         doubles.shouldHaveBeenCalledTimes(doubleInstance, methodName, expectedCount, exactArguments);
+    }
+
+    // --- Prophecy-style doubles API ---
+
+    private PredictionRegistry prophecyRegistry;
+
+    /**
+     * Creates a prophecy wrapper for an interface type.
+     * <p>
+     * Usage:
+     * <pre>{@code
+     * ObjectProphecy<Mailer> mailer = prophesize(Mailer.class);
+     * mailer.method("send", any(), eq("hello")).willReturn(true);
+     * mailer.method("send", any(), eq("hello")).shouldBeCalled();
+     * }</pre>
+     *
+     * @param interfaceType the interface type to prophesize
+     * @param <D>           the interface type
+     * @return a new object prophecy
+     */
+    protected <D> ObjectProphecy<D> prophesize(Class<D> interfaceType) {
+        InterfaceDouble<D> id = doubles.interfaceDouble(interfaceType);
+        ObjectProphecy<D> op = new ObjectProphecy<D>(id, prophecyRegistry());
+        return op;
+    }
+
+    /**
+     * Alias for {@link #prophesize(Class)}.
+     */
+    protected <D> ObjectProphecy<D> prophecy(Class<D> interfaceType) {
+        return prophesize(interfaceType);
+    }
+
+    /**
+     * Returns the prediction registry, creating one lazily if needed.
+     */
+    protected PredictionRegistry prophecyRegistry() {
+        if (prophecyRegistry == null) {
+            prophecyRegistry = new PredictionRegistry();
+        }
+        return prophecyRegistry;
+    }
+
+    /**
+     * Checks all registered prophecies predictions.
+     * <p>
+     * Call this at the end of an example to verify that all
+     * {@code shouldBeCalled()}, {@code shouldNotBeCalled()}, and
+     * {@code shouldBeCalledTimes()} predictions were met.
+     * </p>
+     *
+     * @throws AssertionError if any prediction is not met
+     */
+    protected void checkPredictions() {
+        if (prophecyRegistry != null) {
+            prophecyRegistry.checkAll();
+        }
+    }
+
+    /**
+     * Sets the prediction registry to a custom instance.
+     * Useful for sharing a registry across multiple prophecies.
+     */
+    public void setProphecyRegistry(PredictionRegistry registry) {
+        this.prophecyRegistry = registry;
     }
 
     // --- Explicit skipped and pending example signals ---
