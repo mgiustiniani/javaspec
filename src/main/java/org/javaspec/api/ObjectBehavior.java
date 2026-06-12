@@ -245,6 +245,7 @@ public class ObjectBehavior<T> {
     // --- Prophecy-style doubles API ---
 
     private PredictionRegistry prophecyRegistry;
+    private boolean autoCheckPredictions;
 
     /**
      * Creates a prophecy wrapper for an interface type.
@@ -305,6 +306,35 @@ public class ObjectBehavior<T> {
      */
     public void setProphecyRegistry(PredictionRegistry registry) {
         this.prophecyRegistry = registry;
+    }
+
+    /**
+     * Enables or disables automatic prediction checking after each example.
+     * <p>
+     * When enabled, {@link #checkPredictions()} is called automatically by the
+     * runner after each example method completes successfully.
+     * </p>
+     *
+     * @param autoCheck true to enable auto-check, false to disable (default: false)
+     */
+    public void setAutoCheckPredictions(boolean autoCheck) {
+        this.autoCheckPredictions = autoCheck;
+    }
+
+    /**
+     * Returns whether automatic prediction checking is enabled.
+     */
+    public boolean isAutoCheckPredictions() {
+        return autoCheckPredictions;
+    }
+
+    /**
+     * Checks predictions if auto-check is enabled. Called by the runner.
+     */
+    public void checkPredictionsIfEnabled() {
+        if (autoCheckPredictions) {
+            checkPredictions();
+        }
     }
 
     // --- Explicit skipped and pending example signals ---

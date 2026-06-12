@@ -25,6 +25,7 @@ public final class ParsedArguments {
     boolean generate;
     boolean dryRun;
     boolean stopOnFailure;
+    boolean autoCheckPredictions;
     boolean verbose;
     boolean compile;
     String compileOutputPath;

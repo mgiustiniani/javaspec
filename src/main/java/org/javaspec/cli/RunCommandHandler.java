@@ -154,7 +154,8 @@ final class RunCommandHandler implements CommandHandler {
             return bootstrapExitCode;
         }
 
-        RunResult runResult = SpecRunner.run(specs, selectedClassLoader, parsed.stopOnFailure);
+        RunResult runResult = SpecRunner.run(specs, selectedClassLoader, parsed.stopOnFailure,
+                parsed.autoCheckPredictions);
         RunDiagnosticsPrinter diagnosticsPrinter = new RunDiagnosticsPrinter();
         diagnosticsPrinter.printRunnerSummary(runResult, out, parsed.effectiveFormatter, runFormatters);
         diagnosticsPrinter.printExecutionDiagnostics(runResult, out, executionClasspathSelection);

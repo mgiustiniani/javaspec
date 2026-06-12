@@ -1,5 +1,6 @@
 package org.javaspec.runner;
 
+import org.javaspec.api.ObjectBehavior;
 import org.javaspec.api.Pending;
 import org.javaspec.api.PendingExampleException;
 import org.javaspec.api.Skip;
@@ -26,17 +27,31 @@ public final class SpecRunner {
     }
 
     public static RunResult run(List<DiscoveredSpec> specs, ClassLoader classLoader) {
-        return run(specs, classLoader, false);
+        return run(specs, classLoader, false, false);
     }
 
     public static RunResult run(List<DiscoveredSpec> specs, ClassLoader classLoader, boolean stopOnFailure) {
+        return run(specs, classLoader, stopOnFailure, false);
+    }
+
+    /**
+     * Runs all specs with auto-check predictions.
+     *
+     * @param specs                the specs to run
+     * @param classLoader          the class loader for spec class loading
+     * @param stopOnFailure        whether to stop after the first failure
+     * @param autoCheckPredictions whether to automatically verify prophecy predictions
+     * @return the run result
+     */
+    public static RunResult run(List<DiscoveredSpec> specs, ClassLoader classLoader, boolean stopOnFailure,
+                                boolean autoCheckPredictions) {
         Objects.requireNonNull(specs, "specs must not be null");
         Objects.requireNonNull(classLoader, "classLoader must not be null");
 
         List<SpecResult> results = new ArrayList<SpecResult>();
         for (int i = 0; i < specs.size(); i++) {
             DiscoveredSpec spec = Objects.requireNonNull(specs.get(i), "specs[" + i + "] must not be null");
-            SpecResult result = runSpec(spec, classLoader, stopOnFailure);
+            SpecResult result = runSpec(spec, classLoader, stopOnFailure, autoCheckPredictions);
             results.add(result);
             if (stopOnFailure && result.hasFailures()) {
                 break;
@@ -46,17 +61,23 @@ public final class SpecRunner {
     }
 
     public static RunResult run(DiscoveredSpec spec, ClassLoader classLoader) {
-        return run(spec, classLoader, false);
+        return run(spec, classLoader, false, false);
     }
 
     public static RunResult run(DiscoveredSpec spec, ClassLoader classLoader, boolean stopOnFailure) {
+        return run(spec, classLoader, stopOnFailure, false);
+    }
+
+    public static RunResult run(DiscoveredSpec spec, ClassLoader classLoader, boolean stopOnFailure,
+                                boolean autoCheckPredictions) {
         Objects.requireNonNull(spec, "spec must not be null");
         List<DiscoveredSpec> specs = new ArrayList<DiscoveredSpec>();
         specs.add(spec);
-        return run(specs, classLoader, stopOnFailure);
+        return run(specs, classLoader, stopOnFailure, autoCheckPredictions);
     }
 
-    private static SpecResult runSpec(DiscoveredSpec spec, ClassLoader classLoader, boolean stopOnFailure) {
+    private static SpecResult runSpec(DiscoveredSpec spec, ClassLoader classLoader, boolean stopOnFailure,
+                                       boolean autoCheckPredictions) {
         Class<?> specClass;
         try {
             specClass = Class.forName(spec.specQualifiedName(), false, classLoader);
@@ -73,7 +94,7 @@ public final class SpecRunner {
         List<ExampleResult> results = new ArrayList<ExampleResult>();
         List<SpecExample> examples = spec.exampleMetadata();
         for (int i = 0; i < examples.size(); i++) {
-            ExampleResult result = runExample(spec, specClass, examples.get(i));
+            ExampleResult result = runExample(spec, specClass, examples.get(i), autoCheckPredictions);
             results.add(result);
             if (stopOnFailure && result.isFailure()) {
                 break;
@@ -106,7 +127,8 @@ public final class SpecRunner {
         return SpecResult.notExecutable(spec, reason, results);
     }
 
-    private static ExampleResult runExample(DiscoveredSpec spec, Class<?> specClass, SpecExample example) {
+    private static ExampleResult runExample(DiscoveredSpec spec, Class<?> specClass, SpecExample example,
+                                             boolean autoCheckPredictions) {
         Method exampleMethod;
         try {
             exampleMethod = publicNoArgMethod(specClass, example.methodName());
@@ -138,6 +160,9 @@ public final class SpecRunner {
         Object instance;
         try {
             instance = newSpecInstance(specClass);
+            if (autoCheckPredictions && instance instanceof ObjectBehavior) {
+                ((ObjectBehavior<?>) instance).setAutoCheckPredictions(true);
+            }
         } catch (Throwable ex) {
             return ExampleResult.broken(spec, example, "Could not instantiate specification", unwrap(ex));
         }
@@ -191,6 +216,10 @@ public final class SpecRunner {
                 return ExampleResult.failed(spec, example, "Assertion failed", exampleFailure);
             }
             return ExampleResult.broken(spec, example, "Example method threw an unexpected throwable", exampleFailure);
+        }
+        // Auto-check predictions if enabled on the spec instance
+        if (instance instanceof ObjectBehavior) {
+            ((ObjectBehavior<?>) instance).checkPredictionsIfEnabled();
         }
         return ExampleResult.passed(spec, example);
     }
