@@ -37,7 +37,7 @@ final class DescribeCommandHandler implements CommandHandler {
             plan = SpecSkeletonGenerator.plan(describedType, specRoot, namingConvention);
             supportPlan = SpecSkeletonGenerator.supportPlan(describedType, specRoot, namingConvention);
         } catch (IllegalArgumentException ex) {
-            UsagePrinter.printUsageError(err, "Naming error: " + Main.messageOf(ex));
+            UsagePrinter.printUsageError(err, "Naming error: " + ConfigurationHelper.messageOf(ex));
             return Main.EXIT_USAGE;
         }
         if (plan.targetFile().exists()) {
@@ -49,11 +49,11 @@ final class DescribeCommandHandler implements CommandHandler {
                     out.println("Generated specification support: " + generatedSupport.getPath());
                 }
             } catch (IOException ex) {
-                err.println("I/O error while generating specification support: " + Main.messageOf(ex));
+                err.println("I/O error while generating specification support: " + ConfigurationHelper.messageOf(ex));
                 err.println("Target path: " + supportPlan.targetFile().getPath());
                 return Main.EXIT_IO_ERROR;
             } catch (SecurityException ex) {
-                err.println("I/O error while generating specification support: " + Main.messageOf(ex));
+                err.println("I/O error while generating specification support: " + ConfigurationHelper.messageOf(ex));
                 err.println("Target path: " + supportPlan.targetFile().getPath());
                 return Main.EXIT_IO_ERROR;
             }
@@ -71,11 +71,11 @@ final class DescribeCommandHandler implements CommandHandler {
             out.println("No production class was generated. Run `javaspec run` to continue the PHPSpec-style workflow.");
             return Main.EXIT_OK;
         } catch (IOException ex) {
-            err.println("I/O error while generating specification: " + Main.messageOf(ex));
+            err.println("I/O error while generating specification: " + ConfigurationHelper.messageOf(ex));
             err.println("Target path: " + plan.targetFile().getPath());
             return Main.EXIT_IO_ERROR;
         } catch (SecurityException ex) {
-            err.println("I/O error while generating specification: " + Main.messageOf(ex));
+            err.println("I/O error while generating specification: " + ConfigurationHelper.messageOf(ex));
             err.println("Target path: " + plan.targetFile().getPath());
             return Main.EXIT_IO_ERROR;
         }

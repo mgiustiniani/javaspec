@@ -68,7 +68,7 @@ final class RunDiagnosticsPrinter {
         out.println("  Source root: " + parsed.sourceRoot);
         out.println("  Spec package prefix: " + parsed.namingConvention.specPackagePrefix());
         out.println("  Production package prefix: " + displayPrefix(parsed.namingConvention.productionPackagePrefix()));
-        out.println("  Constructor policy: " + policyOptionName(Main.resolveConstructorPolicy(parsed)));
+        out.println("  Constructor policy: " + policyOptionName(ConfigurationHelper.resolveConstructorPolicy(parsed)));
         out.println("  Profile: " + parsed.effectiveProfile.key());
         out.println("  Formatter: " + parsed.effectiveFormatter);
         if (parsed.compile) {

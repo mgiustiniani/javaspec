@@ -34,14 +34,14 @@ final class ConfigurationOrchestrator {
             try {
                 configuration = JavaspecConfiguration.load(configFile);
             } catch (ConfigurationException ex) {
-                err.println("Error: Invalid configuration: " + Main.messageOf(ex));
+                err.println("Error: Invalid configuration: " + ConfigurationHelper.messageOf(ex));
                 return Main.EXIT_USAGE;
             } catch (IOException ex) {
-                err.println("Error: I/O error while reading configuration: " + Main.messageOf(ex));
+                err.println("Error: I/O error while reading configuration: " + ConfigurationHelper.messageOf(ex));
                 err.println("Config path: " + configFile.getPath());
                 return Main.EXIT_IO_ERROR;
             } catch (SecurityException ex) {
-                err.println("Error: I/O error while reading configuration: " + Main.messageOf(ex));
+                err.println("Error: I/O error while reading configuration: " + ConfigurationHelper.messageOf(ex));
                 err.println("Config path: " + configFile.getPath());
                 return Main.EXIT_IO_ERROR;
             }
@@ -54,7 +54,7 @@ final class ConfigurationOrchestrator {
         try {
             selectedSuite = configuration.suite(selectedSuiteName);
         } catch (ConfigurationException ex) {
-            err.println("Error: Invalid configuration: " + Main.messageOf(ex));
+            err.println("Error: Invalid configuration: " + ConfigurationHelper.messageOf(ex));
             return Main.EXIT_USAGE;
         }
 
@@ -89,10 +89,10 @@ final class ConfigurationOrchestrator {
         try {
             parsed.namingConvention = SpecNamingConvention.from(selectedSuite);
         } catch (IllegalArgumentException ex) {
-            err.println("Error: Invalid naming metadata: " + Main.messageOf(ex));
+            err.println("Error: Invalid naming metadata: " + ConfigurationHelper.messageOf(ex));
             return Main.EXIT_USAGE;
         } catch (RuntimeException ex) {
-            err.println("Error: Invalid naming metadata: " + Main.messageOf(ex));
+            err.println("Error: Invalid naming metadata: " + ConfigurationHelper.messageOf(ex));
             return Main.EXIT_USAGE;
         }
         return Main.EXIT_OK;

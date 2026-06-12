@@ -89,7 +89,7 @@ final class RunCommandHandler implements CommandHandler {
         try {
             specs = SpecDiscovery.discover(discoveryRequest);
         } catch (SecurityException ex) {
-            err.println("I/O error while discovering specifications: " + Main.messageOf(ex));
+            err.println("I/O error while discovering specifications: " + ConfigurationHelper.messageOf(ex));
             err.println("Spec root: " + specRoot.getPath());
             return Main.EXIT_IO_ERROR;
         }
@@ -120,7 +120,7 @@ final class RunCommandHandler implements CommandHandler {
                 parsed.dryRun,
                 parsed.namingConvention,
                 selectedClassLoader,
-                Main.resolveConstructorPolicy(parsed)
+                ConfigurationHelper.resolveConstructorPolicy(parsed)
         );
         if (!genResult.shouldProceed()) {
             return genResult.exitCode();

@@ -1,25 +1,10 @@
 package org.javaspec.cli;
 
-import org.javaspec.diagnostics.RunDiagnostics;
-import org.javaspec.generation.ConstructorPolicy;
-import org.javaspec.formatter.RunFormatter;
-import org.javaspec.formatter.RunFormatterRegistry;
-import org.javaspec.cli.run.ClasspathSelection;
 import org.javaspec.cli.CliArgumentParser;
-import org.javaspec.cli.run.ExtensionOrchestrator;
-import org.javaspec.cli.run.RunOrchestratorResult;
-import org.javaspec.runner.RunResult;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
 
 public final class Main {
     static final int EXIT_OK = 0;
@@ -78,21 +63,6 @@ public final class Main {
     }
 
 
-
-    static ConstructorPolicy resolveConstructorPolicy(ParsedArguments parsed) {
-        if (parsed.effectiveConstructorPolicy != null) {
-            return parsed.effectiveConstructorPolicy;
-        }
-        return ConstructorPolicy.defaultPolicy();
-    }
-
-    static String messageOf(Throwable throwable) {
-        String message = throwable.getMessage();
-        if (message == null || message.length() == 0) {
-            return throwable.getClass().getName();
-        }
-        return message;
-    }
 
 
 }
