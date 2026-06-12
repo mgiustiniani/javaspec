@@ -236,6 +236,31 @@ public final class CliArgumentParser {
                     return parsed;
                 }
                 index += 2;
+            } else if ("--output".equals(arg)) {
+                if (index + 1 >= args.length) {
+                    parsed.errorMessage = "Missing value for " + arg + ".";
+                    return parsed;
+                }
+                parsed.prophesizeOutputDir = args[index + 1];
+                if (parsed.prophesizeOutputDir.length() == 0) {
+                    parsed.errorMessage = "Output directory must not be empty.";
+                    return parsed;
+                }
+                index += 2;
+            } else if ("--package".equals(arg)) {
+                if (index + 1 >= args.length) {
+                    parsed.errorMessage = "Missing value for " + arg + ".";
+                    return parsed;
+                }
+                parsed.prophesizePackageName = args[index + 1].trim();
+                if (parsed.prophesizePackageName.length() == 0) {
+                    parsed.errorMessage = "Package name must not be empty.";
+                    return parsed;
+                }
+                index += 2;
+            } else if ("--overwrite".equals(arg)) {
+                parsed.prophesizeOverwrite = true;
+                index++;
             } else if (arg.startsWith("-")) {
                 parsed.errorMessage = "Unknown option: " + arg;
                 return parsed;
@@ -341,6 +366,67 @@ public final class CliArgumentParser {
                     return parsed;
                 }
             }
+            return parsed;
+        }
+
+        if ("prophesize".equals(parsed.command)) {
+            if (operands.size() == 1) {
+                parsed.errorMessage = "Missing class name.";
+                return parsed;
+            }
+            if (operands.size() > 2) {
+                parsed.errorMessage = "Unexpected argument: " + operands.get(2);
+                return parsed;
+            }
+            if (parsed.generate) {
+                parsed.errorMessage = "The --generate option belongs to run.";
+                return parsed;
+            }
+            if (parsed.stopOnFailure) {
+                parsed.errorMessage = "The --stop-on-failure option belongs to run.";
+                return parsed;
+            }
+            if (parsed.formatterSpecified) {
+                parsed.errorMessage = "The --formatter option belongs to run.";
+                return parsed;
+            }
+            if (parsed.profileSpecified) {
+                parsed.errorMessage = "The --profile option belongs to run.";
+                return parsed;
+            }
+            if (parsed.reportSpecified) {
+                parsed.errorMessage = "The " + parsed.reportOption + " option belongs to run.";
+                return parsed;
+            }
+            if (parsed.junitXmlSpecified) {
+                parsed.errorMessage = "The " + parsed.junitXmlOption + " option belongs to run.";
+                return parsed;
+            }
+            if (parsed.hasExplicitClasspath()) {
+                parsed.errorMessage = "The " + parsed.firstClasspathOption() + " option belongs to run.";
+                return parsed;
+            }
+            if (parsed.compileOutputSpecified) {
+                parsed.errorMessage = "The --compile-output option belongs to run.";
+                return parsed;
+            }
+            if (parsed.compile) {
+                parsed.errorMessage = "The --compile option belongs to run.";
+                return parsed;
+            }
+            if (parsed.verbose) {
+                parsed.errorMessage = "The --verbose option belongs to run.";
+                return parsed;
+            }
+            if (parsed.sourceRootSpecified) {
+                parsed.errorMessage = "The --source-root option belongs to describe/run.";
+                return parsed;
+            }
+            if (parsed.specRootSpecified) {
+                parsed.errorMessage = "The --spec-root option belongs to describe/run.";
+                return parsed;
+            }
+            parsed.className = operands.get(1);
             return parsed;
         }
 

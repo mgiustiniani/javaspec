@@ -56,6 +56,8 @@ public final class Main {
         CommandHandler handler;
         if ("run".equals(parsed.command)) {
             handler = new RunCommandHandler();
+        } else if ("prophesize".equals(parsed.command)) {
+            handler = new ProphesizeCommandHandler();
         } else {
             handler = new DescribeCommandHandler();
         }

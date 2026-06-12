@@ -59,6 +59,9 @@ public final class ParsedArguments {
     SpecNamingConvention namingConvention;
     List<String> classFilters;
     List<String> exampleFilters;
+    String prophesizeOutputDir;
+    String prophesizePackageName;
+    boolean prophesizeOverwrite;
 
     public ParsedArguments() {
     }

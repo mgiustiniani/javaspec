@@ -23,6 +23,7 @@ final class UsagePrinter {
         stream.println("  describe <ClassName>  Create a PHPSpec-style specification skeleton; never creates production code.");
         stream.println("  desc <ClassName>      Alias for describe.");
         stream.println("  run                   Discover specs and check whether their described production types exist.");
+        stream.println("  prophesize <FQCN>     Generate a typed Prophecy wrapper for an interface.");
         stream.println();
         stream.println("Options:");
         stream.println("  --config <file>       Load javaspec configuration from file.");
@@ -48,6 +49,12 @@ final class UsagePrinter {
         stream.println("  --constructor-policy  Constructor handling policy. Valid values: delete, preserve, comment (default: comment).");
         stream.println("  --class <name>        With run, filter specs by described class name (exact match, repeatable).");
         stream.println("  --example <name>      With run, filter examples by method name, display name, or order index (repeatable).");
+        stream.println();
+        stream.println("Prophesize options:");
+        stream.println("  --output <dir>        Output directory for the generated wrapper (default: " + Main.DEFAULT_SOURCE_ROOT + ").");
+        stream.println("  --package <name>      Target package name for the generated wrapper.");
+        stream.println("  --overwrite           Overwrite existing wrapper file.");
+        stream.println("  --dry-run             Print generated source without writing files.");
         stream.println("  --help, -h            Show this help.");
     }
 }
