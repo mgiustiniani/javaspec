@@ -24,7 +24,7 @@ final class DescribeCommandHandler implements CommandHandler {
         try {
             describedClass = DescribedClass.of(parsed.className);
         } catch (IllegalArgumentException ex) {
-            Main.printUsageError(err, "Invalid class name: " + ex.getMessage());
+            UsagePrinter.printUsageError(err, "Invalid class name: " + ex.getMessage());
             return Main.EXIT_USAGE;
         }
 
@@ -37,7 +37,7 @@ final class DescribeCommandHandler implements CommandHandler {
             plan = SpecSkeletonGenerator.plan(describedType, specRoot, namingConvention);
             supportPlan = SpecSkeletonGenerator.supportPlan(describedType, specRoot, namingConvention);
         } catch (IllegalArgumentException ex) {
-            Main.printUsageError(err, "Naming error: " + Main.messageOf(ex));
+            UsagePrinter.printUsageError(err, "Naming error: " + Main.messageOf(ex));
             return Main.EXIT_USAGE;
         }
         if (plan.targetFile().exists()) {

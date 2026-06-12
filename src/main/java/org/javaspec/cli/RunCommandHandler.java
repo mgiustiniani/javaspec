@@ -65,7 +65,7 @@ final class RunCommandHandler implements CommandHandler {
                 err
         );
         if (formatterExitCode != Main.EXIT_OK) {
-            Main.printUsage(err);
+            UsagePrinter.printUsage(err);
             return formatterExitCode;
         }
 
