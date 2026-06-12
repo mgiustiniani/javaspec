@@ -70,7 +70,7 @@ final class RunCommandHandler implements CommandHandler {
         }
 
         if (parsed.verbose) {
-            Main.printRunConfiguration(parsed, out, classpathSelection);
+            new RunDiagnosticsPrinter().printRunConfiguration(parsed, out, classpathSelection);
         }
 
         SpecDiscoveryRequest discoveryRequest = SpecDiscoveryRequest.of(specRoot, parsed.namingConvention);
@@ -155,8 +155,9 @@ final class RunCommandHandler implements CommandHandler {
         }
 
         RunResult runResult = SpecRunner.run(specs, selectedClassLoader, parsed.stopOnFailure);
-        Main.printRunnerSummary(runResult, out, parsed.effectiveFormatter, runFormatters);
-        Main.printExecutionDiagnostics(runResult, out, executionClasspathSelection);
+        RunDiagnosticsPrinter diagnosticsPrinter = new RunDiagnosticsPrinter();
+        diagnosticsPrinter.printRunnerSummary(runResult, out, parsed.effectiveFormatter, runFormatters);
+        diagnosticsPrinter.printExecutionDiagnostics(runResult, out, executionClasspathSelection);
         int reportExitCode = ReportOrchestrator.writeRequested(
                 runResult,
                 parsed.reportPath,
