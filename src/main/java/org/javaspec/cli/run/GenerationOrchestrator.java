@@ -14,6 +14,10 @@ import org.javaspec.generation.SpecSupportFileGenerator;
 import org.javaspec.generation.TypeFileGenerator;
 import org.javaspec.generation.TypeGenerationPlan;
 import org.javaspec.generation.TypeSkeletonGenerator;
+import org.javaspec.generation.ProphecyExistenceChecker;
+import org.javaspec.generation.ProphecyFileGenerator;
+import org.javaspec.generation.ProphecyGenerationPlan;
+import org.javaspec.generation.ProphecySkeletonGenerator;
 import org.javaspec.model.DescribedType;
 import org.javaspec.model.JavaTypeKind;
 
@@ -243,6 +247,20 @@ public final class GenerationOrchestrator {
                 err.println("Target path: " + plan.targetFile().getPath());
                 return GenerationOrchestratorResult.ioError(EXIT_IO_ERROR);
             }
+        }
+
+        // --- Prophecy wrapper generation (C3) ---
+        boolean prophecyWrappersGenerated;
+        try {
+            prophecyWrappersGenerated = ensureProphecyWrappers(
+                    specs, specRoot, sourceRoot, input, out, err, generate, dryRun, classLoader
+            );
+        } catch (IOException ex) {
+            err.println("I/O error while checking prophecy wrappers: " + messageOf(ex));
+            return GenerationOrchestratorResult.ioError(EXIT_IO_ERROR);
+        }
+        if (!prophecyWrappersGenerated) {
+            missingWithoutGeneration = true;
         }
 
         if (dryRun) {
@@ -521,6 +539,131 @@ public final class GenerationOrchestrator {
 
         boolean hasPendingChanges() {
             return pendingChanges;
+        }
+    }
+
+    private static boolean ensureProphecyWrappers(
+            List<DiscoveredSpec> specs,
+            File specRoot,
+            File sourceRoot,
+            BufferedReader input,
+            PrintStream out,
+            PrintStream err,
+            boolean generate,
+            boolean dryRun,
+            ClassLoader classLoader
+    ) throws IOException {
+        // Collect spec files
+        List<File> specFiles = new ArrayList<File>();
+        for (int i = 0; i < specs.size(); i++) {
+            File specFile = specs.get(i).specFile();
+            if (specFile != null && specFile.exists()) {
+                specFiles.add(specFile);
+            }
+        }
+
+        if (specFiles.isEmpty()) {
+            return true;
+        }
+
+        // Find prophesize/prophecy calls in spec files
+        List<String> prophesizedInterfaces;
+        try {
+            prophesizedInterfaces = ProphecyExistenceChecker.findProphesizedInterfaces(specFiles);
+        } catch (IOException ex) {
+            err.println("I/O error while scanning for prophecy calls: " + messageOf(ex));
+            return false;
+        }
+
+        if (prophesizedInterfaces.isEmpty()) {
+            return true;
+        }
+
+        boolean allGenerated = true;
+
+        for (int i = 0; i < prophesizedInterfaces.size(); i++) {
+            String interfaceFqcn = prophesizedInterfaces.get(i);
+
+            // Check if wrapper already exists
+            if (ProphecyExistenceChecker.wrapperExists(interfaceFqcn, classLoader)) {
+                continue;
+            }
+
+            // Resolve the interface
+            Class<?> interfaceType = ProphecyExistenceChecker.resolveInterface(interfaceFqcn, classLoader);
+            if (interfaceType == null) {
+                err.println("Warning: cannot resolve interface " + interfaceFqcn
+                        + " referenced by prophesize() call; skipping wrapper generation.");
+                continue;
+            }
+
+            String packageName = ProphecyExistenceChecker.defaultPackage(interfaceFqcn);
+            String wrapperSimpleName = interfaceType.getSimpleName() + "Prophecy";
+            String packagePath = packageName.replace('.', '/');
+            File targetFile;
+            if (packagePath.length() > 0) {
+                targetFile = new File(sourceRoot, packagePath + "/" + wrapperSimpleName + ".java");
+            } else {
+                targetFile = new File(sourceRoot, wrapperSimpleName + ".java");
+            }
+
+            String sourceCode = ProphecySkeletonGenerator.render(interfaceType, packageName);
+
+            out.println("Missing prophecy wrapper " + wrapperSimpleName
+                    + " for " + interfaceFqcn + ".");
+            out.println("Target path: " + targetFile.getPath());
+
+            if (dryRun) {
+                out.println("Would generate prophecy wrapper: " + targetFile.getPath());
+                continue;
+            }
+
+            boolean accepted = generate || askToGenerateProphecy(input, out, interfaceFqcn);
+            if (!accepted) {
+                allGenerated = false;
+                continue;
+            }
+
+            ProphecyGenerationPlan plan = ProphecyGenerationPlan.of(
+                    interfaceType, packageName, targetFile, sourceCode
+            );
+            try {
+                File writtenFile = ProphecyFileGenerator.write(plan);
+                out.println("Generated prophecy wrapper: " + writtenFile.getPath());
+            } catch (IOException ex) {
+                err.println("I/O error while generating prophecy wrapper: " + messageOf(ex));
+                err.println("Target path: " + targetFile.getPath());
+                return false;
+            } catch (SecurityException ex) {
+                err.println("I/O error while generating prophecy wrapper: " + messageOf(ex));
+                err.println("Target path: " + targetFile.getPath());
+                return false;
+            }
+        }
+
+        return allGenerated;
+    }
+
+    private static boolean askToGenerateProphecy(
+            BufferedReader input,
+            PrintStream out,
+            String interfaceFqcn
+    ) throws IOException {
+        while (true) {
+            out.println("Do you want me to create prophecy wrapper " + interfaceFqcn + "Prophecy? [Y/n]");
+            String answer = input.readLine();
+            if (answer == null) {
+                return false;
+            }
+
+            String normalized = answer.trim();
+            if (normalized.length() == 0 || "y".equalsIgnoreCase(normalized) || "yes".equalsIgnoreCase(normalized)) {
+                return true;
+            }
+            if ("n".equalsIgnoreCase(normalized) || "no".equalsIgnoreCase(normalized)) {
+                return false;
+            }
+            out.println("Please answer y or n.");
         }
     }
 
