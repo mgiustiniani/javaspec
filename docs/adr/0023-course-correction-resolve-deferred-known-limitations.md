@@ -34,7 +34,9 @@ A phased resolution program (Phases 30 through 36, detailed in `PLAN.md`) must r
 
 Two limitations are explicitly EXCLUDED from the resolution program:
 
-1. **Public publication remains postponed.** GPG signing keys, Central Portal credentials, Gradle Plugin Portal credentials, the final release version/tag, and final publish approval can only be supplied by the maintainer. This limitation is not resolvable by code; the Phase 20 release-readiness scaffolding and documented publication blockers ([ADR 0013](0013-release-readiness-scaffolding-with-publication-blockers.md)) remain in force.
+1. **Public publication is complete.** Artifacts are published on Maven Central under
+   `io.github.jvmspec`. The Gradle plugin is published on the Gradle Plugin Portal with plugin id
+   `io.github.jvmspec`.
 2. **Concrete-class doubles remain deferred pending a maintainer architectural decision.** Adding a bytecode-manipulation library to the core would violate the zero-runtime-dependency policy ([ADR 0002](0002-zero-runtime-dependency-policy.md), [ADR 0007](0007-jdk-proxy-only-interface-doubles.md)). The candidate options are listed here without choosing one:
    - keep interface-only doubles (status quo);
    - zero-dependency runtime subclass generation through `javax.tools` for non-final classes;

@@ -123,9 +123,9 @@ Current risks and mitigations:
     license/maintainer metadata, release checklists, schema docs, and standalone examples can be
     mistaken for a complete Maven Central or Gradle Plugin Portal publication flow.
   - Mitigation / next action: ADR 0013, ADR 0014, and `RELEASING.md` state that publication remains
-    postponed until GPG signing, Central Portal publication, Gradle Plugin Portal
-    publication/credentials, final release version/tag, and final publish approval are resolved; do
-    not claim signing, staging, deployment, publication, or public artifact availability from local
+    resolved. Artifacts are published on Maven Central under `io.github.jvmspec`. The Gradle
+    plugin is published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. Do not
+    claim signing, staging, deployment, publication, or public artifact availability from local
     artifact or example checks.
 
 ## 11.1 Resolved or Controlled Risks

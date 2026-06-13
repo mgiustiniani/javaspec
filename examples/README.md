@@ -3,11 +3,11 @@
 These examples are standalone consumer projects. They are not root Maven modules and are not part of
 the repository-root Maven reactor.
 
-Until javaspec artifacts are publicly published, install local snapshots before running the Maven,
-JUnit Platform, and bytecode doubles examples.
+Artifacts are published on Maven Central under `io.github.jvmspec`. For development from source,
+install local snapshots before running the Maven, JUnit Platform, and bytecode doubles examples.
 
 The Gradle example uses an included build for `javaspec-gradle-plugin`, but that plugin build still
-resolves the core `io.github.jvmspec:javaspec` snapshot from Maven local.
+resolves the core `io.github.jvmspec:javaspec` from Maven local for snapshot builds.
 
 The easiest local check is:
 

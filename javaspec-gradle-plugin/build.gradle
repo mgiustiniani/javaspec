@@ -4,12 +4,12 @@ plugins {
 }
 
 group = 'io.github.jvmspec'
-version = '0.1.0-SNAPSHOT'
+version = '0.1.0'
 
 description = 'Optional Gradle adapter for the javaspec runner.'
 
 ext {
-    javaspecCoreVersion = '0.1.0-SNAPSHOT'
+    javaspecCoreVersion = '0.1.0'
     junitVersion = '4.13.2'
 }
 

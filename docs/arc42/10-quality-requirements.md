@@ -65,7 +65,8 @@ Quality attributes and evidence:
     discovery without script engines, package scanning, or dependency resolution; ADR 0011 covers
     no-JUnit invocation and optional adapters; ADR 0012 covers aggregate release/CI verification
     without mandatory Maven multi-module conversion; ADR 0013 covers release-readiness scaffolding
-    with resolved MIT license/maintainer metadata and postponed publishing/signing/portal decisions;
+    with resolved MIT license/maintainer metadata. Publishing is complete; artifacts are on Maven
+    Central and Gradle Plugin Portal;
     ADR 0014 covers standalone adoption assets and examples-by-default verification; ADR 0015 covers
     explicit skipped/pending semantics without dependency cost; ADR 0022 covers opt-in CLI
     compilation through the current JDK compiler API without dependency cost, ADR 0023 covers the
@@ -172,9 +173,9 @@ Quality attributes and evidence:
   explicitly skipped, and fail clearly when a required local Gradle executable cannot be resolved.
 - CI documentation must distinguish configured/local-validated workflow YAML from actual remote
   GitHub Actions results and must state remote status by phase.
-- Release-readiness documentation must keep public publication postponed until GPG signing, Central
-  Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag, and
-  final publish approval are resolved; local source/javadoc packaging and standalone examples must
+- Release-readiness documentation must reflect that public publication is complete. Artifacts are
+  published on Maven Central under `io.github.jvmspec`. The Gradle plugin is published on the
+  Gradle Plugin Portal with plugin id `io.github.jvmspec`. Final publish approval are resolved; local source/javadoc packaging and standalone examples must
   not be described as signing, staging, deployment, or publication, and remote CI success claims
   must cite user-/maintainer-confirmed or independently queried results.
 
@@ -452,8 +453,8 @@ Verified Phase 20 quality points:
 - No runtime dependencies, secrets, Maven multi-module conversion, or actual publication was added;
   remote GitHub Actions success for HEAD `5088e96` on `develop` is user-/maintainer-confirmed after
   the Phase 20/21/22 push.
-- Publication remains intentionally postponed until GPG signing, Central Portal publication, Gradle
-  Plugin Portal publication/credentials, final release version/tag, and final publish approval are
+- Publication is complete. Artifacts are published on Maven Central under `io.github.jvmspec`.
+  The Gradle plugin is published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`.
   resolved.
 
 See [Test and Quality Report](../test-report.md) for details.
@@ -561,7 +562,6 @@ Future implementation phases should preserve these gates:
 7. Version alignment remains checked before release-candidate packaging.
 8. Report schema/golden examples stay synchronized with report writer behavior and standalone
    examples.
-9. Public publication/signing automation is not added until GPG signing, Central Portal publication,
-   Gradle Plugin Portal publication/credentials, final release version/tag, and final publish
-   approval are resolved and documented in an ADR; the confirmed MIT license and maintainer metadata
-   must remain consistent.
+9. Public publication is complete. Artifacts are published on Maven Central under
+   `io.github.jvmspec`. The Gradle plugin is published on the Gradle Plugin Portal with plugin id
+   `io.github.jvmspec`. The confirmed MIT license and maintainer metadata remain consistent.

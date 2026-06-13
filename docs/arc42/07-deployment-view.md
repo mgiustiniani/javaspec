@@ -297,7 +297,7 @@ outside the core runtime as a standalone optional artifact: its runtime dependen
 into concrete-class doubles.
 
 The MIT `LICENSE` and confirmed maintainer metadata are available, but public publication remains
-intentionally postponed until GPG signing, Central Portal publication, Gradle Plugin Portal
-publication/credentials, final release version/tag, and final publish approval are available. The
+resolved. Artifacts are published on Maven Central under `io.github.jvmspec`. The Gradle plugin is
+published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. The
 current release-readiness profiles and Gradle publishing metadata are local readiness scaffolding
 only, not deployment automation.

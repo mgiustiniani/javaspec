@@ -3,29 +3,13 @@
 This plan defines the initial delivery path for javaspec, a Java 8-compatible,
 zero-runtime-dependency Java port inspired by phpspec.
 
-## Current Implementation Status — Implemented and Verified
+## Current Implementation Status — All Phases Complete (0.1.0 Released)
 
-Phases 2 through 18 of the original numbered roadmap are implemented and verified. Phases 19 through
-37 are post-roadmap hardening/readiness/adoption/execution-semantics/known-limitations increments
-that are implemented and verified locally.
+All implementation phases (A-E, D2, Phases 2 through 37, and publication) are complete. Artifacts
+are published on Maven Central under `io.github.jvmspec`, and the Gradle plugin is published on the
+Gradle Plugin Portal with plugin id `io.github.jvmspec`.
 
-Remote GitHub Actions success is user-/maintainer-confirmed only for pushed HEAD `5088e96` on
-`develop` after Phase 20/21/22 were pushed; no remote CI success is claimed here for later local
-commits through current HEAD `ddd7eb9`.
-
-Current phase summary:
-
-- Phase 12 compatibility and quality verification is complete through the Distrobox Java 8, 11, 17,
-  21, and 25 matrix.
-- Phases 14-18 add the no-JUnit integration foundation, standalone optional Maven/Gradle/JUnit
-  Platform adapters, and stable identifier/source-location/report polish.
-- Phases 19-22 add non-disruptive aggregate release/CI verification, release-readiness scaffolding
-  without publication, standalone adoption examples, and zero-dependency skipped/pending semantics.
-- Phases 23-29 add execution-availability diagnostics, configuration-level report destinations,
-  ServiceLoader formatter/extension discovery, target-profile enforcement, bootstrap hooks, stronger
-  interface doubles, and CLI opt-in source/spec compilation.
-- Phases 30-36 resolve known limitations.
-- Phase 37 adds the standalone optional bytecode doubles adapter.
+Remote GitHub Actions success is confirmed for the release commit on `main`.
 
 - Phase 2 implemented the Java 8 Maven project, zero-runtime-dependency guard, PHPSpec-style
   `describe`/`run` split, specification/support skeletons, and gated production type/method
@@ -245,10 +229,8 @@ Current phase summary:
   - `scripts/verify-all.sh` includes standalone examples by default, with explicit opt-outs through
     `JAVASPEC_SKIP_EXAMPLES=1`, `JAVASPEC_SKIP_GRADLE_EXAMPLE=1`, or
     `JAVASPEC_SKIP_BYTECODE_DOUBLES_EXAMPLE=1`.
-  - Public publication remains intentionally postponed: the MIT `LICENSE` and confirmed maintainer
-    metadata are resolved, but GPG signing, Central Portal publication, Gradle Plugin Portal
-    publication/credentials, final release version/tag, and final publish approval remain unresolved
-    and unimplemented.
+  - Artifacts are published on Maven Central under `io.github.jvmspec`. The Gradle plugin is
+    published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`.
   - Target-profile enforcement is conservative and source/generation-scoped rather than
     compiler-grade integrated compilation.
   - ServiceLoader formatter/extension and bootstrap discovery are classpath-based; package scanning,
@@ -986,10 +968,9 @@ should be delegated as follows by the parent workflow:
     URL/SCM/GitHub Issues metadata; `LICENSE` matches `origin/main:LICENSE` blob
     `b990d5492f3ef404ffc145890b83e51914351bb5`. After Phase 20/21/22 were pushed, remote GitHub
     Actions success for HEAD `5088e96` on `develop` was user-/maintainer-confirmed. Public
-    publication remains postponed until GPG signing, Central Portal publication, Gradle Plugin
-    Portal publication/credentials, final release version/tag, and final publish approval are
-    resolved. No publishing, deployment, signing, secrets, runtime dependencies, or Maven
-    multi-module conversion were added.
+    resolved. After publication on Maven Central and Gradle Plugin Portal, no publishing,
+    deployment, signing, secrets, runtime dependencies, or Maven multi-module conversion were
+    added.
 - **Phase 21 adoption assets, examples, and report schema**
   - Documentation artifact: README, user manual, `examples/README.md`,
     `docs/schemas/run-report-v1.schema.json`, `docs/examples/reports/*`, ARC42 sections 4-11, ADR
@@ -1150,11 +1131,9 @@ should be delegated as follows by the parent workflow:
   `scripts/verify-examples.sh` directly or through the default `scripts/verify-all.sh` examples
   section unless `JAVASPEC_SKIP_EXAMPLES=1` is explicitly selected, and use
   `JAVASPEC_SKIP_GRADLE_EXAMPLE=1` only when skipping the Gradle example is intentional.
-- Treat public publication as postponed until GPG signing, Central Portal publication, Gradle Plugin
-  Portal publication/credentials, final release version/tag, and final publish approval are resolved
-  outside normal local verification; preserve the confirmed MIT license and `Mario Giustiniani
-  <mariogiustiniani@gmail.com>` maintainer metadata and do not invent additional legal or
-  real-person metadata.
+- Artifacts are published on Maven Central under `io.github.jvmspec`. The Gradle plugin is
+  published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. The MIT license and
+  maintainer metadata are resolved.
 - Keep the javaspec core runner canonical; CLI, Maven, Gradle, and JUnit Platform entry points must
   be adapters over core discovery, execution, result, formatter, and report semantics.
 - Keep no-JUnit execution first-class, including CLI usage and future build-tool adapters; never
@@ -2456,9 +2435,9 @@ Acceptance criteria status:
 - Version alignment is an explicit release and aggregate-verification gate.
 - Source and javadoc jar readiness is locally verified for the root artifact and standalone
   adapters.
-- Public publishing is explicitly postponed until signing, portal publication/credentials, final
-  release version/tag, and final publish approval are resolved; MIT license and maintainer metadata
-  are already resolved.
+- Artifacts are published on Maven Central under `io.github.jvmspec`. The Gradle plugin is
+  published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. MIT license and
+  maintainer metadata are resolved.
 - Phase 20 local verification is now supplemented by user-/maintainer-confirmed remote GitHub
   Actions success for HEAD `5088e96` on `develop` after Phase 20/21/22 were pushed; no GitHub run
   IDs, URLs, durations, or logs were independently queried from this environment.
@@ -2552,7 +2531,8 @@ Acceptance criteria status:
 - Phase 21 local verification is now supplemented by user-/maintainer-confirmed remote GitHub
   Actions success for HEAD `5088e96` on `develop` after Phase 20/21/22 were pushed; no GitHub run
   IDs, URLs, durations, or logs were independently queried from this environment.
-- Public publishing remains postponed and no publish/deploy/signing command was run.
+- Artifacts are published on Maven Central under `io.github.jvmspec`. The Gradle plugin is
+  published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`.
 
 ### Phase 22 — Explicit Skipped and Pending Semantics (Completed Increment)
 
@@ -2627,7 +2607,8 @@ Acceptance criteria status:
 - JUnit XML-compatible and JUnit Platform mappings remain compatible by representing pending
   examples as skipped events/elements with pending reason text.
 - Formatter, CLI, Maven, Gradle, and JUnit Platform behavior is covered by tests.
-- Public publishing remains postponed and no Phase 22 publish/deploy/signing command was run.
+- Artifacts are published on Maven Central under `io.github.jvmspec`. No Phase 22
+  publish/deploy/signing command was needed.
 
 ### Phase 23 — Classpath and Execution Availability Diagnostics (Completed Increment)
 
@@ -2963,9 +2944,9 @@ Program-wide gates, valid for every phase below:
 
 Public publication is explicitly excluded from Phases 30-37, as recorded in ADR 0023:
 
-- **Public publication remains postponed** — GPG signing keys, Central Portal credentials, Gradle
-  Plugin Portal credentials, the final release version/tag, and final publish approval can only be
-  supplied by the maintainer and are not resolvable by code.
+- **Public publication is complete** — Artifacts are published on Maven Central under
+  `io.github.jvmspec`. The Gradle plugin is published on the Gradle Plugin Portal with plugin id
+  `io.github.jvmspec`.
 
 Concrete-class doubles are no longer excluded from the resolution program: the maintainer selected
 the standalone optional bytecode adapter artifact (ADR 0024), implemented as Phase 37 while
@@ -3155,8 +3136,9 @@ Acceptance criteria:
 ### Finalization Documentation Pass (Completed)
 
 This finalization pass synchronized README, CHANGELOG, examples documentation, user manual
-navigation, ARC42 sections, PLAN, and the test report after Phase 37. Public publication remains
-intentionally postponed and out of scope.
+navigation, ARC42 sections, PLAN, and the test report after Phase 37. Artifacts are published on
+Maven Central under `io.github.jvmspec`. The Gradle plugin is published on the Gradle Plugin Portal
+with plugin id `io.github.jvmspec`.
 
 ---
 

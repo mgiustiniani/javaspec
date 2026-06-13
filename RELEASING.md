@@ -1,13 +1,15 @@
 # Releasing
 
-This repository has release-readiness scaffolding only. The MIT license and maintainer metadata are resolved, but public publishing/deployment/signing/portal credential automation remains postponed and unimplemented here. This checklist does not publish artifacts, and no secrets are required for local verification.
+Artifacts are published on Maven Central under `io.github.jvmspec`. The Gradle plugin is published
+on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. The release was performed for
+version 0.1.0.
 
-## Release checklist
+## Release checklist (for future releases)
 
-1. Reconfirm publication prerequisites before any public publication:
+1. Reconfirm publication prerequisites:
    - MIT license text is present in `LICENSE`; Maven and Gradle publication metadata declare the MIT License.
    - Maintainer metadata is recorded as `Mario Giustiniani <mariogiustiniani@gmail.com>`.
-   - Confirm GPG signing key ownership and Central Portal / Gradle Plugin Portal credentials outside this repository.
+   - Confirm GPG signing key ownership and Central Portal / Gradle Plugin Portal credentials.
 2. Choose the release version and update all aligned versions:
    - Root `pom.xml` project version.
    - `javaspec-maven-plugin/pom.xml` project version.
@@ -28,18 +30,16 @@ This repository has release-readiness scaffolding only. The MIT license and main
    - Source jar.
    - Javadoc jar.
    - Generated POM metadata with URL, SCM, issue-management, license, and developer entries.
-7. Before Maven Central / Central Portal publication:
+7. For Maven Central / Central Portal publication:
    - Reconfirm MIT license and maintainer metadata are still correct.
    - Configure an explicit signing profile or external signing process; GPG signing is required by Central publication workflows.
-   - Configure Central Portal publication steps outside normal local verification.
-8. Before Gradle Plugin Portal publication:
+   - Configure Central Portal publication steps.
+8. For Gradle Plugin Portal publication:
    - Confirm plugin id, display metadata, tags, website, and VCS URL.
    - Reconfirm MIT license and maintainer metadata are acceptable for the publication target.
-   - Configure Gradle Plugin Portal publishing configuration and credentials outside normal local verification.
+   - Configure Gradle Plugin Portal publishing configuration and credentials.
 9. Tag and create the release only after local verification and CI are green.
 10. After the release:
     - Bump all aligned versions to the next snapshot.
     - Run `scripts/check-version-alignment.sh`.
     - Add the next `Unreleased` changelog section.
-
-Do not run publishing, deployment, or signing commands until publication is approved and signing / portal credentials are explicitly resolved.

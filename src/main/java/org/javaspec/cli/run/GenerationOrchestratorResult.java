@@ -8,7 +8,6 @@ package org.javaspec.cli.run;
  *   <li>whether execution should proceed ({@code shouldProceed})</li>
  *   <li>the final spec list (may have been extended with related specs)</li>
  * </ul>
- * </p>
  */
 public final class GenerationOrchestratorResult {
     private final int exitCode;

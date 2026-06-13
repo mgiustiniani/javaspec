@@ -14,7 +14,7 @@ jobs:
         with:
           java-version: '11'
           distribution: 'temurin'
-          server-id: sonatype-releases
+          server-id: central
           server-username: SONATYPE_TOKEN_USER
           server-password: SONATYPE_TOKEN_PASS
           settings-path: ${{ github.workspace }}/.github/maven-settings.xml
@@ -27,14 +27,10 @@ jobs:
 
       - name: Publish to Maven Central
         run: |
-          mvn -q deploy -pl . -P release -DperformRelease=true \
-            -Dgpg.passphrase=${{ secrets.GPG_PASSPHRASE }}
-          mvn -q deploy -f javaspec-maven-plugin/pom.xml -P release -DperformRelease=true \
-            -Dgpg.passphrase=${{ secrets.GPG_PASSPHRASE }}
-          mvn -q deploy -f javaspec-junit-platform-engine/pom.xml -P release -DperformRelease=true \
-            -Dgpg.passphrase=${{ secrets.GPG_PASSPHRASE }}
-          mvn -q deploy -f javaspec-bytecode-doubles/pom.xml -P release -DperformRelease=true \
-            -Dgpg.passphrase=${{ secrets.GPG_PASSPHRASE }}
+          mvn -q deploy -pl . -P release -DperformRelease=true
+          mvn -q deploy -f javaspec-maven-plugin/pom.xml -P release -DperformRelease=true
+          mvn -q deploy -f javaspec-junit-platform-engine/pom.xml -P release -DperformRelease=true
+          mvn -q deploy -f javaspec-bytecode-doubles/pom.xml -P release -DperformRelease=true
         env:
           SONATYPE_TOKEN_USER: ${{ secrets.SONATYPE_TOKEN_USER }}
           SONATYPE_TOKEN_PASS: ${{ secrets.SONATYPE_TOKEN_PASS }}

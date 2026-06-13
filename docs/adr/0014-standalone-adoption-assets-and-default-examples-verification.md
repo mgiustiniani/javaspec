@@ -6,7 +6,15 @@ Accepted
 
 ## Context
 
-Phase 21 follows the Phase 20 release-readiness scaffolding increment. Public publication is still postponed: no signing, portal publication, deploy automation, final release version/tag, or final publish approval has been completed. Until artifacts are publicly available, consumers and maintainers need local adoption assets that demonstrate the supported Maven plugin, Gradle plugin, and JUnit Platform engine paths without changing the core runtime or making the examples part of the root build reactor.
+Phase 21 follows the Phase 20 release-readiness scaffolding increment. At the time of writing,
+public publication was still postponed: no signing, portal publication, deploy automation, final
+release version/tag, or final publish approval had been completed. Until artifacts were publicly
+available, consumers and maintainers needed local adoption assets that demonstrate the supported
+Maven plugin, Gradle plugin, and JUnit Platform engine paths without changing the core runtime or
+making the examples part of the root build reactor.
+
+**Update (0.1.0)**: Artifacts are now published on Maven Central under `io.github.jvmspec`. The
+Gradle plugin is published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`.
 
 The Phase 18 report format already exposes schemaVersion 1 with additive stable id and source-location fields, and Phase 14 added JUnit XML-compatible reports. External consumers need a documented JSON schema and golden report examples for tooling integration. Maintainers also need local verification that standalone examples generate the expected reports and stable identifiers.
 
@@ -23,7 +31,9 @@ Keep examples, schema docs, and golden reports as standalone adoption assets:
 - Run standalone examples by default from `scripts/verify-all.sh` after core and adapter checks. Use `JAVASPEC_SKIP_EXAMPLES=1` only as an explicit all-examples opt-out, and `JAVASPEC_SKIP_GRADLE_EXAMPLE=1` only as an explicit Gradle-example opt-out inside `scripts/verify-examples.sh`.
 - Continue to support `MAVEN_BIN` and `JAVASPEC_GRADLE_BIN` for tool selection.
 - Do not treat examples verification as public publication, deployment, signing, or remote CI success.
-- Do not change the zero-runtime-dependency core, the standalone optional adapter boundaries, or the postponed-publication boundary.
+- Do not change the zero-runtime-dependency core or the standalone optional adapter boundaries.
+  The postponed-publication boundary has been resolved; artifacts are published on Maven Central
+  under `io.github.jvmspec`. The Gradle plugin is published on the Gradle Plugin Portal.
 
 ## Consequences
 
@@ -41,6 +51,8 @@ Negative consequences and limitations:
 - Gradle example verification still depends on a compatible Gradle executable; `JAVASPEC_GRADLE_BIN` or the explicit `JAVASPEC_SKIP_GRADLE_EXAMPLE=1` opt-out may be needed on local machines.
 - Phase 21 local verification is supplemented by later user-/maintainer-confirmed remote GitHub Actions success for HEAD `5088e96` on `develop` after Phase 20/21/22 were pushed; no GitHub run IDs, URLs, durations, or logs were independently queried. Examples verification by itself still must not be treated as publication, deployment, signing, or remote CI proof.
 - Future report schema changes must update the schema, golden reports, examples, user docs, and verification assertions together.
-- Public publication remains postponed and still requires a future ADR or ADR update before signing, staging, deploying, portal publication, or final publishing is implemented.
+- Public publication is now complete. Artifacts are published on Maven Central under
+  `io.github.jvmspec`. The Gradle plugin is published on the Gradle Plugin Portal with plugin id
+  `io.github.jvmspec`.
 
 Related ARC42 sections: [5. Building Block View](../arc42/05-building-block-view.md), [6. Runtime View](../arc42/06-runtime-view.md), [7. Deployment View](../arc42/07-deployment-view.md), [8. Concepts](../arc42/08-concepts.md), [9. Architecture Decisions](../arc42/09-architecture-decisions.md), [10. Quality Requirements](../arc42/10-quality-requirements.md), and [11. Risks and Technical Debt](../arc42/11-risks-and-technical-debt.md).

@@ -447,15 +447,15 @@ publishing/signing steps and uses no secrets. Phase 19 remote GitHub Actions suc
 user-/maintainer-confirmed for HEAD `4d30e63` on `develop`; after Phase 20/21/22 were pushed, remote
 GitHub Actions success for HEAD `5088e96` on `develop` is also user-/maintainer-confirmed. No GitHub
 run IDs, URLs, durations, or logs were independently queried from this environment. The MIT license
-and maintainer metadata are resolved, but public publication remains postponed until GPG signing,
-Central Portal publication, Gradle Plugin Portal publication/credentials, final release version/tag,
-and final publish approval are resolved.
+and maintainer metadata are resolved. Artifacts are published on Maven Central under
+`io.github.jvmspec`. The Gradle plugin is published on the Gradle Plugin Portal with plugin id
+`io.github.jvmspec`.
 
 ## 6.15 Standalone Examples and Report Documentation Scenario
 
 1. A new adopter reads `examples/README.md` and chooses a standalone consumer example: Maven plugin,
    Gradle plugin, JUnit Platform engine, or bytecode doubles.
-2. The example builds consume local snapshots because public artifacts are not published yet.
+2. The example builds consume public artifacts from Maven Central.
 3. Maven, Gradle, and bytecode doubles examples run simple specs and write JSON plus JUnit
    XML-compatible reports to their own generated output directories.
 4. The JUnit Platform example runs through Maven Surefire configured for `*Spec` and the optional

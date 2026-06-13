@@ -77,9 +77,9 @@ Verification status:
   require the standalone bytecode adapter; final/static/constructor mocking remains unsupported.
 - Repository-root `mvn verify` remains core-only. `scripts/verify-all.sh` is the aggregate local
   check for core, standalone adapters, and examples.
-- The MIT `LICENSE` and maintainer metadata are resolved, but public publication remains postponed
-  until GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final
-  release version/tag, and final publish approval are resolved.
+- Artifacts are published on Maven Central under `io.github.jvmspec`. The Gradle plugin is
+  published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. Add the dependency
+  `io.github.jvmspec:javaspec:0.1.0` (test scope).
 
 ## Quick start
 
@@ -238,9 +238,9 @@ gradle -p javaspec-gradle-plugin clean test build
 ```
 
 These checks do not sign, stage, deploy, or publish artifacts. The MIT license and maintainer
-metadata are resolved, but public publication remains postponed until GPG signing, Central Portal
-publication, Gradle Plugin Portal publication/credentials, the final release version/tag, and final
-publish approval are resolved outside normal local verification.
+metadata are resolved. Artifacts are published on Maven Central under `io.github.jvmspec`. The
+Gradle plugin is published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. Add the
+dependency `io.github.jvmspec:javaspec:0.1.0` (test scope).
 
 The GitHub Actions workflow at `.github/workflows/ci.yml` triggers on `push`, `pull_request`, and
 `workflow_dispatch`. It defines a core job matrix over Java 8, 11, 17, 21, and 25 using Temurin and
@@ -2749,9 +2749,8 @@ Current verification after Phase 22:
 - Matrix runtimes: Java `1.8.0_492`, `11.0.31`, `17.0.19`, `21.0.11 LTS`, and `25.0.3 LTS`.
 - The Java 25 runtime reflection probe and Java 25 runtime dependency audit passed.
 - Verification blockers: none for Phase 22 explicit skipped/pending verification. Publication
-  remains intentionally postponed because GPG signing, Central Portal publication, Gradle Plugin
-  Portal publication/credentials, final release version/tag, and final publish approval remain
-  unresolved.
+  is published on Maven Central under `io.github.jvmspec`. The Gradle plugin is published on the
+  Gradle Plugin Portal with plugin id `io.github.jvmspec`.
 
 See [`../test-report.md`](../test-report.md) for the consolidated test and quality report.
 
@@ -2798,8 +2797,8 @@ optional adapter.
   `--compile`. The optional Maven plugin, Gradle plugin, and JUnit Platform engine supply
   integration paths but remain standalone artifacts that are not covered by repository-root `mvn
   verify`; verify them through `scripts/verify-all.sh` or separately after installing the current
-  core. Phase 21 examples are standalone consumer projects that currently use local snapshots rather
-  than public artifact resolution.
+  core. Phase 21 examples are standalone consumer projects. Public artifacts are available on
+  Maven Central under `io.github.jvmspec`.
 - The runner lifecycle is intentionally small: configured bootstrap hooks run before examples, then
   each executable example uses a fresh spec instance plus optional public no-arg `let()` and
   `letGo()`. Explicit skipped/pending semantics are implemented; compiler-integrated profile checks

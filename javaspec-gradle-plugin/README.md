@@ -27,7 +27,7 @@ A cached Gradle 7.4.2 command was attempted but blocked by Java 21 with `Unsuppo
 
 ## Usage
 
-The plugin id is `org.javaspec`. In a consuming Gradle build where the standalone plugin artifact is available:
+The plugin id is `io.github.jvmspec`. The plugin is published on the Gradle Plugin Portal. In a consuming Gradle build:
 
 ```groovy
 plugins {

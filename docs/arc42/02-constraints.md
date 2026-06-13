@@ -45,7 +45,8 @@
   testing agents.
 - Architectural decisions must be documented as ADRs when made.
 - Legal/product release metadata must not be invented. The MIT license and maintainer `Mario
-  Giustiniani <mariogiustiniani@gmail.com>` are confirmed; public publication remains postponed
+  Giustiniani <mariogiustiniani@gmail.com>` are confirmed; artifacts are published on Maven Central
+  under `io.github.jvmspec`
   until GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final
   release version/tag, and final publish approval are resolved.
 - Generated documentation must be written in English.

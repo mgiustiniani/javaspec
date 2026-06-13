@@ -30,7 +30,6 @@ import java.util.regex.Pattern;
  *       constructor's signature is extended by adding the new parameters, and its body content
  *       is preserved. This avoids duplicating code.</li>
  * </ul>
- * </p>
  */
 public final class ClassConstructorUpdater {
     private static final Pattern CONSTRUCTOR_PATTERN = Pattern.compile(

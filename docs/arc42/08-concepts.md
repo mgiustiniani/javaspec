@@ -406,8 +406,9 @@ concrete-class doubles in a standalone adapter:
   source-level/release management, or runtime dependencies. After Phase 20/21/22 were pushed, remote
   GitHub Actions success for HEAD `5088e96` on `develop` is user-/maintainer-confirmed; no run IDs,
   URLs, durations, or logs were independently queried.
-- Public publication remains postponed until GPG signing, Central Portal publication, Gradle Plugin
-  Portal publication/credentials, final release version/tag, and final publish approval are
+- Artifacts are published on Maven Central under `io.github.jvmspec`. The Gradle plugin is
+  published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. GPG signing, Central
+  Portal publication, Gradle Plugin Portal publication/credentials, and final release version/tag
   resolved.
 
 ## 8.17 Extension Boundary

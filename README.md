@@ -8,7 +8,20 @@ javaspec is a spec-first BDD tool for Java, inspired by phpspec. You describe th
 
 The core is Java 8-compatible and has no third-party runtime dependencies. It can be used directly from the CLI, embedded through a no-`System.exit` launcher, or adopted through optional Maven, Gradle, and JUnit Platform adapters.
 
-Public artifact publication is not available yet. Until Central Portal and Gradle Plugin Portal publication are completed, the examples and snippets below use locally installed `0.1.0-SNAPSHOT` artifacts.
+Artifacts are published on Maven Central under `io.github.jvmspec`. Add the dependency:
+
+```xml
+<dependency>
+    <groupId>io.github.jvmspec</groupId>
+    <artifactId>javaspec</artifactId>
+    <version>0.1.0</version>
+    <scope>test</scope>
+</dependency>
+```
+
+For snapshots, use the Central Portal Snapshots repository.
+
+The Gradle plugin id is `io.github.jvmspec`.
 
 ## Highlights
 
@@ -196,7 +209,7 @@ Exit codes are stable: `0` for success, `1` for failed/broken examples or declin
 
 ### Maven
 
-Until artifacts are public, install the core and standalone Maven plugin snapshots locally:
+Add the dependency and plugin to your `pom.xml`:
 
 ```sh
 mvn -q -DskipTests install
@@ -246,13 +259,7 @@ See [`examples/maven-basic/`](examples/maven-basic/) for a complete consumer pro
 
 ### Gradle
 
-Install the core snapshot first:
-
-```sh
-mvn -q -DskipTests install
-```
-
-Until the Gradle plugin is published, use the standalone plugin from this checkout, as shown in [`examples/gradle-basic/settings.gradle`](examples/gradle-basic/settings.gradle):
+Add the plugin id `io.github.jvmspec` to your `build.gradle`. The Gradle plugin is published on the Gradle Plugin Portal. See [`examples/gradle-basic/settings.gradle`](examples/gradle-basic/settings.gradle) for a complete example:
 
 ```groovy
 pluginManagement {
@@ -662,7 +669,7 @@ Compilation uses the current JDK `javax.tools.JavaCompiler` API. It does not add
 ## Compatibility and boundaries
 
 - The core artifact remains Java 8-compatible and zero-runtime-dependency.
-- Public publication is postponed until signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final version/tag, and publish approval are complete.
+- Artifacts are published on Maven Central under `io.github.jvmspec`. The Gradle plugin is published on the Gradle Plugin Portal.
 - The Maven plugin, Gradle plugin, JUnit Platform engine, and bytecode doubles adapter are standalone optional artifacts outside the root Maven reactor.
 - Repository-root `mvn verify` is intentionally core-only.
 - `scripts/verify-all.sh` verifies the core, optional adapters, and standalone examples together.

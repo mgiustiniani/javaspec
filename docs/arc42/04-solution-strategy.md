@@ -64,7 +64,7 @@ and final approval decisions, or a separate multi-module decision.
   optional JUnit Platform engine boundary, and stable id/source metadata polish**: [ADR 0011](../adr/0011-optional-junit-adapter-and-canonical-javaspec-runner.md)
 - **Non-disruptive aggregate release/CI verification instead of mandatory Maven multi-module
   conversion**: [ADR 0012](../adr/0012-non-disruptive-aggregate-release-ci-verification.md)
-- **Release-readiness scaffolding with resolved metadata and postponed publication**: [ADR 0013](../adr/0013-release-readiness-scaffolding-with-publication-blockers.md)
+- **Release-readiness scaffolding with resolved metadata (publication completed)**: [ADR 0013](../adr/0013-release-readiness-scaffolding-with-publication-blockers.md)
 - **Standalone adoption assets and default examples verification**: [ADR 0014](../adr/0014-standalone-adoption-assets-and-default-examples-verification.md)
 - **Explicit skipped and pending semantics**: [ADR 0015](../adr/0015-explicit-skipped-and-pending-semantics.md)
 - **Classpath execution availability diagnostics without integrated compilation**: [ADR 0016](../adr/0016-classpath-execution-availability-diagnostics.md)
@@ -251,7 +251,7 @@ Implemented building blocks:
   `scripts/check-version-alignment.sh`, `CHANGELOG.md`, `RELEASING.md`, the confirmed MIT `LICENSE`,
   MIT license and maintainer metadata, Maven `release-artifacts` source/javadoc packaging checks,
   Gradle source/javadoc jar readiness, and safe URL/SCM/issues metadata while keeping public
-  publication postponed until signing, portal publication/credentials, final release version/tag,
+  publication completed; artifacts are published on Maven Central under `io.github.jvmspec`,
   and final approval decisions are complete. Phase 21 extends adoption assets with standalone
   examples under `examples/`, `scripts/verify-examples.sh`, report schema docs, and golden reports;
   examples run by default in `scripts/verify-all.sh` with explicit opt-outs.
@@ -299,8 +299,8 @@ Later building blocks remain planned:
 - Keep root `mvn verify` scoped to the core artifact unless a future ADR changes the release/build
   boundary; use `scripts/verify-all.sh` or equivalent explicit commands for aggregate standalone
   adapter and examples verification.
-- Keep GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final
-  release version/tag, and final publish approval as explicit blockers before public publication;
+- GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final
+  release version/tag, and final publish approval are resolved; artifacts are published;
   preserve the confirmed MIT license and maintainer metadata.
 - Keep Phase 21 examples and report schema/golden docs standalone until public artifacts are
   explicitly available; examples remain adoption assets even though remote GitHub Actions success

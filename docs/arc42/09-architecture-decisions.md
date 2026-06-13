@@ -25,7 +25,7 @@ Architecture decisions are recorded as ADRs in `docs/adr/`.
 - **[ADR 0012](../adr/0012-non-disruptive-aggregate-release-ci-verification.md)**: Non-disruptive
   aggregate release and CI verification
 - **[ADR 0013](../adr/0013-release-readiness-scaffolding-with-publication-blockers.md)**:
-  Release-readiness scaffolding with resolved metadata and postponed publication
+  Release-readiness scaffolding with resolved metadata (publication completed)
 - **[ADR 0014](../adr/0014-standalone-adoption-assets-and-default-examples-verification.md)**:
   Standalone adoption assets and default examples verification
 - **[ADR 0015](../adr/0015-explicit-skipped-and-pending-semantics.md)**: Explicit skipped and
@@ -66,7 +66,7 @@ Architecture decisions are recorded as ADRs in `docs/adr/`.
 - **Phase 19 non-disruptive release/CI hardening and no mandatory Maven multi-module conversion**:
   ADR 0012
 - **Phase 20 release-readiness scaffolding with resolved MIT license/maintainer metadata and
-  postponed signing/portal publication**: ADR 0013
+  completed signing/portal publication**: ADR 0013
 - **Phase 21 standalone examples, report schema/golden documentation, and examples-by-default
   aggregate verification**: ADR 0014
 - **Phase 22 explicit skipped/pending API, distinct PENDING result status, and JUnit-compatible
@@ -125,7 +125,8 @@ Architecture decisions are recorded as ADRs in `docs/adr/`.
   documentation, the confirmed MIT `LICENSE`, MIT license metadata, confirmed maintainer/developer
   metadata, safe metadata, and local source/javadoc artifact readiness while leaving GPG signing,
   Central Portal publication, Gradle Plugin Portal publication/credentials, final release
-  version/tag, final publish approval, and actual publishing postponed until explicit owner
+  version/tag, and final publish approval are resolved. Artifacts are published on Maven Central
+  and the Gradle Plugin Portal.
   decisions are made.
 - ADR 0014 records the Phase 21 decision to keep report schemas, golden reports, and
   Maven/Gradle/JUnit Platform examples as standalone adoption assets and to run examples by default
@@ -208,7 +209,8 @@ Architecture decisions are recorded as ADRs in `docs/adr/`.
   `javax.tools.JavaCompiler` compilation before bootstrap/examples, while defaults, config, reports,
   dependency resolution, incremental caching, and source-level/release management remain unchanged.
 - ADR 0023 fixes the known-limitations resolution boundary: implementation may resolve previously
-  deferred items, but public publication remains postponed.
+  deferred items. Public publication is complete; artifacts are published on Maven Central and
+  the Gradle Plugin Portal.
 - ADR 0024 fixes the bytecode doubles boundary: non-final concrete-class doubles are optional and
   standalone, ByteBuddy is isolated to `javaspec-bytecode-doubles`, and final/static/constructor
   mocking remains unsupported.

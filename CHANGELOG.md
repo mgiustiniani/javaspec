@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.1.0 — 2026-06-13
+
+- Initial public release on Maven Central under `io.github.jvmspec`.
+- Gradle plugin published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`.
+- All implementation phases A-E, D2, and publication are complete.
+- Java 8-compatible, zero-runtime-dependency core artifact.
+- CLI describe/run workflows, configuration, discovery, generation support, matchers, interface doubles, run controls, reports, and programmatic no-JUnit invocation.
+- Standalone optional adapters: Maven plugin (`javaspec-maven-plugin`), Gradle plugin (`javaspec-gradle-plugin`), JUnit Platform engine (`javaspec-junit-platform-engine`), and bytecode doubles adapter (`javaspec-bytecode-doubles`).
+- Prophecy-style doubles API with ObjectProphecy, MethodProphecy, Promise, Prediction, and typed wrapper generation.
+- Aggregate local/CI verification for core, standalone adapters, and examples.
+- Release-readiness scaffolding with MIT license, maintainer metadata, version-alignment checks, and source/javadoc artifact profiles.
+- Adoption examples, report schema, golden reports, and full documentation.
+- Bounded generic Iterable matcher checks, source-preserving sealed-interface updates, config-driven extension activation, ServiceLoader bootstrap hook discovery, programmatic/Maven/Gradle opt-in compilation, additive report metadata/properties, deeper target-profile enforcement, and optional ByteBuddy concrete-class doubles.
+
 ## Unreleased
 
 - Finalized documentation for the Phases 30-37 known-limitations resolution program, including
@@ -18,7 +32,8 @@ All notable changes to this project will be documented in this file.
     `examples/bytecode-doubles-basic/`.
 - Added the MIT `LICENSE` file and release-readiness scaffolding: version-alignment verification,
   release-artifact profiles, MIT license and maintainer publication metadata, and a release
-  checklist; public publishing/deployment/signing/portal credentials remain postponed.
+  checklist; public publishing/deployment/signing/portal credentials were resolved for the 0.1.0
+  release.
 - Kept the repository layout non-reactor/non-multi-module: the core, Maven plugin, Gradle plugin,
   and JUnit Platform engine remain standalone builds.
 - Added explicit skipped/pending semantics: zero-dependency `@Skip`/`@Pending` annotations, runtime
