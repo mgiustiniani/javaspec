@@ -1,14 +1,17 @@
 <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0">
   <servers>
     <server>
-      <id>sonatype-snapshots</id>
-      <username>${env.SONATYPE_TOKEN_USER}</username>
-      <password>${env.SONATYPE_TOKEN_PASS}</password>
-    </server>
-    <server>
-      <id>sonatype-releases</id>
+      <id>central</id>
       <username>${env.SONATYPE_TOKEN_USER}</username>
       <password>${env.SONATYPE_TOKEN_PASS}</password>
     </server>
   </servers>
+  <profiles>
+    <profile>
+      <id>release</id>
+      <properties>
+        <gpg.passphrase>${env.GPG_PASSPHRASE}</gpg.passphrase>
+      </properties>
+    </profile>
+  </profiles>
 </settings>
