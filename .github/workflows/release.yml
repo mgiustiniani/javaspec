@@ -15,8 +15,9 @@ jobs:
           java-version: '11'
           distribution: 'temurin'
           server-id: sonatype-releases
-          server-username: SONATYPE_USERNAME
-          server-password: SONATYPE_PASSWORD
+          server-username: SONATYPE_TOKEN_USER
+          server-password: SONATYPE_TOKEN_PASS
+          settings-path: ${{ github.workspace }}/.github/maven-settings.xml
 
       - name: Import GPG key
         run: |
@@ -35,5 +36,5 @@ jobs:
           mvn -q deploy -f javaspec-bytecode-doubles/pom.xml -P release -DperformRelease=true \
             -Dgpg.passphrase=${{ secrets.GPG_PASSPHRASE }}
         env:
-          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
-          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          SONATYPE_TOKEN_USER: ${{ secrets.SONATYPE_TOKEN_USER }}
+          SONATYPE_TOKEN_PASS: ${{ secrets.SONATYPE_TOKEN_PASS }}
