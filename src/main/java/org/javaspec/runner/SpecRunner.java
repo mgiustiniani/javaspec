@@ -27,11 +27,11 @@ public final class SpecRunner {
     }
 
     public static RunResult run(List<DiscoveredSpec> specs, ClassLoader classLoader) {
-        return run(specs, classLoader, false, false);
+        return run(specs, classLoader, false, true);
     }
 
     public static RunResult run(List<DiscoveredSpec> specs, ClassLoader classLoader, boolean stopOnFailure) {
-        return run(specs, classLoader, stopOnFailure, false);
+        return run(specs, classLoader, stopOnFailure, true);
     }
 
     /**
@@ -61,11 +61,11 @@ public final class SpecRunner {
     }
 
     public static RunResult run(DiscoveredSpec spec, ClassLoader classLoader) {
-        return run(spec, classLoader, false, false);
+        return run(spec, classLoader, false, true);
     }
 
     public static RunResult run(DiscoveredSpec spec, ClassLoader classLoader, boolean stopOnFailure) {
-        return run(spec, classLoader, stopOnFailure, false);
+        return run(spec, classLoader, stopOnFailure, true);
     }
 
     public static RunResult run(DiscoveredSpec spec, ClassLoader classLoader, boolean stopOnFailure,

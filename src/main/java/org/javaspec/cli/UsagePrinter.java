@@ -39,7 +39,8 @@ final class UsagePrinter {
         stream.println("  --generate            With run, answer yes to missing production type generation prompts.");
         stream.println("  --dry-run             With run, report pending generation/update work without writing files or prompting.");
         stream.println("  --stop-on-failure     With run, stop after the first failed or broken executable example.");
-        stream.println("  --auto-check-predictions With run, automatically verify prophecy predictions after each example.");
+        stream.println("  --auto-check-predictions With run, automatically verify prophecy predictions after each example (default: true).");
+        stream.println("  --no-auto-check-predictions With run, disable automatic prophecy prediction verification.");
         stream.println("  --formatter <value>   With run, choose example output formatter. Valid values: progress, pretty.");
         stream.println("  --profile <value>     With run, override target profile. Valid values: java8, java11, java17, java21, java25.");
         stream.println("  --verbose             With run, print effective run configuration before discovery.");

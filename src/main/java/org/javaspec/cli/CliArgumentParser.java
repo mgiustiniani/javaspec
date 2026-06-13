@@ -52,6 +52,9 @@ public final class CliArgumentParser {
             } else if ("--auto-check-predictions".equals(arg)) {
                 parsed.autoCheckPredictions = true;
                 index++;
+            } else if ("--no-auto-check-predictions".equals(arg)) {
+                parsed.autoCheckPredictions = false;
+                index++;
             } else if ("--verbose".equals(arg)) {
                 parsed.verbose = true;
                 index++;
