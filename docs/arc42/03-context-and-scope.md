@@ -128,19 +128,19 @@ semantics and keeps reports/schema/goldens pending-aware. Phase 23 adds determin
 classpath/execution availability diagnostics while leaving default/adapters compilation and
 classpath assembly to user build tools or launchers. Phase 24 adds optional top-level configuration
 defaults for JSON/JUnit XML-compatible report destinations while preserving report schemas, writers,
-exit semantics, and adapter boundaries. Phase 25 adds JDK `ServiceLoader` discovery for external run
-formatter/extension providers, and Phase 32 adds config-driven extension activation plus adapter
+exit semantics, and adapter boundaries. Phase 25 added JDK `ServiceLoader` discovery for external run
+formatter/extension providers, and Phase 32 added config-driven extension activation plus adapter
 formatter controls where implemented, while preserving zero runtime dependencies, report
-schemas/content, and publishing boundaries. Phase 26 adds conservative target-profile enforcement
+schemas/content, and publishing boundaries. Phase 26 added conservative target-profile enforcement
 through `org.javaspec.compatibility` before CLI generation/update writes while preserving no
 integrated compilation, report schemas, dependencies, and optional adapter architecture. Phase 27
-adds `org.javaspec.bootstrap` hook execution from configured class names immediately before
-examples, and Phase 33 adds ServiceLoader hook providers after explicit hooks, preserving Java 8
+added `org.javaspec.bootstrap` hook execution from configured class names immediately before
+examples, and Phase 33 added ServiceLoader hook providers after explicit hooks, preserving Java 8
 compatibility, zero runtime dependencies, no script engines, no package scanning, and no dependency
-resolution. Phase 28 strengthens `org.javaspec.doubles` while preserving interface-only JDK proxy
-behavior and zero runtime dependencies. Phase 37 adds optional ByteBuddy concrete doubles in a
-standalone artifact. Phase 29 adds CLI-only opt-in source/spec compilation through the current JDK
-`javax.tools.JavaCompiler`; Phase 34 extends equivalent opt-in compilation to programmatic, Maven,
+resolution. Phase 28 strengthened `org.javaspec.doubles` while preserving interface-only JDK proxy
+behavior and zero runtime dependencies. Phase 37 added optional ByteBuddy concrete doubles in a
+standalone artifact. Phase 29 added CLI-only opt-in source/spec compilation through the current JDK
+`javax.tools.JavaCompiler`; Phase 34 extended equivalent opt-in compilation to programmatic, Maven,
 and Gradle paths while preserving defaults and avoiding dependency resolution, incremental caches,
 forked `javac`, and source-level/release management. Phase 19 remote GitHub Actions success is
 user-/maintainer-confirmed for HEAD `4d30e63` on `develop`; after Phase 20/21/22 were pushed, remote

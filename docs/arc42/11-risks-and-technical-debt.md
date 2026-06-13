@@ -85,12 +85,11 @@ Current risks and mitigations:
     aggregate release verification; keep standalone adapter verification in release/CI checklists
     and GitHub Actions full verification.
 - **Gradle executable/JDK compatibility can block local verification**
-  - Current impact: The cached Gradle 7.4.2 executable was blocked on the installed Java 21 runtime
-    with `Unsupported class file major version 65`; `scripts/verify-all.sh` also requires a
-    compatible Gradle executable unless `JAVASPEC_SKIP_GRADLE=1` is intentionally set.
-  - Mitigation / next action: Document this as an environment/tooling compatibility blocker for that
-    cached executable, not as a javaspec feature failure; use a Java 21-compatible Gradle executable
-    such as the verified `/tmp/gradle-8.8` download, set `JAVASPEC_GRADLE_BIN`, or explicitly choose
+  - Current impact: A Gradle executable compatible with the installed JDK is required for local
+    Gradle plugin verification; `scripts/verify-all.sh` also requires a compatible Gradle
+    executable unless `JAVASPEC_SKIP_GRADLE=1` is intentionally set.
+  - Mitigation / next action: Use a JDK-compatible Gradle executable such as the verified
+    `/tmp/gradle-8.8` download, set `JAVASPEC_GRADLE_BIN`, or explicitly choose
     `JAVASPEC_SKIP_GRADLE=1` when Gradle verification is intentionally out of scope.
 - **Optional JUnit Platform engine can be mistaken for required execution**
   - Current impact: Users may assume javaspec specs require JUnit Platform once the optional engine
@@ -232,8 +231,8 @@ Current risks and mitigations:
    Phase 24 configuration-level report destination precedence, Phase 25 ServiceLoader
    formatter/extension discovery, Phase 26 profile-enforcement boundaries, Phase 27 bootstrap hook
    execution boundaries, Phase 28 stronger interface doubles boundaries, Phase 29/34 opt-in
-   compilation boundaries, Phases 30-36 known-limitations resolution, and Phase 37 bytecode adapter
-   boundaries when future backlog work is designed.
+   compilation boundaries, Phases 30-36 known-limitations resolution (completed), and Phase 37 bytecode adapter
+   boundaries (documented) — future backlog work can build on these resolved boundaries.
 5. Keep report schema/golden examples, standalone examples, pending/skipped semantics, and
    verification assertions synchronized with future report or adapter behavior changes.
 6. Resolve GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials,

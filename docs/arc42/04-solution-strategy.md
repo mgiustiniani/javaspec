@@ -37,7 +37,7 @@ compatibility exceptions, or optional adapter architecture changes. Phase 28 str
 doubles with argument matchers, deterministic argument-constrained stub priority, throwing stubs,
 and answer callbacks while keeping the core interface-only and zero-dependency. Phase 29 adds
 CLI-only opt-in source/spec compilation through the current JDK `javax.tools.JavaCompiler`. Phases
-30-36 resolve deferred known limitations: bounded Iterable matcher checks, existing sealed-interface
+30-36 resolved deferred known limitations: bounded Iterable matcher checks, existing sealed-interface
 source updates, config-driven extension activation and formatter controls, ServiceLoader bootstrap
 hook discovery, programmatic/Maven/Gradle opt-in compilation, additive report metadata/properties,
 and deeper source/generation-scoped profile enforcement. Phase 37 adds standalone optional
@@ -74,7 +74,7 @@ and final approval decisions, or a separate multi-module decision.
 - **Bootstrap hook execution before examples**: [ADR 0020](../adr/0020-bootstrap-hook-execution.md)
 - **Stronger interface doubles**: [ADR 0021](../adr/0021-stronger-interface-doubles.md)
 - **Opt-in CLI source/spec compilation**: [ADR 0022](../adr/0022-opt-in-cli-source-spec-compilation.md)
-- **Known-limitations course correction**: [ADR 0023](../adr/0023-course-correction-resolve-deferred-known-limitations.md)
+- **Known-limitations resolution (completed)**: [ADR 0023](../adr/0023-course-correction-resolve-deferred-known-limitations.md)
 - **Standalone optional bytecode doubles adapter**: [ADR 0024](../adr/0024-standalone-optional-bytecode-doubles-adapter.md)
 
 ## 4.3 Core Strategy

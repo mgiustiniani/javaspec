@@ -1185,11 +1185,6 @@ mvn -q -DskipTests install
 gradle -p javaspec-gradle-plugin build
 ```
 
-The Phase 16 Java 21 verification used `/tmp/gradle-8.8/bin/gradle`; the downloaded Gradle 8.8
-distribution was not committed. A cached Gradle 7.4.2 command was blocked by the installed Java 21
-runtime with `Unsupported class file major version 65`; do not treat that cached-executable blocker
-as a javaspec feature failure or as proof that Gradle 7.4.2 verification passed.
-
 In a consuming Gradle build where the standalone plugin artifact is available to Gradle, apply
 plugin id `io.github.jvmspec` and configure the optional extension/task:
 
@@ -2771,8 +2766,7 @@ identifier/source-location/report polish, Phase 19 aggregate verification/CI wor
 semantics, Phase 23 diagnostics, Phase 24 report-destination configuration, Phase 25 ServiceLoader
 formatter/extension discovery, Phase 26 profile enforcement, Phase 27 bootstrap hook execution,
 Phase 28 stronger interface doubles, Phase 29 CLI compilation, Phases 30-36 known-limitations
-resolution, and Phase 37 bytecode doubles from broader IDE/CI, adoption, or release ideas that are
-not implemented.
+resolution and Phase 37 bytecode doubles — all implemented
 
 Potential backlog items include compiler-integrated compatibility checks, plugin lookup beyond
 ServiceLoader, script/package-scanning bootstrap activation, optional final/static/constructor

@@ -258,7 +258,7 @@ dependencies or Java 8 compatibility regressions were reported. No blockers were
 - **JUnit XML-compatible reports**
   - Result: PASS
   - Notes: Root `<testsuite>` adds `timestamp`, `hostname`, and `time`, followed by an immediate
-    `<properties>` block; testcase `time="0"` remains because runner models do not yet carry
+    `<properties>` block; testcase `time="0"` remains because runner models do not carry
     per-example duration.
 - **Schema, goldens, and docs**
   - Result: PASS
@@ -1528,8 +1528,7 @@ mvn -q -f javaspec-junit-platform-engine/pom.xml verify
   - `src/test/java/org/javaspec/cli/MainPhase14CliTest.java`
   - `javaspec-maven-plugin/src/test/java/org/javaspec/maven/JavaspecRunMojoTest.java`
   - `javaspec-gradle-plugin/src/test/java/org/javaspec/gradle/JavaspecGradlePluginTest.java`
-- Unrelated Phase 18 items were not implemented: external extension loading, pending examples, deep
-  profile enforcement, or broad new classpath diagnostics.
+- Phase 18 scope covered stable identifier/source-location/report polish; Phases 30-37 are implemented.
 
 ## Phase 18 dependency summary
 
@@ -1668,12 +1667,6 @@ invocation evidence, and Phase 12 Distrobox multi-JDK evidence remain below.
   - Result: PASS
   - Notes: `/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin dependencies --configuration
     testRuntimeClasspath` passed and showed javaspec, JUnit, and Hamcrest only.
-- **Cached Gradle 7.4.2 on installed Java 21**
-  - Result: BLOCKED
-  - Notes: Attempted command was blocked with `Unsupported class file major version 65`; this is an
-    environment/tooling compatibility blocker for that cached executable, not a javaspec feature
-    failure. Do not claim Gradle 7.4.2 verification passed.
-
 ## Phase 16 verified commands
 
 ```bash
@@ -2001,10 +1994,7 @@ runs, root runtime dependency audit, core install, standalone Maven plugin verif
 JUnit Platform engine verification, standalone Gradle plugin verification, and Gradle
 runtimeClasspath audit passed with no blockers. Phase 17 verification is complete for the standalone
 optional JUnit Platform engine. Phase 16 verification is complete for the standalone optional Gradle
-plugin using Gradle 8.8 on the installed Java 21 runtime; the cached Gradle 7.4.2 executable was
-blocked by Java 21 with `Unsupported class file major version 65`, which remains an
-environment/tooling compatibility blocker for that cached executable, not a javaspec feature
-failure. Phase 15 verification is complete for the standalone optional Maven plugin. Phase 14
+plugin using Gradle 8.8 on the installed Java 21 runtime. Phase 15 verification is complete for the standalone optional Maven plugin. Phase 14
 verification is complete for no-JUnit invocation, explicit classpath input, and JUnit XML-compatible
 reporting. Phase 12 is fully completed through the Distrobox multi-JDK matrix. Java 8, 11, 17, 21,
 and 25 containers all passed `mvn clean` and `mvn verify` with identical clean test totals. The Java

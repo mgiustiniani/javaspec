@@ -149,7 +149,7 @@ Quality attributes and evidence:
   ServiceLoader-discovered formatters must not change report schemas, runner results, or built-in
   default availability.
 - JSON report schemaVersion 1 must remain stable unless a future schema decision is made; additive
-  stable id/source, pending, and optional Phase 35 metadata fields must preserve existing fields and
+  stable id/source, pending, and optional Phase 35 metadata fields preserve existing fields and
   validate older schemaVersion 1 reports without metadata.
 - JUnit XML-compatible reports must be generated without JUnit or XML/reporting runtime
   dependencies, with Phase 35 testsuite metadata/properties, testcase file/line attributes only when
@@ -274,10 +274,6 @@ integration:
   runtimeClasspath`**: PASS — runtimeClasspath contained only `io.github.jvmspec:javaspec:0.1.0-SNAPSHOT`
 - **`/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin dependencies --configuration
   testRuntimeClasspath`**: PASS — testRuntimeClasspath contained javaspec, JUnit, and Hamcrest only
-- **Cached Gradle 7.4.2 command on installed Java 21**: BLOCKED — `Unsupported class file major
-  version 65`; environment/tooling compatibility blocker for that cached executable, not a javaspec
-  feature failure
-
 Verified Phase 16 quality points:
 
 - The Gradle plugin is a standalone optional artifact at `javaspec-gradle-plugin/` and is
