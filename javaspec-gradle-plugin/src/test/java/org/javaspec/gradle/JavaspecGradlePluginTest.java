@@ -566,7 +566,7 @@ public class JavaspecGradlePluginTest {
                         "}\n" +
                         "\n" +
                         "dependencies {\n" +
-                        "    testImplementation 'org.javaspec:javaspec:0.1.0-SNAPSHOT'\n" +
+                        "    testImplementation 'io.github.jvmspec:javaspec:0.1.0-SNAPSHOT'\n" +
                         "}\n" +
                         "\n" +
                         "javaspec {\n" +
@@ -610,7 +610,7 @@ public class JavaspecGradlePluginTest {
                         "}\n" +
                         "\n" +
                         "dependencies {\n" +
-                        "    testImplementation 'org.javaspec:javaspec:0.1.0-SNAPSHOT'\n" +
+                        "    testImplementation 'io.github.jvmspec:javaspec:0.1.0-SNAPSHOT'\n" +
                         "}\n" +
                         "\n" +
                         "javaspec {\n" +
@@ -750,7 +750,7 @@ public class JavaspecGradlePluginTest {
     public void pluginRuntimeClasspathDeclarationStaysCoreOnly() throws Exception {
         String build = readFile(new File("build.gradle"));
 
-        assertContains(build, "implementation \"org.javaspec:javaspec:${javaspecCoreVersion}\"");
+        assertContains(build, "implementation \"io.github.jvmspec:javaspec:${javaspecCoreVersion}\"");
         assertFalse(build.contains("runtimeOnly"));
         assertFalse(build.contains("implementation gradleTestKit()"));
         assertFalse(build.contains("implementation \"junit:junit"));
@@ -947,7 +947,7 @@ public class JavaspecGradlePluginTest {
                         "}\n" +
                         "\n" +
                         "dependencies {\n" +
-                        "    testImplementation 'org.javaspec:javaspec:0.1.0-SNAPSHOT'\n" +
+                        "    testImplementation 'io.github.jvmspec:javaspec:0.1.0-SNAPSHOT'\n" +
                         "}\n" +
                         "\n" +
                         javaspecConfiguration
@@ -1040,7 +1040,7 @@ public class JavaspecGradlePluginTest {
                         "}\n" +
                         "\n" +
                         "dependencies {\n" +
-                        "    testImplementation 'org.javaspec:javaspec:0.1.0-SNAPSHOT'\n" +
+                        "    testImplementation 'io.github.jvmspec:javaspec:0.1.0-SNAPSHOT'\n" +
                         "}\n" +
                         "\n" +
                         javaspecConfiguration
@@ -1107,7 +1107,7 @@ public class JavaspecGradlePluginTest {
                         "}\n" +
                         "\n" +
                         "dependencies {\n" +
-                        "    testImplementation 'org.javaspec:javaspec:0.1.0-SNAPSHOT'\n" +
+                        "    testImplementation 'io.github.jvmspec:javaspec:0.1.0-SNAPSHOT'\n" +
                         "}\n" +
                         "\n" +
                         "javaspec {\n" +
@@ -1263,7 +1263,7 @@ public class JavaspecGradlePluginTest {
 
     private static String javaPluginBuild(String extraConfiguration) {
         return "plugins {\n" +
-                "    id 'org.javaspec'\n" +
+                "    id 'io.github.jvmspec'\n" +
                 "    id 'java'\n" +
                 "}\n" +
                 "\n" +
