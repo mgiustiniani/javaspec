@@ -46,7 +46,7 @@ Negative consequences and limitations:
 Verification:
 
 - `mvn verify` passed with 307 tests.
-- `mvn dependency:tree -Dscope=runtime` still showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+- `mvn dependency:tree -Dscope=runtime` still showed only `io.github.jvmspec:javaspec:jar:0.1.0-SNAPSHOT`.
 
 Implementation follow-up:
 

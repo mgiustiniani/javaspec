@@ -10,7 +10,7 @@ repo_root="$(cd "${bin_dir}/.." && pwd -P)"
 # Locate the jar: prefer Maven local repo (installed snapshot), fall back to
 # the build output in the repository target directory.
 version="0.1.0-SNAPSHOT"
-local_repo="${HOME}/.m2/repository/org/javaspec/javaspec/${version}/javaspec-${version}.jar"
+local_repo="${HOME}/.m2/repository/io/github/jvmspec/javaspec/${version}/javaspec-${version}.jar"
 target_jar="${repo_root}/target/javaspec-${version}.jar"
 
 if [ -f "${local_repo}" ]; then

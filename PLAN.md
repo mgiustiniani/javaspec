@@ -105,7 +105,7 @@ Current phase summary:
 - Phase 15 implemented `javaspec-maven-plugin/` as a standalone optional Maven plugin artifact,
   intentionally not registered as a root module so repository-root `mvn verify` continues to build
   and audit only the zero-runtime-dependency core artifact. The plugin packages
-  `org.javaspec:javaspec-maven-plugin:0.1.0-SNAPSHOT` as `maven-plugin`, exposes goal prefix
+  `io.github.jvmspec:javaspec-maven-plugin:0.1.0-SNAPSHOT` as `maven-plugin`, exposes goal prefix
   `javaspec`, provides `javaspec:run` bound by default to `verify`, requires test dependency
   resolution, uses the Maven test classpath, supports config/suite/specDir/specRoot selection,
   class/example filters, `stopOnFailure`, `skip`, `failOnFailure`, JSON reports, JUnit
@@ -113,7 +113,7 @@ Current phase summary:
   `JavaspecLauncher` without `System.exit`.
 - Phase 16 implemented `javaspec-gradle-plugin/` as a standalone optional Gradle plugin artifact,
   intentionally not registered as a root Maven module and outside the zero-runtime-dependency core
-  artifact. The plugin id is `org.javaspec`; it registers extension `javaspec` and task
+  artifact. The plugin id is `io.github.jvmspec`; it registers extension `javaspec` and task
   `javaspecRun` in Gradle's `verification` group, defaults to the Java plugin `test` source set
   runtime classpath and `testClasses` dependency when available, supports skip/fail/stop controls,
   config/suite/specDir/specRoot, class/example filters, built-in `progress` and `pretty` formatters,
@@ -123,7 +123,7 @@ Current phase summary:
 - Phase 17 implemented `javaspec-junit-platform-engine/` as a standalone optional JUnit Platform
   engine artifact, intentionally not registered as a root Maven module and outside the
   zero-runtime-dependency core artifact. The artifact is
-  `org.javaspec:javaspec-junit-platform-engine:0.1.0-SNAPSHOT`, packaging `jar`, Java source/target
+  `io.github.jvmspec:javaspec-junit-platform-engine:0.1.0-SNAPSHOT`, packaging `jar`, Java source/target
   `1.8`, and uses Java 8-compatible JUnit Platform `1.10.2` rather than JUnit Platform 6/JUnit 6.
   `JavaspecTestEngine` is discovered through ServiceLoader with engine id `javaspec`, uses canonical
   `SpecDiscovery` / `SpecDiscoveryRequest`, supports configuration parameters and JUnit Platform
@@ -269,7 +269,7 @@ Current phase summary:
 - JDK 17+ matrix runs emitted only the expected `-source 8` / `-target 1.8`
   bootstrap/obsolete-option warnings.
 - Runtime dependency verification completed in `javaspec-jdk25-matrix`: `mvn dependency:tree
-  -Dscope=runtime` passed and showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT` in runtime
+  -Dscope=runtime` passed and showed only `io.github.jvmspec:javaspec:jar:0.1.0-SNAPSHOT` in runtime
   scope.
 - Java 25 Gatherer runtime verification completed in `javaspec-jdk25-matrix`: reflection probing
   passed for `java.util.stream.Gatherer`, `Gatherer$Downstream`, `Gatherer$Integrator`,
@@ -282,15 +282,15 @@ Current phase summary:
   tests; root `mvn -q -DskipTests install` passed to install the current core for standalone plugin
   verification; `mvn -q -f javaspec-maven-plugin/pom.xml -Dtest=JavaspecRunMojoTest test` passed
   with 12 plugin tests; `mvn -q -f javaspec-maven-plugin/pom.xml verify` passed with 12 plugin
-  tests; root `mvn dependency:tree -Dscope=runtime` passed with only `org.javaspec:javaspec`; and
+  tests; root `mvn dependency:tree -Dscope=runtime` passed with only `io.github.jvmspec:javaspec`; and
   plugin `mvn -f javaspec-maven-plugin/pom.xml dependency:tree -Dscope=runtime` passed with the
-  plugin plus compile-scope core `org.javaspec:javaspec` only.
+  plugin plus compile-scope core `io.github.jvmspec:javaspec` only.
 - Phase 16 tester verification completed on 2026-06-03: `mvn -q -DskipTests install` passed; `mvn -q
-  verify` passed; `mvn dependency:tree -Dscope=runtime` passed with only `org.javaspec:javaspec`;
+  verify` passed; `mvn dependency:tree -Dscope=runtime` passed with only `io.github.jvmspec:javaspec`;
   `/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin test` passed with 11 plugin tests;
   `/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin build` passed; `/tmp/gradle-8.8/bin/gradle
   -p javaspec-gradle-plugin dependencies --configuration runtimeClasspath` passed showing
-  runtimeClasspath only `org.javaspec:javaspec:0.1.0-SNAPSHOT`; and `/tmp/gradle-8.8/bin/gradle -p
+  runtimeClasspath only `io.github.jvmspec:javaspec:0.1.0-SNAPSHOT`; and `/tmp/gradle-8.8/bin/gradle -p
   javaspec-gradle-plugin dependencies --configuration testRuntimeClasspath` passed showing javaspec,
   JUnit, and Hamcrest only. A cached Gradle 7.4.2 command was attempted but blocked by the installed
   Java 21 runtime with `Unsupported class file major version 65`; this is documented as an
@@ -301,9 +301,9 @@ Current phase summary:
   -q -f javaspec-junit-platform-engine/pom.xml -Dtest=JavaspecTestEnginePhase17Test test` passed
   with 12 tests, 0 failures, 0 errors, and 0 skipped; `mvn -q -f
   javaspec-junit-platform-engine/pom.xml verify` passed with 12 tests, 0 failures, 0 errors, and 0
-  skipped; root `mvn dependency:tree -Dscope=runtime` passed with only `org.javaspec:javaspec`; and
+  skipped; root `mvn dependency:tree -Dscope=runtime` passed with only `io.github.jvmspec:javaspec`; and
   engine `mvn -f javaspec-junit-platform-engine/pom.xml dependency:tree -Dscope=runtime` passed with
-  runtime dependencies core `org.javaspec:javaspec`, `org.junit.platform:junit-platform-engine`,
+  runtime dependencies core `io.github.jvmspec:javaspec`, `org.junit.platform:junit-platform-engine`,
   `opentest4j`, `junit-platform-commons`, and `apiguardian-api`, with no runtime `junit-jupiter`,
   `junit-platform-launcher`, or `junit-platform-testkit`. Blockers: none.
 - Phase 18 tester verification completed on 2026-06-04: targeted changed core tests passed with `mvn
@@ -311,7 +311,7 @@ Current phase summary:
 -Dtest=SpecDiscoveryNamingTest,SpecRunnerTest,RunReportWriterTest,JUnitXmlReportWriterTest,MainPhase11ReportCliTest,MainPhase14CliTest
   test`; full `mvn -q test` passed with 386 tests, 0 failures, 0 errors, and 0 skipped; full `mvn -q
   verify` passed with 386 tests, 0 failures, 0 errors, and 0 skipped; root runtime dependency audit
-  passed with only `org.javaspec:javaspec`; root `mvn -q install` passed; standalone Maven plugin
+  passed with only `io.github.jvmspec:javaspec`; root `mvn -q install` passed; standalone Maven plugin
   `verify` passed with 12 tests; standalone JUnit Platform engine `verify` passed with 12 tests;
   standalone Gradle plugin `clean test build` passed with 11 tests; and the Gradle plugin
   runtimeClasspath audit passed.
@@ -322,12 +322,12 @@ Current phase summary:
   --check`, `git diff --cached --check`, and a temp-index whitespace check including untracked
   `.github/` and `scripts/` passed; `JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle
   scripts/verify-all.sh` passed. The aggregate script executed root `mvn -q verify` with 386 tests,
-  root runtime audit with only `org.javaspec:javaspec`, root `mvn -q -DskipTests install`,
+  root runtime audit with only `io.github.jvmspec:javaspec`, root `mvn -q -DskipTests install`,
   standalone Maven plugin `verify` with 12 tests and runtime audit showing plugin plus core,
   standalone JUnit Platform engine `verify` with 12 tests and runtime audit showing core plus
   isolated JUnit Platform engine dependencies, Gradle plugin `clean test build` with 11 tests using
   Gradle 8.8, and Gradle plugin runtimeClasspath audit with only
-  `org.javaspec:javaspec:0.1.0-SNAPSHOT`. After the CI workflow was pushed, the user/maintainer
+  `io.github.jvmspec:javaspec:0.1.0-SNAPSHOT`. After the CI workflow was pushed, the user/maintainer
   confirmed GitHub Actions was all green for HEAD `4d30e63` on `develop`; no GitHub run IDs, URLs,
   durations, or logs were independently queried from this environment.
 - Phase 20 tester verification completed on 2026-06-04 with no Phase 20 metadata verification
@@ -341,14 +341,14 @@ Current phase summary:
   email, and maintainer role in the root, Maven plugin, and JUnit engine POMs; Gradle generated POMs
   `pluginMaven` and `javaspecPluginMarkerMaven` include MIT license and maintainer metadata; `mvn -q
   verify` passed with 386 tests, 0 failures, 0 errors, and 0 skipped; root runtime audit passed with
-  no dependencies beyond `org.javaspec:javaspec`; root `mvn -q -Prelease-artifacts -DskipTests
+  no dependencies beyond `io.github.jvmspec:javaspec`; root `mvn -q -Prelease-artifacts -DskipTests
   package` passed and produced non-empty main, sources, and javadoc jars; `mvn -q -DskipTests
   install` passed; Maven plugin and JUnit engine `-Prelease-artifacts -DskipTests package` checks
   passed and produced non-empty main/sources/javadoc jars; standalone Maven plugin and JUnit engine
   `mvn -q verify` each passed with 12 tests; Gradle plugin publication POM generation passed, and
   `/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin clean test build` passed with 11 tests and
   produced non-empty jars, with non-blocking Java 8 source/target obsolete warnings on JDK 21;
-  Gradle runtime dependencies contained only `org.javaspec:javaspec:0.1.0-SNAPSHOT`; and full
+  Gradle runtime dependencies contained only `io.github.jvmspec:javaspec:0.1.0-SNAPSHOT`; and full
   aggregate `JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-all.sh` passed, covering
   version alignment, core verify, root audit, local install, Maven plugin verify/audit, JUnit engine
   verify/audit, and Gradle plugin build/audit.
@@ -375,12 +375,12 @@ Current phase summary:
 - Phase 22 tester verification completed on 2026-06-04 with no blockers and no production Java
   changes made by the tester. Targeted changed tests passed with 78 tests; `mvn -q test` passed with
   399 tests; `mvn -q verify` passed; root runtime dependency audit showed no runtime dependencies
-  beyond `org.javaspec:javaspec`; `mvn -q -DskipTests install` passed; standalone Maven plugin
-  `verify` passed with 13 tests and runtime tree `org.javaspec:javaspec` only; standalone JUnit
+  beyond `io.github.jvmspec:javaspec`; `mvn -q -DskipTests install` passed; standalone Maven plugin
+  `verify` passed with 13 tests and runtime tree `io.github.jvmspec:javaspec` only; standalone JUnit
   Platform engine `verify` passed with 13 tests and runtime tree core plus `junit-platform-engine`,
   `opentest4j`, `junit-platform-commons`, and `apiguardian-api`; standalone Gradle plugin `clean
   test build` passed with 12 tests and Java 8 obsolete source/target warnings only; Gradle
-  runtimeClasspath contained only `org.javaspec:javaspec`;
+  runtimeClasspath contained only `io.github.jvmspec:javaspec`;
   `JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-examples.sh` passed; and
   `JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-all.sh` passed. After Phase
   20/21/22 were pushed, the user/maintainer confirmed remote GitHub Actions was green for HEAD
@@ -479,7 +479,7 @@ Planner verification after ADR 0004 confirmed these source inputs:
    Java 8-compatible heuristics rather than a full Java parser; generated post-Java-8 source forms
    still require an appropriate JDK to compile.
 9. Verification passed: `mvn test` completed with 174 tests, and `mvn dependency:tree
-   -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT` in runtime scope.
+   -Dscope=runtime` showed only `io.github.jvmspec:javaspec:jar:0.1.0-SNAPSHOT` in runtime scope.
 
 ## Phase 1 Status
 
@@ -569,7 +569,7 @@ Implemented files/classes at a high level:
 Verification summary:
 
 - `mvn test` passed with 174 tests.
-- `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`,
+- `mvn dependency:tree -Dscope=runtime` showed only `io.github.jvmspec:javaspec:jar:0.1.0-SNAPSHOT`,
   confirming no runtime third-party dependency leakage.
 
 ## Phase 3 Status
@@ -604,7 +604,7 @@ Verification summary:
   failures, 0 errors, and 0 skipped.
 - Stabilization verification after Phase 4 reported `mvn verify` BUILD SUCCESS with 301 tests run, 0
   failures, 0 errors, and 0 skipped.
-- `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+- `mvn dependency:tree -Dscope=runtime` showed only `io.github.jvmspec:javaspec:jar:0.1.0-SNAPSHOT`.
 - Phase 12 completed the Distrobox compatibility and quality matrix: Java 8, 11, 17, 21, and 25
   containers all passed `mvn clean` and `mvn verify`; the Java 25 runtime Gatherer probe and runtime
   dependency audit also passed.
@@ -663,7 +663,7 @@ Implementation summary:
 Verification summary:
 
 - `mvn verify` passed with 301 tests run, 0 failures, 0 errors, and 0 skipped.
-- `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+- `mvn dependency:tree -Dscope=runtime` showed only `io.github.jvmspec:javaspec:jar:0.1.0-SNAPSHOT`.
 
 ## Phase 5/6 MVP Reflection Runner Status — Implemented and Verified
 
@@ -692,7 +692,7 @@ Implementation summary:
 Verification summary:
 
 - `mvn verify` passed with 307 tests run, 0 failures, 0 errors, and 0 skipped.
-- `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+- `mvn dependency:tree -Dscope=runtime` showed only `io.github.jvmspec:javaspec:jar:0.1.0-SNAPSHOT`.
 
 Known limitations:
 
@@ -737,7 +737,7 @@ Implementation summary:
 Verification summary:
 
 - `mvn verify` passed after the Phase 7 matcher/expectation expansion.
-- `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+- `mvn dependency:tree -Dscope=runtime` showed only `io.github.jvmspec:javaspec:jar:0.1.0-SNAPSHOT`.
 
 Known limitation:
 
@@ -942,7 +942,7 @@ should be delegated as follows by the parent workflow:
     sections 5-12, ADR 0011, test report, this plan
   - Implementation status: Implemented and verified as standalone optional artifact
     `javaspec-junit-platform-engine/`, not a root Maven module and outside the core artifact. The
-    artifact `org.javaspec:javaspec-junit-platform-engine:0.1.0-SNAPSHOT` packages a Java
+    artifact `io.github.jvmspec:javaspec-junit-platform-engine:0.1.0-SNAPSHOT` packages a Java
     8-compatible JUnit Platform `1.10.2` `TestEngine` with engine id `javaspec`, ServiceLoader
     registration, canonical `SpecDiscovery` / `SpecDiscoveryRequest` discovery, configuration
     parameters, class/package/method/unique-id selector filters, canonical `JavaspecLauncher`
@@ -1298,7 +1298,7 @@ Implemented behavior:
 Verification:
 
 - `mvn test` passed with 174 tests.
-- `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT` and
+- `mvn dependency:tree -Dscope=runtime` showed only `io.github.jvmspec:javaspec:jar:0.1.0-SNAPSHOT` and
   no runtime third-party dependencies.
 
 Still out of scope after the ADR 0004 correction:
@@ -1363,7 +1363,7 @@ Verification:
   failures, 0 errors, and 0 skipped.
 - Stabilization verification after Phase 4 reported `mvn verify` BUILD SUCCESS with 301 tests run, 0
   failures, 0 errors, and 0 skipped.
-- `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+- `mvn dependency:tree -Dscope=runtime` showed only `io.github.jvmspec:javaspec:jar:0.1.0-SNAPSHOT`.
 
 Acceptance criteria status:
 
@@ -1447,7 +1447,7 @@ Implemented files/classes at a high level:
 Verification:
 
 - `mvn verify` BUILD SUCCESS with 301 tests run, 0 failures, 0 errors, and 0 skipped.
-- `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+- `mvn dependency:tree -Dscope=runtime` showed only `io.github.jvmspec:javaspec:jar:0.1.0-SNAPSHOT`.
 
 Acceptance criteria status:
 
@@ -1586,7 +1586,7 @@ Implemented scope:
 Verification:
 
 - `mvn verify` passed.
-- `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+- `mvn dependency:tree -Dscope=runtime` showed only `io.github.jvmspec:javaspec:jar:0.1.0-SNAPSHOT`.
 
 Known limitation:
 
@@ -1635,7 +1635,7 @@ Implementation summary:
 Verification:
 
 - `mvn verify` passed with 328 tests.
-- `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+- `mvn dependency:tree -Dscope=runtime` showed only `io.github.jvmspec:javaspec:jar:0.1.0-SNAPSHOT`.
 
 Known limitations:
 
@@ -1689,7 +1689,7 @@ Implementation summary:
 Verification:
 
 - `mvn verify` passed with 338 tests.
-- `mvn dependency:tree -Dscope=runtime` showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+- `mvn dependency:tree -Dscope=runtime` showed only `io.github.jvmspec:javaspec:jar:0.1.0-SNAPSHOT`.
 
 Acceptance criteria status:
 
@@ -1736,7 +1736,7 @@ Verification:
 - `mvn -Dtest='org.javaspec.generation.*Test' test` passed with 84 generation tests.
 - `mvn verify` passed with 345 tests.
 - `mvn dependency:tree -Dscope=runtime` passed and showed only
-  `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT` in runtime scope.
+  `io.github.jvmspec:javaspec:jar:0.1.0-SNAPSHOT` in runtime scope.
 
 Known limitations:
 
@@ -1834,7 +1834,7 @@ Verification:
   -Dtest=RunFormatterRegistryTest,ExtensionContextTest,RunReportWriterTest,MainPhase11ReportCliTest
   test` passed.
 - `mvn verify` passed with 364 tests, 0 failures, and 0 errors.
-- `mvn dependency:tree -Dscope=runtime` passed and showed only `org.javaspec:javaspec` in runtime
+- `mvn dependency:tree -Dscope=runtime` passed and showed only `io.github.jvmspec:javaspec` in runtime
   scope.
 
 Known limitations:
@@ -1879,7 +1879,7 @@ Verification summary:
    `java.util.stream.Gatherer$Downstream`, `java.util.stream.Gatherer$Integrator`,
    `java.util.stream.Gatherer$Integrator$Greedy`, and `java.util.stream.Gatherers`.
 7. Runtime dependency auditing in `javaspec-jdk25-matrix` with `mvn dependency:tree -Dscope=runtime`
-   passed and showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT` in runtime scope.
+   passed and showed only `io.github.jvmspec:javaspec:jar:0.1.0-SNAPSHOT` in runtime scope.
 8. Matrix containers were created and stopped, not removed: `javaspec-jdk8-matrix`,
    `javaspec-jdk11-matrix`, `javaspec-jdk17-matrix`, `javaspec-jdk21-matrix`, and
    `javaspec-jdk25-matrix`.
@@ -2040,10 +2040,10 @@ Implemented scope:
 1. Added standalone optional Maven plugin artifact `javaspec-maven-plugin/`, intentionally not
    registered as a root module so repository-root `mvn verify` continues to build and audit only the
    zero-runtime-dependency core artifact.
-2. `javaspec-maven-plugin/pom.xml` packages `org.javaspec:javaspec-maven-plugin:0.1.0-SNAPSHOT` as
+2. `javaspec-maven-plugin/pom.xml` packages `io.github.jvmspec:javaspec-maven-plugin:0.1.0-SNAPSHOT` as
    `maven-plugin`, uses Java source/target `1.8`, goal prefix `javaspec`, Maven API baseline
    `3.6.3`, Maven API and plugin annotations in `provided` scope, JUnit in `test` scope, and a
-   compile-scope dependency on core `org.javaspec:javaspec`.
+   compile-scope dependency on core `io.github.jvmspec:javaspec`.
 3. `JavaspecRunMojo` provides `javaspec:run`, bound by default to phase `verify`, requires test
    dependency resolution, and uses the Maven test classpath for compiled production/spec classes.
 4. The Mojo supports config, suite, `specDir`/`specRoot` selection, class/example filters,
@@ -2065,9 +2065,9 @@ Verification:
   tests.
 - `mvn -q -f javaspec-maven-plugin/pom.xml verify` passed with 12 plugin tests.
 - `mvn dependency:tree -Dscope=runtime` passed; root runtime tree contained only
-  `org.javaspec:javaspec`.
+  `io.github.jvmspec:javaspec`.
 - `mvn -f javaspec-maven-plugin/pom.xml dependency:tree -Dscope=runtime` passed; plugin runtime tree
-  contained the plugin plus compile-scope core `org.javaspec:javaspec` only.
+  contained the plugin plus compile-scope core `io.github.jvmspec:javaspec` only.
 - Plugin test coverage includes JUnit XML report I/O failure handling, plugin POM dependency scopes,
   and a canonical launcher guard verifying Mojo delegation to
   `org.javaspec.invocation.JavaspecLauncher` without `System.exit` or direct low-level runner
@@ -2096,10 +2096,10 @@ Implemented scope:
    registered as a root Maven module and outside the zero-runtime-dependency core artifact.
 2. Added plugin scaffold files `settings.gradle`, `build.gradle`, plugin-local `.gitignore`, and
    plugin-local `README.md`.
-3. `javaspec-gradle-plugin/build.gradle` uses `java-gradle-plugin`, group `org.javaspec`, version
-   `0.1.0-SNAPSHOT`, Java source/target `1.8`, plugin id `org.javaspec`, implementation class
+3. `javaspec-gradle-plugin/build.gradle` uses `java-gradle-plugin`, group `io.github.jvmspec`, version
+   `0.1.0-SNAPSHOT`, Java source/target `1.8`, plugin id `io.github.jvmspec`, implementation class
    `org.javaspec.gradle.JavaspecPlugin`, Maven local/core dependency
-   `org.javaspec:javaspec:0.1.0-SNAPSHOT`, and plugin-local TestKit/JUnit test dependencies.
+   `io.github.jvmspec:javaspec:0.1.0-SNAPSHOT`, and plugin-local TestKit/JUnit test dependencies.
 4. Added `JavaspecPlugin`, `JavaspecExtension`, and `JavaspecRunTask` under
    `javaspec-gradle-plugin/src/main/java/org/javaspec/gradle/`.
 5. The plugin registers extension `javaspec` and task `javaspecRun` in Gradle's `verification`
@@ -2129,7 +2129,7 @@ Verification:
 - `mvn -q -DskipTests install` passed.
 - `mvn -q verify` passed.
 - `mvn dependency:tree -Dscope=runtime` passed; root runtime tree contains only
-  `org.javaspec:javaspec`.
+  `io.github.jvmspec:javaspec`.
 - A cached Gradle 7.4.2 command was attempted but blocked by the installed Java 21 runtime with
   `Unsupported class file major version 65`; this is an environment/tooling compatibility blocker
   for that cached executable, not a javaspec feature failure.
@@ -2137,7 +2137,7 @@ Verification:
   committed. `/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin test` passed with 11 tests;
   `/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin build` passed; `/tmp/gradle-8.8/bin/gradle
   -p javaspec-gradle-plugin dependencies --configuration runtimeClasspath` passed showing
-  runtimeClasspath only `org.javaspec:javaspec:0.1.0-SNAPSHOT`; `/tmp/gradle-8.8/bin/gradle -p
+  runtimeClasspath only `io.github.jvmspec:javaspec:0.1.0-SNAPSHOT`; `/tmp/gradle-8.8/bin/gradle -p
   javaspec-gradle-plugin dependencies --configuration testRuntimeClasspath` passed showing javaspec,
   JUnit, and Hamcrest only.
 
@@ -2164,10 +2164,10 @@ Implemented scope:
 1. Added standalone optional JUnit Platform engine artifact `javaspec-junit-platform-engine/`,
    intentionally not registered as a root Maven module and outside the zero-runtime-dependency core
    artifact.
-2. The artifact is `org.javaspec:javaspec-junit-platform-engine:0.1.0-SNAPSHOT`, packaging `jar`,
+2. The artifact is `io.github.jvmspec:javaspec-junit-platform-engine:0.1.0-SNAPSHOT`, packaging `jar`,
    Java source/target `1.8`, using Java 8-compatible JUnit Platform `1.10.2` and avoiding JUnit
    Platform 6/JUnit 6.
-3. Runtime dependencies are isolated to the optional engine artifact: core `org.javaspec:javaspec`,
+3. Runtime dependencies are isolated to the optional engine artifact: core `io.github.jvmspec:javaspec`,
    `org.junit.platform:junit-platform-engine`, and transitives `opentest4j`,
    `junit-platform-commons`, and `apiguardian-api`. Engine test-only dependencies include JUnit
    Platform Launcher, JUnit Platform TestKit, and JUnit Jupiter.
@@ -2210,9 +2210,9 @@ Verification:
   passed with 12 tests, 0 failures, 0 errors, and 0 skipped.
 - `mvn -q -f javaspec-junit-platform-engine/pom.xml verify` passed with 12 tests, 0 failures, 0
   errors, and 0 skipped.
-- `mvn dependency:tree -Dscope=runtime` passed; root runtime tree is only `org.javaspec:javaspec`.
+- `mvn dependency:tree -Dscope=runtime` passed; root runtime tree is only `io.github.jvmspec:javaspec`.
 - `mvn -f javaspec-junit-platform-engine/pom.xml dependency:tree -Dscope=runtime` passed; runtime
-  dependencies are core `org.javaspec:javaspec`, `org.junit.platform:junit-platform-engine`,
+  dependencies are core `io.github.jvmspec:javaspec`, `org.junit.platform:junit-platform-engine`,
   `opentest4j`, `junit-platform-commons`, and `apiguardian-api`; runtime does not include
   `junit-jupiter`, `junit-platform-launcher`, or `junit-platform-testkit`.
 - Blockers: none.
@@ -2273,7 +2273,7 @@ Verification:
 - Full core tests passed: `mvn -q test` — 386 tests, 0 failures, 0 errors, 0 skipped.
 - Full core verification passed: `mvn -q verify` — 386 tests, 0 failures, 0 errors, 0 skipped.
 - Root runtime dependency audit passed: `mvn dependency:tree -Dscope=runtime` — root runtime tree
-  contains only `org.javaspec:javaspec`.
+  contains only `io.github.jvmspec:javaspec`.
 - Core install passed: `mvn -q install`.
 - Standalone Maven plugin verification passed: `mvn -q -f javaspec-maven-plugin/pom.xml verify` — 12
   tests.
@@ -2346,15 +2346,15 @@ Verification:
 - Full aggregate verification passed with `JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle
   scripts/verify-all.sh`; Gradle used `/tmp/gradle-8.8/bin/gradle`, Gradle 8.8.
 - Script-executed results: root `mvn -q verify` passed with 386 tests, 0 failures, 0 errors, and 0
-  skipped; root runtime audit passed and contained only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`;
+  skipped; root runtime audit passed and contained only `io.github.jvmspec:javaspec:jar:0.1.0-SNAPSHOT`;
   root `mvn -q -DskipTests install` passed; Maven plugin `mvn -q -f javaspec-maven-plugin/pom.xml
   verify` passed with 12 tests; Maven plugin runtime audit passed with runtime summary
-  `org.javaspec:javaspec-maven-plugin` plus `org.javaspec:javaspec`; JUnit Platform engine `mvn -q
+  `io.github.jvmspec:javaspec-maven-plugin` plus `io.github.jvmspec:javaspec`; JUnit Platform engine `mvn -q
   -f javaspec-junit-platform-engine/pom.xml verify` passed with 12 tests; JUnit Platform engine
   runtime audit passed with core, `junit-platform-engine`, `opentest4j`, `junit-platform-commons`,
   and `apiguardian-api`; Gradle plugin `clean test build` passed with 11 tests, 0 failures, 0
   errors, and 0 skipped plus non-blocking Java 8 source/target obsolete warnings on JDK 21; Gradle
-  plugin runtimeClasspath audit passed with `org.javaspec:javaspec:0.1.0-SNAPSHOT`.
+  plugin runtimeClasspath audit passed with `io.github.jvmspec:javaspec:0.1.0-SNAPSHOT`.
 - Blockers: none.
 
 Acceptance criteria status:
@@ -2424,7 +2424,7 @@ Verification:
   maintainer metadata.
 - `mvn -q verify` passed with 386 tests, 0 failures, 0 errors, and 0 skipped.
 - `mvn dependency:tree -Dscope=runtime` passed; root runtime has no dependencies beyond
-  `org.javaspec:javaspec`.
+  `io.github.jvmspec:javaspec`.
 - `mvn -q -Prelease-artifacts -DskipTests package` passed and produced root main, sources, and
   javadoc jars.
 - `mvn -q -DskipTests install` passed.
@@ -2436,15 +2436,15 @@ Verification:
 - Standalone JUnit engine `mvn -q verify` passed with 12 tests.
 - Gradle plugin `clean test build` passed with 11 tests, 0 failures, and main/sources/javadoc jars
   found; non-blocking Java 8 source/target obsolete warnings occurred on JDK 21.
-- Gradle runtime dependencies contained only `org.javaspec:javaspec:0.1.0-SNAPSHOT`.
+- Gradle runtime dependencies contained only `io.github.jvmspec:javaspec:0.1.0-SNAPSHOT`.
 - Full aggregate `JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-all.sh` passed,
   covering version alignment, core verify, root audit, local install, Maven plugin verify/audit,
   JUnit engine verify/audit, and Gradle plugin build/audit.
 - Dependency summary: core has no runtime dependencies; Maven plugin runtime is
-  `org.javaspec:javaspec:0.1.0-SNAPSHOT`; JUnit engine runtime is
-  `org.javaspec:javaspec:0.1.0-SNAPSHOT`, `junit-platform-engine:1.10.2`, `opentest4j`,
+  `io.github.jvmspec:javaspec:0.1.0-SNAPSHOT`; JUnit engine runtime is
+  `io.github.jvmspec:javaspec:0.1.0-SNAPSHOT`, `junit-platform-engine:1.10.2`, `opentest4j`,
   `junit-platform-commons`, and `apiguardian-api`; Gradle plugin runtime is
-  `org.javaspec:javaspec:0.1.0-SNAPSHOT`.
+  `io.github.jvmspec:javaspec:0.1.0-SNAPSHOT`.
 - Verification blockers: none for Phase 20 metadata verification. Publication/deploy/signing remains
   intentionally unimplemented because GPG signing, Central Portal publication, Gradle Plugin Portal
   publication/credentials, final release version/tag, and final publish approval remain unresolved.
@@ -2485,7 +2485,7 @@ Implemented scope:
 3. Added standalone consumer examples under `examples/`:
    - `examples/maven-basic/` uses `javaspec-maven-plugin`, a simple `Calculator`/`CalculatorSpec`,
      and writes JSON plus JUnit XML-compatible reports under `target/javaspec/`.
-   - `examples/gradle-basic/` uses Gradle plugin id `org.javaspec` through `pluginManagement {
+   - `examples/gradle-basic/` uses Gradle plugin id `io.github.jvmspec` through `pluginManagement {
      includeBuild('../../javaspec-gradle-plugin') }`, a simple `Calculator`/`CalculatorSpec`, and
      writes JSON plus JUnit XML-compatible reports under `build/reports/javaspec/`.
    - `examples/junit-platform-basic/` uses the standalone JUnit Platform engine and Maven Surefire
@@ -2536,7 +2536,7 @@ Verification:
 - Standalone Maven plugin, JUnit Platform engine, and Gradle plugin verification through
   `verify-all` remained 12, 12, and 11 passing tests respectively; the JUnit Platform example had 1
   passing test.
-- Root runtime dependency tree remained only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+- Root runtime dependency tree remained only `io.github.jvmspec:javaspec:jar:0.1.0-SNAPSHOT`.
 - Root dependency/build files were unchanged by Phase 21.
 - Example runtime dependency checks reported no main runtime dependencies for `examples/maven-basic`
   and `examples/junit-platform-basic`, and no dependencies on `examples/gradle-basic`
@@ -2601,17 +2601,17 @@ Verification:
 - `mvn -q test` passed with 399 tests.
 - `mvn -q verify` passed.
 - `mvn dependency:tree -Dscope=runtime` passed; root has no runtime dependencies beyond
-  `org.javaspec:javaspec`.
+  `io.github.jvmspec:javaspec`.
 - `mvn -q -DskipTests install` passed.
 - Maven plugin `mvn -q -f javaspec-maven-plugin/pom.xml verify` passed with 13 tests.
-- Maven plugin runtime tree contained `org.javaspec:javaspec` only.
+- Maven plugin runtime tree contained `io.github.jvmspec:javaspec` only.
 - JUnit Platform engine `mvn -q -f javaspec-junit-platform-engine/pom.xml verify` passed with 13
   tests.
-- JUnit Platform engine runtime tree contained `org.javaspec:javaspec`, `junit-platform-engine`,
+- JUnit Platform engine runtime tree contained `io.github.jvmspec:javaspec`, `junit-platform-engine`,
   `opentest4j`, `junit-platform-commons`, and `apiguardian-api`.
 - Gradle plugin `/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin clean test build` passed with
   12 tests; Java 8 obsolete source/target warnings were non-blocking.
-- Gradle plugin runtimeClasspath contained `org.javaspec:javaspec` only.
+- Gradle plugin runtimeClasspath contained `io.github.jvmspec:javaspec` only.
 - `JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-examples.sh` passed.
 - `JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-all.sh` passed.
 - Verification blockers: none.

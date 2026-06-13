@@ -14,7 +14,7 @@
           1. mvn install
           2. mvn -f javaspec-junit-platform-engine/pom.xml verify
     -->
-    <groupId>org.javaspec</groupId>
+    <groupId>io.github.jvmspec</groupId>
     <artifactId>javaspec-junit-platform-engine</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
@@ -68,7 +68,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.javaspec</groupId>
+            <groupId>io.github.jvmspec</groupId>
             <artifactId>javaspec</artifactId>
             <version>${javaspec.core.version}</version>
         </dependency>

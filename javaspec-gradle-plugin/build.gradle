@@ -3,7 +3,7 @@ plugins {
     id 'maven-publish'
 }
 
-group = 'org.javaspec'
+group = 'io.github.jvmspec'
 version = '0.1.0-SNAPSHOT'
 
 description = 'Optional Gradle adapter for the javaspec runner.'

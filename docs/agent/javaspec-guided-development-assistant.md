@@ -290,7 +290,7 @@ Maven dependency snippet:
 
 ```xml
 <dependency>
-  <groupId>org.javaspec</groupId>
+  <groupId>io.github.jvmspec</groupId>
   <artifactId>javaspec-bytecode-doubles</artifactId>
   <version>${javaspec.version}</version>
   <scope>test</scope>

@@ -87,7 +87,7 @@
 - **Formatter**: A `RunFormatter` implementation. The CLI supports built-in `progress` and `pretty`
   names plus ServiceLoader-discovered names available on the effective run classloader.
 - **Gradle plugin adapter**: Standalone optional artifact `javaspec-gradle-plugin/` with plugin id
-  `org.javaspec`, extension `javaspec`, and task `javaspecRun`. It is not a root Maven module and
+  `io.github.jvmspec`, extension `javaspec`, and task `javaspecRun`. It is not a root Maven module and
   does not require JUnit in projects under test.
 - **Gradle test source set runtime classpath**: The compiled `test` source set runtime classpath
   used by the optional Gradle plugin by default when the Gradle Java plugin/source sets are present.
@@ -121,7 +121,7 @@
   Platform selectors/configuration parameters, and delegates execution to `JavaspecLauncher` without
   `System.exit`.
 - **JUnit Platform engine adapter**: Standalone optional artifact `javaspec-junit-platform-engine/`
-  packaging `org.javaspec:javaspec-junit-platform-engine:0.1.0-SNAPSHOT`; it is not a root Maven
+  packaging `io.github.jvmspec:javaspec-junit-platform-engine:0.1.0-SNAPSHOT`; it is not a root Maven
   module and does not add JUnit Platform dependencies to the core runtime artifact.
 - **JUnit Platform selector**: Class, package, method, or unique-id selector supplied by JUnit
   Platform and applied by the optional engine as a filter over canonical javaspec discovery results.
@@ -134,7 +134,7 @@
   `run` enforces the effective profile before generation/update writes.
 - **Matchable**: Fluent expectation wrapper returned by typed proxy methods and `match(actual)`.
 - **Maven plugin adapter**: Standalone optional artifact `javaspec-maven-plugin/` packaging
-  `org.javaspec:javaspec-maven-plugin:0.1.0-SNAPSHOT` as a Maven plugin with goal prefix `javaspec`.
+  `io.github.jvmspec:javaspec-maven-plugin:0.1.0-SNAPSHOT` as a Maven plugin with goal prefix `javaspec`.
   It is not a root module and does not require JUnit in projects under test.
 - **Maven test classpath**: The compiled test-scope classpath supplied by Maven to the optional
   plugin and used as input to the canonical javaspec runner.

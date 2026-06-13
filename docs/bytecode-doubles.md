@@ -12,7 +12,7 @@ Add the adapter dependency to your project:
 
 ```xml
 <dependency>
-    <groupId>org.javaspec</groupId>
+    <groupId>io.github.jvmspec</groupId>
     <artifactId>javaspec-bytecode-doubles</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <scope>test</scope>

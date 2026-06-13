@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.javaspec.examples</groupId>
+    <groupId>io.github.jvmspec.examples</groupId>
     <artifactId>javaspec-maven-basic</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
@@ -21,7 +21,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.javaspec</groupId>
+            <groupId>io.github.jvmspec</groupId>
             <artifactId>javaspec</artifactId>
             <version>${javaspec.version}</version>
             <scope>test</scope>
@@ -40,7 +40,7 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>org.javaspec</groupId>
+                <groupId>io.github.jvmspec</groupId>
                 <artifactId>javaspec-maven-plugin</artifactId>
                 <version>${javaspec.version}</version>
                 <executions>

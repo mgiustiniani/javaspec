@@ -212,7 +212,7 @@ Consumer `pom.xml` example:
 
 <dependencies>
   <dependency>
-    <groupId>org.javaspec</groupId>
+    <groupId>io.github.jvmspec</groupId>
     <artifactId>javaspec</artifactId>
     <version>${javaspec.version}</version>
     <scope>test</scope>
@@ -222,7 +222,7 @@ Consumer `pom.xml` example:
 <build>
   <plugins>
     <plugin>
-      <groupId>org.javaspec</groupId>
+      <groupId>io.github.jvmspec</groupId>
       <artifactId>javaspec-maven-plugin</artifactId>
       <version>${javaspec.version}</version>
       <executions>
@@ -270,7 +270,7 @@ Consumer `build.gradle` example:
 ```groovy
 plugins {
     id 'java'
-    id 'org.javaspec'
+    id 'io.github.jvmspec'
 }
 
 repositories {
@@ -279,7 +279,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation 'org.javaspec:javaspec:0.1.0-SNAPSHOT'
+    testImplementation 'io.github.jvmspec:javaspec:0.1.0-SNAPSHOT'
 }
 
 javaspec {
@@ -312,13 +312,13 @@ Consumer Maven example:
 
 ```xml
 <dependency>
-  <groupId>org.javaspec</groupId>
+  <groupId>io.github.jvmspec</groupId>
   <artifactId>javaspec</artifactId>
   <version>0.1.0-SNAPSHOT</version>
   <scope>test</scope>
 </dependency>
 <dependency>
-  <groupId>org.javaspec</groupId>
+  <groupId>io.github.jvmspec</groupId>
   <artifactId>javaspec-junit-platform-engine</artifactId>
   <version>0.1.0-SNAPSHOT</version>
   <scope>test</scope>
@@ -431,7 +431,7 @@ mvn -q -f javaspec-bytecode-doubles/pom.xml -DskipTests install
 
 ```xml
 <dependency>
-  <groupId>org.javaspec</groupId>
+  <groupId>io.github.jvmspec</groupId>
   <artifactId>javaspec-bytecode-doubles</artifactId>
   <version>0.1.0-SNAPSHOT</version>
   <scope>test</scope>

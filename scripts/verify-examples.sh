@@ -127,7 +127,7 @@ assert_file_contains "Prophecy JSON report" "$prophecy_json" '"schemaVersion": 1
 assert_file_contains "Prophecy JSON report" "$prophecy_json" '"status": "PASSED"'
 assert_file_contains "Prophecy JSON report" "$prophecy_json" '"stableId": "spec.com.example.UserServiceSpec'
 assert_file_contains "Prophecy JUnit XML report" "$prophecy_xml" '<testsuite name="javaspec"'
-assert_file_contains "Prophecy JUnit XML report" "$prophecy_xml" 'classname="spec.com.example.MailerSpec"'
+assert_file_contains "Prophecy JUnit XML report" "$prophecy_xml" 'classname="spec.com.example.UserServiceSpec"'
 
 if [ "${JAVASPEC_SKIP_BYTECODE_DOUBLES_EXAMPLE:-0}" = "1" ]; then
   printf '\nWARNING: Skipping bytecode doubles basic example because JAVASPEC_SKIP_BYTECODE_DOUBLES_EXAMPLE=1.\n'

@@ -7,7 +7,7 @@ Until javaspec artifacts are publicly published, install local snapshots before 
 JUnit Platform, and bytecode doubles examples.
 
 The Gradle example uses an included build for `javaspec-gradle-plugin`, but that plugin build still
-resolves the core `org.javaspec:javaspec` snapshot from Maven local.
+resolves the core `io.github.jvmspec:javaspec` snapshot from Maven local.
 
 The easiest local check is:
 

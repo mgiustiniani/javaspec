@@ -44,4 +44,4 @@ Negative consequences and limitations:
 Verification:
 
 - `mvn verify` passed with 328 tests after the Phase 8 MVP collaborators/doubles implementation.
-- `mvn dependency:tree -Dscope=runtime` remained limited to `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+- `mvn dependency:tree -Dscope=runtime` remained limited to `io.github.jvmspec:javaspec:jar:0.1.0-SNAPSHOT`.

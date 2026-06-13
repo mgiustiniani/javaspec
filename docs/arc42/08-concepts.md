@@ -292,11 +292,11 @@ allowing standalone plugin verification after the current core has been installe
 
 The plugin boundary principles are:
 
-- The plugin packages `org.javaspec:javaspec-maven-plugin:0.1.0-SNAPSHOT` as `maven-plugin` with
+- The plugin packages `io.github.jvmspec:javaspec-maven-plugin:0.1.0-SNAPSHOT` as `maven-plugin` with
   Java source/target `1.8` and goal prefix `javaspec`.
 - Maven API and plugin annotations are `provided`; JUnit is only a plugin test dependency.
 - The only plugin runtime dependency beyond the plugin itself is compile-scope core
-  `org.javaspec:javaspec`.
+  `io.github.jvmspec:javaspec`.
 - `javaspec:run` uses Maven test dependency resolution and the Maven test classpath.
 - The Mojo supports config/suite/specDir/specRoot selection, class/example filters, extension
   activation, formatter selection, top-level plus selected-suite plus discovered bootstrap hooks,
@@ -316,10 +316,10 @@ while allowing standalone plugin verification after the current core has been in
 
 The plugin boundary principles are:
 
-- The plugin uses `java-gradle-plugin`, group `org.javaspec`, version `0.1.0-SNAPSHOT`, Java
-  source/target `1.8`, plugin id `org.javaspec`, and implementation class
+- The plugin uses `java-gradle-plugin`, group `io.github.jvmspec`, version `0.1.0-SNAPSHOT`, Java
+  source/target `1.8`, plugin id `io.github.jvmspec`, and implementation class
   `org.javaspec.gradle.JavaspecPlugin`.
-- The plugin depends on core `org.javaspec:javaspec:0.1.0-SNAPSHOT`; verified runtimeClasspath
+- The plugin depends on core `io.github.jvmspec:javaspec:0.1.0-SNAPSHOT`; verified runtimeClasspath
   contains only that core dependency.
 - JUnit and TestKit are plugin test dependencies only; projects under test do not need JUnit.
 - `javaspecRun` uses the configured Gradle classpath and defaults to the Java plugin `test` source
@@ -341,10 +341,10 @@ build/audit while allowing standalone engine verification after the current core
 
 The engine boundary principles are:
 
-- The engine packages `org.javaspec:javaspec-junit-platform-engine:0.1.0-SNAPSHOT` as a Java
+- The engine packages `io.github.jvmspec:javaspec-junit-platform-engine:0.1.0-SNAPSHOT` as a Java
   8-compatible `jar` using JUnit Platform `1.10.2`, not JUnit Platform 6/JUnit 6.
 - `JavaspecTestEngine` is registered by ServiceLoader with engine id `javaspec`.
-- Runtime dependencies are isolated to the engine artifact: core `org.javaspec:javaspec`,
+- Runtime dependencies are isolated to the engine artifact: core `io.github.jvmspec:javaspec`,
   `org.junit.platform:junit-platform-engine`, `opentest4j`, `junit-platform-commons`, and
   `apiguardian-api`.
 - Discovery uses canonical `SpecDiscovery` / `SpecDiscoveryRequest`, with configuration parameters

@@ -6,7 +6,7 @@ set "VERSION=0.1.0-SNAPSHOT"
 set "BIN_DIR=%~dp0"
 set "REPO_ROOT=%BIN_DIR%.."
 
-set "LOCAL_REPO=%USERPROFILE%\.m2\repository\org\javaspec\javaspec\%VERSION%\javaspec-%VERSION%.jar"
+set "LOCAL_REPO=%USERPROFILE%\.m2\repository\io\github\jvmspec\javaspec\%VERSION%\javaspec-%VERSION%.jar"
 set "TARGET_JAR=%REPO_ROOT%\target\javaspec-%VERSION%.jar"
 
 if exist "%LOCAL_REPO%" (

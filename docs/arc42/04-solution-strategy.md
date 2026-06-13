@@ -228,7 +228,7 @@ Implemented building blocks:
   fails builds clearly on bootstrap failures, and delegates to `JavaspecLauncher` without requiring
   JUnit in projects under test.
 - **Optional Gradle plugin adapter**: `javaspec-gradle-plugin/` is a standalone optional Gradle
-  plugin artifact that provides plugin id `org.javaspec`, extension `javaspec`, task `javaspecRun`,
+  plugin artifact that provides plugin id `io.github.jvmspec`, extension `javaspec`, task `javaspecRun`,
   Gradle classpath integration, filters, top-level plus selected-suite bootstrap hooks,
   ServiceLoader external formatter discovery from the run classloader, reports, config report
   defaults when explicit extension/task report settings are absent, logging including `javaspec:`

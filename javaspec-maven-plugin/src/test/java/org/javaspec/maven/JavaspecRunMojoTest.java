@@ -764,7 +764,7 @@ public class JavaspecRunMojoTest {
     public void pluginPomKeepsMavenApiAndAnnotationsProvidedAndJUnitTestScoped() throws Exception {
         Document pom = readXml(pluginProjectFile("pom.xml"));
 
-        assertEquals(null, directDependencyScope(pom, "org.javaspec", "javaspec"));
+        assertEquals(null, directDependencyScope(pom, "io.github.jvmspec", "javaspec"));
         assertEquals("provided", directDependencyScope(pom, "org.apache.maven", "maven-plugin-api"));
         assertEquals("provided", directDependencyScope(pom, "org.apache.maven.plugin-tools", "maven-plugin-annotations"));
         assertEquals("test", directDependencyScope(pom, "junit", "junit"));
