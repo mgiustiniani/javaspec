@@ -262,7 +262,12 @@ public class ObjectBehavior<T> {
      * @return a new object prophecy
      */
     protected <D> ObjectProphecy<D> prophesize(Class<D> interfaceType) {
-        InterfaceDouble<D> id = doubles.interfaceDouble(interfaceType);
+        InterfaceDouble<D> id;
+        if (interfaceType.isInterface()) {
+            id = doubles.interfaceDouble(interfaceType);
+        } else {
+            id = Doubles.concreteDouble(interfaceType);
+        }
         ObjectProphecy<D> op = new ObjectProphecy<D>(id, prophecyRegistry());
         return op;
     }
