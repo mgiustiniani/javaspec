@@ -20,11 +20,7 @@ executable bootstrap hooks before examples, and stronger interface doubles with 
 throwing stubs, and answer callbacks, bounded Iterable matcher checks, sealed-interface updates,
 config-driven extension activation and adapter formatter controls, ServiceLoader bootstrap hook
 discovery, programmatic/Maven/Gradle opt-in compilation, additive report metadata, deeper profile
-enforcement, and a standalone optional bytecode adapter for non-final concrete-class doubles. Future
-backlog work may add broader compiler-grade profile checks, plugin lookup beyond ServiceLoader,
-broader IDE/CI polish, actual publishing/signing after signing, portal, final version/tag, and final
-approval decisions, optional final/static/constructor double integrations outside the core runtime,
-or a separate multi-module decision.
+enforcement, and a standalone optional bytecode adapter for non-final concrete-class doubles.
 
 External actors and systems:
 

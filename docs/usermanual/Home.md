@@ -589,8 +589,7 @@ A missing or unreadable config file exits with I/O error (`70`) and prints the c
 - The runner lifecycle is intentionally small: optional current-JDK compilation where that entry
   point supports it, then explicit and discovered bootstrap hooks before examples, then a fresh spec
   instance per executable example plus optional public no-arg `let()` and `letGo()`. Explicit
-  skipped/pending examples are implemented through annotations or runtime signals; broader reporting
-  beyond the implemented JSON/JUnit XML-compatible outputs remains future work.
+  skipped/pending examples are implemented through annotations or runtime signals.
 
 ## Bootstrap hooks
 
@@ -2795,8 +2794,7 @@ optional adapter.
   Maven Central under `io.github.jvmspec`.
 - The runner lifecycle is intentionally small: configured bootstrap hooks run before examples, then
   each executable example uses a fresh spec instance plus optional public no-arg `let()` and
-  `letGo()`. Explicit skipped/pending semantics are implemented; compiler-integrated profile checks
-  remain future work.
+  `letGo()`. Explicit skipped/pending semantics are implemented.
 - JSON reporting remains the Phase 11 `schemaVersion` 1 runner report with Phase 18 additive stable
   id/source fields, Phase 22 additive `pending` counts/statuses, and Phase 35 optional run-level
   metadata/properties from the default writer; older schemaVersion 1 JSON reports without metadata

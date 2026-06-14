@@ -37,8 +37,8 @@ Negative consequences and limitations:
 
 - Users can double only ordinary interfaces in the core runtime.
 - Projects that need concrete class, static, constructor, or final-class doubles must use future optional extensions or external tools outside the core runtime.
-- In the Phase 8 MVP, argument matching was exact only and richer matchers were future work; ADR 0021 later adds explicit argument matchers inside the interface-only boundary.
-- In the Phase 8 MVP, stubbing was limited to return values; ADR 0021 later adds throwing stubs and answer callbacks while sequences and broader side-effect orchestration remain future work.
+- In the Phase 8 MVP, argument matching was exact only. ADR 0021 later adds explicit argument matchers inside the interface-only boundary.
+- In the Phase 8 MVP, stubbing was limited to return values. ADR 0021 later adds throwing stubs and answer callbacks.
 - Default interface methods are not invoked by the proxy handler.
 
 Verification:

@@ -232,7 +232,7 @@ Current risks and mitigations:
    formatter/extension discovery, Phase 26 profile-enforcement boundaries, Phase 27 bootstrap hook
    execution boundaries, Phase 28 stronger interface doubles boundaries, Phase 29/34 opt-in
    compilation boundaries, Phases 30-36 known-limitations resolution (completed), and Phase 37 bytecode adapter
-   boundaries (documented) — future backlog work can build on these resolved boundaries.
+   boundaries (documented) — subsequent work can build on these resolved boundaries.
 5. Keep report schema/golden examples, standalone examples, pending/skipped semantics, and
    verification assertions synchronized with future report or adapter behavior changes.
 6. Resolve GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials,

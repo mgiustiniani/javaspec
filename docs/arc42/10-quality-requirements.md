@@ -539,7 +539,7 @@ Verified Phase 22 quality points:
 
 See [Test and Quality Report](../test-report.md) for details.
 
-## 10.13 Quality Gates for Future Work
+## 10.13 Quality Gates for Subsequent Phases
 
 Future implementation phases should preserve these gates:
 

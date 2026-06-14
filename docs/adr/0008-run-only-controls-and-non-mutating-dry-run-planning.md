@@ -35,7 +35,7 @@ Negative consequences and limitations:
 
 - Dry-run planning must stay synchronized with every generation/update capability, including later method-generation increments.
 - Profile enforcement can be misunderstood as compiler-grade validation of all project source and dependencies; documentation must keep the conservative source/generation-scoped boundary explicit.
-- CLI formatter selection can use ServiceLoader-discovered names after ADR 0018, but only when providers are available on the effective run classloader; broader activation mechanisms remain separate future work.
+- CLI formatter selection can use ServiceLoader-discovered names after ADR 0018, but only when providers are available on the effective run classloader.
 - Dry-run behavior has multiple exit paths and therefore requires regression tests whenever run planning changes.
 
 Related ARC42 sections: [5. Building Block View](../arc42/05-building-block-view.md), [6. Runtime View](../arc42/06-runtime-view.md), [8. Concepts](../arc42/08-concepts.md), and [10. Quality Requirements](../arc42/10-quality-requirements.md).

@@ -64,13 +64,6 @@ ObjectProphecy<DataStore> store = new ObjectProphecy<>(storeDouble, null);
 store.method("save", any()).willReturn(true);
 ```
 
-### Direct concrete-class prophecy (not yet supported)
-
-Currently, `ObjectProphecy<T>` requires an `InterfaceDouble<T>` which wraps an interface type.
-Direct prophecy over a concrete class (e.g., `ObjectProphecy<FileDataStore>`) is **not supported**
-because the prophecy API delegates to the core `InterfaceDouble` / `DoubleControl` layer, which
-requires an interface for JDK dynamic proxy creation.
-
 To use concrete-class doubles with Prophecy-style predictions, wrap the concrete double in an
 interface-based prophecy as shown above, or continue using the existing `DoubleControl` API directly:
 
@@ -84,8 +77,8 @@ storeDouble.control().verifyCalled("save", "item");
 
 - Concrete-class doubles support **non-final classes only**.
 - Final classes, enums, arrays, annotations, primitives, and interfaces are rejected.
-- Static method mocking, constructor mocking, and final-class mocking are not supported.
-- Direct `ObjectProphecy<ConcreteClass>` is not supported — use an interface wrapper.
+- Static method mocking, constructor mocking, and final-class mocking are outside scope.
+- Direct `ObjectProphecy<ConcreteClass>` is not covered — use an interface wrapper.
 
 ## See also
 

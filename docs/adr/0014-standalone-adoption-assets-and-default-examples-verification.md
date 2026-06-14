@@ -7,7 +7,7 @@ Accepted
 ## Context
 
 Phase 21 follows the Phase 20 release-readiness scaffolding increment. At the time of writing,
-public publication was still postponed: no signing, portal publication, deploy automation, final
+public publication had not yet started: no signing, portal publication, deploy automation, final
 release version/tag, or final publish approval had been completed. Until artifacts were publicly
 available, consumers and maintainers needed local adoption assets that demonstrate the supported
 Maven plugin, Gradle plugin, and JUnit Platform engine paths without changing the core runtime or
@@ -32,7 +32,7 @@ Keep examples, schema docs, and golden reports as standalone adoption assets:
 - Continue to support `MAVEN_BIN` and `JAVASPEC_GRADLE_BIN` for tool selection.
 - Do not treat examples verification as public publication, deployment, signing, or remote CI success.
 - Do not change the zero-runtime-dependency core or the standalone optional adapter boundaries.
-  The postponed-publication boundary has been resolved; artifacts are published on Maven Central
+  Publication is complete; artifacts are published on Maven Central
   under `io.github.jvmspec`. The Gradle plugin is published on the Gradle Plugin Portal.
 
 ## Consequences

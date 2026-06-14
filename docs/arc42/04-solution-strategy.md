@@ -42,10 +42,7 @@ source updates, config-driven extension activation and formatter controls, Servi
 hook discovery, programmatic/Maven/Gradle opt-in compilation, additive report metadata/properties,
 and deeper source/generation-scoped profile enforcement. Phase 37 adds standalone optional
 ByteBuddy-backed non-final concrete-class doubles outside the root reactor and outside the core
-dependency tree. Future backlog work may add broader compiler-grade profile checks, plugin lookup
-beyond ServiceLoader, optional final/static/constructor double integrations outside the core
-runtime, broader IDE/CI polish, actual publishing/signing after signing, portal, final version/tag,
-and final approval decisions, or a separate multi-module decision.
+dependency tree.
 
 ## 4.2 Key Architectural Decisions
 
@@ -294,7 +291,7 @@ Later building blocks remain planned:
 - Treat broader compiler-grade profile checks, optional final/static/constructor doubles, dependency
   resolution, incremental compilation caches, source-level/release management, automatic classpath
   repair, plugin lookup beyond ServiceLoader, script/package-scanning bootstrap activation, actual
-  publishing/signing automation, and any future Maven multi-module conversion as future backlog
+  publishing/signing automation, and any Maven multi-module conversion as backlog
   features requiring explicit design before implementation.
 - Keep root `mvn verify` scoped to the core artifact unless a future ADR changes the release/build
   boundary; use `scripts/verify-all.sh` or equivalent explicit commands for aggregate standalone
