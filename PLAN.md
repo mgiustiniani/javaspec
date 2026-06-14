@@ -11,18 +11,26 @@ Gradle Plugin Portal with plugin id `io.github.jvmspec`.
 
 Remote GitHub Actions success is confirmed for the release commit on `main`.
 
-## Course Correction — Gradle Plugin Test Dependency Version (ADR 0025)
+## Course Correction — Gradle Plugin Test and Example Dependency Version (ADR 0025)
 
 **Derailment:** After the `0.1.0` release, the Gradle plugin test file still references
-`0.1.0-SNAPSHOT` in 5 helper methods. CI cannot resolve the snapshot version because only `0.1.0`
-is installed, causing 9 test failures.
+`0.1.0-SNAPSHOT` in 5 helper methods, and all 5 example projects under `examples/` still
+reference `0.1.0-SNAPSHOT`. CI cannot resolve the snapshot version because only `0.1.0`
+is installed, causing test failures and example verification failures.
 
-**Fix:** Change all 5 occurrences of `0.1.0-SNAPSHOT` to `0.1.0` in
+**Fix (Gradle plugin test):** Change all 5 occurrences of `0.1.0-SNAPSHOT` to `0.1.0` in
 `javaspec-gradle-plugin/src/test/java/org/javaspec/gradle/JavaspecGradlePluginTest.java`.
 
-**Delegation:** java-planner delegates the fix to java-tester (test file change).
+**Fix (examples):** Update version references in:
+- `examples/maven-basic/pom.xml` — `<version>` and `<javaspec.version>`
+- `examples/junit-platform-basic/pom.xml` — same
+- `examples/bytecode-doubles-basic/pom.xml` — same
+- `examples/prophecy-basic/pom.xml` — same
+- `examples/gradle-basic/build.gradle` — `version` and `testImplementation` dependency
 
-**Status:** Completed and verified — all 32 Gradle plugin tests pass.
+**Delegation:** java-planner delegates the fixes to java-tester.
+
+**Status:** Completed and verified — all 32 Gradle plugin tests pass and all examples verify successfully.
 
 - Phase 2 implemented the Java 8 Maven project, zero-runtime-dependency guard, PHPSpec-style
   `describe`/`run` split, specification/support skeletons, and gated production type/method

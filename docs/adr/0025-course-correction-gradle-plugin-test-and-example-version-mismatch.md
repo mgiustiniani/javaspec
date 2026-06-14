@@ -1,4 +1,4 @@
-# 0025 — Course correction: Gradle plugin test dependency version mismatch after release
+# 0025 — Course correction: Gradle plugin test and example dependency version mismatch
 
 ## Context
 
@@ -17,11 +17,23 @@ The javaspec project was released to Maven Central under version `0.1.0` (commit
 
 ## Required Change
 
+### Gradle plugin test file
+
 Change all 5 occurrences of `0.1.0-SNAPSHOT` to `0.1.0` in `JavaspecGradlePluginTest.java` to match the actual installed version.
+
+### Example projects
+
+Update the following example project files to use `0.1.0` instead of `0.1.0-SNAPSHOT`:
+
+5. `examples/maven-basic/pom.xml` — `<version>` and `<javaspec.version>` 
+6. `examples/junit-platform-basic/pom.xml` — same 
+7. `examples/bytecode-doubles-basic/pom.xml` — same 
+8. `examples/prophecy-basic/pom.xml` — same 
+9. `examples/gradle-basic/build.gradle` — `version` and `testImplementation` dependency
 
 ## Consequences
 
-- Fixing this will make CI pass for the Gradle plugin tests.
+- Fixing both the Gradle plugin test file and the example projects will make CI pass for the Gradle plugin tests and example verification.
 - No behavior change for local development because both versions exist locally.
 - No API, schema, or runtime dependency changes.
 - Future releases will automatically stay in sync because the version is now stable at `0.1.0`.
