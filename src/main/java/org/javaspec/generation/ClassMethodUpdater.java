@@ -5,6 +5,9 @@ import org.javaspec.model.DescribedType;
 import org.javaspec.model.JavaTypeKind;
 import org.javaspec.model.MethodDescriptor;
 
+import org.javaspec.generation.parser.JavaSourceParserLoader;
+import org.javaspec.generation.parser.ParsedSource;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -313,13 +316,18 @@ public final class ClassMethodUpdater {
     }
 
     private static List<MethodDescriptor> missingMethodsInScope(String scopeSource, List<MethodDescriptor> methods) {
+        // Use the comment-stripping parser (SPI) to detect existing methods, eliminating false
+        // positives from method names that appear inside comments or string literals.
+        ParsedSource parsed = JavaSourceParserLoader.defaultParser().parse(scopeSource);
         Set<String> existingSignatures = existingMethodSignatures(scopeSource);
         List<MethodDescriptor> missing = new ArrayList<MethodDescriptor>();
         Set<String> plannedSignatures = new LinkedHashSet<String>();
         for (int i = 0; i < methods.size(); i++) {
             MethodDescriptor method = methods.get(i);
             String key = signatureKey(method.methodName(), method.parameterTypes());
-            if (existingSignatures.contains(key) || plannedSignatures.contains(key)) {
+            boolean existsBySignatureKey = existingSignatures.contains(key);
+            boolean existsByParser = parsed.hasMethod(method.methodName(), method.parameterTypes());
+            if (existsBySignatureKey || existsByParser || plannedSignatures.contains(key)) {
                 continue;
             }
             missing.add(method);
