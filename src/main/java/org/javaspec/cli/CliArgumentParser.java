@@ -388,6 +388,14 @@ public final class CliArgumentParser {
             return parsed;
         }
 
+        if ("list-extensions".equals(parsed.command)) {
+            if (operands.size() > 1) {
+                parsed.errorMessage = "Unexpected argument: " + operands.get(1);
+                return parsed;
+            }
+            return parsed;
+        }
+
         if ("run".equals(parsed.command)) {
             if (operands.size() > 1) {
                 parsed.errorMessage = "Unexpected argument: " + operands.get(1);
@@ -481,6 +489,10 @@ public final class CliArgumentParser {
             return parsed;
         }
 
+        if ("list-extensions".equals(operands.get(0))) {
+            // Already handled above; fall through should not happen.
+            return parsed;
+        }
         parsed.errorMessage = "Unknown command: " + operands.get(0);
         return parsed;
     }

@@ -90,6 +90,34 @@ public class MainTest {
     // --resolve-pom CLI integration tests
 
     // -------------------------------------------------------------------------
+    // list-extensions command
+
+    @Test
+    public void listExtensionsCommandPrintsFormatters() {
+        CommandResult result = run("list-extensions");
+        assertEquals(0, result.exitCode);
+        assertEquals("", result.err);
+        assertTrue(result.out.contains("Formatters:"));
+        assertTrue(result.out.contains("progress"));
+        assertTrue(result.out.contains("pretty"));
+    }
+
+    @Test
+    public void listExtensionsCommandPrintsExtensionSection() {
+        CommandResult result = run("list-extensions");
+        assertEquals(0, result.exitCode);
+        assertTrue(result.out.contains("Extensions:"));
+    }
+
+    @Test
+    public void listExtensionsCommandPrintsClasspathHints() {
+        CommandResult result = run("list-extensions");
+        assertEquals(0, result.exitCode);
+        assertTrue(result.out.contains("--classpath"));
+        assertTrue(result.out.contains("--resolve-pom"));
+    }
+
+    // -------------------------------------------------------------------------
     // --release CLI integration tests
 
     @Test

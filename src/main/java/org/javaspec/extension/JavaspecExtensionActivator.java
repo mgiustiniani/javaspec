@@ -12,6 +12,8 @@ import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 import java.util.Set;
 
+import org.javaspec.extension.ExtensionCatalog;
+
 /**
  * Activates configuration-declared javaspec extensions against an existing run formatter registry.
  *
@@ -117,7 +119,9 @@ public final class JavaspecExtensionActivator {
         } catch (ClassNotFoundException ex) {
             throw new ExtensionLoadingException("Configured extension '" + extensionClassName
                     + "' was not found on the run classpath. Discovered extension providers: "
-                    + discoveredProviderNames(classLoader) + ".", ex);
+                    + discoveredProviderNames(classLoader) + "."
+                    + System.lineSeparator()
+                    + ExtensionCatalog.classpathRepairSuggestion(extensionClassName), ex);
         } catch (LinkageError ex) {
             throw new ExtensionLoadingException("Configured extension '" + extensionClassName
                     + "' could not be loaded: " + messageOf(ex), ex);

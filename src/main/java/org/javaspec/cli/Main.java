@@ -59,6 +59,8 @@ public final class Main {
             handler = new RunCommandHandler();
         } else if ("prophesize".equals(parsed.command)) {
             handler = new ProphesizeCommandHandler();
+        } else if ("list-extensions".equals(parsed.command)) {
+            handler = new ListExtensionsCommandHandler();
         } else {
             handler = new DescribeCommandHandler();
         }
