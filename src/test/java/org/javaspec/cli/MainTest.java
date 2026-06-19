@@ -23,6 +23,10 @@ import java.io.IOException;
 
 public class MainTest {
 
+    public interface Mailer {
+        void send(String recipient, String body);
+    }
+
     @org.junit.Before
     public void cleanGeneratedSources() throws Exception {
         File dir = new File(TEST_GENERATED_SOURCES);
@@ -80,6 +84,22 @@ public class MainTest {
                 "    }\n" +
                 "}\n", readFile(supportFile));
         assertEquals(1, countFiles(specRoot));
+    }
+
+    @Test
+    public void prophesizeUsesGeneratedSourcesAsDefaultOutputRoot() throws Exception {
+        File wrapperFile = new File(TEST_GENERATED_SOURCES,
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator + "MailerProphecy.java");
+        File sourceTreeWrapper = new File("src/test/java",
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator + "MailerProphecy.java");
+
+        CommandResult result = run("prophesize", Mailer.class.getName(), "--package", "spec.com.example");
+
+        assertEquals(0, result.exitCode);
+        assertTrue(result.out.contains("Generated prophecy wrapper: " + wrapperFile.getPath()));
+        assertEquals("", result.err);
+        assertTrue(wrapperFile.isFile());
+        assertFalse(sourceTreeWrapper.exists());
     }
 
     @Test

@@ -63,6 +63,48 @@ public class MainPhase29CompileCliTest {
     }
 
     @Test
+    public void runCompileIncludesGeneratedSupportSourcesFromTarget() throws Exception {
+        requireJdkCompiler();
+        File generatedRoot = new File("target/generated-sources/javaspec");
+        deleteRecursively(generatedRoot);
+        File sourceRoot = temporaryFolder.newFolder("compile-generated-support-source-root");
+        File specRoot = temporaryFolder.newFolder("compile-generated-support-spec-root");
+        File compileOutput = new File(temporaryFolder.getRoot(), "compile-generated-support-classes");
+        writeSource(sourceRoot, "com.phase29.SupportCompiledSubject",
+                "public class SupportCompiledSubject {\n" +
+                        "    public String message() { return \"compiled support\"; }\n" +
+                        "}\n");
+        writeSource(generatedRoot, "spec.com.phase29.SupportCompiledSubjectSpecSupport",
+                "import com.phase29.SupportCompiledSubject;\n" +
+                        "\n" +
+                        "public class SupportCompiledSubjectSpecSupport {\n" +
+                        "    protected String message() { return new SupportCompiledSubject().message(); }\n" +
+                        "}\n");
+        writeSource(specRoot, "spec.com.phase29.SupportCompiledSubjectSpec",
+                "public class SupportCompiledSubjectSpec extends SupportCompiledSubjectSpecSupport {\n" +
+                        "    public void it_compiles_with_generated_support() {\n" +
+                        "        if (!\"compiled support\".equals(message())) {\n" +
+                        "            throw new AssertionError(\"generated support was not compiled\");\n" +
+                        "        }\n" +
+                        "    }\n" +
+                        "}\n");
+
+        CommandResult result = run(
+                "run",
+                "--spec-dir", specRoot.getAbsolutePath(),
+                "--source-dir", sourceRoot.getAbsolutePath(),
+                "--compile",
+                "--compile-output", compileOutput.getAbsolutePath()
+        );
+
+        assertEquals(0, result.exitCode);
+        assertContains(result.out, "Compiled 2 source file(s) to " + compileOutput.getAbsolutePath() + ".");
+        assertContains(result.out, "Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped, 0 pending.");
+        assertTrue(classFileFor(compileOutput, "spec.com.phase29.SupportCompiledSubjectSpecSupport").isFile());
+        assertEquals("", result.err);
+    }
+
+    @Test
     public void runCompileFailureExitsOneAndDoesNotWriteReports() throws Exception {
         requireJdkCompiler();
         File sourceRoot = temporaryFolder.newFolder("compile-failure-source-root");
@@ -233,6 +275,21 @@ public class MainPhase29CompileCliTest {
 
     private static String readFile(File file) throws Exception {
         return new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+    }
+
+    private static void deleteRecursively(File path) {
+        if (path == null || !path.exists()) {
+            return;
+        }
+        if (path.isDirectory()) {
+            File[] children = path.listFiles();
+            if (children != null) {
+                for (int i = 0; i < children.length; i++) {
+                    deleteRecursively(children[i]);
+                }
+            }
+        }
+        path.delete();
     }
 
     private static int countFiles(File root) {

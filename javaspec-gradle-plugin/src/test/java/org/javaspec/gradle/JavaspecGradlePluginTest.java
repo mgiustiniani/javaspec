@@ -566,7 +566,7 @@ public class JavaspecGradlePluginTest {
                         "}\n" +
                         "\n" +
                         "dependencies {\n" +
-                        "    testImplementation 'io.github.jvmspec:javaspec:0.1.0'\n" +
+                        "    testImplementation 'io.github.jvmspec:javaspec:0.1.0-SNAPSHOT'\n" +
                         "}\n" +
                         "\n" +
                         "javaspec {\n" +
@@ -610,7 +610,7 @@ public class JavaspecGradlePluginTest {
                         "}\n" +
                         "\n" +
                         "dependencies {\n" +
-                        "    testImplementation 'io.github.jvmspec:javaspec:0.1.0'\n" +
+                        "    testImplementation 'io.github.jvmspec:javaspec:0.1.0-SNAPSHOT'\n" +
                         "}\n" +
                         "\n" +
                         "javaspec {\n" +
@@ -947,7 +947,7 @@ public class JavaspecGradlePluginTest {
                         "}\n" +
                         "\n" +
                         "dependencies {\n" +
-                        "    testImplementation 'io.github.jvmspec:javaspec:0.1.0'\n" +
+                        "    testImplementation 'io.github.jvmspec:javaspec:0.1.0-SNAPSHOT'\n" +
                         "}\n" +
                         "\n" +
                         javaspecConfiguration
@@ -1040,7 +1040,7 @@ public class JavaspecGradlePluginTest {
                         "}\n" +
                         "\n" +
                         "dependencies {\n" +
-                        "    testImplementation 'io.github.jvmspec:javaspec:0.1.0'\n" +
+                        "    testImplementation 'io.github.jvmspec:javaspec:0.1.0-SNAPSHOT'\n" +
                         "}\n" +
                         "\n" +
                         javaspecConfiguration
@@ -1107,7 +1107,7 @@ public class JavaspecGradlePluginTest {
                         "}\n" +
                         "\n" +
                         "dependencies {\n" +
-                        "    testImplementation 'io.github.jvmspec:javaspec:0.1.0'\n" +
+                        "    testImplementation 'io.github.jvmspec:javaspec:0.1.0-SNAPSHOT'\n" +
                         "}\n" +
                         "\n" +
                         "javaspec {\n" +

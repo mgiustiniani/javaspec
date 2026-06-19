@@ -25,10 +25,34 @@ public final class MethodStub {
     }
 
     /**
+     * Stubs matching calls to return values sequentially. Once the sequence is exhausted,
+     * the final value is repeated for later matching calls.
+     *
+     * @return the owning control object for optional chaining
+     */
+    public DoubleControl thenReturn(Object firstReturnValue, Object secondReturnValue, Object... additionalReturnValues) {
+        Object[] sequence = new Object[additionalReturnValues.length + 2];
+        sequence[0] = firstReturnValue;
+        sequence[1] = secondReturnValue;
+        for (int i = 0; i < additionalReturnValues.length; i++) {
+            sequence[i + 2] = additionalReturnValues[i];
+        }
+        control.addSequentialStub(pattern, sequence);
+        return control;
+    }
+
+    /**
      * Alias for {@link #thenReturn(Object)}.
      */
     public DoubleControl returns(Object returnValue) {
         return thenReturn(returnValue);
+    }
+
+    /**
+     * Alias for {@link #thenReturn(Object, Object, Object...)}.
+     */
+    public DoubleControl returns(Object firstReturnValue, Object secondReturnValue, Object... additionalReturnValues) {
+        return thenReturn(firstReturnValue, secondReturnValue, additionalReturnValues);
     }
 
     /**

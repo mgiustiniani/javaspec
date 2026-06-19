@@ -173,6 +173,25 @@ public class DoublesTest {
     }
 
     @Test
+    public void sequentialReturnStubsReturnValuesInOrderAndRepeatFinalValue() {
+        SampleService service = Doubles.create(SampleService.class);
+        DoubleControl control = Doubles.control(service);
+
+        control.when("greet", "Ada").thenReturn("first", "second", "third");
+        control.when("label").returns("one", "two");
+
+        assertEquals("first", service.greet("Ada"));
+        assertEquals("second", service.greet("Ada"));
+        assertEquals("third", service.greet("Ada"));
+        assertEquals("third", service.greet("Ada"));
+        assertEquals("one", service.label("a"));
+        assertEquals("two", service.label("b"));
+        assertEquals("two", service.label("c"));
+        assertEquals(4, control.callCount("greet", "Ada"));
+        assertEquals(3, control.callCount("label"));
+    }
+
+    @Test
     public void throwingStubsThrowConfiguredThrowableAndRecordCallsBeforeThrowing() {
         SampleService service = Doubles.create(SampleService.class);
         DoubleControl control = Doubles.control(service);
@@ -391,6 +410,35 @@ public class DoublesTest {
     }
 
     @Test
+    public void invokesUnstubbedDefaultInterfaceMethodsAndStillRecordsCalls() {
+        DefaultMethodService service = Doubles.create(DefaultMethodService.class);
+        DoubleControl control = Doubles.control(service);
+
+        assertEquals("Hello Ada", service.greet("Ada"));
+        assertEquals(5, service.add(2, 3));
+        assertNull(service.plain("missing"));
+
+        assertEquals(1, control.callCount("greet", "Ada"));
+        assertEquals(1, control.callCount("add", 2, 3));
+        assertEquals(1, control.callCount("plain", "missing"));
+    }
+
+    @Test
+    public void stubsOverrideDefaultInterfaceMethods() {
+        DefaultMethodService service = Doubles.create(DefaultMethodService.class);
+        DoubleControl control = Doubles.control(service);
+
+        control.when("greet", "Ada").thenReturn("Stubbed Ada");
+        control.when("add").thenReturn(Integer.valueOf(99));
+
+        assertEquals("Stubbed Ada", service.greet("Ada"));
+        assertEquals("Hello Grace", service.greet("Grace"));
+        assertEquals(99, service.add(2, 3));
+        assertEquals(2, control.callCount("greet"));
+        assertEquals(1, control.callCount("add", 2, 3));
+    }
+
+    @Test
     public void recordsCallsAndReturnsHistoryInCallOrder() {
         SampleService service = Doubles.create(SampleService.class);
 
@@ -557,6 +605,18 @@ public class DoublesTest {
         String label(String value);
 
         String join(String[] values);
+    }
+
+    public interface DefaultMethodService {
+        default String greet(String name) {
+            return "Hello " + name;
+        }
+
+        default int add(int left, int right) {
+            return left + right;
+        }
+
+        String plain(String value);
     }
 
     public interface DefaultProbe {

@@ -40,9 +40,19 @@ public final class SourceCompiler {
             File outputDirectory,
             List<File> explicitClasspathEntries
     ) throws IOException {
+        return compile(sourceRoots, outputDirectory, explicitClasspathEntries, sourceRoots);
+    }
+
+    public static SourceCompilationResult compile(
+            List<File> sourceRoots,
+            File outputDirectory,
+            List<File> explicitClasspathEntries,
+            List<File> sourcePathRoots
+    ) throws IOException {
         Objects.requireNonNull(sourceRoots, "sourceRoots must not be null");
         Objects.requireNonNull(outputDirectory, "outputDirectory must not be null");
         Objects.requireNonNull(explicitClasspathEntries, "explicitClasspathEntries must not be null");
+        Objects.requireNonNull(sourcePathRoots, "sourcePathRoots must not be null");
 
         List<File> sourceFiles = sourceFiles(sourceRoots);
         if (sourceFiles.isEmpty()) {
@@ -70,7 +80,7 @@ public final class SourceCompiler {
                     compilerOutput,
                     fileManager,
                     diagnostics,
-                    compilerOptions(outputDirectory, explicitClasspathEntries),
+                    compilerOptions(outputDirectory, explicitClasspathEntries, sourcePathRoots),
                     null,
                     compilationUnits
             );
@@ -140,15 +150,32 @@ public final class SourceCompiler {
         }
     }
 
-    private static List<String> compilerOptions(File outputDirectory, List<File> explicitClasspathEntries) {
+    private static List<String> compilerOptions(
+            File outputDirectory,
+            List<File> explicitClasspathEntries,
+            List<File> sourcePathRoots
+    ) {
         List<String> options = new ArrayList<String>();
         options.add("-d");
         options.add(outputDirectory.getPath());
         options.add("-classpath");
         options.add(classpath(outputDirectory, explicitClasspathEntries));
+        options.add("-sourcepath");
+        options.add(sourcePath(sourcePathRoots));
         options.add("-encoding");
         options.add(ENCODING);
         return options;
+    }
+
+    private static String sourcePath(List<File> sourcePathRoots) {
+        List<String> entries = new ArrayList<String>();
+        for (int i = 0; i < sourcePathRoots.size(); i++) {
+            File root = sourcePathRoots.get(i);
+            if (root != null) {
+                entries.add(root.getPath());
+            }
+        }
+        return joinPathList(entries);
     }
 
     private static String classpath(File outputDirectory, List<File> explicitClasspathEntries) {

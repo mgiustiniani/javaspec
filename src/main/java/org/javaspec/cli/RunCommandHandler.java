@@ -132,6 +132,7 @@ final class RunCommandHandler implements CommandHandler {
                     parsed.compileOutputPath,
                     sourceRoot,
                     specRoot,
+                    new File(Main.DEFAULT_GENERATED_SOURCES),
                     classpathSelection,
                     out,
                     err

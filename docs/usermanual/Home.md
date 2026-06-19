@@ -2213,7 +2213,7 @@ Core double factories support ordinary interfaces. They reject `null`, primitive
 annotations, enums, concrete classes, and final classes with clear diagnostics. Optional non-final
 concrete-class doubles require `javaspec-bytecode-doubles`; the adapter still rejects final classes,
 enums, arrays, annotations, primitives, and interfaces, and it does not support static method or
-constructor mocking. Default interface methods are not invoked by the proxy handler.
+constructor mocking. Unstubbed Java default interface methods are invoked by the proxy handler and still recorded for verification.
 
 ## Optional bytecode concrete-class doubles
 
@@ -2830,6 +2830,6 @@ optional adapter.
 - Double argument matching supports explicit `ArgumentMatcher` values in existing vararg APIs while
   ordinary exact values, `null`, and arrays remain supported. It is not a bytecode or concrete-class
   mocking facility.
-- Stubbing supports return values, throwing stubs, and answer callbacks. Sequential returns and
-  automatic side-effect orchestration are not implemented.
-- Default interface methods are not invoked by interface doubles.
+- Stubbing supports return values, sequential returns, throwing stubs, and answer callbacks.
+  Automatic side-effect orchestration is not implemented.
+- Default interface methods are invoked for unstubbed interface-double calls; explicit stubs still take precedence.

@@ -227,7 +227,7 @@ over hidden dependencies:
 Concrete class, final class, static method, constructor, primitive, array, annotation, enum, and
 bytecode-backed doubles are outside the core runtime. Optional non-final concrete-class doubles
 require the standalone ByteBuddy adapter; final/static/constructor mocking remains unsupported.
-Default interface methods are not invoked by the proxy handler.
+Unstubbed Java default interface methods are invoked by the proxy handler and still recorded for verification; explicit stubs take precedence.
 
 ## 8.11 Optional Bytecode Doubles Concept
 

@@ -231,6 +231,10 @@ public final class DoubleControl {
         handler.addStub(pattern, returnValue);
     }
 
+    void addSequentialStub(MethodPattern pattern, Object[] returnValues) {
+        handler.addSequentialStub(pattern, returnValues);
+    }
+
     void addThrowingStub(MethodPattern pattern, Throwable throwable) {
         handler.addThrowingStub(pattern, throwable);
     }

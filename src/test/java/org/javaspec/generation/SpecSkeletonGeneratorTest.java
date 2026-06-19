@@ -156,7 +156,7 @@ public class SpecSkeletonGeneratorTest {
         SpecGenerationPlan plan = SpecSkeletonGenerator.supportPlan(describedType, specRoot);
 
         assertEquals("spec.com.example.BookSpecSupport", plan.specQualifiedName());
-        assertEquals(new File(specRoot, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "BookSpecSupport.java"), plan.targetFile());
+        assertEquals(new File("target/generated-sources/javaspec", "spec" + File.separator + "com" + File.separator + "example" + File.separator + "BookSpecSupport.java"), plan.targetFile());
         String source = plan.sourceContent();
         assertTrue(source.contains("public class BookSpecSupport extends org.javaspec.api.ObjectBehavior<Book>"));
         assertTrue(source.contains("public BookSpecSupport()"));

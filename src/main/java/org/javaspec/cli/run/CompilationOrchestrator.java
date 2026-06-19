@@ -30,6 +30,7 @@ public final class CompilationOrchestrator {
      * @param compileOutputPath   the output directory for compiled classes
      * @param sourceRoot          production source root
      * @param specRoot            spec source root
+     * @param generatedSourcesRoot generated source root containing support/wrapper classes
      * @param classpathSelection  the base classpath selection
      * @param out                 output stream for diagnostic messages
      * @param err                 error stream for diagnostic messages
@@ -40,6 +41,7 @@ public final class CompilationOrchestrator {
             String compileOutputPath,
             File sourceRoot,
             File specRoot,
+            File generatedSourcesRoot,
             ClasspathSelection classpathSelection,
             PrintStream out,
             PrintStream err
@@ -50,7 +52,8 @@ public final class CompilationOrchestrator {
             result = SourceCompiler.compile(
                     compilationSourceRoots(sourceRoot, specRoot),
                     outputDirectory,
-                    classpathSelection.entries()
+                    classpathSelection.entries(),
+                    compilationSourcePathRoots(sourceRoot, specRoot, generatedSourcesRoot)
             );
         } catch (NoClassDefFoundError ex) {
             printCompilerUnavailable(err);
@@ -86,6 +89,12 @@ public final class CompilationOrchestrator {
         List<File> roots = new ArrayList<File>();
         roots.add(sourceRoot);
         roots.add(specRoot);
+        return roots;
+    }
+
+    private static List<File> compilationSourcePathRoots(File sourceRoot, File specRoot, File generatedSourcesRoot) {
+        List<File> roots = compilationSourceRoots(sourceRoot, specRoot);
+        roots.add(generatedSourcesRoot);
         return roots;
     }
 

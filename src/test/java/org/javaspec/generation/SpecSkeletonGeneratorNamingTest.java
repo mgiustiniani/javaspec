@@ -65,7 +65,7 @@ public class SpecSkeletonGeneratorNamingTest {
     }
 
     @Test
-    public void defaultSupportPlanDefaultOverloadIsUnchanged() {
+    public void defaultSupportPlanDefaultOverloadWritesUnderGeneratedSources() {
         File specRoot = new File("target/specs");
         DescribedClass describedClass = DescribedClass.of("org.example.Book");
 
@@ -116,7 +116,7 @@ public class SpecSkeletonGeneratorNamingTest {
 
         assertEquals("spec.BookSpecSupport", plan.specQualifiedName());
         assertEquals("BookSpecSupport", plan.specSimpleName());
-        File expectedTarget = new File(specRoot, "spec" + File.separator + "BookSpecSupport.java");
+        File expectedTarget = new File("target/generated-sources/javaspec", "spec" + File.separator + "BookSpecSupport.java");
         assertEquals(expectedTarget, plan.targetFile());
     }
 
@@ -130,7 +130,7 @@ public class SpecSkeletonGeneratorNamingTest {
 
         assertEquals("spec.domain.BookSpecSupport", plan.specQualifiedName());
         assertEquals("BookSpecSupport", plan.specSimpleName());
-        File expectedTarget = new File(specRoot, "spec" + File.separator + "domain" + File.separator + "BookSpecSupport.java");
+        File expectedTarget = new File("target/generated-sources/javaspec", "spec" + File.separator + "domain" + File.separator + "BookSpecSupport.java");
         assertEquals(expectedTarget, plan.targetFile());
     }
 

@@ -3,13 +3,155 @@
 This plan defines the initial delivery path for javaspec, a Java 8-compatible,
 zero-runtime-dependency Java port inspired by phpspec.
 
-## Current Implementation Status — All Phases Complete (0.1.0 Released)
+## Current Implementation Status — 0.1.0 Published, 0.1.0-SNAPSHOT Functional-Limit Roadmap Active
 
-All implementation phases (A-E, D2, Phases 2 through 37, and publication) are complete. Artifacts
-are published on Maven Central under `io.github.jvmspec`, and the Gradle plugin is published on the
-Gradle Plugin Portal with plugin id `io.github.jvmspec`.
+The original implementation roadmap (A-E, D2, Phases 2 through 37, and publication) is complete.
+Artifacts for `0.1.0` are published on Maven Central under `io.github.jvmspec`, and the Gradle
+plugin is published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`.
+
+Development has resumed on `0.1.0-SNAPSHOT` to address the remaining functional limitations without
+breaking the core constraints: Java 8 compatibility, zero runtime dependencies in the core artifact,
+and optional integrations/adapters for dependency-heavy features.
 
 Remote GitHub Actions success is confirmed for the release commit on `main`.
+
+## Active Functional-Limit Resolution Roadmap — Phases 38-45
+
+This roadmap turns the known functional limitations into implementation phases. Features that require
+third-party libraries, network access, build-tool APIs, or bytecode instrumentation must remain in
+optional artifacts/adapters so the core `io.github.jvmspec:javaspec` runtime stays zero-dependency.
+
+### Phase 38 — Generated-Source Hygiene for Spec Support and Prophecy Wrappers
+
+**Goal:** generated support sources must live under `target/generated-sources/javaspec`, not under
+`src/test/java`, for both specification support classes and generated Prophecy wrappers.
+
+**Scope:**
+- Keep user-authored specs under `src/test/java` by default.
+- Generate `*SpecSupport.java` under `target/generated-sources/javaspec` by default for `describe`,
+  `run --generate`, related-spec generation, and support updates.
+- Generate typed `*Prophecy.java` wrappers under `target/generated-sources/javaspec` by default for
+  `prophesize` and automatic wrapper generation from `prophesize()/prophecy()` calls.
+- Make `run --compile` include `target/generated-sources/javaspec` on the Java compiler source path
+  so generated support/wrapper sources are compiled when referenced without treating stale generated
+  files as primary compilation units.
+- Add regression tests proving no default support/wrapper generation writes into `src/test/java`.
+
+**Status:** implemented in the working tree and pending commit-level review. Current targeted
+verification: `mvn -q -Dtest=org.javaspec.cli.MainTest test`, `mvn -q test`, and
+`git diff --check` pass locally.
+
+### Phase 39 — Optional Dependency Resolution for CLI Runs
+
+**Goal:** allow CLI users to run specs with project dependencies without manually assembling a
+classpath, while keeping resolver dependencies out of the core artifact.
+
+**Scope:**
+- Introduce an optional resolver integration artifact rather than adding Maven/Ivy/Aether libraries to
+  core.
+- Support explicit resolver entry points such as project POM/classpath resolution and clear offline
+  behavior; Maven/Gradle plugins continue to use their native build-tool classpaths.
+- Preserve current `--classpath` and `--classpath-file` behavior as the deterministic low-level path.
+- Emit clear diagnostics when resolver integration is unavailable, offline, or cannot resolve a
+  dependency graph.
+
+**Acceptance:** dependency-backed CLI runs work through an optional artifact; root core runtime
+dependency tree remains empty; existing manual classpath behavior is unchanged.
+
+### Phase 40 — Compilation Pipeline v2
+
+**Goal:** evolve `run --compile` from a minimal current-JDK compile into a predictable project-local
+compilation pipeline.
+
+**Scope:**
+- Add source/release controls (`--release`, and/or `--source`/`--target`) with Java 8-safe behavior.
+- Evaluate forked `javac` support for users that need a specific toolchain rather than the current
+  JVM compiler.
+- Add an incremental/cache strategy keyed by source paths, generated-source paths, classpath, and
+  compiler options.
+- Keep generated-source handling from Phase 38: generated support/wrapper sources are available on
+  source path and compiled when referenced.
+- Keep adapter behavior explicit: Maven/Gradle/JUnit Platform integrations may continue delegating to
+  their build/runtime classpaths unless they opt into this compiler pipeline.
+
+**Acceptance:** repeated compile runs skip unchanged inputs safely, Java release/source options are
+honored, diagnostics remain deterministic, and compilation still works without runtime dependencies in
+core.
+
+### Phase 41 — Optional Java Parser/Git-Safe Generator Backend
+
+**Goal:** reduce fragility in code generation and source updates that currently rely on lightweight
+Java 8-compatible text heuristics.
+
+**Scope:**
+- Define a parser/generator SPI that core can call without depending on a parser implementation.
+- Keep the existing heuristic backend as the zero-dependency fallback.
+- Add an optional parser-backed artifact for complex Java sources: generics, annotations, records,
+  sealed types, nested classes, overloads, and unusual formatting.
+- Preserve source formatting and user code as much as possible; all writes must be idempotent.
+
+**Acceptance:** complex source-update cases are covered by parser-backed tests while core remains
+usable and dependency-free with the heuristic backend.
+
+### Phase 42 — Extension Discovery, Plugin Lookup, and Classpath Repair
+
+**Goal:** make extension usage less manual than raw classpath plus `ServiceLoader`.
+
+**Scope:**
+- Keep current classpath/`ServiceLoader` discovery as the stable base.
+- Add diagnostics that explain missing extension classes/providers and suggest exact classpath or
+  resolver steps.
+- Design an optional plugin catalog/install/lookup mechanism; no implicit network access in core.
+- Support classpath repair only through explicit user action/configuration, not surprising automatic
+  downloads.
+
+**Acceptance:** users can discover why an extension is unavailable and opt into adding/installing it;
+existing classpath-only operation remains deterministic.
+
+### Phase 43 — Doubles and Prophecy Orchestration v2
+
+**Goal:** make interface doubles and Prophecy-style stubbing expressive enough for richer interaction
+scenarios while staying inside the core JDK-proxy boundary.
+
+**Scope:**
+- Ordered verification and call-sequence assertions.
+- Richer sequential scenarios: per-call answers, repeat/then behavior, exhaustion policies.
+- Structured side effects: argument mutation where safe, pre/post-call hooks, and callback helpers.
+- Better Prophecy wrapper ergonomics on top of the same double control model.
+
+**Acceptance:** advanced interaction tests can be expressed without external dependencies; existing
+simple stubs, sequential returns, throws, answer callbacks, and default-interface-method behavior
+remain backward compatible.
+
+### Phase 44 — Bytecode Doubles v2 for Final/Static/Constructor Cases
+
+**Goal:** address mocking needs that cannot be implemented with core JDK proxies.
+
+**Scope:**
+- Keep final/static/constructor mocking out of core.
+- Extend or split the optional bytecode adapter to support progressively more invasive capabilities:
+  final classes first, then static methods and constructor interception if technically viable.
+- Document JVM/module/agent requirements, limitations, and unsupported cases explicitly.
+- Preserve the current non-final concrete-class ByteBuddy adapter behavior.
+
+**Acceptance:** supported bytecode-heavy scenarios work only when the optional adapter is present;
+core runtime dependencies and interface-double behavior remain unchanged.
+
+### Phase 45 — Verification, Documentation, and Release Hardening
+
+**Goal:** make the expanded feature set reproducible for maintainers and understandable for adopters.
+
+**Scope:**
+- Update README, user manual, examples, and arc42 docs for the completed Phase 38-44 behavior.
+- Decide whether to add a Gradle Wrapper or otherwise make `scripts/verify-all.sh` fully reproducible
+  on a clean checkout.
+- Ensure version-alignment checks cover all standalone artifacts and example dependency declarations.
+- Add aggregate verification profiles for optional resolver/parser/bytecode artifacts.
+- Prepare release notes that distinguish core zero-dependency behavior from optional adapters.
+
+**Acceptance:** a maintainer can run the documented verification matrix locally, examples match the
+current snapshot/release line, and public docs no longer describe stale limitations as current
+behavior.
 
 ## Course Correction — Gradle Plugin Test and Example Dependency Version (ADR 0025)
 
@@ -1645,7 +1787,7 @@ Known limitations:
   optional non-final concrete-class doubles outside the core. Ordered sequences, broader side-effect
   stubbing, and any final/static/constructor mocking remain future work outside the current core
   boundary.
-- Default interface methods are not invoked by the proxy handler.
+- Update: default interface methods are now invoked by the proxy handler for unstubbed interface-double calls; explicit stubs take precedence.
 - Advanced doubles that require bytecode libraries must remain future optional integrations outside
   the core runtime unless a future ADR changes the policy.
 

@@ -15,6 +15,8 @@ import java.util.Objects;
  * Builds Java 8-compatible, PHPSpec-inspired specification and support skeleton generation plans.
  */
 public final class SpecSkeletonGenerator {
+    private static final File DEFAULT_SUPPORT_ROOT = new File("target/generated-sources/javaspec");
+
     private SpecSkeletonGenerator() {
     }
 
@@ -59,7 +61,7 @@ public final class SpecSkeletonGenerator {
     }
 
     public static SpecGenerationPlan supportPlan(DescribedType describedType, File specRoot, SpecNamingConvention namingConvention) {
-        return supportPlan(describedType, specRoot, specRoot, namingConvention);
+        return supportPlan(describedType, specRoot, DEFAULT_SUPPORT_ROOT, namingConvention);
     }
 
     /**

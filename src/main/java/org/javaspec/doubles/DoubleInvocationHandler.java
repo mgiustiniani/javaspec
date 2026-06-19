@@ -33,6 +33,9 @@ final class DoubleInvocationHandler implements InvocationHandler {
             invocation = stub == null ? null : new DoubleInvocation(method, safeArguments);
         }
         if (stub == null) {
+            if (method.isDefault()) {
+                return DefaultInterfaceMethodInvoker.invoke(proxy, method, safeArguments);
+            }
             return ReturnValues.valueFor(method, null, false);
         }
         Object stubbedValue = stub.invoke(invocation);
@@ -41,6 +44,10 @@ final class DoubleInvocationHandler implements InvocationHandler {
 
     synchronized void addStub(MethodPattern pattern, Object returnValue) {
         stubs.add(StubbedInvocation.returning(pattern, returnValue));
+    }
+
+    synchronized void addSequentialStub(MethodPattern pattern, Object[] returnValues) {
+        stubs.add(StubbedInvocation.returningSequence(pattern, returnValues));
     }
 
     synchronized void addThrowingStub(MethodPattern pattern, Throwable throwable) {

@@ -19,6 +19,23 @@ extract_maven_project_version() {
   ' "$file"
 }
 
+extract_maven_property() {
+  local key="$1"
+  local file="$2"
+  awk -v key="$key" '
+    {
+      pattern = "^[[:space:]]*<" key ">[[:space:]]*[^<]+[[:space:]]*</" key ">[[:space:]]*$"
+      if ($0 ~ pattern) {
+        line = $0
+        sub("^[[:space:]]*<" key ">[[:space:]]*", "", line)
+        sub("[[:space:]]*</" key ">[[:space:]]*$", "", line)
+        print line
+        exit
+      }
+    }
+  ' "$file"
+}
+
 extract_gradle_assignment() {
   local key="$1"
   local file="$2"
@@ -62,6 +79,7 @@ record_result() {
 root_pom="${repo_root}/pom.xml"
 maven_plugin_pom="${repo_root}/javaspec-maven-plugin/pom.xml"
 junit_engine_pom="${repo_root}/javaspec-junit-platform-engine/pom.xml"
+bytecode_doubles_pom="${repo_root}/javaspec-bytecode-doubles/pom.xml"
 gradle_build="${repo_root}/javaspec-gradle-plugin/build.gradle"
 
 root_version="$(extract_maven_project_version "$root_pom")"
@@ -75,6 +93,8 @@ printf 'Version alignment baseline: %s\n' "$root_version"
 record_result 'root pom.xml project version' "$root_version" "$root_version"
 record_result 'javaspec-maven-plugin/pom.xml project version' "$(extract_maven_project_version "$maven_plugin_pom")" "$root_version"
 record_result 'javaspec-junit-platform-engine/pom.xml project version' "$(extract_maven_project_version "$junit_engine_pom")" "$root_version"
+record_result 'javaspec-bytecode-doubles/pom.xml project version' "$(extract_maven_project_version "$bytecode_doubles_pom")" "$root_version"
+record_result 'javaspec-bytecode-doubles/pom.xml javaspec.version' "$(extract_maven_property javaspec.version "$bytecode_doubles_pom")" "$root_version"
 record_result 'javaspec-gradle-plugin/build.gradle version' "$(extract_gradle_assignment version "$gradle_build")" "$root_version"
 record_result 'javaspec-gradle-plugin/build.gradle javaspecCoreVersion' "$(extract_gradle_assignment javaspecCoreVersion "$gradle_build")" "$root_version"
 
