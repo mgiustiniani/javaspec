@@ -192,6 +192,56 @@ public final class DoubleControl {
     }
 
     /**
+     * Verifies that the named methods were called in the given order (by their first occurrence
+     * in the call history).  All named methods must have been called; the check compares the
+     * index of the first observed call for each method name.
+     *
+     * @param methodNames the method names to verify in order
+     * @throws AssertionError if any method was not called, or if the order is wrong
+     */
+    public void verifyInOrder(String... methodNames) {
+        if (methodNames == null || methodNames.length == 0) {
+            return;
+        }
+        List<Call> history = handler.calls();
+        int[] firstCallIndex = new int[methodNames.length];
+        java.util.Arrays.fill(firstCallIndex, -1);
+        for (int ci = 0; ci < history.size(); ci++) {
+            String calledName = history.get(ci).methodName();
+            for (int mi = 0; mi < methodNames.length; mi++) {
+                if (firstCallIndex[mi] == -1 && methodNames[mi].equals(calledName)) {
+                    firstCallIndex[mi] = ci;
+                }
+            }
+        }
+        for (int mi = 0; mi < methodNames.length; mi++) {
+            if (firstCallIndex[mi] < 0) {
+                throw new AssertionError("Expected method '" + methodNames[mi]
+                        + "' to have been called (verifyInOrder), but it was not called.");
+            }
+        }
+        for (int mi = 1; mi < methodNames.length; mi++) {
+            if (firstCallIndex[mi] <= firstCallIndex[mi - 1]) {
+                throw new AssertionError("Expected '" + methodNames[mi - 1]
+                        + "' to be called before '" + methodNames[mi]
+                        + "' (verifyInOrder), but the recorded order was wrong.");
+            }
+        }
+    }
+
+    /**
+     * Verifies that {@code firstMethod} was called (at least once) before {@code secondMethod}
+     * (at least once), comparing the first occurrence of each.
+     *
+     * @param firstMethod  the method that must have been called first
+     * @param secondMethod the method that must have been called after
+     * @throws AssertionError if either method was not called, or if the order is wrong
+     */
+    public void verifyCalledBefore(String firstMethod, String secondMethod) {
+        verifyInOrder(firstMethod, secondMethod);
+    }
+
+    /**
      * Clears recorded calls and keeps stubs.
      */
     public void clearCalls() {
@@ -241,6 +291,15 @@ public final class DoubleControl {
 
     void addAnswerStub(MethodPattern pattern, StubAnswer answer) {
         handler.addAnswerStub(pattern, answer);
+    }
+
+    void addAnswerSequenceStub(MethodPattern pattern, StubAnswer[] answers) {
+        handler.addAnswerSequenceStub(pattern, answers);
+    }
+
+    void addReturningSequenceThenThrowingStub(
+            MethodPattern pattern, Object[] returnValues, Throwable onExhaust) {
+        handler.addReturningSequenceThenThrowingStub(pattern, returnValues, onExhaust);
     }
 
     int count(MethodPattern pattern) {

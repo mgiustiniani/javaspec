@@ -607,6 +607,24 @@ public class DoublesTest {
         String join(String[] values);
     }
 
+    public interface OrderedService {
+        void first();
+        void second();
+        void third();
+    }
+
+    public interface CaptureService {
+        String process(String input);
+    }
+
+    public interface ExhaustService {
+        int next();
+    }
+
+    public interface AnswerSeqService {
+        String transform(String input);
+    }
+
     public interface DefaultMethodService {
         default String greet(String name) {
             return "Hello " + name;
@@ -641,6 +659,136 @@ public class DoublesTest {
         Object objectValue();
 
         void voidValue(String value);
+    }
+
+    // -------------------------------------------------------------------------
+    // Phase 43: Ordered verification, ArgumentCaptor, answer sequences, exhaustion
+
+    @Test
+    public void verifyInOrderPassesWhenMethodsCalledInOrder() {
+        OrderedService svc = Doubles.create(OrderedService.class);
+        DoubleControl ctrl = Doubles.control(svc);
+        svc.first();
+        svc.second();
+        svc.third();
+        ctrl.verifyInOrder("first", "second", "third");
+    }
+
+    @Test
+    public void verifyInOrderFailsWhenOrderIsWrong() {
+        OrderedService svc = Doubles.create(OrderedService.class);
+        DoubleControl ctrl = Doubles.control(svc);
+        svc.second();
+        svc.first();
+        Throwable err = expect(AssertionError.class, new ThrowingCall() {
+            public void run() throws Throwable {
+                ctrl.verifyInOrder("first", "second");
+            }
+        });
+        assertTrue(err.getMessage().contains("first"));
+        assertTrue(err.getMessage().contains("second"));
+    }
+
+    @Test
+    public void verifyInOrderFailsWhenMethodNotCalled() {
+        OrderedService svc = Doubles.create(OrderedService.class);
+        DoubleControl ctrl = Doubles.control(svc);
+        svc.first();
+        Throwable err = expect(AssertionError.class, new ThrowingCall() {
+            public void run() throws Throwable {
+                ctrl.verifyInOrder("first", "second");
+            }
+        });
+        assertTrue(err.getMessage().contains("second"));
+    }
+
+    @Test
+    public void verifyCalledBeforePassesWhenFirstBeforeSecond() {
+        OrderedService svc = Doubles.create(OrderedService.class);
+        DoubleControl ctrl = Doubles.control(svc);
+        svc.first();
+        svc.second();
+        ctrl.verifyCalledBefore("first", "second");
+    }
+
+    @Test
+    public void argumentCaptorCapturesPassedValue() {
+        CaptureService svc = Doubles.create(CaptureService.class);
+        DoubleControl ctrl = Doubles.control(svc);
+        ArgumentCaptor<String> captor = ArgumentCaptor.create();
+        ctrl.when("process", captor).thenReturn("ok");
+
+        svc.process("hello");
+
+        assertEquals("hello", captor.value());
+        assertEquals(1, captor.captureCount());
+        assertTrue(captor.hasCaptured());
+    }
+
+    @Test
+    public void argumentCaptorCapturesAllValues() {
+        CaptureService svc = Doubles.create(CaptureService.class);
+        DoubleControl ctrl = Doubles.control(svc);
+        ArgumentCaptor<String> captor = ArgumentCaptor.create();
+        ctrl.when("process", captor).thenReturn("ok");
+
+        svc.process("first");
+        svc.process("second");
+        svc.process("third");
+
+        List<String> captured = captor.allValues();
+        assertEquals(3, captured.size());
+        assertEquals("first", captured.get(0));
+        assertEquals("second", captured.get(1));
+        assertEquals("third", captured.get(2));
+    }
+
+    @Test
+    public void argumentCaptorThrowsWhenNoValueCaptured() {
+        ArgumentCaptor<String> captor = ArgumentCaptor.create();
+        assertFalse(captor.hasCaptured());
+        assertEquals(0, captor.captureCount());
+        expect(IllegalStateException.class, new ThrowingCall() {
+            public void run() {
+                captor.value();
+            }
+        });
+    }
+
+    @Test
+    public void thenReturnThenThrowDeliversValuesAndThenThrows() throws Throwable {
+        ExhaustService svc = Doubles.create(ExhaustService.class);
+        DoubleControl ctrl = Doubles.control(svc);
+        RuntimeException ex = new RuntimeException("exhausted");
+        ctrl.when("next").thenReturnThenThrow(ex, 1, 2);
+
+        assertEquals(1, svc.next());
+        assertEquals(2, svc.next());
+        Throwable thrown = expect(RuntimeException.class, new ThrowingCall() {
+            public void run() {
+                svc.next();
+            }
+        });
+        assertEquals("exhausted", thrown.getMessage());
+    }
+
+    @Test
+    public void thenAnswerSequenceDeliversAnswersInOrder() {
+        AnswerSeqService svc = Doubles.create(AnswerSeqService.class);
+        DoubleControl ctrl = Doubles.control(svc);
+        ctrl.when("transform").thenAnswerSequence(
+                new StubAnswer() {
+                    public Object answer(DoubleInvocation inv) { return "A:" + inv.argument(0); }
+                },
+                new StubAnswer() {
+                    public Object answer(DoubleInvocation inv) { return "B:" + inv.argument(0); }
+                }
+        );
+
+        assertEquals("A:x", svc.transform("x"));
+        assertEquals("B:y", svc.transform("y"));
+        // After sequence exhausted, last answer is repeated.
+        assertEquals("B:z", svc.transform("z"));
     }
 
     public static class ConcreteType {

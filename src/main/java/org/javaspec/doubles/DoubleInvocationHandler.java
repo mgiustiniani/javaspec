@@ -58,6 +58,15 @@ final class DoubleInvocationHandler implements InvocationHandler {
         stubs.add(StubbedInvocation.answering(pattern, answer));
     }
 
+    synchronized void addAnswerSequenceStub(MethodPattern pattern, StubAnswer[] answers) {
+        stubs.add(StubbedInvocation.answeringSequence(pattern, answers));
+    }
+
+    synchronized void addReturningSequenceThenThrowingStub(
+            MethodPattern pattern, Object[] returnValues, Throwable onExhaust) {
+        stubs.add(StubbedInvocation.returningSequenceThenThrowing(pattern, returnValues, onExhaust));
+    }
+
     synchronized int count(MethodPattern pattern) {
         int count = 0;
         for (int i = 0; i < calls.size(); i++) {

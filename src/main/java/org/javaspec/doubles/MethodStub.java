@@ -90,4 +90,39 @@ public final class MethodStub {
     public DoubleControl answers(StubAnswer answer) {
         return thenAnswer(answer);
     }
+
+    /**
+     * Stubs matching calls to invoke the supplied answer callbacks in sequence.
+     * Once the sequence is exhausted, the final answer is repeated for later calls.
+     *
+     * @return the owning control object for optional chaining
+     */
+    public DoubleControl thenAnswerSequence(
+            StubAnswer firstAnswer, StubAnswer secondAnswer, StubAnswer... additionalAnswers) {
+        StubAnswer[] sequence = new StubAnswer[additionalAnswers.length + 2];
+        sequence[0] = firstAnswer;
+        sequence[1] = secondAnswer;
+        for (int i = 0; i < additionalAnswers.length; i++) {
+            sequence[i + 2] = additionalAnswers[i];
+        }
+        control.addAnswerSequenceStub(pattern, sequence);
+        return control;
+    }
+
+    /**
+     * Stubs matching calls to return the supplied values sequentially, then throw
+     * {@code onExhaust} once the sequence has been consumed.
+     *
+     * @param returnValues values to return in order (must not be empty)
+     * @param onExhaust    throwable raised after all return values have been delivered
+     * @return the owning control object for optional chaining
+     */
+    public DoubleControl thenReturnThenThrow(Throwable onExhaust, Object... returnValues) {
+        Objects.requireNonNull(onExhaust, "onExhaust must not be null");
+        if (returnValues == null || returnValues.length == 0) {
+            throw new IllegalArgumentException("returnValues must contain at least one value");
+        }
+        control.addReturningSequenceThenThrowingStub(pattern, returnValues, onExhaust);
+        return control;
+    }
 }
