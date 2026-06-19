@@ -45,9 +45,13 @@ public class SpecSupportProphecyHelperTest {
 
         assertTrue("must declare prophesizeNotifier()", updated.contains("prophesizeNotifier()"));
         assertTrue("must declare prophecyNotifier()", updated.contains("prophecyNotifier()"));
-        assertTrue("must mention NotifierProphecy return type",
-                updated.contains("com.example.NotifierProphecy"));
-        assertTrue("must use Doubles.interfaceDouble or concreteDouble",
+        // Return type must be ObjectProphecy<T>, NOT FooProphecy — wrapper stays invisible to spec
+        assertTrue("return type must be ObjectProphecy<T>",
+                updated.contains("ObjectProphecy<com.example.Notifier>"));
+        assertFalse("wrapper class name must NOT appear in return type",
+                updated.contains("NotifierProphecy prophesizeNotifier") ||
+                updated.contains("NotifierProphecy prophecyNotifier"));
+        assertTrue("must use Doubles dispatch",
                 updated.contains("org.javaspec.doubles.Doubles.interfaceDouble") ||
                 updated.contains("org.javaspec.doubles.Doubles.concreteDouble") ||
                 updated.contains("isInterface()"));
@@ -63,8 +67,10 @@ public class SpecSupportProphecyHelperTest {
                 Arrays.asList("com.example.DataStore"));
 
         assertTrue("must declare prophesizeDataStore()", updated.contains("prophesizeDataStore()"));
-        assertTrue("must mention DataStoreProphecy return type",
-                updated.contains("com.example.DataStoreProphecy"));
+        assertTrue("return type must be ObjectProphecy<T> not DataStoreProphecy",
+                updated.contains("ObjectProphecy<com.example.DataStore>"));
+        assertFalse("DataStoreProphecy must not appear in return type",
+                updated.contains("DataStoreProphecy prophesizeDataStore"));
     }
 
     // -------------------------------------------------------------------------
