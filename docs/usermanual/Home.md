@@ -314,12 +314,15 @@ $javaspec desc <ClassName> [--config <file>] [--suite <name>] [--spec-root <dir>
 $javaspec run \
   [--config <file>] [--suite <name>] [--spec-dir <dir>] [--source-dir <dir>] \
   [--classpath <path-list>] [--classpath-file <file>] \
-  [--compile] [--compile-output <dir>] [--generate] [--dry-run] \
+  [--resolve-pom <pom.xml>] \
+  [--compile] [--compile-output <dir>] [--release <N>] [--generate] [--dry-run] \
   [--stop-on-failure] [--formatter <progress|pretty|custom>] \
   [--profile <java8|java11|java17|java21|java25>] [--verbose] \
   [--report <file>] [--report-file <file>] \
   [--junit-xml <file>] [--junit-xml-file <file>] \
   [--constructor-policy <delete|preserve|comment>] [--class <name>] [--example <name>]
+$javaspec list-extensions
+$javaspec prophesize <ClassName> [--package <pkg>] [--output <dir>] [--overwrite]
 ```
 
 Aliases and defaults:
@@ -396,6 +399,29 @@ Aliases and defaults:
   - Alias: n/a
   - Default: configuration `constructorPolicy` (`comment` with inferred defaults)
   - Command: `run`
+- **`--resolve-pom <pom.xml>`**
+  - Alias: n/a
+  - Default: no POM resolution
+  - Command: `run`
+  - Notes: resolves runtime-scope dependencies from the given POM via the built-in
+    `LocalMavenRepoResolver` (offline, `~/.m2/repository`) or any `DependencyResolver` provider
+    registered via `ServiceLoader`.  Resolved JARs are prepended to the run classpath.  Missing
+    artifacts are skipped gracefully.  Test, provided, system, and optional dependencies are excluded.
+- **`--compile`**
+  - Alias: n/a
+  - Default: `false`
+  - Command: `run`
+- **`--compile-output <dir>`**
+  - Alias: n/a
+  - Default: `target/javaspec-classes`; implies `--compile`
+  - Command: `run`
+- **`--release <N>`**
+  - Alias: n/a
+  - Default: no release option passed to javac
+  - Command: `run` (requires `--compile` or `--compile-output`)
+  - Notes: passes `--release N` on Java 9+ or `-source N -target N` on Java 8.
+    Compilation results are cached keyed by source timestamps, classpath, and options;
+    unchanged inputs skip recompilation.
 - **`--class <name>`**
   - Alias: n/a
   - Default: no class filter
@@ -404,6 +430,13 @@ Aliases and defaults:
   - Alias: n/a
   - Default: no example filter
   - Command: `run`
+- **`list-extensions` command**
+  - Alias: n/a
+  - Default: n/a
+  - Notes: prints all `RunFormatter` and `JavaspecExtension` providers visible on the current
+    classpath (built-in formatters plus `ServiceLoader`-discovered providers), then prints
+    classpath repair hints (`--classpath`, `--classpath-file`, `--resolve-pom`) for adding
+    missing extensions.  Always exits 0.
 
 `describe` writes specification files only. Production source generation, updates, bootstrap
 execution, example execution, formatting, classpath selection, profile enforcement, and report

@@ -192,8 +192,10 @@ Useful `run` options:
 --source-dir <dir>           # production source root
 --classpath <path-list>      # explicit runtime/dependency classpath
 --classpath-file <file>      # one classpath entry per line
+--resolve-pom <pom.xml>      # resolve runtime deps from POM (offline, local repo)
 --compile                    # compile source/spec trees before execution
 --compile-output <dir>       # compile output directory; implies --compile
+--release <N>                # Java release target for --compile (e.g. 8, 11, 17)
 --generate                   # apply generation/update prompts non-interactively
 --dry-run                    # plan generation/update work without writes
 --stop-on-failure            # stop after first failed or broken example
@@ -203,6 +205,13 @@ Useful `run` options:
 --junit-xml <file>           # JUnit XML-compatible report
 --class <name>               # filter described/spec class
 --example <name>             # filter example method/display name/order index
+```
+
+Other commands:
+
+```sh
+javaspec list-extensions     # list discovered formatters and extensions + classpath hints
+javaspec prophesize <Class>  # generate typed Prophecy wrapper for an interface
 ```
 
 Exit codes are stable: `0` for success, `1` for failed/broken examples or declined/pending generation work, `64` for usage/profile/compiler/bootstrap errors, and `70` for I/O failures.
@@ -427,6 +436,32 @@ notifier.control().verifyCalled("send", eq("alerts"), any(String.class));
 ```
 
 Core doubles support ordinary interfaces only. Concrete classes, final classes, static methods, and constructors are not mocked by the core runtime.
+
+Advanced stubbing APIs (all zero-dependency, all in core):
+
+```java
+// Sequential returns — each call returns the next value; last value repeats
+notifier.control().when("send").thenReturn(true, false, true);
+
+// Exhaustion policy — return values then throw
+notifier.control().when("fetch").thenReturnThenThrow(new NoSuchElementException(), "a", "b");
+
+// Sequential answer callbacks
+notifier.control().when("transform").thenAnswerSequence(
+    inv -> "first:"  + inv.argument(0),
+    inv -> "second:" + inv.argument(0)
+);
+
+// Argument captor
+ArgumentCaptor<String> captor = ArgumentCaptor.create();
+notifier.control().when("send", captor).thenReturn(true);
+notifier.instance().send("hello");
+assertEquals("hello", captor.value());
+
+// Ordered verification
+notifier.control().verifyInOrder("prepare", "send", "cleanup");
+notifier.control().verifyCalledBefore("prepare", "send");
+```
 
 ### Optional bytecode concrete-class doubles
 
