@@ -116,6 +116,65 @@ public final class ClasspathResolver {
         );
     }
 
+    /**
+     * Returns a new {@link ClasspathSelection} that prepends the given resolved
+     * dependency JARs to the existing classpath entries.
+     *
+     * @param resolvedJars   JARs resolved by a {@code DependencyResolver}
+     * @param baseSelection  the base classpath selection
+     * @param err            error stream for diagnostic messages
+     * @return a new selection with resolved JARs prepended, or an error selection
+     */
+    public static ClasspathSelection withResolvedDependencies(
+            List<File> resolvedJars,
+            ClasspathSelection baseSelection,
+            PrintStream err
+    ) {
+        if (resolvedJars == null || resolvedJars.isEmpty()) {
+            return baseSelection;
+        }
+        List<File> entries = new ArrayList<File>(resolvedJars);
+        entries.addAll(baseSelection.entries());
+
+        URL[] baseUrls;
+        try {
+            baseUrls = buildUrls(entries, err);
+        } catch (ClasspathBuildException ex) {
+            return baseSelection.withExitCode(ex.exitCode);
+        }
+        return ClasspathSelection.of(
+                new URLClassLoader(baseUrls, baseSelection.parentClassLoader()),
+                entries,
+                EXIT_OK,
+                baseSelection.parentClassLoader(),
+                baseSelection.includesCompileOutput()
+        );
+    }
+
+    private static URL[] buildUrls(List<File> entries, PrintStream err) throws ClasspathBuildException {
+        URL[] urls = new URL[entries.size()];
+        for (int i = 0; i < entries.size(); i++) {
+            try {
+                urls[i] = entries.get(i).toURI().toURL();
+            } catch (MalformedURLException ex) {
+                printUsageError(err, "Invalid classpath entry: " + entries.get(i).getPath()
+                        + " (" + messageOf(ex) + ").");
+                throw new ClasspathBuildException(EXIT_USAGE);
+            } catch (SecurityException ex) {
+                err.println("I/O error while preparing classpath: " + messageOf(ex));
+                throw new ClasspathBuildException(EXIT_IO_ERROR);
+            }
+        }
+        return urls;
+    }
+
+    private static final class ClasspathBuildException extends Exception {
+        final int exitCode;
+        ClasspathBuildException(int exitCode) {
+            this.exitCode = exitCode;
+        }
+    }
+
     private static ClassLoader effectiveClassLoader() {
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         if (contextClassLoader != null) {

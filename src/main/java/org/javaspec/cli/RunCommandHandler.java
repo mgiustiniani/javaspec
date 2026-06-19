@@ -8,6 +8,9 @@ import org.javaspec.cli.run.ExtensionOrchestrator;
 import org.javaspec.cli.run.GenerationOrchestrator;
 import org.javaspec.cli.run.GenerationOrchestratorResult;
 import org.javaspec.cli.run.ReportOrchestrator;
+import org.javaspec.resolver.DependencyResolutionException;
+import org.javaspec.resolver.DependencyResolver;
+import org.javaspec.resolver.DependencyResolverLoader;
 import org.javaspec.discovery.DiscoveredSpec;
 import org.javaspec.discovery.SpecDiscovery;
 import org.javaspec.discovery.SpecDiscoveryRequest;
@@ -42,6 +45,37 @@ final class RunCommandHandler implements CommandHandler {
         );
         if (classpathSelection.exitCode() != Main.EXIT_OK) {
             return classpathSelection.exitCode();
+        }
+
+        if (parsed.resolvePomSpecified) {
+            java.io.File pomFile = new java.io.File(parsed.resolvePomPath);
+            if (!pomFile.isFile()) {
+                err.println("Error: POM file not found: " + pomFile.getPath());
+                return Main.EXIT_USAGE;
+            }
+            DependencyResolver resolver = DependencyResolverLoader.findFor(
+                    pomFile, classpathSelection.classLoader());
+            if (resolver == null) {
+                err.println("Error: No dependency resolver available for: " + pomFile.getPath());
+                err.println("Add a DependencyResolver provider to the classpath via ServiceLoader.");
+                return Main.EXIT_USAGE;
+            }
+            java.util.List<java.io.File> resolved;
+            try {
+                resolved = resolver.resolve(pomFile);
+            } catch (DependencyResolutionException ex) {
+                err.println("Error: Dependency resolution failed: " + ex.getMessage());
+                return Main.EXIT_IO_ERROR;
+            }
+            if (parsed.verbose) {
+                err.println("[resolve-pom] Using resolver: " + resolver.name());
+                err.println("[resolve-pom] Resolved " + resolved.size() + " artifact(s) from " + pomFile.getPath());
+            }
+            classpathSelection = ClasspathResolver.withResolvedDependencies(
+                    resolved, classpathSelection, err);
+            if (classpathSelection.exitCode() != Main.EXIT_OK) {
+                return classpathSelection.exitCode();
+            }
         }
         ClassLoader selectedClassLoader = classpathSelection.classLoader();
         ExtensionOrchestrator.LoadResult<RunFormatterRegistry> loadResult =

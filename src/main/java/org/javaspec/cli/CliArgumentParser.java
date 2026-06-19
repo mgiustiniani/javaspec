@@ -267,6 +267,18 @@ public final class CliArgumentParser {
             } else if ("--overwrite".equals(arg)) {
                 parsed.prophesizeOverwrite = true;
                 index++;
+            } else if ("--resolve-pom".equals(arg)) {
+                if (index + 1 >= args.length) {
+                    parsed.errorMessage = "Missing value for " + arg + ".";
+                    return parsed;
+                }
+                parsed.resolvePomPath = args[index + 1];
+                parsed.resolvePomSpecified = true;
+                if (parsed.resolvePomPath.length() == 0) {
+                    parsed.errorMessage = "POM file must not be empty.";
+                    return parsed;
+                }
+                index += 2;
             } else if (arg.startsWith("-")) {
                 parsed.errorMessage = "Unknown option: " + arg;
                 return parsed;
@@ -333,6 +345,10 @@ public final class CliArgumentParser {
             }
             if (parsed.compile) {
                 parsed.errorMessage = "The --compile option belongs to run; describe does not execute examples.";
+                return parsed;
+            }
+            if (parsed.resolvePomSpecified) {
+                parsed.errorMessage = "The --resolve-pom option belongs to run; describe does not execute examples.";
                 return parsed;
             }
             if (parsed.sourceRootSpecified) {
@@ -418,6 +434,10 @@ public final class CliArgumentParser {
             }
             if (parsed.compile) {
                 parsed.errorMessage = "The --compile option belongs to run.";
+                return parsed;
+            }
+            if (parsed.resolvePomSpecified) {
+                parsed.errorMessage = "The --resolve-pom option belongs to run.";
                 return parsed;
             }
             if (parsed.verbose) {

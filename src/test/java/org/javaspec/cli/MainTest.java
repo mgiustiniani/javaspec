@@ -86,6 +86,56 @@ public class MainTest {
         assertEquals(1, countFiles(specRoot));
     }
 
+    // -------------------------------------------------------------------------
+    // --resolve-pom CLI integration tests
+
+    @Test
+    public void resolvePomWithMissingFileExitsWithUsageError() {
+        CommandResult result = run("run", "--resolve-pom", "no-such-file.xml");
+        assertEquals(64, result.exitCode);
+        assertTrue(result.err.contains("Error: POM file not found:"));
+    }
+
+    @Test
+    public void resolvePomWithEmptyValueExitsWithUsageError() {
+        CommandResult result = run("run", "--resolve-pom", "");
+        assertEquals(64, result.exitCode);
+        assertTrue(result.err.contains("Error:"));
+    }
+
+    @Test
+    public void resolvePomOnDescribeCommandExitsWithUsageError() {
+        CommandResult result = run("describe", "--resolve-pom", "pom.xml", "com.example.Foo");
+        assertEquals(64, result.exitCode);
+        assertTrue(result.err.contains("Error:"));
+        assertTrue(result.err.contains("--resolve-pom"));
+    }
+
+    @Test
+    public void resolvePomOnProphesizeCommandExitsWithUsageError() {
+        CommandResult result = run("prophesize", "--resolve-pom", "pom.xml",
+                "java.util.List");
+        assertEquals(64, result.exitCode);
+        assertTrue(result.err.contains("Error:"));
+        assertTrue(result.err.contains("--resolve-pom"));
+    }
+
+    @Test
+    public void resolvePomWithEmptyDepsRunsNormally() throws Exception {
+        // Write a minimal POM with no dependencies.
+        File pom = temporaryFolder.newFile("pom.xml");
+        Files.write(pom.toPath(),
+                ("<project><groupId>g</groupId><artifactId>a</artifactId>"
+                + "<version>1.0</version><dependencies/></project>")
+                .getBytes(StandardCharsets.UTF_8));
+        File specRoot = temporaryFolder.newFolder("specs");
+        // No specs — just verify the command completes without error.
+        CommandResult result = run("run", "--spec-root", specRoot.getPath(),
+                "--resolve-pom", pom.getPath());
+        assertEquals(0, result.exitCode);
+        assertEquals("", result.err);
+    }
+
     @Test
     public void prophesizeUsesGeneratedSourcesAsDefaultOutputRoot() throws Exception {
         File wrapperFile = new File(TEST_GENERATED_SOURCES,

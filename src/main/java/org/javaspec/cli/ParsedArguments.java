@@ -63,6 +63,8 @@ public final class ParsedArguments {
     String prophesizeOutputDir;
     String prophesizePackageName;
     boolean prophesizeOverwrite;
+    String resolvePomPath;
+    boolean resolvePomSpecified;
 
     public ParsedArguments() {
     }
