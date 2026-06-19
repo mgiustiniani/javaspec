@@ -492,7 +492,54 @@ beConstructedWith(storeDouble.instance());
 match(subject().save("item")).shouldReturn(true);
 ```
 
-The adapter is ByteBuddy-based and lives outside the core artifact. It supports non-final concrete classes only and explicitly rejects final classes, enums, arrays, annotations, primitives, and interfaces. Static method mocking, constructor mocking, and final-class mocking remain unsupported. See [`examples/bytecode-doubles-basic/`](examples/bytecode-doubles-basic/).
+The adapter is ByteBuddy-based and lives outside the core artifact. It supports non-final concrete classes only and explicitly rejects final classes, enums, arrays, annotations, primitives, and interfaces. See [`examples/bytecode-doubles-basic/`](examples/bytecode-doubles-basic/).
+
+### Optional bytecode agent doubles
+
+Install and add the standalone agent adapter when you need final-class, static-method, or
+construction-aware doubles:
+
+```sh
+mvn -q -f javaspec-bytecode-agent/pom.xml -DskipTests install
+```
+
+```xml
+<dependency>
+  <groupId>io.github.jvmspec</groupId>
+  <artifactId>javaspec-bytecode-agent</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <scope>test</scope>
+</dependency>
+```
+
+The module supports dynamic self-attach through ByteBuddy Agent when the JVM allows it. You can also
+start tests with `-javaagent:javaspec-bytecode-agent.jar` to make instrumentation available before
+execution.
+
+```java
+// Final concrete class instance-method double
+InterfaceDouble<FinalGreeter> greeter = Doubles.concreteDouble(FinalGreeter.class);
+greeter.when("greet", "Ada").thenReturn("stubbed Ada");
+assertEquals("stubbed Ada", greeter.instance().greet("Ada"));
+
+// Static method double; close() restores original behavior for later calls
+try (StaticDouble<StaticUtility> statics = BytecodeAgentDoubles.staticDouble(StaticUtility.class)) {
+    statics.when("message", "x").thenReturn("stubbed x");
+    assertEquals("stubbed x", StaticUtility.message("x"));
+}
+
+// Construction-aware double; subsequently created instances are registered
+try (ConstructionDouble<ConstructedGreeter> construction =
+         BytecodeAgentDoubles.mockConstruction(ConstructedGreeter.class)) {
+    construction.when("name").thenReturn("stubbed");
+    assertEquals("stubbed", new ConstructedGreeter().name());
+}
+```
+
+While a static double is active, unstubbed static calls return normal javaspec default values
+(`null`, `0`, `false`, etc.) instead of executing the original method. Closing the handle removes the
+static/construction registration; the class remains instrumented, but unregistered calls fall through
+to original behavior.
 
 ## Prophecy-Style Doubles
 

@@ -63,6 +63,8 @@ run_at_root "JUnit Platform engine verify" "${MAVEN_BIN}" -q -f javaspec-junit-p
 run_at_root "JUnit Platform engine runtime dependency tree audit" "${MAVEN_BIN}" -f javaspec-junit-platform-engine/pom.xml dependency:tree -Dscope=runtime
 run_at_root "Bytecode doubles adapter verify" "${MAVEN_BIN}" -q -f javaspec-bytecode-doubles/pom.xml verify
 run_at_root "Bytecode doubles adapter runtime dependency tree audit" "${MAVEN_BIN}" -f javaspec-bytecode-doubles/pom.xml dependency:tree -Dscope=runtime
+run_at_root "Bytecode agent adapter verify" "${MAVEN_BIN}" -q -f javaspec-bytecode-agent/pom.xml verify
+run_at_root "Bytecode agent adapter runtime dependency tree audit" "${MAVEN_BIN}" -f javaspec-bytecode-agent/pom.xml dependency:tree -Dscope=runtime
 
 if [ "${JAVASPEC_SKIP_GRADLE:-0}" = "1" ]; then
   printf '\nWARNING: Skipping Gradle adapter verification because JAVASPEC_SKIP_GRADLE=1.\n'

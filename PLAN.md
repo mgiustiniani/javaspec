@@ -97,41 +97,49 @@ scenarios while staying inside the core JDK-proxy boundary.
 `StubbedInvocation.ANSWER_SEQUENCE` kind; `StubbedInvocation.returningSequenceThenThrowing()`;
 10 new tests covering all new APIs.
 
-### Phase 44 — Bytecode Doubles v2 for Final/Static/Constructor Cases (Partially Completed — Agent Work Pending)
+### Phase 44 — Bytecode Doubles v2 for Final/Static/Constructor Cases (Completed via Optional Agent)
 
 **Goal:** address mocking needs that cannot be implemented with core JDK proxies.
 
-**Status:** **Partially completed only.** `ConcreteDoubleCapabilities` in `javaspec-bytecode-doubles`
-provides `isSupported(Class)`, `describe(Class)` (rich explanation for final classes with
-agent/self-attach workaround steps, interfaces redirected to core API, unsupported types),
-`staticMethodLimitationNote()` and `constructorInterceptionLimitationNote()`; `BytebuddyConcreteDoubleProvider`
-error messages incorporate these descriptions. This is diagnostic hardening, not actual final/static/
-constructor mocking. Completing the original goal requires a new optional `javaspec-bytecode-agent`
-artifact using `java.lang.instrument`/ByteBuddy Agent with explicit JVM/attach requirements. That
-work is not part of the zero-dependency core and remains open.
+**Status:** **Completed as an optional adapter, not in core.** `javaspec-bytecode-doubles` still
+provides subclass-based non-final concrete-class doubles and capability diagnostics. The new standalone
+`javaspec-bytecode-agent` artifact adds real ByteBuddy Agent / `java.lang.instrument` support:
+
+- ServiceLoader `ConcreteDoubleProvider` for `Doubles.concreteDouble(FinalClass.class)`.
+- Final concrete class instance-method interception via class redefinition; only instances registered
+  by the provider are routed through javaspec handlers, ordinary instances keep original behavior.
+- `BytecodeAgentDoubles.staticDouble(Class<T>)` for static-method interception. While open, stubbed
+  static calls return configured values and unstubbed static calls return normal javaspec default
+  values; `close()` restores original behavior for subsequent calls.
+- `BytecodeAgentDoubles.mockConstruction(Class<T>)` for construction-aware doubles: subsequently
+  constructed instances are registered with the returned control and intercepted instance methods use
+  normal javaspec stubbing/verification.
+- `-javaagent:javaspec-bytecode-agent.jar` manifest entries are provided; dynamic self-attach via
+  ByteBuddyAgent is also supported when the JVM allows it.
+
+Functional tests cover final-class instance methods, static method interception/restoration, and
+construction-aware interception. The core artifact remains zero-runtime-dependency.
 
 ### Phase 45 — Verification, Documentation, and Release Hardening (In Progress)
 
 **Goal:** make the expanded feature set reproducible for maintainers and understandable for adopters.
 
 **Completed so far:**
-- `scripts/check-version-alignment.sh` extended to cover `javaspec-bytecode-doubles` and
-  `<javaspec.version>` property (Phase 38).
-- `PLAN.md` updated with completed Phase 38-43 status and Phase 44 reclassified honestly as
-  partially completed until agent-backed mocking exists.
+- `scripts/check-version-alignment.sh` extended to cover `javaspec-bytecode-doubles`,
+  `javaspec-bytecode-agent`, and their `<javaspec.version>` properties.
+- `PLAN.md` updated with completed Phase 38-44 status, including the optional agent module.
 - README and user manual document `--resolve-pom`, `--release`, `list-extensions`, `prophesize`,
   `ArgumentCaptor`, `verifyInOrder`, `thenAnswerSequence`, and `thenReturnThenThrow`.
 - Core tests include real end-to-end coverage for POM dependency resolution, `--release` bytecode
   major version, incremental compile cache hits, parser/updater integration, parser ServiceLoader
   replacement, and extension ServiceLoader catalog discovery.
-- `mvn -q test` + `mvn -q -f javaspec-bytecode-doubles/pom.xml test` both pass green.
+- `mvn -q test`, `mvn -q -f javaspec-bytecode-doubles/pom.xml test`, and
+  `mvn -q -f javaspec-bytecode-agent/pom.xml test` pass.
 - `check-version-alignment.sh` passes for all 0.1.0-SNAPSHOT references.
 
 **Remaining:**
-- Implement optional `javaspec-bytecode-agent` for actual final-class/static-method/constructor
-  interception, or explicitly remove those goals from the roadmap.
 - Decide on Gradle Wrapper addition for `verify-all.sh` self-sufficiency.
-- Prepare release notes distinguishing core, optional adapter, and not-yet-implemented agent features.
+- Prepare release notes distinguishing core, subclass bytecode adapter, and agent adapter features.
 - Add aggregate verification profile once examples align to snapshot artifacts.
 
 ## Course Correction — Gradle Plugin Test and Example Dependency Version (ADR 0025)

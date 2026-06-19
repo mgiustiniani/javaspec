@@ -80,6 +80,7 @@ root_pom="${repo_root}/pom.xml"
 maven_plugin_pom="${repo_root}/javaspec-maven-plugin/pom.xml"
 junit_engine_pom="${repo_root}/javaspec-junit-platform-engine/pom.xml"
 bytecode_doubles_pom="${repo_root}/javaspec-bytecode-doubles/pom.xml"
+bytecode_agent_pom="${repo_root}/javaspec-bytecode-agent/pom.xml"
 gradle_build="${repo_root}/javaspec-gradle-plugin/build.gradle"
 
 root_version="$(extract_maven_project_version "$root_pom")"
@@ -95,6 +96,8 @@ record_result 'javaspec-maven-plugin/pom.xml project version' "$(extract_maven_p
 record_result 'javaspec-junit-platform-engine/pom.xml project version' "$(extract_maven_project_version "$junit_engine_pom")" "$root_version"
 record_result 'javaspec-bytecode-doubles/pom.xml project version' "$(extract_maven_project_version "$bytecode_doubles_pom")" "$root_version"
 record_result 'javaspec-bytecode-doubles/pom.xml javaspec.version' "$(extract_maven_property javaspec.version "$bytecode_doubles_pom")" "$root_version"
+record_result 'javaspec-bytecode-agent/pom.xml project version' "$(extract_maven_project_version "$bytecode_agent_pom")" "$root_version"
+record_result 'javaspec-bytecode-agent/pom.xml javaspec.version' "$(extract_maven_property javaspec.version "$bytecode_agent_pom")" "$root_version"
 record_result 'javaspec-gradle-plugin/build.gradle version' "$(extract_gradle_assignment version "$gradle_build")" "$root_version"
 record_result 'javaspec-gradle-plugin/build.gradle javaspecCoreVersion' "$(extract_gradle_assignment javaspecCoreVersion "$gradle_build")" "$root_version"
 

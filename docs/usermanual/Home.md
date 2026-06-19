@@ -74,7 +74,8 @@ Verification status:
 - Extension activation is classpath-based through configured extension names and ServiceLoader
   providers. Plugin lookup and automatic classpath repair remain unimplemented.
 - Core doubles remain ordinary-interface-only JDK proxies. Optional non-final concrete-class doubles
-  require the standalone bytecode adapter; final/static/constructor mocking remains unsupported.
+  require `javaspec-bytecode-doubles`. Optional final-class, static-method, and construction-aware
+  doubles require the separate `javaspec-bytecode-agent` adapter and JVM instrumentation support.
 - Repository-root `mvn verify` remains core-only. `scripts/verify-all.sh` is the aggregate local
   check for core, standalone adapters, and examples.
 - Artifacts are published on Maven Central under `io.github.jvmspec`. The Gradle plugin is
@@ -1610,9 +1611,10 @@ Practical migration guidance:
 6. Treat generated method bodies as skeletons with Java default returns, not as inferred business
    behavior. javaspec does not synthesize return constants from expectations.
 7. Prefer interface collaborators when you need zero-dependency core doubles. Optional non-final
-   concrete-class doubles are available through `javaspec-bytecode-doubles`; final class, static,
-   constructor, primitive, array, annotation, enum, and interface targets are still unsupported by
-   the bytecode adapter.
+   concrete-class doubles are available through `javaspec-bytecode-doubles`. Optional final-class,
+   static-method, and construction-aware doubles are available through `javaspec-bytecode-agent`,
+   which requires ByteBuddy Agent / JVM instrumentation support. Primitive, array, annotation, enum,
+   and interface targets are still unsupported by bytecode concrete-class adapters.
 8. Use the restricted line-based config format instead of PHPSpec YAML-style configuration.
    Bootstrap entries are explicit compiled Java hook class names that execute before examples during
    `run`.
