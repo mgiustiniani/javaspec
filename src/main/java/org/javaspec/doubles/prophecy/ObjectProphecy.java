@@ -5,7 +5,7 @@ import org.javaspec.doubles.InterfaceDouble;
 /**
  * A prophecy about an object of type {@code T}.
  * <p>
- * Wraps an {@link InterfaceDouble} and provides a reflective API for setting up
+ * Wraps a javaspec double handle and provides a reflective API for setting up
  * method stubs ({@code willReturn}, {@code willThrow}) and predictions
  * ({@code shouldBeCalled}, {@code shouldNotBeCalled}, {@code shouldBeCalledTimes}).
  * </p>
@@ -18,10 +18,10 @@ import org.javaspec.doubles.InterfaceDouble;
  *
  * @param <T> the type of the prophesized object
  */
-public final class ObjectProphecy<T> extends BaseObjectProphecy<T> {
+public class ObjectProphecy<T> extends BaseObjectProphecy<T> {
 
     /**
-     * Creates a new object prophecy wrapping the given interface double.
+     * Creates a new object prophecy wrapping the given double handle.
      *
      * @param interfaceDouble the typed double handle
      * @param registry        the prediction registry (may be null if predictions are not used)

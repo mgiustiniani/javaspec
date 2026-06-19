@@ -202,6 +202,35 @@ public class MainTest {
     }
 
     @Test
+    public void prophesizeConcreteClassUsesGeneratedSourcesNotSrc() throws Exception {
+        // FinalGreeter is a concrete (non-interface) class
+        File wrapperInTarget = new File(TEST_GENERATED_SOURCES,
+                "spec" + File.separator + "org" + File.separator +
+                "javaspec" + File.separator + "cli" + File.separator + "FinalGreeterProphecy.java");
+        File wrapperInSrc = new File("src/test/java",
+                "spec" + File.separator + "org" + File.separator +
+                "javaspec" + File.separator + "cli" + File.separator + "FinalGreeterProphecy.java");
+
+        CommandResult result = run(
+                "prophesize",
+                "org.javaspec.cli.MainTest$FinalGreeter",
+                "--package", "spec.org.javaspec.cli");
+
+        assertEquals(0, result.exitCode);
+        assertFalse("wrapper must not be written to src/", wrapperInSrc.exists());
+        assertTrue("wrapper must be written to target/generated-sources/javaspec", wrapperInTarget.isFile());
+        String source = readFile(wrapperInTarget);
+        assertTrue(source.contains("extends ObjectProphecy<"));
+        assertTrue(source.contains("greet("));
+        assertEquals("", result.err);
+    }
+
+    /** Concrete class used by prophesizeConcreteClassUsesGeneratedSourcesNotSrc. */
+    public static final class FinalGreeter {
+        public String greet(String name) { return "Hello " + name; }
+    }
+
+    @Test
     public void prophesizeUsesGeneratedSourcesAsDefaultOutputRoot() throws Exception {
         File wrapperFile = new File(TEST_GENERATED_SOURCES,
                 "spec" + File.separator + "com" + File.separator + "example" + File.separator + "MailerProphecy.java");

@@ -74,6 +74,67 @@ public final class SpecSupportFileGenerator {
         return updated;
     }
 
+    public static String updateSourceWithProphecyHelpers(
+            String source,
+            DescribedType describedType,
+            List<String> prophesizedTypeNames
+    ) {
+        Objects.requireNonNull(source, "source must not be null");
+        Objects.requireNonNull(describedType, "describedType must not be null");
+        Objects.requireNonNull(prophesizedTypeNames, "prophesizedTypeNames must not be null");
+        String updated = updateSource(source, describedType);
+        for (int i = 0; i < prophesizedTypeNames.size(); i++) {
+            String typeName = prophesizedTypeNames.get(i);
+            if (typeName == null || typeName.trim().length() == 0) {
+                continue;
+            }
+            updated = insertMissingProphecyHelper(updated, describedType, typeName.trim());
+        }
+        return updated;
+    }
+
+    private static String insertMissingProphecyHelper(String source, DescribedType describedType, String typeName) {
+        String simpleName = simpleName(typeName);
+        String helperName = "prophesize" + simpleName;
+        if (hasProphecyHelper(source, helperName)) {
+            return source;
+        }
+        // Determine the double factory: interface → Doubles.interfaceDouble, concrete → Doubles.concreteDouble
+        // We cannot reflect at generation time whether it is final/concrete without the class on classpath,
+        // so we emit Prophecies.prophesize() which dispatches correctly at runtime.
+        String wrapperFqcn = typeName + "Prophecy";
+        StringBuilder block = new StringBuilder();
+        block.append("    /**\n");
+        block.append("     * Creates a typed prophecy for {@link ").append(typeName).append("}\n");
+        block.append("     * using this spec's shared {@code PredictionRegistry}.\n");
+        block.append("     * The support file is generated under {@code target/generated-sources/javaspec}.\n");
+        block.append("     */\n");
+        block.append("    protected ").append(wrapperFqcn).append(" ").append(helperName).append("() {\n");
+        block.append("        org.javaspec.doubles.InterfaceDouble<").append(typeName).append("> handle =\n");
+        block.append("            ").append(typeName).append(".class.isInterface()\n");
+        block.append("                ? org.javaspec.doubles.Doubles.interfaceDouble(").append(typeName).append(".class)\n");
+        block.append("                : org.javaspec.doubles.Doubles.concreteDouble(").append(typeName).append(".class);\n");
+        block.append("        return new ").append(wrapperFqcn).append("(handle, prophecyRegistry());\n");
+        block.append("    }\n\n");
+        block.append("    /** Alias for {@link #").append(helperName).append("()}. */\n");
+        block.append("    protected ").append(wrapperFqcn).append(" prophecy").append(simpleName).append("() {\n");
+        block.append("        return ").append(helperName).append("();\n");
+        block.append("    }\n");
+        return insertBeforeSupportClassClose(source, describedType, block.toString());
+    }
+
+    private static boolean hasProphecyHelper(String source, String helperName) {
+        // Match only actual method declarations, not Javadoc @link references
+        Pattern pattern = Pattern.compile(
+                "(?:protected|public)\\s+\\S+\\s+" + Pattern.quote(helperName) + "\\s*\\(");
+        return pattern.matcher(source).find();
+    }
+
+    private static String simpleName(String typeName) {
+        int lastDot = typeName.lastIndexOf('.');
+        return lastDot < 0 ? typeName : typeName.substring(lastDot + 1);
+    }
+
     private static String insertMissingProxyMethods(String source, DescribedType describedType) {
         List<MethodDescriptor> missing = new ArrayList<MethodDescriptor>();
         List<MethodDescriptor> methods = describedType.methods();

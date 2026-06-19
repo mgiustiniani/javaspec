@@ -2,10 +2,10 @@ package org.javaspec.api;
 
 import org.javaspec.doubles.Call;
 import org.javaspec.doubles.DoubleControl;
-import org.javaspec.doubles.Doubles;
 import org.javaspec.doubles.InterfaceDouble;
 import org.javaspec.doubles.prophecy.ObjectProphecy;
 import org.javaspec.doubles.prophecy.PredictionRegistry;
+import org.javaspec.doubles.prophecy.Prophecies;
 import org.javaspec.matcher.Matchable;
 import org.javaspec.matcher.MatcherRegistry;
 
@@ -248,35 +248,25 @@ public class ObjectBehavior<T> {
     private boolean autoCheckPredictions = true;
 
     /**
-     * Creates a prophecy wrapper for an interface type.
-     * <p>
-     * Usage:
-     * <pre>{@code
-     * ObjectProphecy<Mailer> mailer = prophesize(Mailer.class);
-     * mailer.method("send", any(), eq("hello")).willReturn(true);
-     * mailer.method("send", any(), eq("hello")).shouldBeCalled();
-     * }</pre>
+     * Convenience factory for a Prophecy-style collaborator double.
      *
-     * @param interfaceType the interface type to prophesize
-     * @param <D>           the interface type
+     * <p>{@code ObjectBehavior} remains the base class for specs. The prophecy runtime lives in
+     * {@link Prophecies}; this method only shares this spec's prediction registry and delegates to
+     * {@link Prophecies#prophesize(Class, PredictionRegistry)}.</p>
+     *
+     * @param type the interface or concrete class to prophesize
+     * @param <D>  the prophesized type
      * @return a new object prophecy
      */
-    protected <D> ObjectProphecy<D> prophesize(Class<D> interfaceType) {
-        InterfaceDouble<D> id;
-        if (interfaceType.isInterface()) {
-            id = doubles.interfaceDouble(interfaceType);
-        } else {
-            id = Doubles.concreteDouble(interfaceType);
-        }
-        ObjectProphecy<D> op = new ObjectProphecy<D>(id, prophecyRegistry());
-        return op;
+    protected <D> ObjectProphecy<D> prophesize(Class<D> type) {
+        return Prophecies.prophesize(type, prophecyRegistry());
     }
 
     /**
      * Alias for {@link #prophesize(Class)}.
      */
-    protected <D> ObjectProphecy<D> prophecy(Class<D> interfaceType) {
-        return prophesize(interfaceType);
+    protected <D> ObjectProphecy<D> prophecy(Class<D> type) {
+        return prophesize(type);
     }
 
     /**

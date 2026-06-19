@@ -64,9 +64,9 @@ public final class ProphecyExistenceChecker {
     }
 
     /**
-     * Checks whether a prophecy wrapper class exists for the given interface.
+     * Checks whether a prophecy wrapper class exists for the given type.
      *
-     * @param interfaceFqcn the fully qualified interface class name
+     * @param interfaceFqcn the fully qualified prophesized type name
      * @param classLoader   the class loader to check with
      * @return true if the wrapper class is loadable
      */
@@ -81,26 +81,29 @@ public final class ProphecyExistenceChecker {
     }
 
     /**
-     * Resolves an interface class from its qualified name.
+     * Resolves a prophesized type from its qualified name.
      *
-     * @param fqcn       the fully qualified class name
+     * @param fqcn        the fully qualified class name
      * @param classLoader the class loader
-     * @return the interface class, or null if not found or not an interface
+     * @return the class, or null if not found or unsupported for object prophecy wrappers
      */
-    public static Class<?> resolveInterface(String fqcn, ClassLoader classLoader) {
+    public static Class<?> resolveProphesizedType(String fqcn, ClassLoader classLoader) {
         try {
             Class<?> clazz = Class.forName(fqcn, false, classLoader);
-            return clazz.isInterface() ? clazz : null;
+            if (clazz.isPrimitive() || clazz.isArray() || clazz.isAnnotation() || clazz.isEnum()) {
+                return null;
+            }
+            return clazz;
         } catch (ClassNotFoundException e) {
             return null;
         }
     }
 
     /**
-     * Determines the target package for a prophecy wrapper given an interface FQCN.
-     * Uses the interface's package by default.
+     * Determines the target package for a prophecy wrapper given a prophesized type FQCN.
+     * Uses the type's package by default.
      *
-     * @param interfaceFqcn the fully qualified interface class name
+     * @param interfaceFqcn the fully qualified prophesized type name
      * @return the package name (may be empty for default package)
      */
     public static String defaultPackage(String interfaceFqcn) {

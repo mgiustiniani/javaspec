@@ -12,7 +12,7 @@ import java.io.PrintStream;
 /**
  * Handles the {@code javaspec prophesize <fqcn>} command.
  * <p>
- * Generates a typed Prophecy wrapper class for an interface type.
+ * Generates a typed Prophecy wrapper class for an interface or concrete class type.
  * </p>
  */
 final class ProphesizeCommandHandler implements CommandHandler {
@@ -28,17 +28,18 @@ final class ProphesizeCommandHandler implements CommandHandler {
             return EXIT_USAGE;
         }
 
-        Class<?> interfaceType;
+        Class<?> prophesizedType;
         try {
-            interfaceType = Class.forName(className);
+            prophesizedType = Class.forName(className);
         } catch (ClassNotFoundException e) {
             UsagePrinter.printUsageError(err, "Class not found: " + className);
             return EXIT_USAGE;
         }
 
-        if (!interfaceType.isInterface()) {
-            UsagePrinter.printUsageError(err, "Prophecy wrappers require an interface type, got: "
-                    + interfaceType.getName() + " (not an interface)");
+        if (prophesizedType.isPrimitive() || prophesizedType.isArray() || prophesizedType.isAnnotation()
+                || prophesizedType.isEnum()) {
+            UsagePrinter.printUsageError(err, "Prophecy wrappers require an interface or concrete class type, got: "
+                    + prophesizedType.getName());
             return EXIT_USAGE;
         }
 
@@ -47,14 +48,14 @@ final class ProphesizeCommandHandler implements CommandHandler {
             packageName = "";
         }
 
-        String sourceCode = ProphecySkeletonGenerator.render(interfaceType, packageName);
+        String sourceCode = ProphecySkeletonGenerator.render(prophesizedType, packageName);
 
         String outputDir = parsed.prophesizeOutputDir;
         if (outputDir == null) {
             outputDir = Main.DEFAULT_GENERATED_SOURCES;
         }
 
-        String wrapperSimpleName = interfaceType.getSimpleName() + "Prophecy";
+        String wrapperSimpleName = prophesizedType.getSimpleName() + "Prophecy";
         String packagePath = packageName.replace('.', '/');
         File targetFile;
         if (packagePath.length() > 0) {
@@ -77,7 +78,7 @@ final class ProphesizeCommandHandler implements CommandHandler {
         }
 
         ProphecyGenerationPlan plan = ProphecyGenerationPlan.of(
-                interfaceType, packageName, targetFile, sourceCode
+                prophesizedType, packageName, targetFile, sourceCode
         );
 
         try {

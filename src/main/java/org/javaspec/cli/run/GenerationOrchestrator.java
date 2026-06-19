@@ -18,6 +18,7 @@ import org.javaspec.generation.ProphecyExistenceChecker;
 import org.javaspec.generation.ProphecyFileGenerator;
 import org.javaspec.generation.ProphecyGenerationPlan;
 import org.javaspec.generation.ProphecySkeletonGenerator;
+import org.javaspec.generation.SpecSupportFileGenerator;
 import org.javaspec.model.DescribedType;
 import org.javaspec.model.JavaTypeKind;
 
@@ -291,7 +292,8 @@ public final class GenerationOrchestrator {
         boolean prophecyWrappersGenerated;
         try {
             prophecyWrappersGenerated = ensureProphecyWrappers(
-                    specs, specRoot, sourceRoot, input, out, err, generate, dryRun, classLoader, generatedSourcesRoot
+                    specs, specRoot, sourceRoot, input, out, err, generate, dryRun, classLoader,
+                    generatedSourcesRoot, namingConvention
             );
         } catch (IOException ex) {
             err.println("I/O error while checking prophecy wrappers: " + messageOf(ex));
@@ -591,7 +593,8 @@ public final class GenerationOrchestrator {
             boolean generate,
             boolean dryRun,
             ClassLoader classLoader,
-            File generatedSourcesRoot
+            File generatedSourcesRoot,
+            SpecNamingConvention namingConvention
     ) throws IOException {
         // Collect spec files
         List<File> specFiles = new ArrayList<File>();
@@ -607,38 +610,38 @@ public final class GenerationOrchestrator {
         }
 
         // Find prophesize/prophecy calls in spec files
-        List<String> prophesizedInterfaces;
+        List<String> prophesizedTypes;
         try {
-            prophesizedInterfaces = ProphecyExistenceChecker.findProphesizedInterfaces(specFiles);
+            prophesizedTypes = ProphecyExistenceChecker.findProphesizedInterfaces(specFiles);
         } catch (IOException ex) {
             err.println("I/O error while scanning for prophecy calls: " + messageOf(ex));
             return false;
         }
 
-        if (prophesizedInterfaces.isEmpty()) {
+        if (prophesizedTypes.isEmpty()) {
             return true;
         }
 
         boolean allGenerated = true;
 
-        for (int i = 0; i < prophesizedInterfaces.size(); i++) {
-            String interfaceFqcn = prophesizedInterfaces.get(i);
+        for (int i = 0; i < prophesizedTypes.size(); i++) {
+            String typeFqcn = prophesizedTypes.get(i);
 
             // Check if wrapper already exists
-            if (ProphecyExistenceChecker.wrapperExists(interfaceFqcn, classLoader)) {
+            if (ProphecyExistenceChecker.wrapperExists(typeFqcn, classLoader)) {
                 continue;
             }
 
-            // Resolve the interface
-            Class<?> interfaceType = ProphecyExistenceChecker.resolveInterface(interfaceFqcn, classLoader);
-            if (interfaceType == null) {
-                err.println("Warning: cannot resolve interface " + interfaceFqcn
+            // Resolve the prophesized type
+            Class<?> prophesizedType = ProphecyExistenceChecker.resolveProphesizedType(typeFqcn, classLoader);
+            if (prophesizedType == null) {
+                err.println("Warning: cannot resolve prophesized type " + typeFqcn
                         + " referenced by prophesize() call; skipping wrapper generation.");
                 continue;
             }
 
-            String packageName = ProphecyExistenceChecker.defaultPackage(interfaceFqcn);
-            String wrapperSimpleName = interfaceType.getSimpleName() + "Prophecy";
+            String packageName = ProphecyExistenceChecker.defaultPackage(typeFqcn);
+            String wrapperSimpleName = prophesizedType.getSimpleName() + "Prophecy";
             String packagePath = packageName.replace('.', '/');
             File targetFile;
             if (packagePath.length() > 0) {
@@ -647,10 +650,10 @@ public final class GenerationOrchestrator {
                 targetFile = new File(generatedSourcesRoot, wrapperSimpleName + ".java");
             }
 
-            String sourceCode = ProphecySkeletonGenerator.render(interfaceType, packageName);
+            String sourceCode = ProphecySkeletonGenerator.render(prophesizedType, packageName);
 
             out.println("Missing prophecy wrapper " + wrapperSimpleName
-                    + " for " + interfaceFqcn + ".");
+                    + " for " + typeFqcn + ".");
             out.println("Target path: " + targetFile.getPath());
 
             if (dryRun) {
@@ -658,14 +661,14 @@ public final class GenerationOrchestrator {
                 continue;
             }
 
-            boolean accepted = generate || askToGenerateProphecy(input, out, interfaceFqcn);
+            boolean accepted = generate || askToGenerateProphecy(input, out, typeFqcn);
             if (!accepted) {
                 allGenerated = false;
                 continue;
             }
 
             ProphecyGenerationPlan plan = ProphecyGenerationPlan.of(
-                    interfaceType, packageName, targetFile, sourceCode
+                    prophesizedType, packageName, targetFile, sourceCode
             );
             try {
                 File writtenFile = ProphecyFileGenerator.write(plan);
@@ -680,6 +683,10 @@ public final class GenerationOrchestrator {
                 return false;
             }
         }
+
+        // --- Update support class helpers in generatedSourcesRoot, never in src ---
+        updateSupportProphecyHelpers(
+                specs, specRoot, generatedSourcesRoot, namingConvention, prophesizedTypes, dryRun, out, err);
 
         return allGenerated;
     }
@@ -704,6 +711,71 @@ public final class GenerationOrchestrator {
                 return false;
             }
             out.println("Please answer y or n.");
+        }
+    }
+
+    private static void updateSupportProphecyHelpers(
+            List<DiscoveredSpec> specs,
+            File specRoot,
+            File generatedSourcesRoot,
+            SpecNamingConvention namingConvention,
+            List<String> prophesizedTypeNames,
+            boolean dryRun,
+            PrintStream out,
+            PrintStream err
+    ) {
+        if (prophesizedTypeNames.isEmpty()) {
+            return;
+        }
+        for (int i = 0; i < specs.size(); i++) {
+            DiscoveredSpec spec = specs.get(i);
+            // Collect only the types prophesized by this spec's source file
+            File specFile = spec.specFile();
+            if (specFile == null || !specFile.exists()) {
+                continue;
+            }
+            List<String> typesForThisSpec = new ArrayList<String>();
+            try {
+                List<String> found = ProphecyExistenceChecker.findProphesizedInterfaces(specFile);
+                for (int j = 0; j < prophesizedTypeNames.size(); j++) {
+                    if (found.contains(prophesizedTypeNames.get(j))) {
+                        typesForThisSpec.add(prophesizedTypeNames.get(j));
+                    }
+                }
+            } catch (IOException ex) {
+                err.println("I/O error scanning spec for prophecy helpers: " + messageOf(ex));
+                continue;
+            }
+            if (typesForThisSpec.isEmpty()) {
+                continue;
+            }
+            // The support file lives only in generatedSourcesRoot, never in src
+            org.javaspec.model.DescribedClass describedClass = spec.describedClass();
+            SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(
+                    spec.describedType(), specRoot, generatedSourcesRoot, namingConvention);
+            File supportFile = supportPlan.targetFile();
+            if (!supportFile.isFile()) {
+                continue;
+            }
+            try {
+                String source = new String(
+                        java.nio.file.Files.readAllBytes(supportFile.toPath()),
+                        java.nio.charset.StandardCharsets.UTF_8);
+                String updated = SpecSupportFileGenerator.updateSourceWithProphecyHelpers(
+                        source, spec.describedType(), typesForThisSpec);
+                if (!source.equals(updated)) {
+                    if (dryRun) {
+                        out.println("Would add prophecy helpers to support: " + supportFile.getPath());
+                    } else {
+                        java.nio.file.Files.write(
+                                supportFile.toPath(),
+                                updated.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                        out.println("Updated prophecy helpers in support: " + supportFile.getPath());
+                    }
+                }
+            } catch (IOException ex) {
+                err.println("I/O error updating prophecy helpers in support: " + messageOf(ex));
+            }
         }
     }
 
