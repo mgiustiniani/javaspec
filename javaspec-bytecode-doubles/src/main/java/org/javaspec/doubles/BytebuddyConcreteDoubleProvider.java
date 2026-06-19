@@ -73,11 +73,9 @@ public final class BytebuddyConcreteDoubleProvider implements ConcreteDoubleProv
     @Override
     public <T> InterfaceDouble<T> createDouble(Class<T> type) {
         if (!supports(type)) {
-            String name = (type == null) ? "null" : type.getName();
             throw new IllegalArgumentException(
-                    "Cannot create a concrete double for type: " + name
-                    + ".  Type must be a non-final, non-enum, non-array, non-annotation"
-                    + " concrete class.");
+                    "Cannot create a concrete double.  "
+                    + ConcreteDoubleCapabilities.describe(type));
         }
 
         java.lang.reflect.InvocationHandler handler = Doubles.newDoubleHandler(type);
