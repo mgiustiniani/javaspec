@@ -215,12 +215,12 @@ public class CommentStrippingSourceParserTest {
     }
 
     @Test
-    public void loaderSelectFallsBackToBuiltin() {
-        // With no external providers on the classpath, must return built-in.
+    public void loaderSelectUsesServiceLoaderProviderWhenPresent() {
         JavaSourceParser p = JavaSourceParserLoader.select(
                 Thread.currentThread().getContextClassLoader());
         assertNotNull(p);
         assertTrue(p.isAvailable());
+        assertEquals("delegating-test-parser", p.name());
     }
 
     // -------------------------------------------------------------------------

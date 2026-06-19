@@ -46,6 +46,35 @@ public class ClassMethodUpdaterTest {
     }
 
     @Test
+    public void insertsMissingMethodsEvenWhenSimilarSignaturesAppearOnlyInCommentsOrStrings() {
+        String source = "package com.example;\n\n" +
+                "public class Book {\n" +
+                "    // public String getTitle() { return \"comment only\"; }\n" +
+                "    private String note = \"public void setRating(int rating) {}\";\n" +
+                "}\n";
+        DescribedType type = DescribedType.of(
+                "com.example.Book",
+                JavaTypeKind.CLASS,
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<org.javaspec.model.ConstructorDescriptor>emptyList(),
+                Arrays.asList(
+                        MethodDescriptor.of("getTitle", "String"),
+                        MethodDescriptor.voidMethod("setRating", Arrays.asList("int"), Arrays.asList("rating"))
+                )
+        );
+
+        String updated = ClassMethodUpdater.updateSource(source, type);
+        String updatedAgain = ClassMethodUpdater.updateSource(updated, type);
+
+        assertEquals(updated, updatedAgain);
+        assertEquals(1, countOccurrences(updated, "\n    public String getTitle()"));
+        assertEquals(1, countOccurrences(updated, "\n    public void setRating(int rating)"));
+        assertTrue(!ClassMethodUpdater.hasMissingMethods(updated, type));
+    }
+
+    @Test
     public void insertsMissingInterfaceDeclarationsAndDoesNotDuplicateOnSecondPass() {
         String source = "package com.example;\n\n" +
                 "public interface PaymentGateway {\n" +

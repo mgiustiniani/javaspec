@@ -7,9 +7,13 @@ import org.junit.rules.TemporaryFolder;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.jar.JarEntry;
+import java.util.jar.JarOutputStream;
 
 import javax.tools.ToolProvider;
 
@@ -212,6 +216,116 @@ public class MainPhase29CompileCliTest {
     }
 
     @Test
+    public void runCompileUsesResolvePomDependenciesForCompilationAndExecution() throws Exception {
+        requireJdkCompiler();
+        File repo = temporaryFolder.newFolder("resolve-pom-repo");
+        installFakeDependency(repo, "com.external", "helper", "1.0", "com.external.Helper",
+                "public class Helper {\n" +
+                        "    public static String message() { return \"from dependency\"; }\n" +
+                        "}\n");
+        File consumerProject = temporaryFolder.newFolder("consumer-project");
+        File rootPom = new File(consumerProject, "pom.xml");
+        writeFile(rootPom,
+                "<project>\n" +
+                        "  <groupId>consumer</groupId><artifactId>consumer</artifactId><version>1.0</version>\n" +
+                        "  <dependencies>\n" +
+                        "    <dependency>\n" +
+                        "      <groupId>com.external</groupId><artifactId>helper</artifactId><version>1.0</version>\n" +
+                        "    </dependency>\n" +
+                        "  </dependencies>\n" +
+                        "</project>\n");
+        File sourceRoot = temporaryFolder.newFolder("resolve-pom-source-root");
+        File specRoot = temporaryFolder.newFolder("resolve-pom-spec-root");
+        File compileOutput = new File(temporaryFolder.getRoot(), "resolve-pom-classes");
+        writeSource(specRoot, "spec.com.external.HelperSpec",
+                "public class HelperSpec {\n" +
+                        "    public void it_uses_external_dependency_from_resolved_pom() {\n" +
+                        "        if (!\"from dependency\".equals(com.external.Helper.message())) {\n" +
+                        "            throw new AssertionError(\"dependency was not resolved\");\n" +
+                        "        }\n" +
+                        "    }\n" +
+                        "}\n");
+        String previousRepo = System.getProperty("maven.repo.local");
+        try {
+            System.setProperty("maven.repo.local", repo.getAbsolutePath());
+            CommandResult result = run(
+                    "run",
+                    "--spec-dir", specRoot.getAbsolutePath(),
+                    "--source-dir", sourceRoot.getAbsolutePath(),
+                    "--resolve-pom", rootPom.getAbsolutePath(),
+                    "--compile",
+                    "--compile-output", compileOutput.getAbsolutePath()
+            );
+            assertEquals("stdout:\n" + result.out + "\nstderr:\n" + result.err, 0, result.exitCode);
+            assertContains(result.out, "Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped, 0 pending.");
+            assertEquals("", result.err);
+        } finally {
+            restoreProperty("maven.repo.local", previousRepo);
+        }
+    }
+
+    @Test
+    public void runCompileReleaseWritesExpectedClassFileMajorVersion() throws Exception {
+        requireJdkCompiler();
+        File sourceRoot = temporaryFolder.newFolder("release-source-root");
+        File specRoot = temporaryFolder.newFolder("release-spec-root");
+        File compileOutput = new File(temporaryFolder.getRoot(), "release-classes");
+        writeSource(sourceRoot, "com.phase29.ReleaseSubject",
+                "public class ReleaseSubject { public String message() { return \"release\"; } }\n");
+        writeSource(specRoot, "spec.com.phase29.ReleaseSubjectSpec",
+                "public class ReleaseSubjectSpec {\n" +
+                        "    public void it_runs() { new com.phase29.ReleaseSubject().message(); }\n" +
+                        "}\n");
+
+        CommandResult result = run(
+                "run",
+                "--spec-dir", specRoot.getAbsolutePath(),
+                "--source-dir", sourceRoot.getAbsolutePath(),
+                "--compile",
+                "--release", "8",
+                "--compile-output", compileOutput.getAbsolutePath()
+        );
+
+        assertEquals(0, result.exitCode);
+        assertEquals(52, classFileMajorVersion(classFileFor(compileOutput, "com.phase29.ReleaseSubject")));
+    }
+
+    @Test
+    public void runCompileSecondRunUsesIncrementalCache() throws Exception {
+        requireJdkCompiler();
+        File sourceRoot = temporaryFolder.newFolder("cache-source-root");
+        File specRoot = temporaryFolder.newFolder("cache-spec-root");
+        File compileOutput = new File(temporaryFolder.getRoot(), "cache-classes");
+        writeSource(sourceRoot, "com.phase29.CacheSubject",
+                "public class CacheSubject { public String message() { return \"cache\"; } }\n");
+        writeSource(specRoot, "spec.com.phase29.CacheSubjectSpec",
+                "public class CacheSubjectSpec {\n" +
+                        "    public void it_runs() { new com.phase29.CacheSubject().message(); }\n" +
+                        "}\n");
+
+        CommandResult first = run(
+                "run",
+                "--spec-dir", specRoot.getAbsolutePath(),
+                "--source-dir", sourceRoot.getAbsolutePath(),
+                "--compile",
+                "--compile-output", compileOutput.getAbsolutePath()
+        );
+        CommandResult second = run(
+                "run",
+                "--spec-dir", specRoot.getAbsolutePath(),
+                "--source-dir", sourceRoot.getAbsolutePath(),
+                "--compile",
+                "--compile-output", compileOutput.getAbsolutePath()
+        );
+
+        assertEquals(0, first.exitCode);
+        assertContains(first.out, "Compiled 2 source file(s) to " + compileOutput.getAbsolutePath() + ".");
+        assertEquals(0, second.exitCode);
+        assertContains(second.out, "Compilation up to date (2 source file(s), "
+                + compileOutput.getAbsolutePath() + ").");
+    }
+
+    @Test
     public void describeRejectsCompileOptions() throws Exception {
         File specRoot = temporaryFolder.newFolder("describe-compile-spec-root");
         File compileOutput = new File(temporaryFolder.getRoot(), "describe-compile-classes");
@@ -275,6 +389,72 @@ public class MainPhase29CompileCliTest {
 
     private static String readFile(File file) throws Exception {
         return new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+    }
+
+    private static void installFakeDependency(
+            File repo,
+            String groupId,
+            String artifactId,
+            String version,
+            String className,
+            String sourceBody
+    ) throws Exception {
+        File work = new File(repo.getParentFile(), artifactId + "-work");
+        File sourceRoot = new File(work, "src");
+        File classes = new File(work, "classes");
+        writeSource(sourceRoot, className, sourceBody);
+        assertTrue(classes.mkdirs());
+        int compileExit = ToolProvider.getSystemJavaCompiler().run(
+                null, null, null,
+                "-d", classes.getAbsolutePath(),
+                sourceFileFor(sourceRoot, className).getAbsolutePath()
+        );
+        assertEquals(0, compileExit);
+
+        File artifactDir = new File(repo,
+                groupId.replace('.', File.separatorChar)
+                        + File.separator + artifactId
+                        + File.separator + version);
+        assertTrue(artifactDir.mkdirs());
+        File jarFile = new File(artifactDir, artifactId + "-" + version + ".jar");
+        writeJar(jarFile, classes, className.replace('.', '/') + ".class");
+        File pomFile = new File(artifactDir, artifactId + "-" + version + ".pom");
+        writeFile(pomFile,
+                "<project><groupId>" + groupId + "</groupId><artifactId>" + artifactId
+                        + "</artifactId><version>" + version + "</version><dependencies/></project>");
+    }
+
+    private static void writeJar(File jarFile, File classesRoot, String classEntryName) throws Exception {
+        JarOutputStream out = new JarOutputStream(new FileOutputStream(jarFile));
+        try {
+            JarEntry entry = new JarEntry(classEntryName);
+            out.putNextEntry(entry);
+            byte[] bytes = Files.readAllBytes(new File(classesRoot, classEntryName).toPath());
+            out.write(bytes);
+            out.closeEntry();
+        } finally {
+            out.close();
+        }
+    }
+
+    private static int classFileMajorVersion(File classFile) throws Exception {
+        FileInputStream in = new FileInputStream(classFile);
+        try {
+            byte[] header = new byte[8];
+            int read = in.read(header);
+            assertEquals(8, read);
+            return ((header[6] & 0xFF) << 8) | (header[7] & 0xFF);
+        } finally {
+            in.close();
+        }
+    }
+
+    private static void restoreProperty(String key, String previousValue) {
+        if (previousValue == null) {
+            System.clearProperty(key);
+        } else {
+            System.setProperty(key, previousValue);
+        }
     }
 
     private static void deleteRecursively(File path) {

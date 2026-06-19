@@ -1,10 +1,21 @@
 package org.javaspec.extension;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import java.io.File;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 
 import static org.junit.Assert.*;
 
 public class ExtensionCatalogTest {
+
+    @Rule
+    public final TemporaryFolder tmp = new TemporaryFolder();
 
     @Test
     public void discoverReturnsNonNullCatalog() {
@@ -24,10 +35,23 @@ public class ExtensionCatalogTest {
     }
 
     @Test
-    public void extensionClassNamesIsNonNull() {
-        ExtensionCatalog catalog = ExtensionCatalog.discover(
+    public void discoversServiceLoaderExtensionProvider() throws Exception {
+        File serviceRoot = tmp.newFolder("service-root");
+        File serviceFile = new File(serviceRoot,
+                "META-INF/services/org.javaspec.extension.JavaspecExtension");
+        assertTrue(serviceFile.getParentFile().mkdirs());
+        Files.write(serviceFile.toPath(),
+                "org.javaspec.extension.fixtures.CatalogTestExtension\n".getBytes(StandardCharsets.UTF_8));
+        URLClassLoader loader = new URLClassLoader(
+                new URL[] { serviceRoot.toURI().toURL() },
                 Thread.currentThread().getContextClassLoader());
+
+        ExtensionCatalog catalog = ExtensionCatalog.discover(loader);
+
         assertNotNull(catalog.extensionClassNames());
+        assertTrue("test ServiceLoader provider must be discovered",
+                catalog.extensionClassNames().contains(
+                        "org.javaspec.extension.fixtures.CatalogTestExtension"));
     }
 
     @Test

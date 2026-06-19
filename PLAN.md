@@ -40,7 +40,9 @@ classpath, while keeping resolver dependencies out of the core artifact.
 **Status:** **Completed** — `DependencyResolver` SPI + `DependencyResolverLoader` (ServiceLoader);
 `LocalMavenRepoResolver` (JDK-only, offline, transitive, scope-filtered, cycle-safe);
 `ClasspathResolver.withResolvedDependencies()`; `--resolve-pom <file>` CLI flag (run-only);
-`RunCommandHandler` wires resolution into the classpath pipeline; 21 unit tests + 5 CLI tests.
+`RunCommandHandler` wires resolution into the classpath pipeline. Added real end-to-end CLI coverage:
+a POM-resolved dependency JAR is placed in a fake local Maven repository, `javaspec run --resolve-pom
+--compile` compiles a spec that references that external class, and the example executes successfully.
 
 ### Phase 40 — Compilation Pipeline v2 (Completed)
 
@@ -51,7 +53,9 @@ compilation pipeline.
 cache-hit skips recompile, invalidated on failure); `SourceCompilationResult.skipped()` result type;
 `SourceCompiler.isJava9OrLater()` detection; `--release <N>` CLI flag (run-only, maps to
 `--release N` on Java 9+ or `-source N -target N` on Java 8); `CompilationOrchestrator` accepts
-`releaseVersion` and prints 'up to date' on cache hit; 15 unit tests + 4 CLI tests.
+`releaseVersion` and prints 'up to date' on cache hit. Added end-to-end CLI coverage verifying a
+second unchanged `--compile` run prints the cache-hit message, and `--compile --release 8` produces
+class files with major version 52.
 
 ### Phase 41 — Optional Java Parser/Git-Safe Generator Backend (Completed)
 
@@ -62,9 +66,11 @@ Java 8-compatible text heuristics.
 (ServiceLoader, external-first, built-in fallback); `CommentStrippingSourceParser` (built-in default:
 strips line/block comments and string/char literals preserving offsets and newlines, accurate
 `hasMethod()` with generic-type-parameter regex, `typeClosingBraceOffset()` brace-counting on
-stripped text immune to braces in comments/strings); `ClassMethodUpdater.missingMethodsInScope()`
-now dual-checks via SPI parser eliminating false positives from method names in comments/strings;
-21 tests.
+stripped text immune to braces in comments/strings). `ClassMethodUpdater.missingMethodsInScope()` now
+uses `JavaSourceParserLoader.select(...)` so external parsers can actually replace the default at
+runtime; the legacy signature scan is also run against masked code only. Added integration coverage
+proving method signatures in comments/string literals no longer block generated method insertion, and
+ServiceLoader coverage proving an external parser provider is selected.
 
 ### Phase 42 — Extension Discovery, Plugin Lookup, and Classpath Repair (Completed)
 
@@ -75,7 +81,8 @@ ServiceLoader, discovers extensions via ServiceLoader; `print()`, `extensionName
 `classpathRepairSuggestion()` with `--classpath`/`--classpath-file`/`--resolve-pom` hints);
 `JavaspecExtensionActivator.loadExtensionClass()` now appends repair suggestion on
 `ClassNotFoundException`; `list-extensions` CLI command (lists catalog, prints classpath repair
-hints, always exits 0); 10 tests.
+hints, always exits 0). Added real ServiceLoader coverage with a temporary `META-INF/services`
+provider visible only through a test `URLClassLoader`, avoiding global test-classpath pollution.
 
 ### Phase 43 — Doubles and Prophecy Orchestration v2 (Completed)
 
@@ -90,16 +97,18 @@ scenarios while staying inside the core JDK-proxy boundary.
 `StubbedInvocation.ANSWER_SEQUENCE` kind; `StubbedInvocation.returningSequenceThenThrowing()`;
 10 new tests covering all new APIs.
 
-### Phase 44 — Bytecode Doubles v2 for Final/Static/Constructor Cases (Completed)
+### Phase 44 — Bytecode Doubles v2 for Final/Static/Constructor Cases (Partially Completed — Agent Work Pending)
 
 **Goal:** address mocking needs that cannot be implemented with core JDK proxies.
 
-**Status:** **Completed** — `ConcreteDoubleCapabilities` in `javaspec-bytecode-doubles`:
-`isSupported(Class)`, `describe(Class)` (rich explanation for final classes with agent/self-attach
-workaround steps, interfaces redirected to core API, unsupported types), `staticMethodLimitationNote()`
-(interface-wrap and seam workarounds), `constructorInterceptionLimitationNote()` (injection/factory
-workarounds); future `javaspec-bytecode-agent` artifact documented; `BytebuddyConcreteDoubleProvider`
-error messages now incorporate capability descriptions; 14 tests.
+**Status:** **Partially completed only.** `ConcreteDoubleCapabilities` in `javaspec-bytecode-doubles`
+provides `isSupported(Class)`, `describe(Class)` (rich explanation for final classes with
+agent/self-attach workaround steps, interfaces redirected to core API, unsupported types),
+`staticMethodLimitationNote()` and `constructorInterceptionLimitationNote()`; `BytebuddyConcreteDoubleProvider`
+error messages incorporate these descriptions. This is diagnostic hardening, not actual final/static/
+constructor mocking. Completing the original goal requires a new optional `javaspec-bytecode-agent`
+artifact using `java.lang.instrument`/ByteBuddy Agent with explicit JVM/attach requirements. That
+work is not part of the zero-dependency core and remains open.
 
 ### Phase 45 — Verification, Documentation, and Release Hardening (In Progress)
 
@@ -108,16 +117,21 @@ error messages now incorporate capability descriptions; 14 tests.
 **Completed so far:**
 - `scripts/check-version-alignment.sh` extended to cover `javaspec-bytecode-doubles` and
   `<javaspec.version>` property (Phase 38).
-- `PLAN.md` updated with completed Phase 38-44 status (this entry).
+- `PLAN.md` updated with completed Phase 38-43 status and Phase 44 reclassified honestly as
+  partially completed until agent-backed mocking exists.
+- README and user manual document `--resolve-pom`, `--release`, `list-extensions`, `prophesize`,
+  `ArgumentCaptor`, `verifyInOrder`, `thenAnswerSequence`, and `thenReturnThenThrow`.
+- Core tests include real end-to-end coverage for POM dependency resolution, `--release` bytecode
+  major version, incremental compile cache hits, parser/updater integration, parser ServiceLoader
+  replacement, and extension ServiceLoader catalog discovery.
 - `mvn -q test` + `mvn -q -f javaspec-bytecode-doubles/pom.xml test` both pass green.
 - `check-version-alignment.sh` passes for all 0.1.0-SNAPSHOT references.
 
 **Remaining:**
-- Update README and user manual for new CLI flags (`--resolve-pom`, `--release`,
-  `list-extensions`) and new double APIs (`ArgumentCaptor`, `verifyInOrder`,
-  `thenAnswerSequence`, `thenReturnThenThrow`).
+- Implement optional `javaspec-bytecode-agent` for actual final-class/static-method/constructor
+  interception, or explicitly remove those goals from the roadmap.
 - Decide on Gradle Wrapper addition for `verify-all.sh` self-sufficiency.
-- Prepare release notes distinguishing core vs. optional adapter features.
+- Prepare release notes distinguishing core, optional adapter, and not-yet-implemented agent features.
 - Add aggregate verification profile once examples align to snapshot artifacts.
 
 ## Course Correction — Gradle Plugin Test and Example Dependency Version (ADR 0025)

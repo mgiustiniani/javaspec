@@ -318,7 +318,7 @@ public final class ClassMethodUpdater {
     private static List<MethodDescriptor> missingMethodsInScope(String scopeSource, List<MethodDescriptor> methods) {
         // Use the comment-stripping parser (SPI) to detect existing methods, eliminating false
         // positives from method names that appear inside comments or string literals.
-        ParsedSource parsed = JavaSourceParserLoader.defaultParser().parse(scopeSource);
+        ParsedSource parsed = JavaSourceParserLoader.select(effectiveParserClassLoader()).parse(scopeSource);
         Set<String> existingSignatures = existingMethodSignatures(scopeSource);
         List<MethodDescriptor> missing = new ArrayList<MethodDescriptor>();
         Set<String> plannedSignatures = new LinkedHashSet<String>();
@@ -480,7 +480,8 @@ public final class ClassMethodUpdater {
 
     private static Set<String> existingMethodSignatures(String source) {
         Set<String> signatures = new LinkedHashSet<String>();
-        Matcher matcher = METHOD_SIGNATURE_PATTERN.matcher(source);
+        String codeOnlySource = maskNonCode(source);
+        Matcher matcher = METHOD_SIGNATURE_PATTERN.matcher(codeOnlySource);
         while (matcher.find()) {
             String returnType = matcher.group(1);
             if (isStatementKeyword(returnType)) {
@@ -491,6 +492,14 @@ public final class ClassMethodUpdater {
             signatures.add(signatureKey(methodName, parameterTypes));
         }
         return signatures;
+    }
+
+    private static ClassLoader effectiveParserClassLoader() {
+        ClassLoader context = Thread.currentThread().getContextClassLoader();
+        if (context != null) {
+            return context;
+        }
+        return ClassMethodUpdater.class.getClassLoader();
     }
 
     private static boolean isStatementKeyword(String value) {
