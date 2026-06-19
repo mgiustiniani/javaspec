@@ -89,6 +89,43 @@ public class MainTest {
     // -------------------------------------------------------------------------
     // --resolve-pom CLI integration tests
 
+    // -------------------------------------------------------------------------
+    // --release CLI integration tests
+
+    @Test
+    public void releaseWithInvalidVersionExitsWithUsageError() {
+        CommandResult result = run("run", "--release", "abc");
+        assertEquals(64, result.exitCode);
+        assertTrue(result.err.contains("Error:"));
+        assertTrue(result.err.contains("--release") || result.err.contains("release"));
+    }
+
+    @Test
+    public void releaseWithEmptyValueExitsWithUsageError() {
+        CommandResult result = run("run", "--release", "");
+        assertEquals(64, result.exitCode);
+        assertTrue(result.err.contains("Error:"));
+    }
+
+    @Test
+    public void releaseOnDescribeCommandExitsWithUsageError() {
+        CommandResult result = run("describe", "--release", "11", "com.example.Foo");
+        assertEquals(64, result.exitCode);
+        assertTrue(result.err.contains("Error:"));
+        assertTrue(result.err.contains("--release"));
+    }
+
+    @Test
+    public void releaseOnProphesizeCommandExitsWithUsageError() {
+        CommandResult result = run("prophesize", "--release", "11", "java.util.List");
+        assertEquals(64, result.exitCode);
+        assertTrue(result.err.contains("Error:"));
+        assertTrue(result.err.contains("--release"));
+    }
+
+    // -------------------------------------------------------------------------
+    // --resolve-pom CLI integration tests
+
     @Test
     public void resolvePomWithMissingFileExitsWithUsageError() {
         CommandResult result = run("run", "--resolve-pom", "no-such-file.xml");

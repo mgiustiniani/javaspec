@@ -35,19 +35,51 @@ public final class SourceCompiler {
     private SourceCompiler() {
     }
 
+    /**
+     * Compiles sources from the given roots into {@code outputDirectory}.
+     * Equivalent to calling the four-argument overload with {@code sourceRoots} as
+     * the source-path roots and no release version.
+     */
     public static SourceCompilationResult compile(
             List<File> sourceRoots,
             File outputDirectory,
             List<File> explicitClasspathEntries
     ) throws IOException {
-        return compile(sourceRoots, outputDirectory, explicitClasspathEntries, sourceRoots);
+        return compile(sourceRoots, outputDirectory, explicitClasspathEntries, sourceRoots, null);
     }
 
+    /**
+     * Compiles sources with an explicit source-path (for generated-source directories) and
+     * no release version.
+     */
     public static SourceCompilationResult compile(
             List<File> sourceRoots,
             File outputDirectory,
             List<File> explicitClasspathEntries,
             List<File> sourcePathRoots
+    ) throws IOException {
+        return compile(sourceRoots, outputDirectory, explicitClasspathEntries, sourcePathRoots, null);
+    }
+
+    /**
+     * Full compilation entry point.
+     *
+     * @param sourceRoots           directories scanned for {@code .java} compilation units
+     * @param outputDirectory       directory where compiled {@code .class} files are written
+     * @param explicitClasspathEntries extra classpath entries (resolved dependencies, etc.)
+     * @param sourcePathRoots       directories placed on the javac {@code -sourcepath}
+     *                              (includes generated-source directories)
+     * @param releaseVersion        optional Java release target ({@code "8"}, {@code "11"}, …);
+     *                              {@code null} means no release option is passed to javac
+     * @return compilation result
+     * @throws IOException if the output directory cannot be created or sources cannot be listed
+     */
+    public static SourceCompilationResult compile(
+            List<File> sourceRoots,
+            File outputDirectory,
+            List<File> explicitClasspathEntries,
+            List<File> sourcePathRoots,
+            String releaseVersion
     ) throws IOException {
         Objects.requireNonNull(sourceRoots, "sourceRoots must not be null");
         Objects.requireNonNull(outputDirectory, "outputDirectory must not be null");
@@ -66,6 +98,15 @@ public final class SourceCompiler {
 
         ensureOutputDirectory(outputDirectory);
 
+        List<String> options = compilerOptions(
+                outputDirectory, explicitClasspathEntries, sourcePathRoots, releaseVersion);
+
+        // Incremental cache check: skip compilation if nothing has changed.
+        CompilationCache cache = new CompilationCache(outputDirectory);
+        if (cache.isUpToDate(sourceFiles, explicitClasspathEntries, options)) {
+            return SourceCompilationResult.skipped(outputDirectory, sourceFiles.size());
+        }
+
         DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<JavaFileObject>();
         StandardJavaFileManager fileManager = compiler.getStandardFileManager(
                 diagnostics,
@@ -80,7 +121,7 @@ public final class SourceCompiler {
                     compilerOutput,
                     fileManager,
                     diagnostics,
-                    compilerOptions(outputDirectory, explicitClasspathEntries, sourcePathRoots),
+                    options,
                     null,
                     compilationUnits
             );
@@ -90,8 +131,10 @@ public final class SourceCompiler {
         }
 
         if (Boolean.TRUE.equals(successful)) {
+            cache.save(sourceFiles, explicitClasspathEntries, options);
             return SourceCompilationResult.success(outputDirectory, sourceFiles.size());
         }
+        cache.invalidate();
         return SourceCompilationResult.failure(
                 outputDirectory,
                 sourceFiles.size(),
@@ -153,7 +196,8 @@ public final class SourceCompiler {
     private static List<String> compilerOptions(
             File outputDirectory,
             List<File> explicitClasspathEntries,
-            List<File> sourcePathRoots
+            List<File> sourcePathRoots,
+            String releaseVersion
     ) {
         List<String> options = new ArrayList<String>();
         options.add("-d");
@@ -164,7 +208,48 @@ public final class SourceCompiler {
         options.add(sourcePath(sourcePathRoots));
         options.add("-encoding");
         options.add(ENCODING);
+        if (releaseVersion != null && !releaseVersion.isEmpty()) {
+            addReleaseOptions(options, releaseVersion);
+        }
         return options;
+    }
+
+    /**
+     * Adds Java release-target options to the compiler options list.
+     *
+     * <p>On JDK 9+, {@code --release N} is used (preferred because it also
+     * restricts the API to the target release).  On JDK 8, the equivalent
+     * {@code -source N -target N} pair is used instead because {@code --release}
+     * is not available.</p>
+     */
+    private static void addReleaseOptions(List<String> options, String releaseVersion) {
+        if (isJava9OrLater()) {
+            options.add("--release");
+            options.add(releaseVersion);
+        } else {
+            options.add("-source");
+            options.add(releaseVersion);
+            options.add("-target");
+            options.add(releaseVersion);
+        }
+    }
+
+    /**
+     * Returns {@code true} if the current JVM is Java 9 or later.
+     * Uses {@code java.specification.version} which is {@code "1.8"} on Java 8
+     * and {@code "9"}, {@code "11"}, etc. on later versions.
+     */
+    static boolean isJava9OrLater() {
+        String version = System.getProperty("java.specification.version", "1.8");
+        if (version.startsWith("1.")) {
+            // Java 8 and earlier: "1.8", "1.7", etc.
+            return false;
+        }
+        try {
+            return Integer.parseInt(version) >= 9;
+        } catch (NumberFormatException ex) {
+            return false;
+        }
     }
 
     private static String sourcePath(List<File> sourcePathRoots) {

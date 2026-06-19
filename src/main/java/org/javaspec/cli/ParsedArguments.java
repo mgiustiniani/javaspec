@@ -65,6 +65,7 @@ public final class ParsedArguments {
     boolean prophesizeOverwrite;
     String resolvePomPath;
     boolean resolvePomSpecified;
+    String releaseVersion;
 
     public ParsedArguments() {
     }

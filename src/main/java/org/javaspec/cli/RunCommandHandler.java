@@ -168,6 +168,7 @@ final class RunCommandHandler implements CommandHandler {
                     specRoot,
                     new File(Main.DEFAULT_GENERATED_SOURCES),
                     classpathSelection,
+                    parsed.releaseVersion,
                     out,
                     err
             );

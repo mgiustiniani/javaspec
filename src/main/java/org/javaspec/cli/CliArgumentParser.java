@@ -267,6 +267,23 @@ public final class CliArgumentParser {
             } else if ("--overwrite".equals(arg)) {
                 parsed.prophesizeOverwrite = true;
                 index++;
+            } else if ("--release".equals(arg)) {
+                if (index + 1 >= args.length) {
+                    parsed.errorMessage = "Missing value for " + arg + ".";
+                    return parsed;
+                }
+                String release = args[index + 1].trim();
+                if (release.length() == 0) {
+                    parsed.errorMessage = "Release version must not be empty.";
+                    return parsed;
+                }
+                if (!isValidReleaseVersion(release)) {
+                    parsed.errorMessage = "Invalid release version: " + release
+                            + ". Expected a positive integer (e.g. 8, 11, 17, 21).";
+                    return parsed;
+                }
+                parsed.releaseVersion = release;
+                index += 2;
             } else if ("--resolve-pom".equals(arg)) {
                 if (index + 1 >= args.length) {
                     parsed.errorMessage = "Missing value for " + arg + ".";
@@ -349,6 +366,10 @@ public final class CliArgumentParser {
             }
             if (parsed.resolvePomSpecified) {
                 parsed.errorMessage = "The --resolve-pom option belongs to run; describe does not execute examples.";
+                return parsed;
+            }
+            if (parsed.releaseVersion != null) {
+                parsed.errorMessage = "The --release option belongs to run; describe does not execute examples.";
                 return parsed;
             }
             if (parsed.sourceRootSpecified) {
@@ -440,6 +461,10 @@ public final class CliArgumentParser {
                 parsed.errorMessage = "The --resolve-pom option belongs to run.";
                 return parsed;
             }
+            if (parsed.releaseVersion != null) {
+                parsed.errorMessage = "The --release option belongs to run.";
+                return parsed;
+            }
             if (parsed.verbose) {
                 parsed.errorMessage = "The --verbose option belongs to run.";
                 return parsed;
@@ -458,6 +483,15 @@ public final class CliArgumentParser {
 
         parsed.errorMessage = "Unknown command: " + operands.get(0);
         return parsed;
+    }
+
+    private static boolean isValidReleaseVersion(String value) {
+        try {
+            int v = Integer.parseInt(value);
+            return v > 0;
+        } catch (NumberFormatException ex) {
+            return false;
+        }
     }
 
     private static String normalizeFormatter(String formatter) {

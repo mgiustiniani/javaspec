@@ -19,6 +19,7 @@ public final class SourceCompilationResult {
 
     private final boolean compilerAvailable;
     private final boolean successful;
+    private final boolean skipped;
     private final int sourceFileCount;
     private final File outputDirectory;
     private final List<String> diagnostics;
@@ -26,27 +27,41 @@ public final class SourceCompilationResult {
     private SourceCompilationResult(
             boolean compilerAvailable,
             boolean successful,
+            boolean skipped,
             int sourceFileCount,
             File outputDirectory,
             List<String> diagnostics
     ) {
         this.compilerAvailable = compilerAvailable;
         this.successful = successful;
+        this.skipped = skipped;
         this.sourceFileCount = sourceFileCount;
         this.outputDirectory = Objects.requireNonNull(outputDirectory, "outputDirectory must not be null");
         this.diagnostics = immutableDiagnostics(diagnostics);
     }
 
     public static SourceCompilationResult compilerUnavailable(File outputDirectory, int sourceFileCount) {
-        return new SourceCompilationResult(false, false, sourceFileCount, outputDirectory, EMPTY_DIAGNOSTICS);
+        return new SourceCompilationResult(false, false, false, sourceFileCount, outputDirectory, EMPTY_DIAGNOSTICS);
     }
 
     public static SourceCompilationResult success(File outputDirectory, int sourceFileCount) {
-        return new SourceCompilationResult(true, true, sourceFileCount, outputDirectory, EMPTY_DIAGNOSTICS);
+        return new SourceCompilationResult(true, true, false, sourceFileCount, outputDirectory, EMPTY_DIAGNOSTICS);
     }
 
     public static SourceCompilationResult failure(File outputDirectory, int sourceFileCount, List<String> diagnostics) {
-        return new SourceCompilationResult(true, false, sourceFileCount, outputDirectory, diagnostics);
+        return new SourceCompilationResult(true, false, false, sourceFileCount, outputDirectory, diagnostics);
+    }
+
+    /**
+     * Returns a result representing a cache hit: compilation was skipped because
+     * nothing has changed since the last successful compile.
+     *
+     * @param outputDirectory the output directory that already contains up-to-date classes
+     * @param sourceFileCount the number of source files that were fingerprinted
+     * @return a skipped result
+     */
+    public static SourceCompilationResult skipped(File outputDirectory, int sourceFileCount) {
+        return new SourceCompilationResult(true, true, true, sourceFileCount, outputDirectory, EMPTY_DIAGNOSTICS);
     }
 
     public boolean compilerAvailable() {
@@ -63,6 +78,15 @@ public final class SourceCompilationResult {
 
     public boolean isSuccessful() {
         return successful;
+    }
+
+    /** Returns {@code true} when compilation was skipped due to an up-to-date cache hit. */
+    public boolean skipped() {
+        return skipped;
+    }
+
+    public boolean isSkipped() {
+        return skipped;
     }
 
     public int sourceFileCount() {

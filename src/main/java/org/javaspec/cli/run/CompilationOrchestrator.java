@@ -37,12 +37,47 @@ public final class CompilationOrchestrator {
      * @return an updated classpath selection (with compile output), or an error
      *         selection with a non-zero exit code
      */
+    /**
+     * Compiles with no explicit Java release target.
+     * Equivalent to calling {@link #compile(String, File, File, File, ClasspathSelection, String, PrintStream, PrintStream)}
+     * with {@code releaseVersion = null}.
+     */
     public static ClasspathSelection compile(
             String compileOutputPath,
             File sourceRoot,
             File specRoot,
             File generatedSourcesRoot,
             ClasspathSelection classpathSelection,
+            PrintStream out,
+            PrintStream err
+    ) {
+        return compile(compileOutputPath, sourceRoot, specRoot, generatedSourcesRoot,
+                classpathSelection, null, out, err);
+    }
+
+    /**
+     * Compiles source and spec trees and returns an updated {@link ClasspathSelection}
+     * that includes the compile output directory.
+     *
+     * @param compileOutputPath    the output directory for compiled classes
+     * @param sourceRoot           production source root
+     * @param specRoot             spec source root
+     * @param generatedSourcesRoot generated source root containing support/wrapper classes
+     * @param classpathSelection   the base classpath selection
+     * @param releaseVersion       optional Java release target (e.g. {@code "11"}); {@code null}
+     *                             means no release option
+     * @param out                  output stream for diagnostic messages
+     * @param err                  error stream for diagnostic messages
+     * @return an updated classpath selection (with compile output), or an error
+     *         selection with a non-zero exit code
+     */
+    public static ClasspathSelection compile(
+            String compileOutputPath,
+            File sourceRoot,
+            File specRoot,
+            File generatedSourcesRoot,
+            ClasspathSelection classpathSelection,
+            String releaseVersion,
             PrintStream out,
             PrintStream err
     ) {
@@ -53,7 +88,8 @@ public final class CompilationOrchestrator {
                     compilationSourceRoots(sourceRoot, specRoot),
                     outputDirectory,
                     classpathSelection.entries(),
-                    compilationSourcePathRoots(sourceRoot, specRoot, generatedSourcesRoot)
+                    compilationSourcePathRoots(sourceRoot, specRoot, generatedSourcesRoot),
+                    releaseVersion
             );
         } catch (NoClassDefFoundError ex) {
             printCompilerUnavailable(err);
@@ -78,6 +114,11 @@ public final class CompilationOrchestrator {
         }
         if (result.sourceFileCount() == 0) {
             return classpathSelection;
+        }
+        if (result.skipped()) {
+            out.println("Compilation up to date (" + result.sourceFileCount()
+                    + " source file(s), " + result.outputDirectory().getPath() + ").");
+            return ClasspathResolver.withCompileOutput(result.outputDirectory(), classpathSelection, err);
         }
 
         out.println("Compiled " + result.sourceFileCount() + " source file(s) to "
