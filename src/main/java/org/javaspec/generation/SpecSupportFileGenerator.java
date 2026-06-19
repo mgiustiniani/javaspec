@@ -99,26 +99,20 @@ public final class SpecSupportFileGenerator {
         if (hasProphecyHelper(source, helperName)) {
             return source;
         }
-        // Determine the double factory: interface → Doubles.interfaceDouble, concrete → Doubles.concreteDouble
-        // We cannot reflect at generation time whether it is final/concrete without the class on classpath,
-        // so we emit Prophecies.prophesize() which dispatches correctly at runtime.
-        // The helper returns ObjectProphecy<T> — the generated typed wrapper (FooProphecy) lives
-        // entirely in target/generated-sources/javaspec and is invisible to the spec author.
-        // The spec declares:  ObjectProphecy<Mailer> m = prophesizeMailer();
-        // and uses:           m.method("send", ...).willReturn(true);  m.reveal();
-        // Typed MethodProphecy access (m.send(...)) is available on Java 10+ via: var m = prophesizeMailer();
+        // Return type is the typed wrapper (e.g. MailerProphecy) so:
+        //   Java 8:   MailerProphecy m = prophesizeMailer();   m.send(...).willReturn(true);
+        //   Java 10+: var m = prophesizeMailer();              m.send(...).willReturn(true);
+        // The wrapper class lives only in target/generated-sources/javaspec, never in src/.
         String wrapperFqcn = typeName + "Prophecy";
         StringBuilder block = new StringBuilder();
         block.append("    /**\n");
-        block.append("     * Returns a prophecy for {@link ").append(typeName).append("}\n");
+        block.append("     * Returns a typed prophecy for {@code ").append(simpleName).append("}\n");
         block.append("     * backed by this spec's shared {@link org.javaspec.doubles.prophecy.PredictionRegistry}.\n");
-        block.append("     * <p>Declare the variable as {@code ObjectProphecy<").append(simpleName).append(">}\n");
-        block.append("     * for Java 8, or use {@code var} on Java 10+ to get typed method access.</p>\n");
-        block.append("     * Generated — lives only in {@code target/generated-sources/javaspec}.\n");
+        block.append("     *\n");
+        block.append("     * <p>Java 8: {@code ").append(wrapperFqcn).append(" m = ").append(helperName).append("();}\n");
+        block.append("     * Java 10+: {@code var m = ").append(helperName).append("();}</p>\n");
         block.append("     */\n");
-        // Return type is ObjectProphecy<T> so the spec never mentions FooProphecy explicitly.
-        block.append("    protected org.javaspec.doubles.prophecy.ObjectProphecy<").append(typeName).append("> ")
-                .append(helperName).append("() {\n");
+        block.append("    protected ").append(wrapperFqcn).append(" ").append(helperName).append("() {\n");
         block.append("        org.javaspec.doubles.InterfaceDouble<").append(typeName).append("> handle =\n");
         block.append("            ").append(typeName).append(".class.isInterface()\n");
         block.append("                ? org.javaspec.doubles.Doubles.interfaceDouble(").append(typeName).append(".class)\n");
@@ -126,8 +120,7 @@ public final class SpecSupportFileGenerator {
         block.append("        return new ").append(wrapperFqcn).append("(handle, prophecyRegistry());\n");
         block.append("    }\n\n");
         block.append("    /** Alias for {@link #").append(helperName).append("()}. */\n");
-        block.append("    protected org.javaspec.doubles.prophecy.ObjectProphecy<").append(typeName).append("> ")
-                .append("prophecy").append(simpleName).append("() {\n");
+        block.append("    protected ").append(wrapperFqcn).append(" prophecy").append(simpleName).append("() {\n");
         block.append("        return ").append(helperName).append("();\n");
         block.append("    }\n");
         return insertBeforeSupportClassClose(source, describedType, block.toString());

@@ -45,12 +45,12 @@ public class SpecSupportProphecyHelperTest {
 
         assertTrue("must declare prophesizeNotifier()", updated.contains("prophesizeNotifier()"));
         assertTrue("must declare prophecyNotifier()", updated.contains("prophecyNotifier()"));
-        // Return type must be ObjectProphecy<T>, NOT FooProphecy — wrapper stays invisible to spec
-        assertTrue("return type must be ObjectProphecy<T>",
-                updated.contains("ObjectProphecy<com.example.Notifier>"));
-        assertFalse("wrapper class name must NOT appear in return type",
-                updated.contains("NotifierProphecy prophesizeNotifier") ||
-                updated.contains("NotifierProphecy prophecyNotifier"));
+        // Return type must be the typed wrapper — spec uses B style (MailerProphecy m = prophesizeMailer())
+        // or D style on Java 10+ (var m = prophesizeMailer())
+        assertTrue("return type must be the typed wrapper",
+                updated.contains("com.example.NotifierProphecy prophesizeNotifier"));
+        assertTrue("alias must also be typed wrapper",
+                updated.contains("com.example.NotifierProphecy prophecyNotifier"));
         assertTrue("must use Doubles dispatch",
                 updated.contains("org.javaspec.doubles.Doubles.interfaceDouble") ||
                 updated.contains("org.javaspec.doubles.Doubles.concreteDouble") ||
@@ -67,10 +67,8 @@ public class SpecSupportProphecyHelperTest {
                 Arrays.asList("com.example.DataStore"));
 
         assertTrue("must declare prophesizeDataStore()", updated.contains("prophesizeDataStore()"));
-        assertTrue("return type must be ObjectProphecy<T> not DataStoreProphecy",
-                updated.contains("ObjectProphecy<com.example.DataStore>"));
-        assertFalse("DataStoreProphecy must not appear in return type",
-                updated.contains("DataStoreProphecy prophesizeDataStore"));
+        assertTrue("return type must be the typed wrapper",
+                updated.contains("com.example.DataStoreProphecy prophesizeDataStore"));
     }
 
     // -------------------------------------------------------------------------
