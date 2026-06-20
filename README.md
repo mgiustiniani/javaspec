@@ -211,7 +211,7 @@ Other commands:
 
 ```sh
 javaspec list-extensions     # list discovered formatters and extensions + classpath hints
-javaspec prophesize <Class>  # generate typed Prophecy wrapper for an interface
+javaspec prophesize <Class>  # generate typed Prophecy wrapper for an interface or concrete class
 ```
 
 Exit codes are stable: `0` for success, `1` for failed/broken examples or declined/pending generation work, `64` for usage/profile/compiler/bootstrap errors, and `70` for I/O failures.
@@ -555,7 +555,7 @@ The core prophecy types live in `org.javaspec.doubles.prophecy`:
 
 | Type | Purpose |
 |---|---|
-| `ObjectProphecy<T>` | Prophecy about an object of type `T` — wraps an `InterfaceDouble<T>` |
+| `ObjectProphecy<T>` | Prophecy about an object of type `T` — wraps an `InterfaceDouble<T>` produced by core interface doubles or an optional concrete-double adapter |
 | `MethodProphecy<R>` | Prophecy about a specific method call — stub setup and predictions |
 | `Promise<R>` | A promised return value or side-effect (`willReturn`, `willThrow`, `will`) |
 | `Prediction` | A verification that a method was called, not called, or called N times |
@@ -606,19 +606,29 @@ reflection-based generator:
 javaspec prophesize com.example.Mailer
 ```
 
-This produces `MailerProphecy extends BaseObjectProphecy<Mailer>` with typed delegation methods,
+This produces `MailerProphecy extends ObjectProphecy<Mailer>` with typed delegation methods,
 so you can call `mailer.send(...)` instead of `mailer.method("send", ...)`:
 
 ```java
-MailerProphecy mailer = new MailerProphecy(
-    Doubles.interfaceDouble(Mailer.class),
-    new PredictionRegistry()
-);
-
+// Java 8+
+MailerProphecy mailer = prophesizeMailer();
 mailer.send(any(String.class), any(String.class), any(String.class))
     .willReturn(true)
     .shouldBeCalled();
 ```
+
+On Java 10+, the same generated helper also supports local-variable inference:
+
+```java
+var mailer = prophesizeMailer();
+mailer.send(any(String.class), any(String.class), any(String.class))
+    .willReturn(true)
+    .shouldBeCalled();
+```
+
+The typed wrapper and the support helper are generated under `target/generated-sources/javaspec`.
+The wrapper is not written to `src/`; Java 8 specs name the wrapper type explicitly, while Java 10+
+specs can hide it with `var`.
 
 ### Generating wrappers via CLI
 
@@ -633,11 +643,16 @@ javaspec prophesize <fqcn> --dry-run        # preview without writing
 ### Auto-generation during `javaspec run`
 
 When `javaspec run --generate` is used, javaspec scans spec files for `prophesize(...)` and
-`prophecy(...)` calls, detects missing wrapper classes, and generates them automatically:
+`prophecy(...)` calls, detects missing wrapper classes, and generates them automatically. It also
+updates the generated `*SpecSupport` class with typed helpers such as `prophesizeMailer()` and
+`prophecyMailer()` under `target/generated-sources/javaspec` only:
 
 ```sh
 javaspec run --generate --compile --formatter pretty
 ```
+
+A common workflow is to write `prophesize(Mailer.class)` first, run generation once, then use the
+new typed helper in the spec.
 
 ### Argument matchers
 
@@ -744,19 +759,25 @@ javaspec is classpath/reflection based by default. Source/spec compilation is ex
 ```sh
 java -cp target/javaspec-0.1.0-SNAPSHOT.jar org.javaspec.cli.Main run --compile
 java -cp target/javaspec-0.1.0-SNAPSHOT.jar org.javaspec.cli.Main run --compile-output target/javaspec-classes
+java -cp target/javaspec-0.1.0-SNAPSHOT.jar org.javaspec.cli.Main run --compile --release 8
+java -cp target/javaspec-0.1.0-SNAPSHOT.jar org.javaspec.cli.Main run --compile --resolve-pom pom.xml
 ```
 
-Compilation uses the current JDK `javax.tools.JavaCompiler` API. It does not add dependency resolution, fork `javac`, maintain an incremental cache, or manage source/release levels for you. Maven and Gradle builds normally rely on their own Java compilation tasks unless their javaspec adapter settings opt into javaspec compilation.
+Compilation uses the current JDK `javax.tools.JavaCompiler` API. It can use `--release <N>` on
+Java 9+ compilers, caches unchanged source compilation inputs, and can resolve simple Maven POM test
+classpath entries from the local Maven repository via `--resolve-pom`. It still does not fork
+`javac`; Maven and Gradle builds normally rely on their own Java compilation tasks unless their
+javaspec adapter settings opt into javaspec compilation.
 
 ## Compatibility and boundaries
 
 - The core artifact remains Java 8-compatible and zero-runtime-dependency.
 - Artifacts are published on Maven Central under `io.github.jvmspec`. The Gradle plugin is published on the Gradle Plugin Portal.
-- The Maven plugin, Gradle plugin, JUnit Platform engine, and bytecode doubles adapter are standalone optional artifacts outside the root Maven reactor.
+- The Maven plugin, Gradle plugin, JUnit Platform engine, bytecode doubles adapter, and bytecode agent adapter are standalone optional artifacts outside the root Maven reactor.
 - Repository-root `mvn verify` is intentionally core-only.
 - `scripts/verify-all.sh` verifies the core, optional adapters, and standalone examples together.
-- Concrete-class doubles require the optional ByteBuddy adapter and support non-final classes only.
-- Compilation is opt-in and does not provide dependency resolution, forked `javac`, incremental caching, or source-release management.
+- Non-final concrete-class doubles require the optional ByteBuddy subclass adapter; final-class, static-method, and construction-aware doubles require the optional bytecode agent adapter.
+- Compilation is opt-in; it supports local-POM dependency resolution, incremental cache hits, and `--release <N>`, but does not fork `javac`.
 - Target profiles (`java8`, `java11`, `java17`, `java21`, `java25`) are enforced conservatively before generation/update writes where metadata is resolvable.
 - Extension, formatter, and bootstrap discovery are classpath/ServiceLoader based; package scanning, plugin lookup, script engines, and automatic classpath repair are out of scope.
 

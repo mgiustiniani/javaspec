@@ -136,6 +136,11 @@ construction-aware interception. The core artifact remains zero-runtime-dependen
 - `mvn -q test`, `mvn -q -f javaspec-bytecode-doubles/pom.xml test`, and
   `mvn -q -f javaspec-bytecode-agent/pom.xml test` pass.
 - `check-version-alignment.sh` passes for all 0.1.0-SNAPSHOT references.
+- Prophecy wrapper/support generation is unified for interfaces and concrete/final classes:
+  `*Prophecy` wrappers are generated under `target/generated-sources/javaspec`, support helpers
+  return the typed wrapper (`MailerProphecy`) for Java 8 explicit declarations and Java 10+ `var`
+  inference, and tests prove `var mailer = prophesizeMailer(); mailer.send(...).willReturn(...)`
+  compiles with `--release 10`.
 
 **Remaining:**
 - Decide on Gradle Wrapper addition for `verify-all.sh` self-sufficiency.
@@ -3355,7 +3360,7 @@ New package: `org.javaspec.doubles.prophecy`.
 
 | Component | Description | Depends on |
 |---|---|---|
-| C1 | Reflection-based generator producing `*Prophecy extends BaseObjectProphecy<T>` with typed methods, overload support, varargs, boxing, exclusion of final/static/private/Object methods | Phase B, `SpecSkeletonGenerator` patterns |
+| C1 | Reflection-based generator producing `*Prophecy extends ObjectProphecy<T>` with typed methods, overload support, varargs, boxing, exclusion of static/private/Object methods; final concrete classes are supported through the optional bytecode agent when doubled at runtime | Phase B, `SpecSkeletonGenerator` patterns |
 | C2 | CLI command `javaspec prophesize <fqcn>` with `--output`, `--package`, `--overwrite`, `--dry-run` flags | Phase A2/A4/A5 (handler, UsagePrinter, ConfigurationOrchestrator) |
 | C3 | `javaspec run --generate` integration: detect missing prophecy wrappers, prompt generation | Phase A3 (RunCommandHandler isolated) |
 

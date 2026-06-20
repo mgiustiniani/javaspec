@@ -326,6 +326,13 @@ $javaspec list-extensions
 $javaspec prophesize <ClassName> [--package <pkg>] [--output <dir>] [--overwrite]
 ```
 
+`prophesize` generates a typed `*Prophecy` wrapper for an interface or concrete class under
+`target/generated-sources/javaspec` by default. During `run --generate`, javaspec can also update the
+generated `*SpecSupport` class with helper methods such as `prophesizeMailer()` / `prophecyMailer()`.
+Java 8 specs can declare `MailerProphecy mailer = prophesizeMailer();`; Java 10+ specs can write
+`var mailer = prophesizeMailer();` and keep the same typed method syntax.
+
+
 Aliases and defaults:
 
 - **`describe`**
@@ -801,17 +808,21 @@ Both classpath options belong to `run` only and are rejected by `describe`/`desc
 ```sh
 $javaspec run --compile
 $javaspec run --compile-output target/javaspec-classes
+$javaspec run --compile --release 8
+$javaspec run --compile --resolve-pom pom.xml
 $javaspec run --classpath lib/dependency.jar --compile --compile-output target/javaspec-classes
 ```
 
 `--compile-output <dir>` selects the output directory and implies `--compile`; the default output
-directory is `target/javaspec-classes`. Both options are run-only and are rejected by
+directory is `target/javaspec-classes`. `--release <N>` requests a javac release target when the
+current compiler supports it. `--resolve-pom <pom.xml>` adds dependencies resolvable from the local
+Maven repository to the run/compile classpath. These options are run-only and are rejected by
 `describe`/`desc`.
 
 The compiler is the current JDK `javax.tools.JavaCompiler` obtained from
-`ToolProvider.getSystemJavaCompiler()`. javaspec does not fork `javac`, add compiler dependencies,
-resolve dependencies, manage source/release levels, or keep an incremental compilation cache. If the
-compiler API is unavailable, the run prints a compiler-unavailable diagnostic and exits `64`.
+`ToolProvider.getSystemJavaCompiler()`. javaspec does not fork `javac` or add compiler dependencies.
+It does keep an incremental cache for unchanged source inputs. If the compiler API is unavailable,
+the run prints a compiler-unavailable diagnostic and exits `64`.
 
 When specs are discovered and the run is not dry-run, compilation happens after discovery, profile
 enforcement, related-spec generation, support/source generation or updates, and prompts/`--generate`
@@ -1580,8 +1591,10 @@ interfaces change how the concepts are expressed.
   and Maven/Gradle opt-in settings can use current-JDK compilation before bootstrap/examples;
   defaults remain classpath-based.
 - **Prophecy-style collaborators**: Core javaspec doubles ordinary Java interfaces through JDK
-  dynamic proxies; optional non-final concrete-class doubles require the standalone bytecode
-  adapter.
+  dynamic proxies. Typed `*Prophecy` wrappers provide `mailer.send(...).willReturn(...)` syntax;
+  Java 8 specs name the wrapper type explicitly, while Java 10+ specs can use `var`. Optional
+  non-final concrete-class doubles require the standalone bytecode adapter, and final-class
+  collaborators require the optional bytecode agent adapter.
 - **Formatters/extensions**: Built-in `progress`/`pretty` formatters, programmatic extension
   contracts, config-driven extension activation, and ServiceLoader-discovered run
   formatter/extension providers where implemented.
