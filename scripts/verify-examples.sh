@@ -92,6 +92,7 @@ remove_path() {
 run_at_root "Install root core snapshot for examples" "${MAVEN_BIN}" -q -DskipTests install
 run_at_root "Install Maven plugin snapshot for examples" "${MAVEN_BIN}" -q -f javaspec-maven-plugin/pom.xml -DskipTests install
 run_at_root "Install bytecode doubles adapter snapshot for examples" "${MAVEN_BIN}" -q -f javaspec-bytecode-doubles/pom.xml -DskipTests install
+run_at_root "Install bytecode agent adapter snapshot for examples" "${MAVEN_BIN}" -q -f javaspec-bytecode-agent/pom.xml -DskipTests install
 run_at_root "Install JUnit Platform engine snapshot for examples" "${MAVEN_BIN}" -q -f javaspec-junit-platform-engine/pom.xml -DskipTests install
 
 remove_path "Clean previous Maven example reports" examples/maven-basic/target/javaspec
@@ -151,6 +152,26 @@ else
   assert_file_contains "Bytecode doubles JUnit XML report" "$bytecode_xml" 'name="it_returns_not_found_when_store_has_no_entry"'
   assert_file_contains "Bytecode doubles JUnit XML report" "$bytecode_xml" 'line="14"'
   assert_file_contains "Bytecode doubles JUnit XML report" "$bytecode_xml" 'line="21"'
+fi
+
+if [ "${JAVASPEC_SKIP_BYTECODE_AGENT_EXAMPLE:-0}" = "1" ]; then
+  printf '\nWARNING: Skipping bytecode agent basic example because JAVASPEC_SKIP_BYTECODE_AGENT_EXAMPLE=1.\n'
+else
+  remove_path "Clean previous bytecode agent example reports" examples/bytecode-agent-basic/target/javaspec
+  run_at_root "Verify bytecode agent basic example" "${MAVEN_BIN}" -q -f examples/bytecode-agent-basic/pom.xml verify
+  agent_json="${repo_root}/examples/bytecode-agent-basic/target/javaspec/run-report.json"
+  agent_xml="${repo_root}/examples/bytecode-agent-basic/target/javaspec/junit-report.xml"
+  assert_file_exists "Bytecode agent JSON report" "$agent_json"
+  assert_file_exists "Bytecode agent JUnit XML report" "$agent_xml"
+  assert_file_contains "Bytecode agent JSON report" "$agent_json" '"schemaVersion": 1'
+  assert_file_contains "Bytecode agent JSON report" "$agent_json" '"metadata": {'
+  assert_file_contains "Bytecode agent JSON report" "$agent_json" '"stableId": "spec.com.example.GreetingServiceSpec#it_doubles_a_final_class_collaborator"'
+  assert_file_contains "Bytecode agent JSON report" "$agent_json" '"stableId": "spec.com.example.GreetingServiceSpec#it_intercepts_static_methods_temporarily"'
+  assert_file_contains "Bytecode agent JSON report" "$agent_json" '"status": "PASSED"'
+  assert_file_contains "Bytecode agent JUnit XML report" "$agent_xml" '<testsuite name="javaspec" tests="2" failures="0" errors="0" skipped="0" timestamp="'
+  assert_file_contains "Bytecode agent JUnit XML report" "$agent_xml" 'classname="spec.com.example.GreetingServiceSpec"'
+  assert_file_contains "Bytecode agent JUnit XML report" "$agent_xml" 'name="it_doubles_a_final_class_collaborator"'
+  assert_file_contains "Bytecode agent JUnit XML report" "$agent_xml" 'name="it_intercepts_static_methods_temporarily"'
 fi
 
 remove_path "Clean previous JUnit Platform example reports" examples/junit-platform-basic/target/surefire-reports

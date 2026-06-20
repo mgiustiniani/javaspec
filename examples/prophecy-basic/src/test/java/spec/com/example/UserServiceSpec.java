@@ -27,7 +27,7 @@ public class UserServiceSpec extends ObjectBehavior<UserService> {
      * method was called via shouldBeCalled.
      */
     public void it_stubs_mailer_and_verifies_it_was_called() {
-        ObjectProphecy<Mailer> mailer = prophesize(Mailer.class);
+        ObjectProphecy<Mailer> mailer = prophesize(com.example.Mailer.class);
 
         // --- Promise: configure the stub ---
         mailer.method("send", any(String.class), any(String.class), any(String.class))
@@ -50,7 +50,7 @@ public class UserServiceSpec extends ObjectBehavior<UserService> {
      * Example 2: Verify a method was NOT called on the Mailer dependency.
      */
     public void it_verifies_mailer_was_not_called() {
-        ObjectProphecy<Mailer> mailer = prophesize(Mailer.class);
+        ObjectProphecy<Mailer> mailer = prophesize(com.example.Mailer.class);
 
         // --- Promise: configure the stub ---
         mailer.method("send", any(String.class), any(String.class), any(String.class))
@@ -75,7 +75,7 @@ public class UserServiceSpec extends ObjectBehavior<UserService> {
      * Example 3: Verify exact call count with shouldBeCalledTimes.
      */
     public void it_verifies_exact_call_count() {
-        ObjectProphecy<Mailer> mailer = prophesize(Mailer.class);
+        ObjectProphecy<Mailer> mailer = prophesize(com.example.Mailer.class);
 
         mailer.method("send", any(String.class), any(String.class), any(String.class))
                 .willReturn(true);
@@ -96,7 +96,7 @@ public class UserServiceSpec extends ObjectBehavior<UserService> {
      * Example 4: Use willThrow to simulate mailer failures.
      */
     public void it_stubs_mailer_to_throw() {
-        ObjectProphecy<Mailer> mailer = prophesize(Mailer.class);
+        ObjectProphecy<Mailer> mailer = prophesize(com.example.Mailer.class);
 
         mailer.method("send", any(String.class), any(String.class), any(String.class))
                 .willThrow(new RuntimeException("Connection refused"));
@@ -115,7 +115,7 @@ public class UserServiceSpec extends ObjectBehavior<UserService> {
      * Example 5: Use argument matchers (any, eq, containingString).
      */
     public void it_uses_argument_matchers() {
-        ObjectProphecy<Mailer> mailer = prophesize(Mailer.class);
+        ObjectProphecy<Mailer> mailer = prophesize(com.example.Mailer.class);
 
         // Match send() where type is "email" and body contains "Welcome"
         mailer.method("send", eq("email"), any(String.class), containingString("Welcome"))

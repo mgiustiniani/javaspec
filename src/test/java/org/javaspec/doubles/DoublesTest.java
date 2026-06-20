@@ -3,6 +3,7 @@ package org.javaspec.doubles;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
@@ -35,6 +36,32 @@ public class DoublesTest {
         assertSame(handle.instance(), handle.proxy());
         assertNotNull(Doubles.control(created));
         assertNotNull(Doubles.inspect(handle.instance()));
+    }
+
+    @Test
+    public void exposesControlFactoryForAdapterHandlers() {
+        InvocationHandler handler = Doubles.newDoubleHandler(SampleService.class);
+        DoubleControl control = Doubles.controlFromHandler(handler);
+
+        assertNotNull(control);
+        control.when("greet", "Ada").thenReturn("Hello Ada");
+    }
+
+    @Test
+    public void controlFactoryRejectsForeignHandlers() {
+        InvocationHandler handler = new InvocationHandler() {
+            @Override
+            public Object invoke(Object proxy, Method method, Object[] args) {
+                return null;
+            }
+        };
+
+        try {
+            Doubles.controlFromHandler(handler);
+            fail("expected IllegalArgumentException");
+        } catch (IllegalArgumentException ex) {
+            assertTrue(ex.getMessage().contains("Doubles.newDoubleHandler"));
+        }
     }
 
     @Test

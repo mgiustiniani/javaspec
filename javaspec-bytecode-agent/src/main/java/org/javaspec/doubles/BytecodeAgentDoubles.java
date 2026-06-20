@@ -23,7 +23,7 @@ public final class BytecodeAgentDoubles {
         AgentInstrumenter.instrument(type);
         InvocationHandler handler = Doubles.newDoubleHandler(type);
         AgentDoubleRegistry.registerStatic(type, handler);
-        return new StaticDouble<T>(type, new DoubleControl((DoubleInvocationHandler) handler));
+        return new StaticDouble<T>(type, Doubles.controlFromHandler(handler));
     }
 
     /**
@@ -34,6 +34,6 @@ public final class BytecodeAgentDoubles {
         AgentInstrumenter.instrument(type);
         InvocationHandler handler = Doubles.newDoubleHandler(type);
         AgentDoubleRegistry.registerConstruction(type, handler);
-        return new ConstructionDouble<T>(type, new DoubleControl((DoubleInvocationHandler) handler));
+        return new ConstructionDouble<T>(type, Doubles.controlFromHandler(handler));
     }
 }

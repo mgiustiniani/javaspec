@@ -120,7 +120,7 @@ provides subclass-based non-final concrete-class doubles and capability diagnost
 Functional tests cover final-class instance methods, static method interception/restoration, and
 construction-aware interception. The core artifact remains zero-runtime-dependency.
 
-### Phase 45 — Verification, Documentation, and Release Hardening (In Progress)
+### Phase 45 — Verification, Documentation, and Release Hardening (Completed)
 
 **Goal:** make the expanded feature set reproducible for maintainers and understandable for adopters.
 
@@ -136,16 +136,20 @@ construction-aware interception. The core artifact remains zero-runtime-dependen
 - `mvn -q test`, `mvn -q -f javaspec-bytecode-doubles/pom.xml test`, and
   `mvn -q -f javaspec-bytecode-agent/pom.xml test` pass.
 - `check-version-alignment.sh` passes for all 0.1.0-SNAPSHOT references.
+- `examples/bytecode-agent-basic/` added and wired into `scripts/verify-examples.sh`.
+- `docs/release-notes-0.1.1-SNAPSHOT.md` distinguishes core, bytecode subclass adapter, and
+  bytecode agent adapter features.
+- Gradle Wrapper decision: do not vendor a wrapper in this development line; aggregate verification
+  uses `JAVASPEC_GRADLE_BIN` when Gradle is available and `JAVASPEC_SKIP_GRADLE=1` /
+  `JAVASPEC_SKIP_GRADLE_EXAMPLE=1` for no-Gradle local environments.
 - Prophecy wrapper/support generation is unified for interfaces and concrete/final classes:
   `*Prophecy` wrappers are generated under `target/generated-sources/javaspec`, support helpers
   return the typed wrapper (`MailerProphecy`) for Java 8 explicit declarations and Java 10+ `var`
   inference, and tests prove `var mailer = prophesizeMailer(); mailer.send(...).willReturn(...)`
   compiles with `--release 10`.
 
-**Remaining:**
-- Decide on Gradle Wrapper addition for `verify-all.sh` self-sufficiency.
-- Prepare release notes distinguishing core, subclass bytecode adapter, and agent adapter features.
-- Add aggregate verification profile once examples align to snapshot artifacts.
+**Remaining:** none for Phase 45. Full aggregate verification remains script-driven because the
+repository intentionally keeps standalone adapters/examples out of a root Maven reactor.
 
 ## Course Correction — Gradle Plugin Test and Example Dependency Version (ADR 0025)
 

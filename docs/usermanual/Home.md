@@ -75,7 +75,8 @@ Verification status:
   providers. Plugin lookup and automatic classpath repair remain unimplemented.
 - Core doubles remain ordinary-interface-only JDK proxies. Optional non-final concrete-class doubles
   require `javaspec-bytecode-doubles`. Optional final-class, static-method, and construction-aware
-  doubles require the separate `javaspec-bytecode-agent` adapter and JVM instrumentation support.
+  doubles require the separate `javaspec-bytecode-agent` adapter and JVM instrumentation support;
+  `examples/bytecode-agent-basic/` demonstrates final-class and static-method doubles.
 - Repository-root `mvn verify` remains core-only. `scripts/verify-all.sh` is the aggregate local
   check for core, standalone adapters, and examples.
 - Artifacts are published on Maven Central under `io.github.jvmspec`. The Gradle plugin is

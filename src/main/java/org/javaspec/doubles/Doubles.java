@@ -190,6 +190,26 @@ public final class Doubles {
     }
 
     /**
+     * Creates a {@link DoubleControl} for a handler previously returned by
+     * {@link #newDoubleHandler(Class)}.
+     *
+     * <p>This keeps optional adapters from depending directly on package-private core
+     * implementation classes, which is important when adapters are loaded by isolated build-tool
+     * classloaders.</p>
+     *
+     * @throws IllegalArgumentException if {@code handler} was not created by
+     *         {@link #newDoubleHandler(Class)}
+     */
+    public static DoubleControl controlFromHandler(InvocationHandler handler) {
+        if (!(handler instanceof DoubleInvocationHandler)) {
+            throw new IllegalArgumentException(
+                    "handler must be created by Doubles.newDoubleHandler(); got: "
+                    + handler.getClass().getName());
+        }
+        return new DoubleControl((DoubleInvocationHandler) handler);
+    }
+
+    /**
      * Assembles an {@link InterfaceDouble} from an externally-supplied proxy and a handler
      * previously returned by {@link #newDoubleHandler(Class)}.
      *
@@ -202,12 +222,7 @@ public final class Doubles {
      */
     public static <T> InterfaceDouble<T> assembleFromHandler(Class<T> type, T proxy,
             InvocationHandler handler) {
-        if (!(handler instanceof DoubleInvocationHandler)) {
-            throw new IllegalArgumentException(
-                    "handler must be created by Doubles.newDoubleHandler(); got: "
-                    + handler.getClass().getName());
-        }
-        return new InterfaceDouble<T>(type, proxy, new DoubleControl((DoubleInvocationHandler) handler));
+        return new InterfaceDouble<T>(type, proxy, controlFromHandler(handler));
     }
 
     private static DoubleInvocationHandler handlerFor(Object doubleInstance) {

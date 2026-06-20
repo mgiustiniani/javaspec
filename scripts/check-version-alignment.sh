@@ -60,6 +60,26 @@ extract_gradle_assignment() {
   ' "$file"
 }
 
+extract_gradle_dependency_version() {
+  local coordinates_prefix="$1"
+  local file="$2"
+  awk -v prefix="$coordinates_prefix" '
+    index($0, prefix) > 0 {
+      line = substr($0, index($0, prefix) + length(prefix))
+      version = ""
+      for (i = 1; i <= length(line); i++) {
+        c = substr(line, i, 1)
+        if (c == "\"" || c == "'\''" || c == " " || c == "\t") {
+          break
+        }
+        version = version c
+      }
+      print version
+      exit
+    }
+  ' "$file"
+}
+
 record_result() {
   local label="$1"
   local actual="$2"
@@ -82,6 +102,12 @@ junit_engine_pom="${repo_root}/javaspec-junit-platform-engine/pom.xml"
 bytecode_doubles_pom="${repo_root}/javaspec-bytecode-doubles/pom.xml"
 bytecode_agent_pom="${repo_root}/javaspec-bytecode-agent/pom.xml"
 gradle_build="${repo_root}/javaspec-gradle-plugin/build.gradle"
+example_maven_basic_pom="${repo_root}/examples/maven-basic/pom.xml"
+example_junit_basic_pom="${repo_root}/examples/junit-platform-basic/pom.xml"
+example_bytecode_doubles_pom="${repo_root}/examples/bytecode-doubles-basic/pom.xml"
+example_bytecode_agent_pom="${repo_root}/examples/bytecode-agent-basic/pom.xml"
+example_prophecy_pom="${repo_root}/examples/prophecy-basic/pom.xml"
+example_gradle_build="${repo_root}/examples/gradle-basic/build.gradle"
 
 root_version="$(extract_maven_project_version "$root_pom")"
 
@@ -100,6 +126,18 @@ record_result 'javaspec-bytecode-agent/pom.xml project version' "$(extract_maven
 record_result 'javaspec-bytecode-agent/pom.xml javaspec.version' "$(extract_maven_property javaspec.version "$bytecode_agent_pom")" "$root_version"
 record_result 'javaspec-gradle-plugin/build.gradle version' "$(extract_gradle_assignment version "$gradle_build")" "$root_version"
 record_result 'javaspec-gradle-plugin/build.gradle javaspecCoreVersion' "$(extract_gradle_assignment javaspecCoreVersion "$gradle_build")" "$root_version"
+record_result 'examples/maven-basic/pom.xml project version' "$(extract_maven_project_version "$example_maven_basic_pom")" "$root_version"
+record_result 'examples/maven-basic/pom.xml javaspec.version' "$(extract_maven_property javaspec.version "$example_maven_basic_pom")" "$root_version"
+record_result 'examples/junit-platform-basic/pom.xml project version' "$(extract_maven_project_version "$example_junit_basic_pom")" "$root_version"
+record_result 'examples/junit-platform-basic/pom.xml javaspec.version' "$(extract_maven_property javaspec.version "$example_junit_basic_pom")" "$root_version"
+record_result 'examples/bytecode-doubles-basic/pom.xml project version' "$(extract_maven_project_version "$example_bytecode_doubles_pom")" "$root_version"
+record_result 'examples/bytecode-doubles-basic/pom.xml javaspec.version' "$(extract_maven_property javaspec.version "$example_bytecode_doubles_pom")" "$root_version"
+record_result 'examples/bytecode-agent-basic/pom.xml project version' "$(extract_maven_project_version "$example_bytecode_agent_pom")" "$root_version"
+record_result 'examples/bytecode-agent-basic/pom.xml javaspec.version' "$(extract_maven_property javaspec.version "$example_bytecode_agent_pom")" "$root_version"
+record_result 'examples/prophecy-basic/pom.xml project version' "$(extract_maven_project_version "$example_prophecy_pom")" "$root_version"
+record_result 'examples/prophecy-basic/pom.xml javaspec.version' "$(extract_maven_property javaspec.version "$example_prophecy_pom")" "$root_version"
+record_result 'examples/gradle-basic/build.gradle version' "$(extract_gradle_assignment version "$example_gradle_build")" "$root_version"
+record_result 'examples/gradle-basic/build.gradle javaspec dependency' "$(extract_gradle_dependency_version 'io.github.jvmspec:javaspec:' "$example_gradle_build")" "$root_version"
 
 if [ "$status" -eq 0 ]; then
   printf 'PASS: all checked project versions are aligned.\n'

@@ -539,7 +539,8 @@ try (ConstructionDouble<ConstructedGreeter> construction =
 While a static double is active, unstubbed static calls return normal javaspec default values
 (`null`, `0`, `false`, etc.) instead of executing the original method. Closing the handle removes the
 static/construction registration; the class remains instrumented, but unregistered calls fall through
-to original behavior.
+to original behavior. See [`examples/bytecode-agent-basic/`](examples/bytecode-agent-basic/) for a
+Maven example covering final-class and static-method doubles.
 
 ## Prophecy-Style Doubles
 
@@ -818,8 +819,10 @@ Start here:
 - [`examples/maven-basic/`](examples/maven-basic/) — Maven plugin adoption.
 - [`examples/gradle-basic/`](examples/gradle-basic/) — Gradle plugin adoption.
 - [`examples/junit-platform-basic/`](examples/junit-platform-basic/) — JUnit Platform adoption.
-- [`examples/bytecode-doubles-basic/`](examples/bytecode-doubles-basic/) — optional concrete-class doubles.
+- [`examples/bytecode-doubles-basic/`](examples/bytecode-doubles-basic/) — optional non-final concrete-class doubles.
+- [`examples/bytecode-agent-basic/`](examples/bytecode-agent-basic/) — optional final-class and static-method doubles.
 - [`docs/usermanual/Home.md`](docs/usermanual/Home.md) — user manual with more CLI details.
+- [`docs/release-notes-0.1.1-SNAPSHOT.md`](docs/release-notes-0.1.1-SNAPSHOT.md) — unreleased development-line notes.
 - [`javaspec-gradle-plugin/README.md`](javaspec-gradle-plugin/README.md) — Gradle plugin details.
 - [`javaspec-junit-platform-engine/README.md`](javaspec-junit-platform-engine/README.md) — JUnit Platform engine details.
 - [`CHANGELOG.md`](CHANGELOG.md) — release-change log scaffold.

@@ -77,5 +77,13 @@ fi
 if [ "${JAVASPEC_SKIP_EXAMPLES:-0}" = "1" ]; then
   printf '\nWARNING: Skipping standalone examples verification because JAVASPEC_SKIP_EXAMPLES=1.\n'
 else
-  run_at_root "Standalone examples verification" "${repo_root}/scripts/verify-examples.sh"
+  if [ "${JAVASPEC_SKIP_GRADLE:-0}" = "1" ] && [ -z "${JAVASPEC_SKIP_GRADLE_EXAMPLE:-}" ]; then
+    section "Standalone examples verification"
+    printf '+ cd %q && JAVASPEC_SKIP_GRADLE_EXAMPLE=1' "${repo_root}"
+    quote_cmd "${repo_root}/scripts/verify-examples.sh"
+    printf '\n'
+    (cd "${repo_root}" && JAVASPEC_SKIP_GRADLE_EXAMPLE=1 "${repo_root}/scripts/verify-examples.sh")
+  else
+    run_at_root "Standalone examples verification" "${repo_root}/scripts/verify-examples.sh"
+  fi
 fi

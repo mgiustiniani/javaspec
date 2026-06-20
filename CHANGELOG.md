@@ -18,6 +18,24 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Added generated-source hygiene for spec support and Prophecy wrappers: generated support classes
+  and `*Prophecy` wrappers live under `target/generated-sources/javaspec` by default, not `src/`.
+- Unified Prophecy-style doubles for interfaces and concrete/final classes: `prophesize` accepts
+  concrete types, generated wrappers extend `ObjectProphecy<T>`, and `run --generate` can add typed
+  `prophesizeFoo()` / `prophecyFoo()` helpers to generated support classes. Java 8 specs can use
+  explicit `FooProphecy` variables; Java 10+ specs can use `var` while keeping typed
+  `foo.method(...).willReturn(...)` syntax.
+- Added standalone `Prophecies` factory under `org.javaspec.doubles.prophecy`; `ObjectBehavior`
+  delegates to it as spec convenience rather than owning Prophecy runtime behavior.
+- Added optional `javaspec-bytecode-agent` adapter for final-class, static-method, and
+  construction-aware doubles, plus `examples/bytecode-agent-basic/`.
+- Added CLI run improvements: `--resolve-pom`, `--release <N>`, incremental compilation cache,
+  parser SPI/comment-safe source updates, `list-extensions`, and classpath repair hints.
+- Added stronger doubles APIs: default interface methods, sequential returns, callback sequences,
+  argument captors, ordered verification, and return-then-throw stubbing.
+- Added public `Doubles.controlFromHandler(...)` adapter hook so optional adapters avoid direct
+  package-private implementation access across isolated Maven/Gradle classloaders.
+- Added release notes for the current development line in `docs/release-notes-0.1.1-SNAPSHOT.md`.
 - Finalized documentation for the Phases 30-37 known-limitations resolution program, including
   bytecode doubles usage and example verification notes.
 - Added Phases 30-37 resolution updates:
