@@ -2817,30 +2817,29 @@ Phase 28 stronger interface doubles, Phase 29 CLI compilation, Phases 30-36 know
 resolution and Phase 37 bytecode doubles — all implemented
 
 Potential backlog items include compiler-integrated compatibility checks, plugin lookup beyond
-ServiceLoader, script/package-scanning bootstrap activation, optional final/static/constructor
-double integrations outside the zero-dependency core, richer failure-location diagnostics,
-dependency resolution, incremental compilation caches, automatic classpath repair,
-source-level/release management, actual publishing/signing automation after
-signing/portal/final-approval decisions, and any future multi-module conversion decision. No-JUnit
-CLI/programmatic/Maven/Gradle paths remain first-class; the JUnit Platform engine remains an
-optional adapter.
+ServiceLoader, script/package-scanning bootstrap activation, richer failure-location diagnostics,
+automatic classpath repair, richer dependency resolution beyond the local-POM resolver, actual
+publishing/signing automation after signing/portal/final-approval decisions, and any future
+multi-module conversion decision. No-JUnit CLI/programmatic/Maven/Gradle paths remain first-class;
+the JUnit Platform engine remains an optional adapter.
 
 ## Current MVP limitations
 
 - Default CLI runs, programmatic invocation, optional Maven/Gradle plugin adapters, and the optional
-  JUnit Platform engine do not compile source/spec files themselves; source-only or otherwise
-  unavailable spec classes are skipped/not executable until compiled classes are present on the
-  effective classloader, selected explicit classloader, build-tool adapter classpath, or JUnit
-  Platform engine runtime classpath. Source-only CLI runs can opt into current-JDK compilation with
-  `--compile` or `--compile-output <dir>`, but this does not add dependency resolution, incremental
-  caching, forked `javac`, source-level/release management, config keys, adapter behavior, or report
-  schema changes. `--classpath`, `--classpath-file`, and adapter-supplied entries still must point
-  to already compiled classes or archives unless they are dependency entries used alongside CLI
-  `--compile`. The optional Maven plugin, Gradle plugin, and JUnit Platform engine supply
-  integration paths but remain standalone artifacts that are not covered by repository-root `mvn
-  verify`; verify them through `scripts/verify-all.sh` or separately after installing the current
-  core. Phase 21 examples are standalone consumer projects. Public artifacts are available on
-  Maven Central under `io.github.jvmspec`.
+  JUnit Platform engine remain classpath-based unless compilation is explicitly enabled. Source-only
+  or otherwise unavailable spec classes are skipped/not executable until compiled classes are present
+  on the effective classloader, selected explicit classloader, build-tool adapter classpath, CLI
+  compile output, or JUnit Platform engine runtime classpath. Source-only CLI runs can opt into
+  current-JDK compilation with `--compile` or `--compile-output <dir>`, can request `--release <N>`,
+  and can add local Maven repository dependencies with `--resolve-pom <pom.xml>`. Compilation keeps
+  an incremental cache for unchanged source inputs, but still does not fork `javac`, add compiler
+  dependencies, change adapter behavior, or alter report schemas. `--classpath`, `--classpath-file`,
+  resolved POM entries, and adapter-supplied entries still must point to already compiled classes or
+  archives. The optional Maven plugin, Gradle plugin, and JUnit Platform engine supply integration
+  paths but remain standalone artifacts that are not covered by repository-root `mvn verify`; verify
+  them through `scripts/verify-all.sh` or separately after installing the current core. Phase 21
+  examples are standalone consumer projects. Public artifacts are available on Maven Central under
+  `io.github.jvmspec`.
 - The runner lifecycle is intentionally small: configured bootstrap hooks run before examples, then
   each executable example uses a fresh spec instance plus optional public no-arg `let()` and
   `letGo()`. Explicit skipped/pending semantics are implemented.
@@ -2854,10 +2853,11 @@ optional adapter.
 - Configuration files currently drive selected suite paths, package-prefix naming,
   constructor-policy defaults, profile enforcement defaults, formatter defaults, extension
   activation, executable bootstrap hook class names, optional JSON/JUnit XML-compatible report
-  destinations, and run class/example filters. There are no configuration keys for CLI compilation.
-  Bootstrap hooks must be compiled Java classes on the run classloader/classpath or ServiceLoader
-  providers; javaspec does not add scripts, package scanning, dependency resolution, or automatic
-  classpath repair.
+  destinations, and run class/example filters. CLI compilation, release selection, and local-POM
+  dependency resolution are command-line run options. Bootstrap hooks must be compiled Java classes
+  on the run classloader/classpath or ServiceLoader providers; javaspec does not add scripts,
+  package scanning, automatic classpath repair, or dependency resolution beyond explicit
+  `--resolve-pom` local-repository lookup.
 - The extension API is minimal: extensions can receive `ExtensionContext` and register run
   formatters, and entry points can discover `RunFormatter`, `JavaspecExtension`, or alias
   `Extension` providers with JDK `ServiceLoader` where implemented. Discovery is classpath-based
@@ -2873,9 +2873,10 @@ optional adapter.
   sealed-interface skeleton declarations plus nested permitted implementation bodies. It is not a
   general Java source synthesis engine.
 - Doubles/collaborators are interface-only in the core runtime. Optional non-final concrete-class
-  doubles require the standalone `javaspec-bytecode-doubles` adapter. Final class, static method,
-  constructor, primitive, array, annotation, enum, and interface targets are not supported by the
-  bytecode adapter.
+  doubles require the standalone `javaspec-bytecode-doubles` subclass adapter. Optional final-class,
+  static-method, and construction-aware doubles require the separate `javaspec-bytecode-agent`
+  adapter and JVM instrumentation support. Primitive, array, annotation, enum, and inappropriate
+  interface targets remain unsupported by concrete-class adapters.
 - Double argument matching supports explicit `ArgumentMatcher` values in existing vararg APIs while
   ordinary exact values, `null`, and arrays remain supported. It is not a bytecode or concrete-class
   mocking facility.

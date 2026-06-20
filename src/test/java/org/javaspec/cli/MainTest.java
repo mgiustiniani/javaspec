@@ -221,6 +221,10 @@ public class MainTest {
         assertTrue("wrapper must be written to target/generated-sources/javaspec", wrapperInTarget.isFile());
         String source = readFile(wrapperInTarget);
         assertTrue(source.contains("extends ObjectProphecy<"));
+        assertTrue("nested concrete classes must use Java source names",
+                source.contains("org.javaspec.cli.MainTest.FinalGreeter"));
+        assertFalse("generated source must not use binary nested-class names",
+                source.contains("MainTest$FinalGreeter"));
         assertTrue(source.contains("greet("));
         assertEquals("", result.err);
     }

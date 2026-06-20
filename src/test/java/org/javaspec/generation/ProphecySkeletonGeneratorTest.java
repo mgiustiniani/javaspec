@@ -70,6 +70,10 @@ public class ProphecySkeletonGeneratorTest {
         String source = ProphecySkeletonGenerator.render(FinalGreeter.class, "spec.com.example");
 
         assertTrue(source.contains("FinalGreeterProphecy"));
+        assertTrue("nested classes must use Java source names, not binary $ names",
+                source.contains("ProphecySkeletonGeneratorTest.FinalGreeter"));
+        assertFalse("generated source must not reference nested classes with binary names",
+                source.contains("ProphecySkeletonGeneratorTest$FinalGreeter"));
         assertTrue(source.contains("greet("));
     }
 

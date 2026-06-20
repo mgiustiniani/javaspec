@@ -29,8 +29,8 @@ public final class ProphecySkeletonGenerator {
     public static String render(Class<?> prophesizedType, String packageName) {
         Objects.requireNonNull(prophesizedType, "prophesizedType must not be null");
         if (prophesizedType.isPrimitive() || prophesizedType.isArray() || prophesizedType.isAnnotation()
-                || prophesizedType.isEnum()) {
-            throw new IllegalArgumentException("Prophecy wrappers require an interface or concrete class type, got: "
+                || prophesizedType.isEnum() || prophesizedType.getCanonicalName() == null) {
+            throw new IllegalArgumentException("Prophecy wrappers require a named interface or concrete class type, got: "
                     + prophesizedType.getName());
         }
         String simpleName = prophesizedType.getSimpleName();
@@ -196,6 +196,7 @@ public final class ProphecySkeletonGenerator {
         if (type.isArray()) {
             return sourceTypeName(type.getComponentType()) + "[]";
         }
-        return type.getName();
+        String canonicalName = type.getCanonicalName();
+        return canonicalName == null ? type.getName() : canonicalName;
     }
 }
