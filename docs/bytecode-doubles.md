@@ -22,8 +22,8 @@ Add the adapter dependency to your project:
 Create concrete-class doubles:
 
 ```java
-import org.javaspec.doubles.Doubles;
-import org.javaspec.doubles.InterfaceDouble;
+import io.github.jvmspec.doubles.Doubles;
+import io.github.jvmspec.doubles.InterfaceDouble;
 
 InterfaceDouble<DataStore> storeDouble = Doubles.concreteDouble(DataStore.class);
 storeDouble.control().returns("save", true);

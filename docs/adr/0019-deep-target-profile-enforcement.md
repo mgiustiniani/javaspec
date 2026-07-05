@@ -14,7 +14,7 @@ The enforcement must also avoid false positives. javaspec sees descriptors infer
 
 ## Decision
 
-Add a conservative profile enforcement boundary under `org.javaspec.compatibility`:
+Add a conservative profile enforcement boundary under `io.github.jvmspec.compatibility`:
 
 - `ProfileEnforcement` enforces one `TargetProfile` against a discovered `DescribedType`.
 - `ProfileEnforcementReport` represents the immutable result for one described type.

@@ -21,7 +21,7 @@ known-limitations resolution, and the Phase 37 standalone optional bytecode-doub
 
 Current runtime building blocks:
 
-- **CLI adapter** (`org.javaspec.cli`)
+- **CLI adapter** (`io.github.jvmspec.cli`)
   - Responsibility: Parses first-MVP `describe`/`desc` and `run` commands, `--config`, `--suite`,
     path overrides, constructor-policy overrides, run `--class`/`--example` filters, Phase 9 run
     controls (`--dry-run`, `--stop-on-failure`, `--formatter`, `--profile`, `--verbose`), Phase 11
@@ -39,7 +39,7 @@ Current runtime building blocks:
     precedence, prints an `Execution diagnostics:` block only for execution-availability issues, and
     rejects run-only command-line options for `describe` while accepting config files that contain
     ignored profile/report/bootstrap hook entries.
-- **Source compiler** (`org.javaspec.compilation`)
+- **Source compiler** (`io.github.jvmspec.compilation`)
   - Responsibility: Provides explicit opt-in compilation around JDK `javax.tools.JavaCompiler` for
     CLI and, through Phase 34 integration, programmatic/Maven/Gradle entry points. It collects all
     `.java` files under the effective source and spec roots, de-duplicates by normalized path,
@@ -47,18 +47,18 @@ Current runtime building blocks:
     output then explicit CLI classpath entries then current process `java.class.path`, reports
     compiler-unavailable as exit `64`, and reports compiler failures as exit `1` with `Compilation
     failed:` and no reports.
-- **Configuration model** (`org.javaspec.config`)
+- **Configuration model** (`io.github.jvmspec.config`)
   - Responsibility: Provides immutable default/configured suite settings, top-level
     constructor/profile/formatter defaults, extension activation entries, top-level and suite
     bootstrap hook class names, optional top-level JSON/JUnit XML-compatible report destinations,
     and a restricted zero-runtime-dependency config parser. There are no configuration keys for CLI
     compilation.
-- **Described type model** (`org.javaspec.model`)
+- **Described type model** (`io.github.jvmspec.model`)
   - Responsibility: Validates described Java type names, models class-like type kinds, constructor
     descriptors, and method descriptors used by discovery, generation, compatibility checks, and
     user diagnostics.
-- **Spec discovery, naming, and generation** (`org.javaspec.discovery`, `org.javaspec.naming`,
-  `org.javaspec.generation`)
+- **Spec discovery, naming, and generation** (`io.github.jvmspec.discovery`, `io.github.jvmspec.naming`,
+  `io.github.jvmspec.generation`)
   - Responsibility: Applies default/configured naming conventions, discovers `*Spec.java` files,
     extracts example metadata including 1-based source lines, exposes stable ids for discovered
     specs, recognizes expanded chained matcher names for method-discovery/default-return inference
@@ -66,7 +66,7 @@ Current runtime building blocks:
     plans/writes or dry-run reports gated spec, support, production type, constructor, factory,
     method-body, interface-declaration, annotation-element, and missing sealed-interface skeleton
     generation.
-- **Reflection runner** (`org.javaspec.runner`)
+- **Reflection runner** (`io.github.jvmspec.runner`)
   - Responsibility: Executes filtered discovered examples reflectively when compiled spec classes
     are available on the effective, selected explicit, or CLI compile-output-first classloader,
     records PASSED/FAILED/BROKEN/SKIPPED/PENDING outcomes, enriches not-executable/skipped reasons
@@ -74,11 +74,11 @@ Current runtime building blocks:
     supports stop-on-failure, and aggregates run/spec/example results with stable id aliases, source
     metadata, and separate skipped/pending counts where available for formatters, reports,
     diagnostics, and programmatic invocation.
-- **Run formatters** (`org.javaspec.formatter`)
+- **Run formatters** (`io.github.jvmspec.formatter`)
   - Responsibility: Defines the public zero-dependency `RunFormatter` contract, deterministic
     `RunFormatterRegistry`, built-in `progress` and `pretty` formatters, formatter support code, and
     registry behavior used by ServiceLoader-discovered providers.
-- **Run reporting** (`org.javaspec.reporting`)
+- **Run reporting** (`io.github.jvmspec.reporting`)
   - Responsibility: Writes UTF-8 JSON runner reports with schemaVersion 1, additive stable id/source
     metadata fields, Phase 22 pending summary counts and `PENDING` statuses, and Phase 35 optional
     run-level `ReportMetadata` from default writers while preserving schemaVersion 1 compatibility.
@@ -86,19 +86,19 @@ Current runtime building blocks:
     timestamp/hostname/time/properties metadata and testcase file/line attributes when source data
     is available. JUnit XML-compatible reports map both skipped and pending examples to `<skipped>`
     while preserving separate core counts in immutable `RunResult` data.
-- **Run diagnostics** (`org.javaspec.diagnostics`)
+- **Run diagnostics** (`io.github.jvmspec.diagnostics`)
   - Responsibility: Provides dependency-free deterministic execution-availability diagnostic lines
     from `RunResult`, reporting non-executable specs and stale/missing compiled example methods
     while excluding explicit user `@Skip` and `PENDING` semantics. CLI `--compile` can reduce
     source-only availability issues, but diagnostics still apply to missing dependencies, stale
     classes, default runs, and adapter/programmatic classpaths.
-- **Bootstrap API** (`org.javaspec.bootstrap`)
+- **Bootstrap API** (`io.github.jvmspec.bootstrap`)
   - Responsibility: Provides zero-dependency bootstrap hook execution through `BootstrapHook`,
     immutable `BootstrapContext`, `BootstrapRunner`, and `BootstrapException`; explicit hook classes
     load from the run classloader/classpath, require public no-argument constructors, execute before
     ServiceLoader-discovered providers immediately before examples after any requested successful
     compilation, and fail before reports.
-- **Invocation API** (`org.javaspec.invocation`)
+- **Invocation API** (`io.github.jvmspec.invocation`)
   - Responsibility: Provides no-JUnit, no-`System.exit` programmatic invocation through
     `JavaspecInvocation`, `JavaspecLauncher`, `JavaspecInvocationResult`, and `JavaspecExitCode`,
     reusing canonical discovery, optional compilation, extension activation, bootstrap hook
@@ -149,17 +149,17 @@ Current runtime building blocks:
     XML-compatible report examples. Examples are not root modules and use local snapshots until
     public artifacts are available. `scripts/verify-all.sh` runs examples by default with explicit
     `JAVASPEC_SKIP_EXAMPLES=1` and Gradle-example opt-out `JAVASPEC_SKIP_GRADLE_EXAMPLE=1`.
-- **Extension API** (`org.javaspec.extension`)
+- **Extension API** (`io.github.jvmspec.extension`)
   - Responsibility: Provides the minimal extension lifecycle contract
     (`JavaspecExtension`/`Extension`), `ExtensionContext` for registering run formatters,
     `ExtensionLoadingException`, and `JavaspecExtensionLoader` for JDK ServiceLoader discovery of
     `RunFormatter`, `JavaspecExtension`, and alias `Extension` providers.
-- **Object behavior and matchers** (`org.javaspec.api`, `org.javaspec.matcher`)
+- **Object behavior and matchers** (`io.github.jvmspec.api`, `io.github.jvmspec.matcher`)
   - Responsibility: Provides the Java-facing specification base class, lazy construction support,
     explicit `skip(...)`/`pending(...)` runtime signals, expectation wrappers, expanded matcher
     helpers, direct convenience assertions that delegate through `match(actual)`, double convenience
     APIs, matcher contracts, and custom matcher registration without runtime dependencies.
-- **Doubles engine** (`org.javaspec.doubles`)
+- **Doubles engine** (`io.github.jvmspec.doubles`)
   - Responsibility: Provides zero-runtime-dependency interface doubles using JDK dynamic proxies,
     matcher-aware argument constraints, return/throw/answer stubbing, call history,
     called/not-called/exact-count verification, and a zero-dependency `ConcreteDoubleProvider` SPI
@@ -169,10 +169,10 @@ Current runtime building blocks:
     1.14.18, implements `ConcreteDoubleProvider`, creates subclasses for non-final concrete classes,
     delegates to core `DoubleControl` semantics, and rejects final classes, enums, arrays,
     annotations, primitives, interfaces, static mocking, and constructor mocking.
-- **Profile catalog** (`org.javaspec.profile`)
+- **Profile catalog** (`io.github.jvmspec.profile`)
   - Responsibility: Stores deterministic Java LTS profile, feature-flag, and API-symbol metadata for
     Java 8, 11, 17, 21, and 25.
-- **Compatibility boundary** (`org.javaspec.compatibility`)
+- **Compatibility boundary** (`io.github.jvmspec.compatibility`)
   - Responsibility: Checks profile compatibility, exposes the additive `ProfileEnforcement` report
     API, enforces described type kinds and resolvable cataloged API signature owners before
     generation/update writes, and reflectively probes optional APIs without direct post-Java-8
@@ -216,7 +216,7 @@ failures fail the build with clear diagnostics, and projects under test do not n
 Phase 16 adds the optional Gradle plugin as a standalone adapter artifact rather than a root Maven
 module or core module. `build.gradle` uses `java-gradle-plugin`, group `io.github.jvmspec`, version
 `0.1.0-SNAPSHOT`, Java source/target `1.8`, plugin id `io.github.jvmspec`, implementation class
-`org.javaspec.gradle.JavaspecPlugin`, Maven-local core dependency
+`io.github.jvmspec.gradle.JavaspecPlugin`, Maven-local core dependency
 `io.github.jvmspec:javaspec:0.1.0-SNAPSHOT`, and plugin-local TestKit/JUnit test dependencies.
 `JavaspecPlugin` registers extension `javaspec` and task `javaspecRun` in group `verification`; when
 Gradle Java plugin source sets are present, the task defaults to the `test` source set runtime
@@ -286,7 +286,7 @@ snapshots, runs examples, and asserts generated report markers. `scripts/verify-
 examples verification by default after core/adapters unless `JAVASPEC_SKIP_EXAMPLES=1` is set.
 
 Phase 22 adds explicit skipped/pending semantics to existing runtime building blocks.
-`org.javaspec.api.Skip` and `Pending` are runtime method annotations; `SkipExampleException` and
+`io.github.jvmspec.api.Skip` and `Pending` are runtime method annotations; `SkipExampleException` and
 `PendingExampleException` are unchecked signals; `ObjectBehavior` exposes `skip()`/`skip(String)`
 and `pending()`/`pending(String)`. The reflection runner resolves annotation-based skip/pending
 before instantiation and lifecycle execution, gives `@Skip` precedence over `@Pending`, processes
@@ -300,7 +300,7 @@ reason while preserving unique IDs/descriptors.
 Phase 23 adds classpath/execution availability diagnostics without changing the compilation
 boundary. The reflection runner enriches non-executable spec and missing/stale example-method
 reasons when source discovery found specs/examples that the runner classloader cannot execute.
-`org.javaspec.diagnostics.RunDiagnostics.executionAvailabilityLines(RunResult)` returns
+`io.github.jvmspec.diagnostics.RunDiagnostics.executionAvailabilityLines(RunResult)` returns
 deterministic human-readable lines for those availability issues while excluding explicit user
 `@Skip` and `PENDING` results. The CLI prints an `Execution diagnostics:` block only when such lines
 exist, with hints for either the current process classloader or explicit classpath entry count. The
@@ -323,9 +323,9 @@ adapter boundaries are unchanged.
 Phase 25 adds ServiceLoader external formatter/extension discovery without changing runner/report
 semantics. `JavaspecExtensionLoader.loadRunFormatterRegistry()` and
 `loadRunFormatterRegistry(ClassLoader)` create a registry with built-ins first, then providers from
-`META-INF/services/org.javaspec.formatter.RunFormatter`,
-`META-INF/services/org.javaspec.extension.JavaspecExtension`, and alias
-`META-INF/services/org.javaspec.extension.Extension`. Duplicate extension implementation classes
+`META-INF/services/io.github.jvmspec.formatter.RunFormatter`,
+`META-INF/services/io.github.jvmspec.extension.JavaspecExtension`, and alias
+`META-INF/services/io.github.jvmspec.extension.Extension`. Duplicate extension implementation classes
 listed under both extension service types are configured once. Invalid service declarations, invalid
 formatter providers, and extension configuration failures raise `ExtensionLoadingException`. CLI
 `javaspec run` loads providers after effective classloader selection, so process classpath entries
@@ -345,7 +345,7 @@ or unresolvable simple type names are ignored deliberately to avoid false positi
 
 Phase 27 adds bootstrap hook execution before examples. `bootstrap` config entries are fully
 qualified hook class names. `BootstrapRunner` loads each hook from the effective run
-classloader/classpath, verifies that it implements `org.javaspec.bootstrap.BootstrapHook`,
+classloader/classpath, verifies that it implements `io.github.jvmspec.bootstrap.BootstrapHook`,
 constructs it through a public no-argument constructor, and calls it with an immutable
 `BootstrapContext` containing the run classloader and discovered specs. Top-level hooks run before
 the selected suite hooks, declaration order and duplicates are preserved, and CLI no-spec runs skip
@@ -355,7 +355,7 @@ hooks in deterministic order. CLI bootstrap failures print `Error: Bootstrap exe
 canonical invocation path. Bootstrap does not add script engines, package scanning, dependency
 resolution, runtime dependencies, or Java 8 compatibility exceptions.
 
-Phase 28 strengthens interface doubles inside the existing `org.javaspec.doubles` boundary.
+Phase 28 strengthens interface doubles inside the existing `io.github.jvmspec.doubles` boundary.
 `ArgumentMatcher`, `ArgumentMatchers`, and `Doubles` factory aliases add matcher-aware argument
 constraints; argument-constrained stubs take priority over method-wide stubs;
 `MethodStub.thenThrow(...)` / `throwsException(...)` add throwing stubs; and
@@ -364,7 +364,7 @@ constraints; argument-constrained stubs take priority over method-wide stubs;
 dependencies, generated assets, examples, optional adapter boundaries, or the JDK-proxy-only
 interface target.
 
-Phase 29 adds opt-in CLI compilation inside the `org.javaspec.compilation` boundary and the CLI
+Phase 29 adds opt-in CLI compilation inside the `io.github.jvmspec.compilation` boundary and the CLI
 adapter; Phase 34 extends explicit opt-in compilation to programmatic, Maven, and Gradle entry
 points. `--compile` compiles source/spec `.java` files before bootstrap/examples, and
 `--compile-output <dir>` implies compilation while defaulting to `target/javaspec-classes`
@@ -378,7 +378,7 @@ changes, dependency resolution, incremental caches, or source-level/release mana
 
 ## 5.2 Profile Catalog
 
-`org.javaspec.profile` contains Java 8-compatible immutable metadata objects:
+`io.github.jvmspec.profile` contains Java 8-compatible immutable metadata objects:
 
 - `TargetProfile` defines ordered profile keys `java8`, `java11`, `java17`, `java21`, and `java25`.
 - `FeatureFlag` models profile-gated language and library capabilities such as records, sealed
@@ -395,7 +395,7 @@ The catalog has no runtime dependency outside the Java 8 standard library and do
 
 ## 5.3 Compatibility Boundary
 
-`org.javaspec.compatibility` separates profile decisions from runtime API probing:
+`io.github.jvmspec.compatibility` separates profile decisions from runtime API probing:
 
 - `ProfileCompatibilityCheck` checks whether a Java type kind, feature flag, or API symbol is
   allowed by a target profile.
@@ -416,7 +416,7 @@ simple names.
 
 ## 5.4 Configuration, Naming, and Discovery Filters
 
-`org.javaspec.config` contains the Phase 4 configuration boundary:
+`io.github.jvmspec.config` contains the Phase 4 configuration boundary:
 
 - `JavaspecConfiguration` represents top-level settings: target profile, formatter, constructor
   policy, default suite, optional JSON/JUnit XML-compatible report destinations, executable
@@ -459,7 +459,7 @@ profile and bootstrap hook entries.
 
 ## 5.5 Reflection Runner
 
-`org.javaspec.runner` contains the Phase 5/6 MVP execution model:
+`io.github.jvmspec.runner` contains the Phase 5/6 MVP execution model:
 
 - `SpecRunner` accepts discovered specs and an effective, explicitly selected, or CLI
   compile-output-first classloader. It loads compiled spec classes reflectively and does not compile
@@ -494,7 +494,7 @@ changing defaults, JUnit Platform behavior, or automatic classpath repair.
 
 ## 5.6 Expectations and Matchers
 
-`org.javaspec.matcher` contains the zero-dependency expectation wrapper and matcher registry:
+`io.github.jvmspec.matcher` contains the zero-dependency expectation wrapper and matcher registry:
 
 - `Matchable<T>` provides PHPSpec-inspired chained assertions for identity/equality and their
   negations, return/equality aliases, type/instance aliases, `shouldImplement`, containment, string
@@ -516,7 +516,7 @@ No additional runtime component or third-party assertion library is introduced b
 
 ## 5.7 Interface Doubles
 
-`org.javaspec.doubles` contains the Phase 8 interface-doubles implementation plus the Phase 28
+`io.github.jvmspec.doubles` contains the Phase 8 interface-doubles implementation plus the Phase 28
 strengthening:
 
 - `Doubles` creates interface proxies with `create`, `of`, and `proxy`, creates typed handles with
@@ -562,7 +562,7 @@ bytecode adapter.
 
 ## 5.8 Formatter, Reporting, Invocation, and Extension Boundaries
 
-`org.javaspec.formatter` contains the Phase 11 human-readable output contract:
+`io.github.jvmspec.formatter` contains the Phase 11 human-readable output contract:
 
 - `RunFormatter` renders a `RunResult` to a `PrintStream` and exposes a formatter name.
 - `RunFormatterRegistry` normalizes names, registers formatters deterministically, exposes formatter
@@ -571,7 +571,7 @@ bytecode adapter.
   rendering behind the public contract.
 - `RunFormatterSupport` keeps shared rendering details out of the CLI adapter.
 
-`org.javaspec.reporting` contains dependency-free machine-readable report writers:
+`io.github.jvmspec.reporting` contains dependency-free machine-readable report writers:
 
 - `RunReportWriter` writes dependency-free UTF-8 JSON without introducing a JSON library runtime
   dependency.
@@ -598,7 +598,7 @@ bytecode adapter.
   not change writer behavior.
 - Report write failures are I/O failures and cause exit `70` with path diagnostics.
 
-`org.javaspec.invocation` contains the Phase 14 no-`System.exit` invocation contract:
+`io.github.jvmspec.invocation` contains the Phase 14 no-`System.exit` invocation contract:
 
 - `JavaspecInvocation` carries either a `SpecDiscoveryRequest` or pre-discovered specs, a selected
   `ClassLoader`, and stop-on-failure behavior.
@@ -609,14 +609,14 @@ bytecode adapter.
 - `JavaspecExitCode` maps passing, skipped/pending-only, and no-spec runs to `0`, and failed or
   broken runs to `1`.
 
-`org.javaspec.diagnostics` contains the Phase 23 execution-availability diagnostics contract:
+`io.github.jvmspec.diagnostics` contains the Phase 23 execution-availability diagnostics contract:
 
 - `RunDiagnostics.executionAvailabilityLines(RunResult)` returns deterministic human-readable lines
   for non-executable specs and missing/stale compiled example methods.
 - The helper excludes explicit user `@Skip` and `PENDING` results so diagnostics distinguish
   classpath/compilation availability from intentional non-execution.
 
-`org.javaspec.extension` contains the minimal Phase 11 extension contract:
+`io.github.jvmspec.extension` contains the minimal Phase 11 extension contract:
 
 - `JavaspecExtension` defines `configure(ExtensionContext)` and the default
   `register(ExtensionContext)` alias.

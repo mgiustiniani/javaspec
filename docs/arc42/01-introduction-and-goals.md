@@ -22,7 +22,7 @@ conservative compatibility baseline.
 Core requirements:
 
 - Compile and run on Java 8.
-- Use Maven and package base `org.javaspec`.
+- Use Maven and package base `io.github.jvmspec`.
 - Keep the core runtime artifact free of third-party runtime dependencies beyond the JDK.
 - Allow dependencies only in test scope.
 - Model Java LTS target profiles for Java 8, 11, 17, 21, and 25 through a profile catalog,

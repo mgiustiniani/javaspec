@@ -112,7 +112,7 @@
                             <workingDirectory>${exec.workdir}</workingDirectory>
                             <commandlineArgs>
                                 -cp ${project.build.directory}/dependency/javaspec:${project.build.directory}/test-classes:${project.build.directory}/classes
-                                org.javaspec.cli.Main run
+                                io.github.jvmspec.cli.Main run
                                 --report-file ${project.build.directory}/javaspec/run-report.json
                                 --junit-xml-file ${project.build.directory}/javaspec/junit-report.xml
                                 --spec-dir src/test/java

@@ -62,7 +62,7 @@ Verification status:
   available, separate pending counts, and optional Phase 35 metadata. JUnit XML-compatible reports
   include Phase 35 testsuite metadata/properties, testcase file/line attributes when available, and
   skipped mappings for both skipped and pending examples.
-- `org.javaspec.invocation` exposes no-JUnit, no-`System.exit` programmatic invocation around
+- `io.github.jvmspec.invocation` exposes no-JUnit, no-`System.exit` programmatic invocation around
   canonical discovery, bootstrap hooks, and `SpecRunner`.
 - The optional Maven plugin, Gradle plugin, and JUnit Platform engine are standalone adapters
   outside the root Maven reactor. Maven and Gradle use build-tool classpaths and can log `javaspec:`
@@ -636,11 +636,11 @@ A missing or unreadable config file exits with I/O error (`70`) and prints the c
 ## Bootstrap hooks
 
 Configured `bootstrap` entries are executable hook class names for `run`; Phase 33 also discovers
-`org.javaspec.bootstrap.BootstrapHook` providers with JDK `ServiceLoader` after explicit hooks.
+`io.github.jvmspec.bootstrap.BootstrapHook` providers with JDK `ServiceLoader` after explicit hooks.
 
 Requirements for each hook class:
 
-- It must implement `org.javaspec.bootstrap.BootstrapHook`.
+- It must implement `io.github.jvmspec.bootstrap.BootstrapHook`.
 - It must declare a public no-argument constructor.
 - It must be compiled and loadable from the effective run classloader/classpath: the CLI process
   classloader or explicit `--classpath` / `--classpath-file` classloader, Maven's test classpath,
@@ -655,12 +655,12 @@ Hook order is deterministic:
 5. ServiceLoader-discovered `BootstrapHook` providers execute afterward in deterministic provider
    order.
 
-Hooks receive immutable `org.javaspec.bootstrap.BootstrapContext`. The context exposes the run
+Hooks receive immutable `io.github.jvmspec.bootstrap.BootstrapContext`. The context exposes the run
 classloader and the discovered specs selected by suite/class/example filters.
 
 ```java
-import org.javaspec.bootstrap.BootstrapContext;
-import org.javaspec.bootstrap.BootstrapHook;
+import io.github.jvmspec.bootstrap.BootstrapContext;
+import io.github.jvmspec.bootstrap.BootstrapHook;
 
 public final class SpecBootstrap implements BootstrapHook {
     public SpecBootstrap() {
@@ -852,31 +852,31 @@ CLI selects a formatter.
 pending examples.
 
 Built-in and external output is rendered through the public zero-dependency
-`org.javaspec.formatter.RunFormatter` contract and deterministic `RunFormatterRegistry`. Built-in
+`io.github.jvmspec.formatter.RunFormatter` contract and deterministic `RunFormatterRegistry`. Built-in
 names are `progress` and `pretty`. Phase 25 adds JDK `ServiceLoader` discovery through
-`org.javaspec.extension.JavaspecExtensionLoader.loadRunFormatterRegistry()` and
+`io.github.jvmspec.extension.JavaspecExtensionLoader.loadRunFormatterRegistry()` and
 `loadRunFormatterRegistry(ClassLoader)`; compatibility aliases such as `loadRunFormatters(...)` may
 also exist. The registry contains built-ins first, then providers discovered from the effective
 classloader.
 
 Supported service types are:
 
-- `org.javaspec.formatter.RunFormatter` providers, registered by `RunFormatter.name()`.
-- `org.javaspec.extension.JavaspecExtension` providers, configured with an `ExtensionContext` that
+- `io.github.jvmspec.formatter.RunFormatter` providers, registered by `RunFormatter.name()`.
+- `io.github.jvmspec.extension.JavaspecExtension` providers, configured with an `ExtensionContext` that
   exposes `context.runFormatterRegistry()` / `context.runFormatters()`.
-- `org.javaspec.extension.Extension`, a short-name alias service type for extension providers.
+- `io.github.jvmspec.extension.Extension`, a short-name alias service type for extension providers.
 
 Service files live under `META-INF/services/` in the provider jar:
 
 ```text
-# META-INF/services/org.javaspec.formatter.RunFormatter
+# META-INF/services/io.github.jvmspec.formatter.RunFormatter
 com.example.javaspec.MarkdownRunFormatter
 
-# META-INF/services/org.javaspec.extension.JavaspecExtension
+# META-INF/services/io.github.jvmspec.extension.JavaspecExtension
 com.example.javaspec.MarkdownExtension
 
 # alias service type also supported:
-# META-INF/services/org.javaspec.extension.Extension
+# META-INF/services/io.github.jvmspec.extension.Extension
 com.example.javaspec.MarkdownExtension
 ```
 
@@ -886,8 +886,8 @@ Minimal provider examples:
 package com.example.javaspec;
 
 import java.io.PrintStream;
-import org.javaspec.formatter.RunFormatter;
-import org.javaspec.runner.RunResult;
+import io.github.jvmspec.formatter.RunFormatter;
+import io.github.jvmspec.runner.RunResult;
 
 public final class MarkdownRunFormatter implements RunFormatter {
     @Override
@@ -906,8 +906,8 @@ public final class MarkdownRunFormatter implements RunFormatter {
 ```java
 package com.example.javaspec;
 
-import org.javaspec.extension.ExtensionContext;
-import org.javaspec.extension.JavaspecExtension;
+import io.github.jvmspec.extension.ExtensionContext;
+import io.github.jvmspec.extension.JavaspecExtension;
 
 public final class MarkdownExtension implements JavaspecExtension {
     @Override
@@ -959,7 +959,7 @@ $javaspec run --report-file target/javaspec-report.json --verbose
 $javaspec run --config javaspec.conf # writes the configured JSON report if jsonReportFile/report aliases are present
 ```
 
-Programmatic hosts can use `org.javaspec.reporting.ReportMetadata` with the Phase 35
+Programmatic hosts can use `io.github.jvmspec.reporting.ReportMetadata` with the Phase 35
 `RunReportWriter` overloads when they need deterministic metadata; existing writer methods use
 `ReportMetadata.current()`.
 
@@ -1041,7 +1041,7 @@ $javaspec run --report target/javaspec-report.json --junit-xml target/javaspec-r
 $javaspec run --config javaspec.conf # writes the configured JUnit XML report if junitXmlReportFile aliases are present
 ```
 
-Programmatic hosts can use `org.javaspec.reporting.ReportMetadata` with the Phase 35
+Programmatic hosts can use `io.github.jvmspec.reporting.ReportMetadata` with the Phase 35
 `JUnitXmlReportWriter` overloads when they need deterministic metadata; existing writer methods use
 `ReportMetadata.current()`.
 
@@ -1129,7 +1129,7 @@ These controls belong to `run` only and are rejected for `describe`/`desc`.
 
 ## No-JUnit programmatic invocation
 
-The `org.javaspec.invocation` package provides a no-`System.exit` API for launchers, build tools,
+The `io.github.jvmspec.invocation` package provides a no-`System.exit` API for launchers, build tools,
 and CI adapters that want to invoke javaspec inside the current JVM without JUnit:
 
 - **`JavaspecInvocation`**: Immutable invocation input: either a `SpecDiscoveryRequest` or already
@@ -1164,12 +1164,12 @@ results will occur. Programmatic hosts can opt into current-JDK compilation with
 `JavaspecInvocation.withCompilation(...)`; this uses `javax.tools`, has no dependency
 resolution/forked `javac`/incremental cache, and exposes compilation results through
 `JavaspecInvocationResult`. Programmatic hosts can call
-`org.javaspec.diagnostics.RunDiagnostics.executionAvailabilityLines(RunResult)` to obtain
+`io.github.jvmspec.diagnostics.RunDiagnostics.executionAvailabilityLines(RunResult)` to obtain
 deterministic human-readable availability diagnostics that exclude explicit `@Skip` and `PENDING`
 semantics.
 
 Programmatic tools that need the same source/generation compatibility boundary as the CLI can use
-`org.javaspec.compatibility.ProfileEnforcement.defaultEnforcement()` and inspect
+`io.github.jvmspec.compatibility.ProfileEnforcement.defaultEnforcement()` and inspect
 `ProfileEnforcementReport` / `ProfileViolation` before writing generated or updated source. This API
 is additive and does not require invoking the CLI.
 
@@ -1211,7 +1211,7 @@ Maven formatter selection is available through config or `javaspec.formatter`, a
 activation through config or `javaspec.extensions`, where implemented. When execution-availability
 issues exist, it logs `javaspec:` warnings plus the Maven test classpath element count. Bootstrap
 failures fail the build with clear `javaspec bootstrap execution failed` diagnostics. It delegates
-to canonical no-JUnit `org.javaspec.invocation.JavaspecLauncher` without `System.exit`, so projects
+to canonical no-JUnit `io.github.jvmspec.invocation.JavaspecLauncher` without `System.exit`, so projects
 under test do not need JUnit. Maven source/spec compilation remains Maven's lifecycle responsibility
 by default. Phase 34 adds opt-in `javaspec.compile`, `javaspec.compileOutput`, and
 `javaspec.compileOutputDirectory` settings for current-JDK `javax.tools` compilation before
@@ -1299,7 +1299,7 @@ JUnit Platform 6/JUnit 6. Runtime dependencies are isolated to the optional engi
 `junit-platform-commons`, and `apiguardian-api`. JUnit Platform Launcher, JUnit Platform TestKit,
 and JUnit Jupiter are engine test-only dependencies.
 
-The engine implementation is `org.javaspec.junit.platform.JavaspecTestEngine`, registered through
+The engine implementation is `io.github.jvmspec.junit.platform.JavaspecTestEngine`, registered through
 `META-INF/services/org.junit.platform.engine.TestEngine`, and its engine id is `javaspec`. To opt
 in, place the engine artifact on the JUnit Platform test runtime classpath used by the selected
 IDE/CI/build launcher. Projects that do not opt into it still have no JUnit dependency and can keep
@@ -1377,8 +1377,8 @@ Lifecycle behavior:
 Explicit skip/pending examples:
 
 ```java
-import org.javaspec.api.Pending;
-import org.javaspec.api.Skip;
+import io.github.jvmspec.api.Pending;
+import io.github.jvmspec.api.Skip;
 
 public class PaymentSpec extends PaymentSpecSupport {
     @Skip(reason = "external gateway unavailable")
@@ -1471,7 +1471,7 @@ package spec.org.example;
 
 import org.example.Calculator;
 
-public class CalculatorSpecSupport extends org.javaspec.api.ObjectBehavior<Calculator> {
+public class CalculatorSpecSupport extends io.github.jvmspec.api.ObjectBehavior<Calculator> {
     public CalculatorSpecSupport() {
         super(Calculator.class);
     }
@@ -1603,7 +1603,7 @@ interfaces change how the concepts are expressed.
   `BootstrapHook` providers, executed before examples from the run classloader/classpath with
   explicit hooks first.
 - **No-JUnit CI execution**: CLI `--classpath` / `--classpath-file`, programmatic
-  `org.javaspec.invocation`, optional Maven/Gradle plugin adapters, JSON reports, and JUnit
+  `io.github.jvmspec.invocation`, optional Maven/Gradle plugin adapters, JSON reports, and JUnit
   XML-compatible reports without requiring JUnit.
 
 Practical migration guidance:
@@ -1756,11 +1756,11 @@ public class BookSpec extends BookSpecSupport {
 For discovered methods, the support class contains methods similar to:
 
 ```java
-protected org.javaspec.matcher.Matchable<Integer> getRating() {
+protected io.github.jvmspec.matcher.Matchable<Integer> getRating() {
     return match(subject().getRating());
 }
 
-protected org.javaspec.matcher.Matchable<String> getTitle() {
+protected io.github.jvmspec.matcher.Matchable<String> getTitle() {
     return match(subject().getTitle());
 }
 
@@ -2054,9 +2054,9 @@ Custom matchers can be registered in the matcher registry and may evaluate null 
 passes the actual subject value, including `null`, to the matcher predicate.
 
 ```java
-matcherRegistry().register("beAbsent", new org.javaspec.matcher.CustomMatcher<Object>(
+matcherRegistry().register("beAbsent", new io.github.jvmspec.matcher.CustomMatcher<Object>(
     "beAbsent",
-    new org.javaspec.matcher.CustomMatcher.MatchPredicate<Object>() {
+    new io.github.jvmspec.matcher.CustomMatcher.MatchPredicate<Object>() {
         @Override
         public boolean test(Object subject, Object... expected) {
             return subject == null;
@@ -2072,7 +2072,7 @@ method-discovery/default-return inference where applicable.
 
 ## Interface doubles
 
-The doubles API under `org.javaspec.doubles` provides zero-runtime-dependency collaborator doubles.
+The doubles API under `io.github.jvmspec.doubles` provides zero-runtime-dependency collaborator doubles.
 Doubles are implemented with Java 8 JDK dynamic proxies, so the core runtime can double ordinary
 interfaces without bytecode libraries.
 
@@ -2087,8 +2087,8 @@ Use `Doubles` directly when working outside an `ObjectBehavior` subclass. The ex
 `Notifier` is an ordinary interface.
 
 ```java
-import org.javaspec.doubles.Doubles;
-import org.javaspec.doubles.InterfaceDouble;
+import io.github.jvmspec.doubles.Doubles;
+import io.github.jvmspec.doubles.InterfaceDouble;
 
 InterfaceDouble<Notifier> notifierDouble = Doubles.interfaceDouble(Notifier.class);
 Notifier notifier = notifierDouble.instance();
@@ -2112,7 +2112,7 @@ for an existing proxy.
 
 ### Argument matchers
 
-Argument matchers live in `org.javaspec.doubles` and match a single argument in existing vararg
+Argument matchers live in `io.github.jvmspec.doubles` and match a single argument in existing vararg
 APIs. Use the factories on `ArgumentMatchers` or the same convenience aliases on `Doubles`:
 
 - **`any()` / `anyArgument()`**: Any argument, including `null`.
@@ -2123,10 +2123,10 @@ APIs. Use the factories on `ArgumentMatchers` or the same convenience aliases on
 - **`eq(expected)` / `equalTo(expected)`**: javaspec array-aware equality with the expected value.
 
 ```java
-import static org.javaspec.doubles.Doubles.any;
-import static org.javaspec.doubles.Doubles.anyArgument;
-import static org.javaspec.doubles.Doubles.eq;
-import static org.javaspec.doubles.Doubles.notNull;
+import static io.github.jvmspec.doubles.Doubles.any;
+import static io.github.jvmspec.doubles.Doubles.anyArgument;
+import static io.github.jvmspec.doubles.Doubles.eq;
+import static io.github.jvmspec.doubles.Doubles.notNull;
 
 notifierDouble.when("send", eq("alerts"), any(String[].class)).thenReturn(Boolean.TRUE);
 notifierDouble.verifyCalled("send", eq("alerts"), any(String[].class));
@@ -2171,8 +2171,8 @@ receives an immutable `DoubleInvocation` context with the reflective method, met
 argument snapshots, defensive argument-array copies, individual argument access, and argument count.
 
 ```java
-import org.javaspec.doubles.DoubleInvocation;
-import org.javaspec.doubles.StubAnswer;
+import io.github.jvmspec.doubles.DoubleInvocation;
+import io.github.jvmspec.doubles.StubAnswer;
 
 notifierDouble.when("channelFor", any(String.class)).thenAnswer(new StubAnswer() {
     @Override
@@ -2284,8 +2284,8 @@ subclass for a non-final concrete class and delegates calls to the same `DoubleC
 verification semantics used by core doubles.
 
 ```java
-import org.javaspec.doubles.Doubles;
-import org.javaspec.doubles.InterfaceDouble;
+import io.github.jvmspec.doubles.Doubles;
+import io.github.jvmspec.doubles.InterfaceDouble;
 
 InterfaceDouble<DataStore> storeDouble = Doubles.concreteDouble(DataStore.class);
 storeDouble.control().returns("save", true);

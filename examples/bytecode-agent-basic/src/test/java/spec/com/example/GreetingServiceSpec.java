@@ -3,11 +3,11 @@ package spec.com.example;
 import com.example.FinalGreeter;
 import com.example.GreetingService;
 import com.example.StaticFormatter;
-import org.javaspec.api.ObjectBehavior;
-import org.javaspec.doubles.BytecodeAgentDoubles;
-import org.javaspec.doubles.Doubles;
-import org.javaspec.doubles.InterfaceDouble;
-import org.javaspec.doubles.StaticDouble;
+import io.github.jvmspec.api.ObjectBehavior;
+import io.github.jvmspec.doubles.BytecodeAgentDoubles;
+import io.github.jvmspec.doubles.Doubles;
+import io.github.jvmspec.doubles.InterfaceDouble;
+import io.github.jvmspec.doubles.StaticDouble;
 
 public class GreetingServiceSpec extends ObjectBehavior<GreetingService> {
     public GreetingServiceSpec() {

@@ -78,7 +78,7 @@ report writing, and dry-run behavior belong to `run`.
     `Compilation failed:`, exits `1`, skips bootstrap/example execution, and writes no reports.
 12. Configured bootstrap hooks execute through `BootstrapRunner` from the effective, selected
     explicit, or compile-output-first classloader. Hook classes must implement
-    `org.javaspec.bootstrap.BootstrapHook`, have a public no-argument constructor, and receive an
+    `io.github.jvmspec.bootstrap.BootstrapHook`, have a public no-argument constructor, and receive an
     immutable `BootstrapContext` with the run classloader and discovered specs.
 13. Bootstrap failures print `Error: Bootstrap execution failed`, exit `64`, and stop before example
     execution and report writing.
@@ -237,9 +237,9 @@ remain unsupported.
   excluding explicit `@Skip` and `PENDING` results.
 - `JavaspecExtension`/`Extension` and `ExtensionContext` support formatter registration.
   `JavaspecExtensionLoader.loadRunFormatterRegistry()` and `loadRunFormatterRegistry(ClassLoader)`
-  load built-ins first, then ServiceLoader providers for `org.javaspec.formatter.RunFormatter`,
-  `org.javaspec.extension.JavaspecExtension`, and alias service type
-  `org.javaspec.extension.Extension`.
+  load built-ins first, then ServiceLoader providers for `io.github.jvmspec.formatter.RunFormatter`,
+  `io.github.jvmspec.extension.JavaspecExtension`, and alias service type
+  `io.github.jvmspec.extension.Extension`.
 - Duplicate extension implementation classes listed under both extension service types are
   configured once. Invalid providers raise `ExtensionLoadingException` with clear diagnostics.
 - ServiceLoader discovery is classpath-based only; configuration-driven activation and adapter
@@ -326,7 +326,7 @@ remain unsupported.
 5. Output and diagnostics are emitted through Maven logging. When execution availability lines
    exist, the Mojo logs `javaspec:` warnings and the Maven test classpath element count. Bootstrap
    failures fail the build with clear `javaspec bootstrap execution failed` diagnostics.
-6. The Mojo delegates to `org.javaspec.invocation.JavaspecLauncher`, receives structured results,
+6. The Mojo delegates to `io.github.jvmspec.invocation.JavaspecLauncher`, receives structured results,
    and avoids `System.exit` and direct low-level runner coupling.
 7. No JUnit is required in the project under test. Source/spec compilation remains Maven's
    responsibility by default; `javaspec.compile`, `javaspec.compileOutput`, or
@@ -367,7 +367,7 @@ remain unsupported.
 1. A JUnit Platform launcher has the optional
    `io.github.jvmspec:javaspec-junit-platform-engine:0.1.0-SNAPSHOT` artifact, compiled spec classes,
    production classes, and dependencies on its test runtime classpath.
-2. JUnit Platform discovers `org.javaspec.junit.platform.JavaspecTestEngine` through
+2. JUnit Platform discovers `io.github.jvmspec.junit.platform.JavaspecTestEngine` through
    `META-INF/services/org.junit.platform.engine.TestEngine`; the engine id is `javaspec`.
 3. The engine reads supported configuration parameters: `javaspec.configFile`, `javaspec.suite`,
    `javaspec.specDir`/`javaspec.specRoot`, `javaspec.classFilters`/`classFilter`/`class`,

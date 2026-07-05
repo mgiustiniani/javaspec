@@ -150,7 +150,7 @@ Prefer the PHPSpec-inspired proxy style where the spec extends `ObjectBehavior<S
 and uses `match(subject()...)` / `match(...).shouldReturn(...)`.
 
 ```java
-import static org.javaspec.api.ObjectBehavior.*;
+import static io.github.jvmspec.api.ObjectBehavior.*;
 
 public final class GreetingSpec extends /* generated support class extending ObjectBehavior<Greeting> */ {
     public static void main(String[] args) {
@@ -174,8 +174,8 @@ match(subject().forName("Ada")).shouldReturn("Hello, Ada!");
 The expectation style (`describe`/`it`/`expect`) is also supported as an alternative.
 
 ```java
-import static org.javaspec.Javaspec.describe;
-import static org.javaspec.Javaspec.expect;
+import static io.github.jvmspec.Javaspec.describe;
+import static io.github.jvmspec.Javaspec.expect;
 
 public final class GreetingSpec {
     public static void main(String[] args) {
@@ -300,7 +300,7 @@ Maven dependency snippet:
 Example shape using `Doubles.concreteDouble()`, `Doubles.control()`, and `Doubles.calls()`:
 
 ```java
-import static org.javaspec.doubles.Doubles.*;
+import static io.github.jvmspec.doubles.Doubles.*;
 
 public final class InvoicePrinterSpec extends /* generated support class extending ObjectBehavior<InvoicePrinter> */ {
     public static void main(String[] args) {

@@ -12,7 +12,7 @@ The CLI currently receives Java source and spec roots but does not own project c
 
 ## Decision
 
-javaspec implements the MVP example runner as a dependency-free reflection runner in `org.javaspec.runner`.
+javaspec implements the MVP example runner as a dependency-free reflection runner in `io.github.jvmspec.runner`.
 
 After `javaspec run` completes discovery, generation, and source updates without declined prompts, it executes examples only when the compiled specification class is available on the effective classloader. The runner reuses `DiscoveredSpec` and `SpecExample` metadata, so suite, class, and example filters remain effective and unrelated examples are not executed.
 

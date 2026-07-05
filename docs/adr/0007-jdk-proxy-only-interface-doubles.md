@@ -12,7 +12,7 @@ The JDK already provides `java.lang.reflect.Proxy`, which can create runtime imp
 
 ## Decision
 
-The core doubles implementation uses JDK dynamic proxies only and lives under `org.javaspec.doubles`.
+The core doubles implementation uses JDK dynamic proxies only and lives under `io.github.jvmspec.doubles`.
 
 The supported target is an ordinary Java interface. The API rejects unsupported targets with clear `IllegalArgumentException` diagnostics: `null`, primitives, arrays, annotations, enums, concrete classes, and final classes.
 

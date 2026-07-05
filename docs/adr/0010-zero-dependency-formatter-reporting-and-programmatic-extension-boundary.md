@@ -12,9 +12,9 @@ The implementation also needs to avoid overstating plugin behavior. Public exten
 
 ## Decision
 
-javaspec exposes `org.javaspec.formatter.RunFormatter` and a deterministic `RunFormatterRegistry` as zero-dependency public contracts. Built-in CLI formatter names are `progress` and `pretty`; they preserve the Phase 9 output behavior while moving rendering out of the CLI adapter.
+javaspec exposes `io.github.jvmspec.formatter.RunFormatter` and a deterministic `RunFormatterRegistry` as zero-dependency public contracts. Built-in CLI formatter names are `progress` and `pretty`; they preserve the Phase 9 output behavior while moving rendering out of the CLI adapter.
 
-javaspec writes optional run reports through `org.javaspec.reporting.RunReportWriter`. Reports are UTF-8 JSON generated without a JSON runtime dependency. The current schema is `schemaVersion` 1 and contains summary counts, specs, examples, nullable failure details, throwable class/message, and stack trace lines. Phase 18 adds stable spec/example ids and source file/line metadata additively while preserving the existing fields; Phase 22 adds pending counts and `PENDING` statuses additively; Phase 35 default writers add optional run-level metadata/properties while preserving schemaVersion 1 compatibility.
+javaspec writes optional run reports through `io.github.jvmspec.reporting.RunReportWriter`. Reports are UTF-8 JSON generated without a JSON runtime dependency. The current schema is `schemaVersion` 1 and contains summary counts, specs, examples, nullable failure details, throwable class/message, and stack trace lines. Phase 18 adds stable spec/example ids and source file/line metadata additively while preserving the existing fields; Phase 22 adds pending counts and `PENDING` statuses additively; Phase 35 default writers add optional run-level metadata/properties while preserving schemaVersion 1 compatibility.
 
 `javaspec run --report <file>` and `--report-file <file>` are run-only. No-spec, passing, failing, broken, skipped-only, and pending-only runs write reports after normal output. Failed or broken executable examples still exit `1` after the report is written. Dry-run pending generation/update exits before execution and does not write a report. Report write failures are I/O failures and exit `70`.
 

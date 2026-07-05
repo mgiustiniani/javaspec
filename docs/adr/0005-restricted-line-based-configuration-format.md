@@ -12,7 +12,7 @@ The runtime artifact must remain Java 8-compatible and must not gain third-party
 
 ## Decision
 
-javaspec uses a restricted internal, line-based configuration format implemented in `org.javaspec.config`.
+javaspec uses a restricted internal, line-based configuration format implemented in `io.github.jvmspec.config`.
 
 The parser accepts blank lines, comment lines beginning with `#`, and key/value lines separated by `=` or `:`. It recognizes a small fixed set of top-level keys and `suite.<name>.<property>` keys, validates target profiles and constructor-policy values, rejects duplicate/unknown/malformed keys, and reports line-number diagnostics where available.
 

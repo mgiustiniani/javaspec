@@ -13,13 +13,13 @@
   and Gradle plugin `javaspecCoreVersion` alignment.
 - **Annotation element**: A no-argument method-like member of a Java annotation type. javaspec
   generates only compatible elements for annotation sources.
-- **Argument matcher**: `org.javaspec.doubles.ArgumentMatcher`; a zero-dependency matcher for one
+- **Argument matcher**: `io.github.jvmspec.doubles.ArgumentMatcher`; a zero-dependency matcher for one
   interface-double argument. Factory aliases include `any()` / `anyArgument()`, nullable
   `any(Class<?>)` / `anyType(Class<?>)`, `isNull()`, `notNull()`, and array-aware `eq(...)` /
   `equalTo(...)`.
 - **Bootstrap hook**: A configured fully qualified Java class name or ServiceLoader-discovered
   provider executed immediately before examples. Explicit hook classes must implement
-  `org.javaspec.bootstrap.BootstrapHook`, have a public no-argument constructor, and be available on
+  `io.github.jvmspec.bootstrap.BootstrapHook`, have a public no-argument constructor, and be available on
   the run classloader/classpath. Top-level hooks run before selected-suite hooks, followed by
   discovered providers.
 - **`BootstrapContext`**: Immutable context passed to bootstrap hooks. It exposes the run
@@ -68,9 +68,9 @@
   `PENDING` semantics; CLI `--compile` can reduce source-only diagnostics but does not repair
   missing dependencies or stale compiled classes.
 - **External formatter/extension provider**: A jar visible to the effective CLI or Gradle run
-  classloader with `META-INF/services/org.javaspec.formatter.RunFormatter`,
-  `META-INF/services/org.javaspec.extension.JavaspecExtension`, or alias
-  `META-INF/services/org.javaspec.extension.Extension` entries. Providers are loaded by JDK
+  classloader with `META-INF/services/io.github.jvmspec.formatter.RunFormatter`,
+  `META-INF/services/io.github.jvmspec.extension.JavaspecExtension`, or alias
+  `META-INF/services/io.github.jvmspec.extension.Extension` entries. Providers are loaded by JDK
   `ServiceLoader` and can add formatter names to the run formatter registry.
 - **GitHub Actions workflow**: `.github/workflows/ci.yml`; CI configuration with a Java
   8/11/17/21/25 core matrix and Java 21 full-verification job through `scripts/verify-all.sh`,
@@ -92,12 +92,12 @@
 - **Gradle test source set runtime classpath**: The compiled `test` source set runtime classpath
   used by the optional Gradle plugin by default when the Gradle Java plugin/source sets are present.
 - **Interface double**: A JDK dynamic proxy double for an ordinary Java interface under
-  `org.javaspec.doubles`, supporting method-wide and matcher-aware argument-constrained stubs,
+  `io.github.jvmspec.doubles`, supporting method-wide and matcher-aware argument-constrained stubs,
   return/throw/answer behavior, call history, and verification while excluding
   concrete/static/final/constructor/bytecode mocking from core.
 - **JavaCompiler**: The current JDK `javax.tools.JavaCompiler` used only by opt-in CLI compilation.
   If unavailable, `run --compile` exits `64`; javaspec does not fork `javac`.
-- **Invocation API**: `org.javaspec.invocation` no-`System.exit` programmatic API over canonical
+- **Invocation API**: `io.github.jvmspec.invocation` no-`System.exit` programmatic API over canonical
   discovery, `SpecRunner`, and `RunResult`.
 - **`DoubleInvocation`**: Immutable context passed to `StubAnswer` callbacks for interface doubles.
   It exposes the reflective method, method name, immutable argument snapshots, defensive
@@ -154,8 +154,8 @@
 - **PHPSpec-inspired**: Modeled after PHPSpec workflow concepts while adapted to Java packages,
   classes, static typing, compilation, and interfaces.
 - **Profile catalog**: Metadata model for Java LTS profiles, feature flags, and API symbols under
-  `org.javaspec.profile`.
-- **Profile enforcement**: Compatibility boundary under `org.javaspec.compatibility` that checks
+  `io.github.jvmspec.profile`.
+- **Profile enforcement**: Compatibility boundary under `io.github.jvmspec.compatibility` that checks
   described type kinds, resolvable cataloged Java API owners in generated method signatures, and
   relationship references before generation/update writes. It is conservative and ignores unknown
   project types plus ambiguous or unresolvable names.

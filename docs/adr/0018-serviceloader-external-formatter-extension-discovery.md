@@ -14,13 +14,13 @@ The core must not add a plugin framework, classpath scanner, dependency-injectio
 
 Use the JDK `ServiceLoader` API for external run formatter and extension discovery.
 
-The canonical programmatic entry point is `org.javaspec.extension.JavaspecExtensionLoader.loadRunFormatterRegistry()` with the overload `loadRunFormatterRegistry(ClassLoader)`. The default overload uses the thread context classloader when available, otherwise the loader's own classloader. The classloader overload uses the supplied classloader, falling back to the same default when `null` is supplied. Compatibility aliases such as `loadRunFormatters()` may exist, but `loadRunFormatterRegistry(...)` is the documented helper.
+The canonical programmatic entry point is `io.github.jvmspec.extension.JavaspecExtensionLoader.loadRunFormatterRegistry()` with the overload `loadRunFormatterRegistry(ClassLoader)`. The default overload uses the thread context classloader when available, otherwise the loader's own classloader. The classloader overload uses the supplied classloader, falling back to the same default when `null` is supplied. Compatibility aliases such as `loadRunFormatters()` may exist, but `loadRunFormatterRegistry(...)` is the documented helper.
 
 The returned `RunFormatterRegistry` starts with built-in formatters (`progress`, `pretty`) and then loads ServiceLoader providers from the effective classloader:
 
-- `META-INF/services/org.javaspec.formatter.RunFormatter` registers each provider by `RunFormatter.name()`.
-- `META-INF/services/org.javaspec.extension.JavaspecExtension` configures each extension with an `ExtensionContext` that exposes the same registry.
-- `META-INF/services/org.javaspec.extension.Extension` is accepted as a short-name alias service type for extension providers.
+- `META-INF/services/io.github.jvmspec.formatter.RunFormatter` registers each provider by `RunFormatter.name()`.
+- `META-INF/services/io.github.jvmspec.extension.JavaspecExtension` configures each extension with an `ExtensionContext` that exposes the same registry.
+- `META-INF/services/io.github.jvmspec.extension.Extension` is accepted as a short-name alias service type for extension providers.
 
 If the same extension implementation class is listed under both extension service types, it is configured once per registry load. Invalid service declarations, unloadable provider classes, invalid formatter names, or extension configuration failures raise `ExtensionLoadingException` with service type and implementation diagnostics.
 

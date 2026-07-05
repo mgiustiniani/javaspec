@@ -14,7 +14,7 @@ The feature must preserve the Java 8 baseline and zero-runtime-dependency policy
 
 Add explicit skip and pending semantics in the zero-dependency API:
 
-- Add runtime method annotations `org.javaspec.api.Skip` and `org.javaspec.api.Pending`, each with `value()` and `reason()` reason aliases.
+- Add runtime method annotations `io.github.jvmspec.api.Skip` and `io.github.jvmspec.api.Pending`, each with `value()` and `reason()` reason aliases.
 - Add unchecked signals `SkipExampleException` and `PendingExampleException` so specs that do not extend `ObjectBehavior` can mark examples directly.
 - Add `ObjectBehavior.skip()`, `skip(String reason)`, `pending()`, and `pending(String reason)` convenience helpers that throw the corresponding unchecked signal.
 - Treat `@Skip` as taking precedence over `@Pending` when both annotations are present.

@@ -97,7 +97,7 @@ bootstrap hook class names, and optional JSON/JUnit XML-compatible report destin
 from config and can be overridden by run CLI options where corresponding options exist; CLI
 `--profile` overrides config before enforcement. Top-level bootstrap hooks run before selected-suite
 hooks, preserving order and duplicates, followed by ServiceLoader-discovered hook providers;
-explicit hook classes must implement `org.javaspec.bootstrap.BootstrapHook`, have a public
+explicit hook classes must implement `io.github.jvmspec.bootstrap.BootstrapHook`, have a public
 no-argument constructor, and load from the run classloader/classpath. `describe --config` accepts
 profile, bootstrap, and report destination keys but does not enforce profiles, execute hooks, or
 write reports.
@@ -261,7 +261,7 @@ through 17 use that boundary for optional Maven, Gradle, and JUnit Platform adap
   entries.
 - The selected classloader is used for type existence checks, bootstrap hook loading/execution, and
   spec execution.
-- `org.javaspec.invocation` allows host processes to provide a discovery request or pre-discovered
+- `io.github.jvmspec.invocation` allows host processes to provide a discovery request or pre-discovered
   specs, a classloader, and optional bootstrap hook class names, then receive structured results.
 - Passing, skipped/pending-only, and no-spec invocation paths map to exit code `0`; failed or broken
   paths map to `1`.
@@ -318,7 +318,7 @@ The plugin boundary principles are:
 
 - The plugin uses `java-gradle-plugin`, group `io.github.jvmspec`, version `0.1.0-SNAPSHOT`, Java
   source/target `1.8`, plugin id `io.github.jvmspec`, and implementation class
-  `org.javaspec.gradle.JavaspecPlugin`.
+  `io.github.jvmspec.gradle.JavaspecPlugin`.
 - The plugin depends on core `io.github.jvmspec:javaspec:0.1.0-SNAPSHOT`; verified runtimeClasspath
   contains only that core dependency.
 - JUnit and TestKit are plugin test dependencies only; projects under test do not need JUnit.
@@ -420,11 +420,11 @@ Phase 25 adds classpath-based JDK `ServiceLoader` discovery:
 
 - `JavaspecExtensionLoader.loadRunFormatterRegistry()` and `loadRunFormatterRegistry(ClassLoader)`
   return a `RunFormatterRegistry` with built-ins first plus ServiceLoader providers.
-- `META-INF/services/org.javaspec.formatter.RunFormatter` registers formatter providers by
+- `META-INF/services/io.github.jvmspec.formatter.RunFormatter` registers formatter providers by
   `RunFormatter.name()`.
-- `META-INF/services/org.javaspec.extension.JavaspecExtension` configures extension providers with
+- `META-INF/services/io.github.jvmspec.extension.JavaspecExtension` configures extension providers with
   an `ExtensionContext`.
-- `META-INF/services/org.javaspec.extension.Extension` is an alias service type.
+- `META-INF/services/io.github.jvmspec.extension.Extension` is an alias service type.
 - Duplicate extension implementation classes listed under both extension service types are
   configured once per registry load.
 - Invalid providers raise `ExtensionLoadingException` with service/provider diagnostics.

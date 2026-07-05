@@ -19,7 +19,7 @@ Integrated source/spec compilation is intentionally outside the current javaspec
 Add execution availability diagnostics without adding integrated compilation.
 
 - Enrich core skipped/not-executable reasons when source discovery found a spec/example but the runner classloader cannot load the compiled specification class, one of its dependencies, or the expected public no-argument example method.
-- Add the zero-dependency helper `org.javaspec.diagnostics.RunDiagnostics.executionAvailabilityLines(RunResult)` so CLI, adapters, and custom launchers can derive deterministic human-readable diagnostic lines from the canonical `RunResult`.
+- Add the zero-dependency helper `io.github.jvmspec.diagnostics.RunDiagnostics.executionAvailabilityLines(RunResult)` so CLI, adapters, and custom launchers can derive deterministic human-readable diagnostic lines from the canonical `RunResult`.
 - Keep the helper focused on execution availability: it reports non-executable specs and missing/stale compiled example methods, and excludes explicit user `@Skip` and `PENDING` results.
 - Have the CLI print an `Execution diagnostics:` block only when the helper returns lines. If no explicit classpath was supplied, the CLI explains that the current process classloader was used and suggests `--classpath` or `--classpath-file` with compiled outputs and dependencies. If explicit classpath input was supplied, the CLI reports the explicit entry count and asks users to verify those entries.
 - Have the optional Maven plugin log `javaspec:` warning diagnostics only when execution availability issues exist, including the Maven test classpath element count.

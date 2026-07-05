@@ -12,9 +12,9 @@ The hook mechanism must run against the same compiled-class view used for exampl
 
 ## Decision
 
-Add a zero-dependency bootstrap boundary under `org.javaspec.bootstrap`:
+Add a zero-dependency bootstrap boundary under `io.github.jvmspec.bootstrap`:
 
-- `BootstrapHook` is the user hook contract. Hook classes must implement `org.javaspec.bootstrap.BootstrapHook` and provide a public no-argument constructor.
+- `BootstrapHook` is the user hook contract. Hook classes must implement `io.github.jvmspec.bootstrap.BootstrapHook` and provide a public no-argument constructor.
 - `BootstrapContext` is immutable and exposes the run classloader plus the discovered specs selected for the run.
 - `BootstrapRunner` loads hook classes from the effective run classloader/classpath, instantiates them, and executes them in configured order immediately before examples run.
 - `BootstrapException` represents load, construction, type, or execution failures.

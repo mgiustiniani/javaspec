@@ -13,7 +13,7 @@
   `mvn verify` is intentionally core-only, standalone optional Maven, Gradle, and JUnit Platform
   adapter artifacts plus Phase 21 example projects are intentionally not root Maven modules, and
   Maven `release-artifacts` profiles produce local sources/javadocs only.
-- **Package base**: Production code uses package base `org.javaspec`.
+- **Package base**: Production code uses package base `io.github.jvmspec`.
 - **Post-Java 8 APIs**: APIs introduced after Java 8 must be represented as metadata, strings, or
   reflected conditionally; production source must not import them directly.
 - **LTS profiles**: The system must model Java LTS profiles for 8, 11, 17, 21, and 25 and enforce
@@ -64,7 +64,7 @@
 - Reflection must be isolated behind compatibility boundaries to avoid accidental linkage to newer
   JDK APIs.
 - Configuration bootstrap hooks are executable class names for `run`, not metadata-only values:
-  hooks must implement `org.javaspec.bootstrap.BootstrapHook`, have a public no-argument
+  hooks must implement `io.github.jvmspec.bootstrap.BootstrapHook`, have a public no-argument
   constructor, load from the effective run classloader/classpath, and execute immediately before
   examples; top-level hooks run before selected-suite hooks, preserving order and duplicates.
   Profile and formatter settings are active `run` selections with CLI overrides. Selected profiles

@@ -281,7 +281,7 @@ Verified Phase 16 quality points:
 - Root Maven verification continues to build and audit only the zero-runtime-dependency core
   artifact.
 - The plugin uses `java-gradle-plugin`, Java source/target `1.8`, plugin id `io.github.jvmspec`,
-  implementation class `org.javaspec.gradle.JavaspecPlugin`, and a core dependency on
+  implementation class `io.github.jvmspec.gradle.JavaspecPlugin`, and a core dependency on
   `io.github.jvmspec:javaspec:0.1.0-SNAPSHOT`.
 - `JavaspecPlugin` registers extension `javaspec` and task `javaspecRun`; Java plugin/source-set
   defaults use the `test` source set runtime classpath and depend on `testClasses`.

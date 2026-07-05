@@ -2,10 +2,10 @@ package spec.com.example;
 
 import com.example.Mailer;
 import com.example.UserService;
-import org.javaspec.api.ObjectBehavior;
-import org.javaspec.doubles.prophecy.ObjectProphecy;
+import io.github.jvmspec.api.ObjectBehavior;
+import io.github.jvmspec.doubles.prophecy.ObjectProphecy;
 
-import static org.javaspec.doubles.prophecy.Argument.*;
+import static io.github.jvmspec.doubles.prophecy.Argument.*;
 
 /**
  * Specification demonstrating Prophecy-style doubles with a {@link UserService}

@@ -60,8 +60,8 @@ Outputs:
 Specs can explicitly skip or mark examples pending without adding dependencies:
 
 ```java
-import org.javaspec.api.Pending;
-import org.javaspec.api.Skip;
+import io.github.jvmspec.api.Pending;
+import io.github.jvmspec.api.Skip;
 
 public class PaymentSpec extends PaymentSpecSupport {
     @Skip(reason = "requires external sandbox")

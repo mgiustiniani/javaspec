@@ -39,7 +39,7 @@ External actors and systems:
   8/11/17/21/25 core matrix plus Java 21 aggregate verification workflow. After Phase 20/21/22 were
   pushed, remote GitHub Actions success for HEAD `5088e96` on `develop` is
   user-/maintainer-confirmed; no run IDs, URLs, durations, or logs were independently queried.
-- **Host launcher or build-tool adapter**: Can call `org.javaspec.invocation` without `System.exit`,
+- **Host launcher or build-tool adapter**: Can call `io.github.jvmspec.invocation` without `System.exit`,
   provide a classloader, and inspect structured invocation results.
 - **New adopter / report tooling author**: Can inspect standalone examples under `examples/`, the
   schema `docs/schemas/run-report-v1.schema.json`, and golden reports under `docs/examples/reports/`
@@ -99,8 +99,8 @@ dependency conflicts.
 ## 3.4 Technical Context
 
 The implementation is a Java 8-compatible Maven project. JDK-version-specific knowledge above Java 8
-is stored as profile metadata under `org.javaspec.profile` and resolved through the
-`org.javaspec.compatibility` boundary using reflection only when the runtime JDK supports it.
+is stored as profile metadata under `io.github.jvmspec.profile` and resolved through the
+`io.github.jvmspec.compatibility` boundary using reflection only when the runtime JDK supports it.
 Example execution uses Java reflection against compiled spec classes on the effective, selected
 explicit, or CLI compile-output-first classloader; default CLI runs, the invocation API, and
 optional adapters do not compile source/spec files themselves, so source-only or otherwise
@@ -128,12 +128,12 @@ exit semantics, and adapter boundaries. Phase 25 added JDK `ServiceLoader` disco
 formatter/extension providers, and Phase 32 added config-driven extension activation plus adapter
 formatter controls where implemented, while preserving zero runtime dependencies, report
 schemas/content, and publishing boundaries. Phase 26 added conservative target-profile enforcement
-through `org.javaspec.compatibility` before CLI generation/update writes while preserving no
+through `io.github.jvmspec.compatibility` before CLI generation/update writes while preserving no
 integrated compilation, report schemas, dependencies, and optional adapter architecture. Phase 27
-added `org.javaspec.bootstrap` hook execution from configured class names immediately before
+added `io.github.jvmspec.bootstrap` hook execution from configured class names immediately before
 examples, and Phase 33 added ServiceLoader hook providers after explicit hooks, preserving Java 8
 compatibility, zero runtime dependencies, no script engines, no package scanning, and no dependency
-resolution. Phase 28 strengthened `org.javaspec.doubles` while preserving interface-only JDK proxy
+resolution. Phase 28 strengthened `io.github.jvmspec.doubles` while preserving interface-only JDK proxy
 behavior and zero runtime dependencies. Phase 37 added optional ByteBuddy concrete doubles in a
 standalone artifact. Phase 29 added CLI-only opt-in source/spec compilation through the current JDK
 `javax.tools.JavaCompiler`; Phase 34 extended equivalent opt-in compilation to programmatic, Maven,

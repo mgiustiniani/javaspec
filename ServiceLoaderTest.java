@@ -1,4 +1,4 @@
-import org.javaspec.doubles.ConcreteDoubleProvider;
+import io.github.jvmspec.doubles.ConcreteDoubleProvider;
 import java.util.ServiceLoader;
 
 public class ServiceLoaderTest {

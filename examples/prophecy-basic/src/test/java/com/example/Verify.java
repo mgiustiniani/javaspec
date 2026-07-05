@@ -1,11 +1,11 @@
 package com.example;
 
-import org.javaspec.doubles.Doubles;
-import org.javaspec.doubles.InterfaceDouble;
-import org.javaspec.doubles.prophecy.ObjectProphecy;
-import org.javaspec.doubles.prophecy.PredictionRegistry;
+import io.github.jvmspec.doubles.Doubles;
+import io.github.jvmspec.doubles.InterfaceDouble;
+import io.github.jvmspec.doubles.prophecy.ObjectProphecy;
+import io.github.jvmspec.doubles.prophecy.PredictionRegistry;
 
-import static org.javaspec.doubles.prophecy.Argument.*;
+import static io.github.jvmspec.doubles.prophecy.Argument.*;
 
 /**
  * Verification test that exercises the Prophecy-style doubles API programmatically

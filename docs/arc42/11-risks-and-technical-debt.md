@@ -72,7 +72,7 @@ Current risks and mitigations:
   - Mitigation / next action: Maintain research notes and re-run runtime probes in compatibility
     matrix work, especially for Java 25 stream gatherers and later profiles.
 - **Invocation API compatibility pressure**
-  - Current impact: The optional Maven and Gradle plugins now depend on `org.javaspec.invocation`
+  - Current impact: The optional Maven and Gradle plugins now depend on `io.github.jvmspec.invocation`
     and `RunResult` semantics; future adapters may also depend on them.
   - Mitigation / next action: Keep the API small, document exit-code mapping, preserve the
     `JavaspecLauncher` delegation guard, and add compatibility tests before adapter work expands it.

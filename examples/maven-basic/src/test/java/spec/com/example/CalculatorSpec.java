@@ -1,7 +1,7 @@
 package spec.com.example;
 
 import com.example.Calculator;
-import org.javaspec.api.ObjectBehavior;
+import io.github.jvmspec.api.ObjectBehavior;
 
 public class CalculatorSpec extends ObjectBehavior<Calculator> {
     public CalculatorSpec() {

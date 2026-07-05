@@ -85,7 +85,7 @@ directly.
 `java21`, `java25`), feature flags, and public API symbols relevant to javaspec.
 
 3. **Restricted configuration and naming model**
-   The implemented `org.javaspec.config` package loads inferred defaults and explicit line-based
+   The implemented `io.github.jvmspec.config` package loads inferred defaults and explicit line-based
 configuration without external parser dependencies. The CLI applies selected-suite spec/source
 paths, package-prefix naming, configured constructor-policy defaults, configured profile/formatter
 defaults, executable bootstrap hook class names, and optional JSON/JUnit XML-compatible report
@@ -94,7 +94,7 @@ classloader/classpath; selected profiles are enforced before generation/update w
 type kinds and resolvable cataloged Java API signature owners.
 
 4. **Classpath reflection runner**
-   The implemented `org.javaspec.runner` package executes discovered examples only when compiled
+   The implemented `io.github.jvmspec.runner` package executes discovered examples only when compiled
 specification classes are available on the effective, selected explicit, or CLI compile-output-first
 classloader. It reuses `DiscoveredSpec` and `SpecExample` metadata so suite, class, and example
 filters remain effective. The runner creates a fresh spec instance per example, supports optional
@@ -188,29 +188,29 @@ Implemented building blocks:
   missing sealed-interface skeleton declarations plus nested permitted implementation bodies after
   an interactive `run` confirmation or non-interactive `run --generate`; post-Java-8 forms are
   emitted only as source text.
-- **Profile catalog**: `org.javaspec.profile` stores deterministic target profiles, feature flags,
+- **Profile catalog**: `io.github.jvmspec.profile` stores deterministic target profiles, feature flags,
   API symbols, symbol categories/kinds, and representative Java LTS data-structure metadata
   including Java 25 stream gatherers.
-- **Configuration and naming model**: `org.javaspec.config` loads inferred defaults and explicit
+- **Configuration and naming model**: `io.github.jvmspec.config` loads inferred defaults and explicit
   suite/profile/formatter/path/package-prefix/bootstrap/constructor-policy/report-destination
   settings with a restricted line-based parser; `SpecNamingConvention` applies suite package
   prefixes to describe, discovery, and support generation; run CLI options override valid configured
   profile/formatter/constructor-policy/report destination selections where applicable, while
   bootstrap hooks combine top-level entries before selected-suite entries with order and duplicates
   preserved.
-- **Compatibility boundary**: `org.javaspec.compatibility` checks profile compatibility, exposes
+- **Compatibility boundary**: `io.github.jvmspec.compatibility` checks profile compatibility, exposes
   `ProfileEnforcement`/`ProfileEnforcementReport`/`ProfileViolation`, enforces described type kinds
   and resolvable cataloged API signature owners before generation/update writes, and probes optional
   APIs reflectively by string name, without direct Java 9+ production imports.
-- **Doubles engine**: `org.javaspec.doubles` creates ordinary-interface doubles through JDK dynamic
+- **Doubles engine**: `io.github.jvmspec.doubles` creates ordinary-interface doubles through JDK dynamic
   proxies, configures method-wide or argument-constrained return/throw/answer stubs, supports
   `ArgumentMatcher` factories and `Doubles` aliases, records immutable call snapshots before stub
   actions, verifies matcher-aware call expectations/counts, and returns Java defaults for unstubbed
   methods. It also exposes the zero-dependency `ConcreteDoubleProvider` SPI plus
   `Doubles.concreteDouble`/`classDouble`; without a provider these APIs fail with guidance.
 - **Formatter/reporting/invocation/diagnostics/extension/bootstrap boundaries**:
-  `org.javaspec.formatter`, `org.javaspec.reporting`, `org.javaspec.invocation`,
-  `org.javaspec.diagnostics`, `org.javaspec.extension`, and `org.javaspec.bootstrap` provide
+  `io.github.jvmspec.formatter`, `io.github.jvmspec.reporting`, `io.github.jvmspec.invocation`,
+  `io.github.jvmspec.diagnostics`, `io.github.jvmspec.extension`, and `io.github.jvmspec.bootstrap` provide
   built-in formatter contracts/registry, ServiceLoader discovery for external
   `RunFormatter`/`JavaspecExtension`/alias `Extension` providers, dependency-free JSON and JUnit
   XML-compatible reports with stable id/source metadata where available, no-`System.exit`
@@ -252,12 +252,12 @@ Implemented building blocks:
   and final approval decisions are complete. Phase 21 extends adoption assets with standalone
   examples under `examples/`, `scripts/verify-examples.sh`, report schema docs, and golden reports;
   examples run by default in `scripts/verify-all.sh` with explicit opt-outs.
-- **Explicit skipped/pending semantics**: `org.javaspec.api.Skip`, `Pending`,
+- **Explicit skipped/pending semantics**: `io.github.jvmspec.api.Skip`, `Pending`,
   `SkipExampleException`, `PendingExampleException`, and `ObjectBehavior.skip(...)`/`pending(...)`
   provide zero-dependency non-execution markers/signals. Core results keep `PENDING` distinct from
   `SKIPPED`, while JUnit XML-compatible and JUnit Platform mappings use skipped events/elements for
   compatibility.
-- **Execution availability diagnostics**: `org.javaspec.diagnostics.RunDiagnostics` turns canonical
+- **Execution availability diagnostics**: `io.github.jvmspec.diagnostics.RunDiagnostics` turns canonical
   `RunResult` data into deterministic human-readable lines for non-executable specs and
   stale/missing compiled example methods. CLI/Maven/Gradle output uses those lines only when
   availability issues exist and leaves compilation/classpath assembly external.

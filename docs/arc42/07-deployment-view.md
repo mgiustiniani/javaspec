@@ -3,7 +3,7 @@
 ## 7.1 Runtime Artifact
 
 javaspec core is packaged as a Maven-built Java artifact with CLI main class
-`org.javaspec.cli.Main`. The current repository build produces `target/javaspec-0.1.0-SNAPSHOT.jar`.
+`io.github.jvmspec.cli.Main`. The current repository build produces `target/javaspec-0.1.0-SNAPSHOT.jar`.
 
 Phase 15 also provides a standalone optional Maven plugin artifact at `javaspec-maven-plugin/`,
 packaging `io.github.jvmspec:javaspec-maven-plugin:0.1.0-SNAPSHOT` as `maven-plugin`. It is intentionally
@@ -59,7 +59,7 @@ The core runtime artifact is intentionally small:
 
 - Java 8 source/target compatibility.
 - No third-party runtime dependencies.
-- Package base `org.javaspec`.
+- Package base `io.github.jvmspec`.
 - JDK APIs only at runtime.
 - Post-Java-8 capabilities represented as metadata, source text, or reflection-only probes.
 

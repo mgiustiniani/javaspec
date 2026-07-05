@@ -109,7 +109,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>org.javaspec.cli.Main</mainClass>
+                            <mainClass>io.github.jvmspec.cli.Main</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

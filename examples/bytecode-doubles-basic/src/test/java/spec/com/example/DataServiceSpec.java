@@ -2,9 +2,9 @@ package spec.com.example;
 
 import com.example.DataService;
 import com.example.DataStore;
-import org.javaspec.api.ObjectBehavior;
-import org.javaspec.doubles.Doubles;
-import org.javaspec.doubles.InterfaceDouble;
+import io.github.jvmspec.api.ObjectBehavior;
+import io.github.jvmspec.doubles.Doubles;
+import io.github.jvmspec.doubles.InterfaceDouble;
 
 public class DataServiceSpec extends ObjectBehavior<DataService> {
     public DataServiceSpec() {

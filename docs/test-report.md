@@ -118,7 +118,7 @@ the core were reported. No blockers were reported.
     through `Doubles`.
 - **ServiceLoader discovery**
   - Result: PASS
-  - Notes: `META-INF/services/org.javaspec.doubles.ConcreteDoubleProvider` registration file
+  - Notes: `META-INF/services/io.github.jvmspec.doubles.ConcreteDoubleProvider` registration file
     present; provider loaded automatically when adapter is on classpath.
 - **Scripts update**
   - Result: PASS
@@ -643,7 +643,7 @@ Date: 2026-06-10
 
 This report records the completed Phase 31 verification results provided by the Java tester for
 PLAN.md Phase 31 / ADR 0023 (superseding the deferral half of ADR 0009) — source-preserving updates
-of existing sealed interfaces in `org.javaspec.generation.ClassMethodUpdater`. The tester made no
+of existing sealed interfaces in `io.github.jvmspec.generation.ClassMethodUpdater`. The tester made no
 production changes; the only `src/main/java` changes are the implementation agent's
 `ClassMethodUpdater.java` (Phase 31) and `Matchable.java` (Phase 30). The obsolete ADR-0009 no-op
 skip test was replaced with Phase 31 behavior tests. No blockers were reported.
@@ -751,7 +751,7 @@ Date: 2026-06-10
 
 This report records the completed Phase 30 verification results provided by the Java tester for
 PLAN.md Phase 30 / ADR 0023 item 1 — bounded generic `Iterable` matcher checks in
-`org.javaspec.matcher.Matchable`. The tester made no production changes; the only `src/main/java`
+`io.github.jvmspec.matcher.Matchable`. The tester made no production changes; the only `src/main/java`
 change is the implementation agent's `Matchable.java`. No blockers were reported.
 
 ## Phase 30 executive summary
@@ -948,7 +948,7 @@ JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-all.sh
   zero-runtime-dependency policy.
 - Tester verification covered updated tests across core, CLI, reporting, invocation, Maven plugin,
   Gradle plugin, and JUnit Platform engine areas.
-- New public API markers under `org.javaspec.api` are runtime method annotations `@Skip` and
+- New public API markers under `io.github.jvmspec.api` are runtime method annotations `@Skip` and
   `@Pending`, unchecked signals `SkipExampleException` and `PendingExampleException`, and
   `ObjectBehavior.skip()`/`skip(String)`/`pending()`/`pending(String)` helpers.
 - `@Skip` takes precedence over `@Pending` when both annotations are present.
@@ -1608,7 +1608,7 @@ mvn -f javaspec-junit-platform-engine/pom.xml dependency:tree -Dscope=runtime
 `javaspec-junit-platform-engine/src/main/java/org/javaspec/junit/platform/JavaspecTestEngine.java`.
 - ServiceLoader registration is
 `javaspec-junit-platform-engine/src/main/resources/META-INF/services/org.junit.platform.engine.TestEngine`,
-  containing `org.javaspec.junit.platform.JavaspecTestEngine`; engine id is `javaspec`.
+  containing `io.github.jvmspec.junit.platform.JavaspecTestEngine`; engine id is `javaspec`.
 - Discovery uses canonical `SpecDiscovery` / `SpecDiscoveryRequest`.
 - Configuration parameters include `javaspec.configFile`, `javaspec.suite`,
   `javaspec.specDir`/`javaspec.specRoot`, `javaspec.classFilters`/`classFilter`/`class`,
@@ -1688,7 +1688,7 @@ mvn dependency:tree -Dscope=runtime
   plugin-local `README.md`.
 - `build.gradle` uses `java-gradle-plugin`, group `io.github.jvmspec`, version `0.1.0-SNAPSHOT`, Java
   source/target `1.8`, plugin id `io.github.jvmspec`, implementation class
-  `org.javaspec.gradle.JavaspecPlugin`, Maven local/core dependency
+  `io.github.jvmspec.gradle.JavaspecPlugin`, Maven local/core dependency
   `io.github.jvmspec:javaspec:0.1.0-SNAPSHOT`, and plugin-local TestKit/JUnit test dependencies.
 - Main implementation files are `JavaspecPlugin`, `JavaspecExtension`, and `JavaspecRunTask` in
   `javaspec-gradle-plugin/src/main/java/org/javaspec/gradle/`.
@@ -1749,7 +1749,7 @@ Distrobox multi-JDK evidence remain below.
 - **Plugin adapter behavior**
   - Result: PASS
   - Notes: Tester added coverage for JUnit XML report I/O failure handling, plugin POM dependency
-    scopes, and a guard that the Mojo delegates to `org.javaspec.invocation.JavaspecLauncher`
+    scopes, and a guard that the Mojo delegates to `io.github.jvmspec.invocation.JavaspecLauncher`
     without `System.exit` or direct low-level runner coupling.
 - **Blockers**
   - Result: PASS
@@ -1807,7 +1807,7 @@ Distrobox multi-JDK evidence remains the cross-JDK compatibility matrix below.
     artifact.
 - **Programmatic invocation**
   - Result: PASS
-  - Notes: Tester verified the no-`System.exit` `org.javaspec.invocation` API behavior through
+  - Notes: Tester verified the no-`System.exit` `io.github.jvmspec.invocation` API behavior through
     `JavaspecLauncherTest`.
 - **Explicit classpath CLI**
   - Result: PASS
@@ -1831,7 +1831,7 @@ mvn dependency:tree -Dscope=runtime
 
 ## Phase 14 verification details
 
-- Programmatic no-JUnit invocation under `org.javaspec.invocation` returns structured
+- Programmatic no-JUnit invocation under `io.github.jvmspec.invocation` returns structured
   `JavaspecInvocationResult` values and does not call `System.exit`.
 - `JavaspecExitCode` maps passing, skipped/pending-only, and no-spec runs to exit code `0`, and
   failed or broken runs to exit code `1`.
@@ -1839,7 +1839,7 @@ mvn dependency:tree -Dscope=runtime
   <file>` reads UTF-8 non-empty, non-comment entries; explicit entries are used for type existence
   checks and spec execution.
 - `describe` rejects classpath and JUnit XML report options as run-only usage.
-- `org.javaspec.reporting.JUnitXmlReportWriter` writes dependency-free UTF-8 JUnit XML-compatible
+- `io.github.jvmspec.reporting.JUnitXmlReportWriter` writes dependency-free UTF-8 JUnit XML-compatible
   reports from `RunResult`.
 - `--junit-xml` and `--junit-xml-file` write no-spec and normal run reports after output, including
   failing/broken runs before exit `1`.

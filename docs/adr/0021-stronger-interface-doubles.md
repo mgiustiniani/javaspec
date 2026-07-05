@@ -14,7 +14,7 @@ Phase 28 needs interface doubles to cover more common collaborator-specification
 
 Keep core doubles as zero-dependency JDK dynamic proxies for ordinary interfaces only. The doubles API continues to reject unsupported targets such as `null`, primitives, arrays, annotations, enums, concrete classes, and final classes. Phase 28 does not add concrete class, final class, static method, constructor, default-interface-method, or bytecode mocking.
 
-Add argument matcher support under `org.javaspec.doubles`:
+Add argument matcher support under `io.github.jvmspec.doubles`:
 
 - `ArgumentMatcher` matches one observed argument and can describe itself for diagnostics.
 - `ArgumentMatchers` provides factories: `any()` / `anyArgument()`, nullable typed `any(Class<?>)` / `anyType(Class<?>)`, `isNull()`, `notNull()`, and `eq(Object)` / `equalTo(Object)` using javaspec's array-aware equality.
