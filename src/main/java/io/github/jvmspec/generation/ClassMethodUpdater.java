@@ -339,6 +339,9 @@ public final class ClassMethodUpdater {
     private static List<MethodDescriptor> eligibleMethods(DescribedType describedType) {
         JavaTypeKind kind = describedType.kind();
         if (supportsMethodBodies(kind)) {
+            if (JavaTypeKind.ENUM.equals(kind)) {
+                return nonImplicitEnumMethods(describedType.methods());
+            }
             return describedType.methods();
         }
         if (supportsInterfaceDeclarations(kind)) {
@@ -348,6 +351,40 @@ public final class ClassMethodUpdater {
             return annotationElementMethods(describedType);
         }
         return new ArrayList<MethodDescriptor>();
+    }
+
+    /**
+     * Filters out methods that are implicitly defined on all enum types (values(), valueOf(String), name(), ordinal())
+     * to prevent javaspec from inserting redundant stubs.
+     */
+    private static List<MethodDescriptor> nonImplicitEnumMethods(List<MethodDescriptor> methods) {
+        List<MethodDescriptor> result = new ArrayList<MethodDescriptor>();
+        for (int i = 0; i < methods.size(); i++) {
+            MethodDescriptor m = methods.get(i);
+            if (isImplicitEnumMethod(m)) {
+                continue;
+            }
+            result.add(m);
+        }
+        return result;
+    }
+
+    private static boolean isImplicitEnumMethod(MethodDescriptor m) {
+        // valueOf(String) is implicitly defined on every enum
+        if ("valueOf".equals(m.methodName()) && m.parameterTypes().size() == 1
+                && "String".equals(m.parameterTypes().get(0))) {
+            return true;
+        }
+        // values() is implicitly defined on every enum
+        if ("values".equals(m.methodName()) && m.parameterTypes().isEmpty()) {
+            return true;
+        }
+        // name() and ordinal() are inherited from Enum
+        if (("name".equals(m.methodName()) || "ordinal".equals(m.methodName()))
+                && m.parameterTypes().isEmpty()) {
+            return true;
+        }
+        return false;
     }
 
     private static List<MethodDescriptor> interfaceMethods(DescribedType describedType) {

@@ -173,7 +173,10 @@ public final class SpecDiscovery {
                 SpecCallScanner.Call call = scan.constructionCalls.get(i);
                 ConstructionArguments arguments = inferConstructionArgumentsCore(
                         call.argumentTexts, methods.get(call.enclosingMethod), imports, describedPackageName);
-                constructors.add(ConstructorDescriptor.of(arguments.parameterTypes, arguments.parameterNames, ""));
+                ConstructorDescriptor cd = ConstructorDescriptor.of(arguments.parameterTypes, arguments.parameterNames, "");
+                if (!constructors.contains(cd)) {
+                    constructors.add(cd);
+                }
             }
             return constructors;
         }
@@ -184,7 +187,10 @@ public final class SpecDiscovery {
         while (withMatcher.find()) {
             List<String> argNames = splitArguments(withMatcher.group(1).trim());
             ConstructionArguments arguments = inferConstructionArguments(argNames, source, withMatcher.start(), methods, imports, describedPackageName);
-            constructors.add(ConstructorDescriptor.of(arguments.parameterTypes, arguments.parameterNames, ""));
+            ConstructorDescriptor cd = ConstructorDescriptor.of(arguments.parameterTypes, arguments.parameterNames, "");
+            if (!constructors.contains(cd)) {
+                constructors.add(cd);
+            }
         }
 
         return constructors;
