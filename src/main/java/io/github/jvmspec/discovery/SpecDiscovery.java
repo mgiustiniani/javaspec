@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -32,6 +33,7 @@ public final class SpecDiscovery {
     private static final Pattern CLASS_LITERAL_PATTERN = Pattern.compile("([A-Za-z_$][A-Za-z0-9_$.]*)\\s*\\.\\s*class");
     private static final Pattern BE_CONSTRUCTED_WITH_PATTERN = Pattern.compile("beConstructedWith\\s*\\(([^)]*)\\)", Pattern.DOTALL);
     private static final Pattern FACTORY_CONSTRUCTION_PATTERN = Pattern.compile("beConstructed(?:ThroughNamed|Through|Named)\\s*\\(([^)]*)\\)", Pattern.DOTALL);
+    private static final Pattern SHOULD_HAVE_CONSTANT_PATTERN = Pattern.compile("shouldHaveConstant\\s*\\(([^)]*)\\)", Pattern.DOTALL);
     private static final Pattern METHOD_PATTERN = Pattern.compile("public\\s+void\\s+([A-Za-z_$][A-Za-z0-9_$]*)\\s*\\(([^)]*)\\)\\s*(?:throws\\s+[^\\{]+)?\\{", Pattern.DOTALL);
     private static final Pattern PROXY_EXPECTATION_PATTERN = Pattern.compile(
             "\\b([a-z][A-Za-z0-9_$]*)\\s*\\(([^;{}]*)\\)\\s*\\.\\s*"
@@ -135,17 +137,24 @@ public final class SpecDiscovery {
             SpecCallScanner.ScanResult scan = SpecCallScanner.scan(source);
             List<ConstructorDescriptor> constructors = extractConstructors(source, describedPackageName, scan);
             List<MethodDescriptor> methods = extractMethods(source, describedPackageName, describedQualifiedName, scan);
+            List<DescribedType.EnumConstantInfo> enumConstants = extractEnumConstants(source, describedPackageName);
+            // When enum constants have constructor arguments, infer the enum constructor
+            if (describedKind(source).equals(JavaTypeKind.ENUM) && !enumConstants.isEmpty()) {
+                List<ConstructorDescriptor> enumConstructors = enumConstructorsFromConstants(enumConstants);
+                constructors = combineConstructors(constructors, enumConstructors);
+            }
             specs.add(DiscoveredSpec.of(
                     specFile,
                     specQualifiedName,
                     DescribedType.of(
-                            describedQualifiedName,
+                            DescribedClass.of(describedQualifiedName),
                             describedKind(source),
                             typeNames(source, describedPackageName, SHOULD_EXTEND_PATTERN),
                             typeNames(source, describedPackageName, SHOULD_IMPLEMENT_PATTERN),
                             typeNames(source, describedPackageName, SHOULD_PERMIT_PATTERN),
                             constructors,
-                            methods
+                            methods,
+                            enumConstants
                     ),
                     examples
             ));
@@ -915,6 +924,67 @@ public final class SpecDiscovery {
             }
         }
         return typeNames;
+    }
+
+    private static List<DescribedType.EnumConstantInfo> extractEnumConstants(String source, String describedPackageName) {
+        Map<String, String> imports = importsBySimpleName(source);
+        List<DescribedType.EnumConstantInfo> constants = new ArrayList<DescribedType.EnumConstantInfo>();
+        Matcher matcher = SHOULD_HAVE_CONSTANT_PATTERN.matcher(source);
+        while (matcher.find()) {
+            String arguments = matcher.group(1).trim();
+            if (arguments.length() == 0) {
+                continue;
+            }
+            List<String> args = splitArguments(arguments);
+            if (args.isEmpty()) {
+                continue;
+            }
+            String nameArg = args.get(0).trim();
+            String constantName = nameArg;
+            if (constantName.startsWith("\"") && constantName.endsWith("\"")) {
+                constantName = constantName.substring(1, constantName.length() - 1);
+            }
+            List<String> paramTypes = new ArrayList<String>();
+            List<String> paramNames = new ArrayList<String>();
+            List<String> paramValues = new ArrayList<String>();
+            for (int i = 1; i < args.size(); i++) {
+                String arg = args.get(i).trim();
+                String type = inferLiteralType(arg, imports, describedPackageName);
+                paramTypes.add(type);
+                paramNames.add("arg" + (i - 1));
+                paramValues.add(arg);
+            }
+            constants.add(DescribedType.EnumConstantInfo.of(constantName, paramTypes, paramNames, paramValues));
+        }
+        return constants;
+    }
+
+    private static List<ConstructorDescriptor> enumConstructorsFromConstants(List<DescribedType.EnumConstantInfo> constants) {
+        // All enum constants with constructor args should share the same constructor signature.
+        // Use the first constant's args to infer the constructor.
+        for (int i = 0; i < constants.size(); i++) {
+            DescribedType.EnumConstantInfo ci = constants.get(i);
+            if (ci.hasParameters()) {
+                List<ConstructorDescriptor> result = new ArrayList<ConstructorDescriptor>();
+                result.add(ConstructorDescriptor.of(ci.parameterTypes(), ci.parameterNames(), ""));
+                return result;
+            }
+        }
+        return Collections.emptyList();
+    }
+
+    private static List<ConstructorDescriptor> combineConstructors(
+            List<ConstructorDescriptor> existing,
+            List<ConstructorDescriptor> additional
+    ) {
+        List<ConstructorDescriptor> result = new ArrayList<ConstructorDescriptor>(existing);
+        for (int i = 0; i < additional.size(); i++) {
+            ConstructorDescriptor cd = additional.get(i);
+            if (!result.contains(cd)) {
+                result.add(cd);
+            }
+        }
+        return result;
     }
 
     private static Map<String, String> importsBySimpleName(String source) {

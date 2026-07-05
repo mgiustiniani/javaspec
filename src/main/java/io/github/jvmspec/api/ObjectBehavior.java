@@ -578,6 +578,14 @@ public class ObjectBehavior<T> {
         subjectTypeMarkers.shouldBeAnEnum();
     }
 
+    /**
+     * Declares that the described enum should have a constant with the given name and optional constructor arguments.
+     * Used in combination with shouldBeAnEnum() to verify enum constants exist.
+     */
+    public void shouldHaveConstant(String constantName, Object... args) {
+        subjectTypeMarkers.shouldHaveConstant(constantName, args);
+    }
+
     public void shouldBeAnAnnotation() {
         subjectTypeMarkers.shouldBeAnAnnotation();
     }

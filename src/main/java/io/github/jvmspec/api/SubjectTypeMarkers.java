@@ -34,6 +34,18 @@ public class SubjectTypeMarkers<T> {
         if (!lifecycle.isInstantiated() && lifecycle.getSubjectType() == null) {
             return;
         }
+        // For enum types without an explicitly configured construction, skip instantiation.
+        // Just verify the described class matches the expected type.
+        if (!lifecycle.isInstantiated() && lifecycle.getSubjectType() != null && lifecycle.getSubjectType().isEnum()) {
+            Class<?> declaredType = lifecycle.getSubjectType();
+            if (!expectedType.isAssignableFrom(declaredType)) {
+                throw new AssertionError(
+                        "Expected an instance of " + expectedType.getName()
+                        + " but the described type is " + declaredType.getName()
+                );
+            }
+            return;
+        }
         T current = lifecycle.subject();
         if (current == null) {
             throw new AssertionError("Expected an instance of " + expectedType.getName() + " but got null");
@@ -89,5 +101,40 @@ public class SubjectTypeMarkers<T> {
 
     public void shouldPermit(Class<?>... permittedTypes) {
         // Marker used by discovery and generation.
+    }
+
+    /**
+     * Declares that the subject enum type should have a constant with the given name.
+     * Marker used by discovery and generation — no runtime assertion.
+     */
+    /**
+     * Declares that the subject enum type should have a constant with the given name.
+     * The second parameter is optional and represents constructor arguments for enum constants
+     * with parameters (e.g. {@code EC_P256("secp256r1", 256)}).
+     * Marker used by discovery and generation — no runtime assertion.
+     */
+    public void shouldHaveConstant(String name, Object... args) {
+        Class<?> subjectType = lifecycle.getSubjectType();
+        if (!subjectType.isEnum()) {
+            throw new AssertionError("Expected " + subjectType.getName() + " to be an enum, but it is not");
+        }
+        Object[] constants = subjectType.getEnumConstants();
+        for (int i = 0; i < constants.length; i++) {
+            if (((Enum<?>) constants[i]).name().equals(name)) {
+                return;
+            }
+        }
+        throw new AssertionError("Expected enum " + subjectType.getSimpleName() + " to have constant '" + name + "', but it does not. "
+                + "Existing constants: " + enumConstantNames(constants));
+    }
+
+    private static String enumConstantNames(Object[] constants) {
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < constants.length; i++) {
+            if (i > 0) sb.append(", ");
+            sb.append(((Enum<?>) constants[i]).name());
+        }
+        sb.append("]");
+        return sb.toString();
     }
 }

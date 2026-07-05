@@ -121,6 +121,9 @@ public final class SpecSkeletonGenerator {
         builder.append("        shouldHaveType(").append(describedType.simpleName()).append(".class);\n");
         builder.append("    }\n");
         appendKindMarker(builder, describedType.kind());
+        if (JavaTypeKind.ENUM.equals(describedType.kind())) {
+            appendEnumConstantPlaceholder(builder, describedType);
+        }
         appendRelationshipMarker(builder, "it_extends_expected_type", "shouldExtend", describedType.extendedTypeNames());
         appendRelationshipMarker(builder, "it_implements_expected_types", "shouldImplement", describedType.implementedTypeNames());
         appendRelationshipMarker(builder, "it_permits_expected_types", "shouldPermit", describedType.permittedTypeNames());
@@ -234,6 +237,14 @@ public final class SpecSkeletonGenerator {
             return "shouldBeASealedInterface";
         }
         return null;
+    }
+
+    private static void appendEnumConstantPlaceholder(StringBuilder builder, DescribedType describedType) {
+        builder.append("\n");
+        builder.append("    public void it_has_expected_constants() {\n");
+        builder.append("        // Declare enum constants via shouldHaveConstant(\"CONSTANT_NAME\")\n");
+        builder.append("        // Example: shouldHaveConstant(\"EC_P256\");\n");
+        builder.append("    }\n");
     }
 
     private static void appendRelationshipMarker(StringBuilder builder, String methodName, String markerName, List<String> typeNames) {

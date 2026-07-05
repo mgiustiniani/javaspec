@@ -150,7 +150,7 @@ public final class GenerationOrchestrator {
                 return GenerationOrchestratorResult.ioError(EXIT_IO_ERROR);
             }
 
-            if ((generate || dryRun) && describedType.hasMethods()) {
+            if ((generate || dryRun) && (describedType.hasMethods() || describedType.hasEnumConstants())) {
                 SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(describedType, specRoot, generatedSourcesRoot, namingConvention);
                 try {
                     if (dryRun) {

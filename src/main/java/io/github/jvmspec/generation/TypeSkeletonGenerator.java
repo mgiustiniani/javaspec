@@ -129,10 +129,43 @@ public final class TypeSkeletonGenerator {
     private static void appendEnum(StringBuilder builder, DescribedType describedType) {
         builder.append("public enum ").append(describedType.simpleName());
         appendImplements(builder, describedType);
-        if (describedType.hasMethods()) {
+        List<DescribedType.EnumConstantInfo> constants = describedType.enumConstants();
+        boolean hasConstants = !constants.isEmpty();
+        boolean hasConstructors = describedType.hasConstructors();
+        boolean hasMethods = describedType.hasMethods();
+        if (hasConstants || hasConstructors || hasMethods) {
             builder.append(" {\n");
-            builder.append("    ;\n\n");
-            appendMethods(builder, describedType);
+            if (hasConstants) {
+                for (int ci = 0; ci < constants.size(); ci++) {
+                    DescribedType.EnumConstantInfo ciInfo = constants.get(ci);
+                    builder.append("    ").append(ciInfo.name());
+                    if (ciInfo.hasParameters()) {
+                        builder.append("(");
+                        appendEnumConstantArgs(builder, ciInfo);
+                        builder.append(")");
+                    }
+                    if (ci < constants.size() - 1) {
+                        builder.append(",");
+                    } else {
+                        builder.append(";");
+                    }
+                    builder.append("\n");
+                }
+            } else {
+                builder.append("    ;\n");
+            }
+            if (hasConstructors || hasMethods) {
+                builder.append("\n");
+            }
+            if (hasConstructors) {
+                appendConstructors(builder, describedType);
+            }
+            if (hasConstructors && hasMethods) {
+                builder.append("\n");
+            }
+            if (hasMethods) {
+                appendMethods(builder, describedType);
+            }
             builder.append("}\n");
         } else {
             builder.append(" { }\n");
@@ -292,10 +325,11 @@ public final class TypeSkeletonGenerator {
     }
 
     private static void appendConstructors(StringBuilder builder, DescribedType describedType) {
+        String modifier = JavaTypeKind.ENUM.equals(describedType.kind()) ? "private" : "public";
         List<ConstructorDescriptor> constructors = describedType.constructors();
         for (int ci = 0; ci < constructors.size(); ci++) {
             ConstructorDescriptor constructor = constructors.get(ci);
-            builder.append("    public ").append(describedType.simpleName()).append("(");
+            builder.append("    ").append(modifier).append(" ").append(describedType.simpleName()).append("(");
             appendConstructorParameters(builder, constructor);
             builder.append(") {\n");
             if (constructor.hasBody()) {
@@ -623,5 +657,32 @@ public final class TypeSkeletonGenerator {
             }
             builder.append(types.get(pi)).append(" ").append(names.get(pi));
         }
+    }
+
+    /**
+     * Appends enum constant arguments using original literal values from the spec when available,
+     * otherwise falls back to default values by type.
+     */
+    private static void appendEnumConstantArgs(StringBuilder builder, DescribedType.EnumConstantInfo ciInfo) {
+        List<String> types = ciInfo.parameterTypes();
+        List<String> values = ciInfo.hasParameterValues() ? ciInfo.parameterValues() : null;
+        for (int pi = 0; pi < types.size(); pi++) {
+            if (pi > 0) {
+                builder.append(", ");
+            }
+            if (values != null) {
+                builder.append(values.get(pi));
+            } else {
+                builder.append(defaultValueForType(types.get(pi)));
+            }
+        }
+    }
+
+    private static String defaultValueForType(String typeName) {
+        if ("int".equals(typeName) || "long".equals(typeName) || "short".equals(typeName) || "byte".equals(typeName)) return "0";
+        if ("double".equals(typeName) || "float".equals(typeName)) return "0.0";
+        if ("boolean".equals(typeName)) return "false";
+        if ("char".equals(typeName)) return "'\\0'";
+        return "null";
     }
 }
