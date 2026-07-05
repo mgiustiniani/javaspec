@@ -1,6 +1,6 @@
 # javaspec Gradle Plugin
 
-Standalone optional Gradle plugin artifact for `org.javaspec:javaspec`.
+Standalone optional Gradle plugin artifact for `io.github.jvmspec:javaspec`.
 
 This plugin is intentionally not registered as a root Maven module and is outside the zero-runtime-dependency core artifact. Repository-root `mvn verify` remains focused on the core artifact.
 
@@ -32,7 +32,7 @@ The plugin id is `io.github.jvmspec`. The plugin is published on the Gradle Plug
 ```groovy
 plugins {
     id 'java'
-    id 'org.javaspec' version '0.1.0-SNAPSHOT'
+    id 'io.github.jvmspec' version '0.1.0-SNAPSHOT'
 }
 
 javaspec {
@@ -57,14 +57,14 @@ Supported task/extension options include `skip`, `failOnFailure` (default `true`
 A provider jar can expose a direct formatter or an extension with service files such as:
 
 ```text
-# META-INF/services/org.javaspec.formatter.RunFormatter
+# META-INF/services/io.github.jvmspec.formatter.RunFormatter
 com.example.javaspec.MarkdownRunFormatter
 
-# META-INF/services/org.javaspec.extension.JavaspecExtension
+# META-INF/services/io.github.jvmspec.extension.JavaspecExtension
 com.example.javaspec.MarkdownExtension
 
 # alias service type also supported:
-# META-INF/services/org.javaspec.extension.Extension
+# META-INF/services/io.github.jvmspec.extension.Extension
 com.example.javaspec.MarkdownExtension
 ```
 
@@ -84,4 +84,4 @@ When `configFile` points at a javaspec config that defines top-level report dest
 
 When discovery finds source specs/examples whose compiled spec class, expected public no-argument example method, or dependencies are unavailable on the Gradle classpath, `javaspecRun` logs `javaspec:` warning diagnostics plus the Gradle classpath element count. This is classpath guidance only: the task still expects Gradle/Java compilation (`testClasses` by default) to produce compiled outputs, and failure semantics are unchanged.
 
-The task delegates to canonical no-JUnit `org.javaspec.invocation.JavaspecLauncher` without `System.exit`. Projects under test do not need JUnit; JUnit is only a plugin test dependency.
+The task delegates to canonical no-JUnit `io.github.jvmspec.invocation.JavaspecLauncher` without `System.exit`. Projects under test do not need JUnit; JUnit is only a plugin test dependency.

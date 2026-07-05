@@ -128,7 +128,7 @@
                             <rules>
                                 <bannedDependencies>
                                     <excludes>
-                                        <exclude>org.javaspec:javaspec:*:*:runtime</exclude>
+                                        <exclude>io.github.jvmspec:javaspec:*:*:runtime</exclude>
                                     </excludes>
                                     <message>javaspec core must remain compile-scope only in this adapter.</message>
                                 </bannedDependencies>

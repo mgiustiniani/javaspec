@@ -37,7 +37,7 @@ gradlePlugin {
     plugins {
         javaspec {
             id = 'io.github.jvmspec'
-            implementationClass = 'org.javaspec.gradle.JavaspecPlugin'
+            implementationClass = 'io.github.jvmspec.gradle.JavaspecPlugin'
         }
     }
 }

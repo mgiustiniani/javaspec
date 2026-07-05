@@ -72,8 +72,8 @@
                 <configuration>
                     <archive>
                         <manifestEntries>
-                            <Premain-Class>org.javaspec.doubles.agent.JavaspecBytecodeAgent</Premain-Class>
-                            <Agent-Class>org.javaspec.doubles.agent.JavaspecBytecodeAgent</Agent-Class>
+                            <Premain-Class>io.github.jvmspec.doubles.agent.JavaspecBytecodeAgent</Premain-Class>
+                            <Agent-Class>io.github.jvmspec.doubles.agent.JavaspecBytecodeAgent</Agent-Class>
                             <Can-Redefine-Classes>true</Can-Redefine-Classes>
                             <Can-Retransform-Classes>true</Can-Retransform-Classes>
                         </manifestEntries>
