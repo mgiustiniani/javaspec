@@ -60,6 +60,13 @@ public final class ClassMethodUpdater {
             return existingSource;
         }
 
+        // Enum constant lists must be terminated with ';' before any member declaration.
+        // When inserting the first method(s) into an enum whose constants are not yet
+        // semicolon-terminated, add the terminator so the result stays valid Java.
+        if (JavaTypeKind.ENUM.equals(describedType.kind())) {
+            existingSource = ensureEnumConstantsTerminated(existingSource, describedType.simpleName());
+        }
+
         int closingBrace = findPrimaryTypeClosingBrace(existingSource, describedType.simpleName());
         if (closingBrace < 0) {
             return existingSource;
@@ -676,6 +683,41 @@ public final class ClassMethodUpdater {
             return -1;
         }
         return findMatchingBrace(source, openBrace);
+    }
+
+    /**
+     * Ensures the enum constant list is terminated with a ';' so member declarations can follow.
+     * No-op when a depth-1 ';' already terminates the constants. Uses masked source for scanning
+     * so semicolons inside comments or string literals are ignored, but edits the real source.
+     */
+    private static String ensureEnumConstantsTerminated(String source, String simpleName) {
+        int openBrace = findPrimaryTypeOpenBrace(source, simpleName);
+        if (openBrace < 0) {
+            return source;
+        }
+        String masked = maskNonCode(source);
+        int depth = 0;
+        int lastConstantChar = -1;
+        for (int i = openBrace; i < masked.length(); i++) {
+            char c = masked.charAt(i);
+            if (c == '{') {
+                depth++;
+            } else if (c == '}') {
+                depth--;
+                if (depth == 0) {
+                    break;
+                }
+            } else if (c == ';' && depth == 1) {
+                return source; // constants already terminated
+            } else if (depth == 1 && !Character.isWhitespace(c)) {
+                lastConstantChar = i;
+            }
+        }
+        if (lastConstantChar < 0) {
+            // Empty enum body: insert a ';' just after the opening brace.
+            return source.substring(0, openBrace + 1) + "\n    ;" + source.substring(openBrace + 1);
+        }
+        return source.substring(0, lastConstantChar + 1) + ";" + source.substring(lastConstantChar + 1);
     }
 
     private static int findPrimaryTypeOpenBrace(String source, String simpleName) {

@@ -269,6 +269,65 @@ public class ClassMethodUpdaterTest {
         assertTrue(!ClassMethodUpdater.hasMissingMethods(source, type));
     }
 
+    @Test
+    public void terminatesEnumConstantsWithSemicolonWhenInsertingFirstMethod() {
+        String source = "package com.example;\n\n" +
+                "public enum Algorithm {\n" +
+                "    EC_P256\n" +
+                "}\n";
+        DescribedType type = DescribedType.of(
+                "com.example.Algorithm",
+                JavaTypeKind.ENUM,
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<io.github.jvmspec.model.ConstructorDescriptor>emptyList(),
+                Arrays.asList(MethodDescriptor.of("curveName", "String"))
+        );
+
+        String updated = ClassMethodUpdater.updateSource(source, type);
+
+        // The constant list must be terminated with ';' before the method.
+        assertTrue(updated.contains("EC_P256;"));
+        assertTrue(updated.contains("public String curveName()"));
+        // The ';' must appear before the method declaration.
+        assertTrue(updated.indexOf("EC_P256;") < updated.indexOf("public String curveName()"));
+        // Idempotent: a second pass adds nothing and does not add another ';'.
+        String again = ClassMethodUpdater.updateSource(updated, type);
+        assertEquals(updated, again);
+        assertEquals(1, countOccurrences(updated, "EC_P256;"));
+    }
+
+    @Test
+    public void doesNotAddSemicolonWhenEnumConstantsAlreadyTerminated() {
+        String source = "package com.example;\n\n" +
+                "public enum Algorithm {\n" +
+                "    EC_P256;\n" +
+                "\n" +
+                "    public String curveName() {\n" +
+                "        return \"secp256r1\";\n" +
+                "    }\n" +
+                "}\n";
+        DescribedType type = DescribedType.of(
+                "com.example.Algorithm",
+                JavaTypeKind.ENUM,
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<io.github.jvmspec.model.ConstructorDescriptor>emptyList(),
+                Arrays.asList(
+                        MethodDescriptor.of("curveName", "String"),
+                        MethodDescriptor.of("keySize", "int")
+                )
+        );
+
+        String updated = ClassMethodUpdater.updateSource(source, type);
+
+        // Only one ';' terminating the constant list (plus the one inside the string literal body).
+        assertEquals(1, countOccurrences(updated, "EC_P256;"));
+        assertTrue(updated.contains("public int keySize()"));
+    }
+
     private static int countOccurrences(String text, String fragment) {
         int count = 0;
         int index = 0;
