@@ -91,6 +91,51 @@ class JavaspecTestEnginePhase17Test {
     }
 
     @Test
+    void canonicalPhpspecStyleSpecIsDiscoveredAndExecutedSuccessfully(@TempDir Path temp) throws Exception {
+        Path specRoot = temp.resolve("specs");
+        Path packageDirectory = Files.createDirectories(specRoot.resolve("phase46"));
+        Path source = packageDirectory.resolve("GreetingSpec.java");
+        Files.write(source, (
+                "package phase46;\n\n" +
+                        "import io.github.jvmspec.api.ObjectBehavior;\n\n" +
+                        "public class GreetingSpec extends ObjectBehavior<GreetingSpec.Greeting> {\n" +
+                        "    public GreetingSpec() { super(Greeting.class); }\n" +
+                        "\n" +
+                        "    public void let() { beConstructedWith(\"Ada\"); }\n" +
+                        "\n" +
+                        "    public void it_greets_the_configured_subject() {\n" +
+                        "        match(subject().message()).shouldReturn(\"Hello Ada\");\n" +
+                        "    }\n" +
+                        "\n" +
+                        "    public static class Greeting {\n" +
+                        "        private final String name;\n" +
+                        "\n" +
+                        "        public Greeting(String name) { this.name = name; }\n" +
+                        "\n" +
+                        "        public String message() { return \"Hello \" + name; }\n" +
+                        "    }\n" +
+                        "}\n").getBytes(StandardCharsets.UTF_8));
+
+        try (URLClassLoader classLoader = compileToClassLoader(temp.resolve("classes"), source)) {
+            Class<?> specClass = classLoader.loadClass("phase46.GreetingSpec");
+            RunOutcome outcome = execute(
+                    requestBuilder()
+                            .configurationParameter("javaspec.specRoot", specRoot.toString())
+                            .selectors(DiscoverySelectors.selectClass(specClass))
+                            .build(),
+                    classLoader
+            );
+
+            assertEquals(1, outcome.summary().getTestsFoundCount());
+            assertEquals(1, outcome.summary().getTestsSucceededCount());
+            assertEquals(0, outcome.summary().getTestsFailedCount());
+            assertEquals(0, outcome.summary().getTestsSkippedCount());
+            assertTrue(outcome.recorder().startedDisplayNames().contains("phase46.GreetingSpec#it_greets_the_configured_subject"),
+                    "Expected example display name in " + outcome.recorder().startedDisplayNames());
+        }
+    }
+
+    @Test
     void assertionFailureAndUnexpectedThrowableMapToJUnitPlatformFailures(@TempDir Path temp) throws Exception {
         Path specRoot = temp.resolve("specs");
         Path source = writeSpec(specRoot, "phase17.outcomes", "OutcomeSpec",
@@ -860,8 +905,13 @@ class JavaspecTestEnginePhase17Test {
     }
 
     private static final class RecordingListener implements TestExecutionListener {
+        private final List<String> startedDisplayNames = new ArrayList<String>();
         private final List<FinishedEvent> failedEvents = new ArrayList<FinishedEvent>();
         private final List<SkippedEvent> skippedEvents = new ArrayList<SkippedEvent>();
+
+        public void executionStarted(TestIdentifier testIdentifier) {
+            startedDisplayNames.add(testIdentifier.getDisplayName());
+        }
 
         public void executionSkipped(TestIdentifier testIdentifier, String reason) {
             skippedEvents.add(new SkippedEvent(testIdentifier.getDisplayName(), reason));
@@ -871,6 +921,10 @@ class JavaspecTestEnginePhase17Test {
             if (testExecutionResult.getStatus() == TestExecutionResult.Status.FAILED) {
                 failedEvents.add(new FinishedEvent(testIdentifier.getDisplayName(), testExecutionResult.getThrowable().orElse(null)));
             }
+        }
+
+        List<String> startedDisplayNames() {
+            return startedDisplayNames;
         }
 
         List<FinishedEvent> failedEvents() {

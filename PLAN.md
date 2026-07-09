@@ -211,9 +211,8 @@ Deliverables:
 - Add compatibility smoke specs that exercise the canonical authoring style end-to-end through CLI,
   Maven, Gradle, and JUnit Platform adapter paths.
 
-**Status:** In progress — charter, acceptance-matrix rows, and CLI + Maven plugin
-canonical-authoring smoke coverage are implemented and verified. Gradle and JUnit Platform adapter
-smoke coverage remain as the next Phase 46 steps.
+**Status:** Completed — charter, acceptance-matrix rows, and canonical-authoring smoke coverage are
+implemented and verified across CLI, Maven plugin, Gradle plugin, and JUnit Platform adapter paths.
 
 ### Phase 47 — PHPSpec-style example data without Jupiter parameterized syntax
 

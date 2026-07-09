@@ -35,10 +35,11 @@ moving dependency-heavy behavior into optional artifacts.
   annotated varargs.
 - `Doubles.controlFromHandler(...)` was added as a public adapter hook so optional adapters do not
   depend on package-private core implementation classes across build-tool classloaders.
-- Phase 46 planning starts the PHPSpec-first JUnit-parity line with
+- Phase 46 starts the PHPSpec-first JUnit-parity line with
   `docs/phpspec-compatibility-charter.md`, PHPSpec parity rows in
-  `docs/test-matrix-generation.md`, and CLI/Maven plugin smoke coverage for the canonical
-  subject-centric `let` / `subject()` / `match(...).shouldReturn(...)` authoring style.
+  `docs/test-matrix-generation.md`, and CLI, Maven plugin, Gradle plugin, and JUnit Platform adapter
+  smoke coverage for the canonical subject-centric `let` / `subject()` /
+  `match(...).shouldReturn(...)` authoring style.
 
 ## Optional subclass adapter `javaspec-bytecode-doubles`
 

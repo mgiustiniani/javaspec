@@ -196,6 +196,58 @@ public class JavaspecGradlePluginTest {
     }
 
     @Test
+    public void canonicalPhpspecStyleSpecRunsThroughDefaultTestSourceSetRuntimeClasspath() throws Exception {
+        File projectDir = newProject("phase46-canonical-phpspec-style");
+        writeBuildFile(projectDir, javaPluginBuild(
+                "repositories {\n" +
+                        "    mavenLocal()\n" +
+                        "    mavenCentral()\n" +
+                        "}\n" +
+                        "dependencies {\n" +
+                        "    testImplementation 'io.github.jvmspec:javaspec:0.1.0-SNAPSHOT'\n" +
+                        "}\n" +
+                        "javaspec {\n" +
+                        "    jsonReportFile = file('build/reports/javaspec/phase46.json')\n" +
+                        "    junitXmlReportFile = file('build/reports/javaspec/phase46.xml')\n" +
+                        "}\n"
+        ));
+        writeJavaSource(projectDir, "src/main/java/com/example/Phase46Greeting.java",
+                "package com.example;\n\n" +
+                        "public class Phase46Greeting {\n" +
+                        "    private final String name;\n" +
+                        "\n" +
+                        "    public Phase46Greeting(String name) { this.name = name; }\n" +
+                        "\n" +
+                        "    public String message() { return \"Hello \" + name; }\n" +
+                        "}\n");
+        writeJavaSource(projectDir, "src/test/java/spec/com/example/Phase46GreetingSpec.java",
+                "package spec.com.example;\n\n" +
+                        "import com.example.Phase46Greeting;\n" +
+                        "import io.github.jvmspec.api.ObjectBehavior;\n" +
+                        "\n" +
+                        "public class Phase46GreetingSpec extends ObjectBehavior<Phase46Greeting> {\n" +
+                        "    public Phase46GreetingSpec() { super(Phase46Greeting.class); }\n" +
+                        "\n" +
+                        "    public void let() { beConstructedWith(\"Ada\"); }\n" +
+                        "\n" +
+                        "    public void it_greets_the_configured_subject() {\n" +
+                        "        match(subject().message()).shouldReturn(\"Hello Ada\");\n" +
+                        "    }\n" +
+                        "}\n");
+
+        BuildResult result = runGradle(projectDir, "javaspecRun");
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":javaspecRun").getOutcome());
+        assertContains(result.getOutput(), "javaspec: found 1 specification(s).");
+        assertContains(result.getOutput(), "javaspec: Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped, 0 pending.");
+        String json = readFile(new File(projectDir, "build/reports/javaspec/phase46.json"));
+        assertContains(json, "\"stableId\": \"spec.com.example.Phase46GreetingSpec#it_greets_the_configured_subject\"");
+        String xml = readFile(new File(projectDir, "build/reports/javaspec/phase46.xml"));
+        assertContains(xml, "classname=\"spec.com.example.Phase46GreetingSpec\"");
+        assertContains(xml, "name=\"it_greets_the_configured_subject\"");
+    }
+
+    @Test
     public void uncompiledSpecSourceLogsExecutionDiagnosticsForDefaultTestRuntimeClasspath() throws Exception {
         File projectDir = newProject("uncompiled-spec-diagnostics");
         writeBuildFile(projectDir, javaPluginBuild(

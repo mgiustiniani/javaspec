@@ -4,18 +4,20 @@
 
 Date: 2026-07-09
 
-This update records the first Phase 46 PHPSpec-first JUnit-parity step. The phase now has a
-compatibility charter, acceptance-matrix rows, and CLI/Maven plugin smoke tests for canonical
-PHPSpec-style Java authoring: `let()`, `beConstructedWith(...)`, `subject()`, and
+This update records completed Phase 46 PHPSpec-first JUnit-parity charter work. The phase now has a
+compatibility charter, acceptance-matrix rows, and CLI/Maven/Gradle/JUnit Platform smoke tests for
+canonical PHPSpec-style Java authoring: `let()`, `beConstructedWith(...)`, `subject()`, and
 `match(...).shouldReturn(...)`.
 
 Verification summary:
 
 - `mvn -q -Dtest=MainPhase46PhpspecCompatibilityCliTest test` passed.
 - `mvn -q -f javaspec-maven-plugin/pom.xml -Dtest=JavaspecRunMojoTest#compileTrueRunsCanonicalPhpspecStyleSubjectBehavior test` passed.
+- `gradle test --tests io.github.jvmspec.gradle.JavaspecGradlePluginTest.canonicalPhpspecStyleSpecRunsThroughDefaultTestSourceSetRuntimeClasspath` passed.
+- `mvn -q -f javaspec-junit-platform-engine/pom.xml -Dtest=JavaspecTestEnginePhase17Test#canonicalPhpspecStyleSpecIsDiscoveredAndExecutedSuccessfully test` passed.
+- Full Gradle plugin tests and full JUnit Platform engine tests passed after adding the adapter smoke coverage.
 
-Next Phase 46 verification targets are Gradle plugin and JUnit Platform adapter smoke coverage for
-the same canonical authoring style.
+No blockers were reported. Phase 47 is the next roadmap phase.
 
 ## Record component evolution hardening verification update
 
