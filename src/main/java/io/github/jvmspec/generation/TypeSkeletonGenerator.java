@@ -173,7 +173,11 @@ public final class TypeSkeletonGenerator {
     }
 
     private static void appendRecord(StringBuilder builder, DescribedType describedType) {
-        builder.append("public record ").append(describedType.simpleName()).append("()");
+        builder.append("public record ").append(describedType.simpleName()).append("(");
+        builder.append(RecordComponentPlanner.renderComponentList(
+                describedType,
+                RecordComponentPlanner.componentsFor(describedType)));
+        builder.append(")");
         appendImplements(builder, describedType);
         if (describedType.hasMethods()) {
             builder.append(" {\n");

@@ -3,6 +3,7 @@ package io.github.jvmspec.generation;
 import io.github.jvmspec.model.ConstructorDescriptor;
 import io.github.jvmspec.model.DescribedType;
 import io.github.jvmspec.model.JavaTypeKind;
+import io.github.jvmspec.model.MethodDescriptor;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -545,6 +546,38 @@ public class ClassConstructorUpdaterTest {
                 updated.contains("public int count() {"));
         assertTrue("method body must survive even when its constructor is commented",
                 updated.contains("return count;"));
+    }
+
+    @Test
+    public void updatesRecordHeaderAndPreservesCompactConstructor() {
+        String recordWithCompactConstructor =
+                "package com.example;\n\npublic record UserId() {\n" +
+                "    public UserId {\n" +
+                "        if (value == null) {\n" +
+                "            throw new IllegalArgumentException(\"value\");\n" +
+                "        }\n" +
+                "    }\n" +
+                "}\n";
+        DescribedType type = DescribedType.of(
+                "com.example.UserId",
+                JavaTypeKind.RECORD,
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Arrays.asList(ConstructorDescriptor.of(
+                        Arrays.asList("String"),
+                        Arrays.asList("arg0"),
+                        "")),
+                Arrays.asList(MethodDescriptor.of("value", "String"))
+        );
+
+        String updated = ClassConstructorUpdater.updateSource(
+                recordWithCompactConstructor, type, ConstructorPolicy.COMMENT);
+
+        assertTrue(updated.contains("public record UserId(String value)"));
+        assertTrue(updated.contains("public UserId {"));
+        assertTrue(updated.contains("if (value == null)"));
+        assertFalse(updated.contains("public record UserId()"));
     }
 
     @Test

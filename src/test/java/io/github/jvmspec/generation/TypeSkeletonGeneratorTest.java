@@ -1,5 +1,6 @@
 package io.github.jvmspec.generation;
 
+import io.github.jvmspec.model.ConstructorDescriptor;
 import io.github.jvmspec.model.DescribedType;
 import io.github.jvmspec.model.JavaTypeKind;
 import io.github.jvmspec.model.MethodDescriptor;
@@ -141,6 +142,32 @@ public class TypeSkeletonGeneratorTest {
         String source = TypeSkeletonGenerator.render(DescribedType.of("com.example.User", JavaTypeKind.RECORD));
 
         assertEquals("package com.example;\n\npublic record User() { }\n", source);
+    }
+
+    @Test
+    public void rendersRecordComponentFromConstructorAndExplicitAccessorStub() {
+        DescribedType type = DescribedType.of(
+                "com.example.UserId",
+                JavaTypeKind.RECORD,
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Arrays.asList(ConstructorDescriptor.of(
+                        Arrays.asList("String"),
+                        Arrays.asList("arg0"),
+                        "")),
+                Arrays.asList(MethodDescriptor.of("value", "String"))
+        );
+
+        String source = TypeSkeletonGenerator.render(type);
+
+        assertEquals("package com.example;\n\n" +
+                "public record UserId(String value) {\n" +
+                "    public String value() {\n" +
+                "        // javaspec:stub\n" +
+                "        return null;\n" +
+                "    }\n" +
+                "}\n", source);
     }
 
     @Test

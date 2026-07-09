@@ -2,6 +2,7 @@ package io.github.jvmspec.generation;
 
 import io.github.jvmspec.model.ConstructorDescriptor;
 import io.github.jvmspec.model.DescribedType;
+import io.github.jvmspec.model.JavaTypeKind;
 
 import java.io.File;
 import java.io.IOException;
@@ -61,6 +62,10 @@ public final class ClassConstructorUpdater {
         Objects.requireNonNull(existingSource, "existingSource must not be null");
         Objects.requireNonNull(describedType, "describedType must not be null");
         Objects.requireNonNull(policy, "policy must not be null");
+
+        if (JavaTypeKind.RECORD.equals(describedType.kind())) {
+            return RecordComponentPlanner.updateRecordHeader(existingSource, describedType);
+        }
 
         List<ParsedConstructor> existingConstructors = parseConstructors(existingSource, describedType.simpleName());
         List<ConstructorDescriptor> specConstructors = describedType.constructors();

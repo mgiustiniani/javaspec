@@ -1,6 +1,7 @@
 package io.github.jvmspec.generation;
 
 import io.github.jvmspec.model.DescribedType;
+import io.github.jvmspec.model.JavaTypeKind;
 
 import java.io.File;
 import java.io.IOException;
@@ -77,6 +78,18 @@ public final class TypeFileGenerator {
 
         // Existing file: update constructors and missing methods.
         DescribedType describedType = plan.describedType();
+        if (JavaTypeKind.RECORD.equals(describedType.kind())) {
+            // For records, insert missing accessor stubs before constructor-driven header evolution.
+            // This keeps constructor-driven component slices from becoming BROKEN while still
+            // preserving assertion-level RED behavior for newly described accessors.
+            if (describedType.hasMethods()) {
+                ClassMethodUpdater.updateFile(targetFile, describedType);
+            }
+            if (describedType.hasConstructors()) {
+                ClassConstructorUpdater.updateFile(targetFile, describedType, policy);
+            }
+            return targetFile;
+        }
         if (describedType.hasConstructors()) {
             ClassConstructorUpdater.updateFile(targetFile, describedType, policy);
         }

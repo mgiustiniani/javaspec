@@ -153,15 +153,15 @@ repository intentionally keeps standalone adapters/examples out of a root Maven 
 
 ## Follow-up Functional Hardening Backlog
 
-- **Record component evolution from constructor-driven specs:** when a spec uses
+- **Record component evolution from constructor-driven specs (Completed):** when a spec uses
   `beConstructedWith(...)` and then asserts a record component accessor such as `value()`, javaspec
-  should guide a valid RED/GREEN path instead of leaving the run BROKEN with `No matching constructor
-  found`. The generator/updater should either evolve the existing record header, for example from
-  `record CertificateProfileId()` to `record CertificateProfileId(String value)`, and recognize the
-  generated component accessor as satisfying `value()`, or emit an explicit actionable diagnostic that
-  asks for a structural record-component slice. Add regression coverage for existing records, new
-  record components, generated accessors, compact constructors, and dataset-friendly assertion-level
-  RED behavior.
+  now avoids the BROKEN `No matching constructor found` path by evolving record headers from
+  constructor descriptors. For example, `record CertificateProfileId()` can become
+  `record CertificateProfileId(String value)`. New record skeleton generation also renders record
+  components from constructor descriptors. Existing-record updates insert missing accessor stubs
+  before header evolution, preserving dataset-friendly assertion-level RED behavior for newly
+  described accessors. Regression coverage now includes new record components, generated accessor
+  stubs, existing records, and compact-constructor preservation.
 
 ## Course Correction — Gradle Plugin Test and Example Dependency Version (ADR 0025)
 
