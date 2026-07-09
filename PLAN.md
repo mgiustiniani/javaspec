@@ -163,6 +163,179 @@ repository intentionally keeps standalone adapters/examples out of a root Maven 
   described accessors. Regression coverage now includes new record components, generated accessor
   stubs, existing records, and compact-constructor preservation.
 
+## PHPSpec-First JUnit-Parity Roadmap — Proposed Phases 46-54
+
+This roadmap defines how javaspec should become competitive with JUnit as a Java testing platform
+without becoming a JUnit clone and without becoming a Cucumber/Gherkin runner. The primary
+constraint is PHPSpec alignment: features must preserve spec-first object behavior, subject-centric
+examples, generation feedback, `it_`/`its_` examples, `let`/`letGo`, `beConstructedWith` / named
+construction, `should*` matchers, and Prophecy-style collaborators. The tool is intentionally
+opinionated about disciplined TDD/BDD: it should enforce the classic RED/GREEN/REFACTOR loop instead
+of optimizing for after-the-fact assertion dumping. The primary use case is the space where Cucumber
+is too heavy or low-signal: precise object/domain behavior, edge cases, collaborator interactions,
+and RED/GREEN design feedback close to code. JUnit Platform remains an optional adapter for IDE/build-tool
+interoperability, not the user-facing programming model.
+
+### Design laws
+
+1. **Subject first:** examples describe one subject's behavior; new APIs must keep `subject()`,
+   generated support proxies, and `match(...).should*` at the center.
+2. **PHPSpec naming first:** public `it_*` / `its_*` examples, `let`, `letGo`, `beConstructedWith`,
+   `beConstructedThrough`, `prophesize*`, `reveal`, `will*`, and `should*` remain the primary syntax.
+3. **Generation remains guidance, not magic:** javaspec may suggest or generate boring skeletons,
+   but production behavior still comes from user implementation after meaningful RED feedback.
+4. **Disciplined TDD/BDD workflow:** the tool should make the rigorous path the path of least
+   resistance: describe one behavior, see a meaningful RED, generate only the next boring skeleton,
+   implement the smallest GREEN, then refactor. Features that hide RED, batch many behaviors, or
+   encourage after-the-fact assertion dumping are design regressions.
+5. **No Jupiter clone in core:** do not add `@Test`, `@BeforeEach`, `@ParameterizedTest`, Jupiter
+   extension APIs, or JUnit runtime dependencies to core. Where Java annotations help, they must be
+   optional aliases over PHPSpec concepts, not the canonical style.
+6. **Zero-runtime-dependency core:** dependency-heavy integrations stay in optional adapters.
+7. **Interop by translation:** IDE/CI/JUnit Platform support should translate the PHPSpec example
+   model into external tooling models without changing authoring style.
+8. **Cucumber boundary:** do not add feature files, step definitions, Given/When/Then DSLs, or
+   business-readable scenario orchestration to core. javaspec complements Cucumber by covering
+   behavior slices where Gherkin adds ceremony instead of clarity.
+
+### Phase 46 — PHPSpec compatibility charter and acceptance matrix
+
+**Goal:** turn `docs/research/phpspec-feature-inventory.md` into an executable product direction.
+
+Deliverables:
+- `docs/phpspec-compatibility-charter.md` defining canonical syntax, accepted Java adaptations,
+  explicit non-goals, the boundary between javaspec, JUnit, and Cucumber, and the disciplined
+  RED/GREEN/REFACTOR workflow the tool is expected to enforce.
+- Update `docs/test-matrix-generation.md` with PHPSpec feature parity rows: examples, lifecycle,
+  collaborators, matchers, prophecy, generation, formatters, and extensions.
+- Add compatibility smoke specs that exercise the canonical authoring style end-to-end through CLI,
+  Maven, Gradle, and JUnit Platform adapter paths.
+
+**Status:** In progress — charter, acceptance-matrix rows, and CLI + Maven plugin
+canonical-authoring smoke coverage are implemented and verified. Gradle and JUnit Platform adapter
+smoke coverage remain as the next Phase 46 steps.
+
+### Phase 47 — PHPSpec-style example data without Jupiter parameterized syntax
+
+**Goal:** cover JUnit's parameterized-test use case and low-value Cucumber Scenario Outline use
+cases while keeping PHPSpec's “one behavior example” style.
+
+Candidate syntax:
+
+```java
+public void it_normalizes_known_inputs() {
+    examples(row("  Alice  ", "Alice"), row("Bob", "Bob"))
+        .verify(new Example2<String, String>() {
+            @Override
+            public void run(String input, String expected) {
+                match(subject().normalize(input)).shouldReturn(expected);
+            }
+        });
+}
+```
+
+Rules:
+- The public method remains the behavior example; data rows are reported as child invocations.
+- Do not add `@ParameterizedTest`, `@ValueSource`, or Jupiter dependencies to core.
+- Reports and the JUnit Platform adapter expose each row with stable IDs and readable names.
+- Failed rows show row values in diagnostics.
+
+### Phase 48 — Collaborator injection for `let` and examples
+
+**Goal:** implement the PHPSpec type-hinted collaborator model in Java form.
+
+Deliverables:
+- Allow supported parameters on `let(...)`, `letGo(...)`, and `it_*` / `its_*` methods.
+- Resolve interface parameters to Prophecy/double collaborators where unambiguous.
+- Resolve generated typed `*Prophecy` parameters when available.
+- Define deterministic parameter ordering, lifecycle, and prediction verification before teardown.
+- Produce clear BROKEN diagnostics for ambiguous, unsupported, or non-constructible parameters.
+
+Non-goal: general-purpose dependency injection or Spring-style context management in core.
+
+### Phase 49 — Prophecy parity completion
+
+**Goal:** make interaction testing feel like Prophecy, not Mockito.
+
+Deliverables:
+- Complete argument-token coverage: exact/identity, type, callback, any, cetera, containing string,
+  in/not-in, and custom token interfaces.
+- Add custom prediction callbacks equivalent to Prophecy `should(callback)`.
+- Harden automatic prediction checking after examples and before `letGo` result finalization.
+- Improve failure messages for unmet predictions, unexpected calls, ordered calls, and argument-token
+  mismatch explanations.
+- Keep concrete/final/static/constructor cases in optional bytecode adapters.
+
+### Phase 50 — Matcher parity and PHPSpec dynamic expectations
+
+**Goal:** close PHPSpec matcher gaps before adding generic xUnit assertions.
+
+Deliverables:
+- Approximate numeric matchers: `shouldBeApproximately`, `shouldReturnApproximately`, aliases.
+- Iteration matchers for Java `Iterable` / `Iterator`: `shouldIterateAs`, `shouldIterateLike`, and
+  start-iteration variants where semantics are deterministic.
+- Object-state dynamic matchers: `shouldBeActive()` -> `isActive()` and `shouldHaveItems()` ->
+  `hasItems()` / JavaBean conventions, with explicit discovery and diagnostics.
+- Per-spec inline matchers through a Java `getMatchers()` equivalent.
+- Configured custom matcher classes through the existing extension/config model.
+
+### Phase 51 — PHPSpec event and extension model v2
+
+**Goal:** provide JUnit-extension-level power through PHPSpec-style events/listeners, not Jupiter
+callbacks.
+
+Deliverables:
+- Event interfaces for suite, spec, example, generation prompt, result, and report phases.
+- Listener/subscriber registration through config and `ServiceLoader`.
+- Extension registries for matchers, generators, templates, formatters, and report sinks.
+- Deterministic extension ordering and failure semantics.
+- No service-container dependency in core; expose a small Java registry API instead.
+
+### Phase 52 — JUnit Platform adapter v2 for IDE parity
+
+**Goal:** make javaspec feel first-class in IDEs/build tools while preserving PHPSpec authoring.
+
+Deliverables:
+- Stable hierarchical descriptors: suite -> spec -> example -> data row / prophecy prediction where
+  applicable.
+- Accurate file/line `MethodSource` and failure locations.
+- Display names generated from `it_*` / `its_*` descriptions and row labels.
+- Selector/filter support for class, method, unique ID, package, and row invocation.
+- Map PHPSpec statuses to Platform results without losing FAILED vs BROKEN vs PENDING semantics.
+- Document IDE run/debug workflows.
+
+### Phase 53 — Generation and snippets parity
+
+**Goal:** continue differentiating javaspec from JUnit through safe PHPSpec-style code guidance.
+
+Deliverables:
+- Safer snippet planning for interfaces, named constructors/static factories, method signatures,
+  return constants, and constructor changes.
+- Dry-run parity for every mutating generation path.
+- Optional template override directory with strict path/security rules and no template-engine
+  dependency.
+- More end-to-end fixtures proving one-behavior RED -> generation -> GREEN -> refactor loops for
+  records, sealed types, interfaces, annotations, and collaborators.
+- Guardrails that detect or document anti-patterns such as adding multiple examples before a RED
+  run, generating multiple unrelated production members in one step, or accepting accidental GREEN
+  behavior without a failing example first.
+
+### Phase 54 — Formatters, reports, and adoption evidence
+
+**Goal:** match JUnit's CI usefulness while keeping PHPSpec's formatter model.
+
+Deliverables:
+- Keep `progress` and `pretty` canonical; add optional TAP, TeamCity, and human-readable HTML
+  formatters through extension artifacts where useful.
+- Evaluate Open Test Reporting as an optional reporter/adapter, not a core dependency.
+- Capture stdout/stderr per example where possible without breaking zero-dependency execution.
+- Add large-suite performance benchmarks and dogfood projects using CLI, Maven, Gradle, and JUnit
+  Platform adapter.
+- Publish a JUnit-to-javaspec migration guide that maps capabilities without encouraging Jupiter
+  syntax in javaspec specs.
+- Publish a Cucumber-to-javaspec boundary guide for teams: keep Cucumber for cross-role executable
+  requirements and use javaspec for object/domain behavior where feature files are low-signal.
+
 ## Course Correction — Gradle Plugin Test and Example Dependency Version (ADR 0025)
 
 **Derailment:** After the `0.1.0` release, the Gradle plugin test file still references

@@ -105,6 +105,48 @@ public class JavaspecRunMojoTest {
     }
 
     @Test
+    public void compileTrueRunsCanonicalPhpspecStyleSubjectBehavior() throws Exception {
+        requireJdkCompiler();
+        File basedir = temporaryFolder.newFolder("PluginPhase46PhpspecStyle-project");
+        File sourceRoot = new File(basedir, "src/main/java");
+        File specRoot = new File(basedir, "specs");
+        File classesDirectory = new File(basedir, "classes");
+        assertTrue(classesDirectory.mkdirs());
+        writeFile(sourceFileFor(sourceRoot, "com.example.PluginPhase46Greeting"),
+                "package com.example;\n\n" +
+                        "public class PluginPhase46Greeting {\n" +
+                        "    private final String name;\n" +
+                        "\n" +
+                        "    public PluginPhase46Greeting(String name) { this.name = name; }\n" +
+                        "\n" +
+                        "    public String message() { return \"Hello \" + name; }\n" +
+                        "}\n");
+        writeFile(sourceFileFor(specRoot, "spec.com.example.PluginPhase46GreetingSpec"),
+                "package spec.com.example;\n\n" +
+                        "import com.example.PluginPhase46Greeting;\n" +
+                        "import io.github.jvmspec.api.ObjectBehavior;\n" +
+                        "\n" +
+                        "public class PluginPhase46GreetingSpec extends ObjectBehavior<PluginPhase46Greeting> {\n" +
+                        "    public PluginPhase46GreetingSpec() { super(PluginPhase46Greeting.class); }\n" +
+                        "\n" +
+                        "    public void let() { beConstructedWith(\"Ada\"); }\n" +
+                        "\n" +
+                        "    public void it_greets_the_configured_subject() {\n" +
+                        "        match(subject().message()).shouldReturn(\"Hello Ada\");\n" +
+                        "    }\n" +
+                        "}\n");
+        CapturingLog log = new CapturingLog();
+        JavaspecRunMojo mojo = mojo(basedir, specRoot, classesDirectory, log);
+        set(mojo, "compile", Boolean.TRUE);
+
+        mojo.execute();
+
+        assertTrue(log.containsInfo("javaspec: compiled 2 source file(s) to " + new File(basedir, "target/javaspec-classes").getPath() + "."));
+        assertTrue(log.containsInfo("javaspec: found 1 specification(s)."));
+        assertTrue(log.containsInfo("javaspec: examples total=1, passed=1, failed=0, broken=0, skipped=0, pending=0."));
+    }
+
+    @Test
     public void compileOutputParametersImplyCompilationAndCompileOutputTakesPrecedenceOverAlias() throws Exception {
         requireJdkCompiler();
         SourceOnlySpecFixture aliasFixture = sourceOnlySpecFixture("PluginPhase34AliasOutputSubject");

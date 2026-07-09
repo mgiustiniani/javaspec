@@ -11,11 +11,24 @@ language forms or generator behavior are added.
 | Class/final class | Skeletons, constructors, method insertion, static factories, idempotence | More real-world formatting, annotations, nested types, generic methods |
 | Enum | Skeletons, constants, implicit enum method filtering, semicolon insertion | More constructor/constant-argument combinations |
 | Annotation | Skeletons, compatible elements, incompatible descriptor filtering | More array/class-valued element combinations |
-| Record | Skeletons, Java 17 profile gating, method insertion | Component accessors treated as existing methods, compact constructors preserved, generic components |
+| Record | Skeletons, Java 17 profile gating, method insertion, component accessors, constructor-driven component evolution | Compact constructors preserved, generic/annotated components, dry-run parity for header evolution |
 | Sealed class | Skeletons, explicit `permits`, Java 17 profile gating, method-body insertion into root | Multiline permits, nested permitted classes, Java 17 compile checks |
 | Sealed interface | Skeletons, explicit permits, nested permitted implementations, source-preserving existing updates | Additional nested generic/default-method cases |
 | Parser | Comment/string masking, brace matching, ServiceLoader replacement | Generic method type parameters, annotations, varargs, multiline declarations |
 | End-to-end CLI | Generate/compile/report paths for core flows; Java 17 record/sealed `run --generate --compile --release 17` fixture | Additional dry-run assertions for complex generated-source combinations |
+
+## PHPSpec compatibility focus
+
+| PHPSpec area | Current coverage | Parity target |
+|---|---|---|
+| Examples | `it_*` / `its_*` discovery, filters, stable IDs, skip/pending states | PHPSpec-style example data rows without Jupiter parameterized syntax |
+| Lifecycle | Fresh spec instance per example, `let()`, `letGo()`, construction helpers | Parameterized `let(...)` / examples for collaborator injection |
+| Subject construction | `subject()`, `beConstructedWith`, named/static factory construction | Clearer diagnostics and snippet coverage for ambiguous constructors/factories |
+| Matchers | Core `should*` / `shouldNot*` equality, type, count, string, collection/map helpers | Approximate, iteration, dynamic object-state, inline and configured custom matchers |
+| Prophecy | Interface/concrete/final wrappers, promises, predictions, reveal, auto-check support | Full argument-token parity and custom prediction callbacks |
+| Generation | Spec/support/type/method/constructor/static factory generation and dry-run planning | Safer PHPSpec snippets, template overrides, and anti-batching guardrails |
+| Formatters/reports | `progress`, `pretty`, JSON, JUnit XML, ServiceLoader formatters | Optional TAP/TeamCity/HTML/Open Test Reporting adapters |
+| Cucumber boundary | No feature files or Given/When/Then DSL in core | Boundary guide and low-value Scenario Outline migration to example data |
 
 ## Acceptance rules for new generator work
 
@@ -33,6 +46,9 @@ language forms or generator behavior are added.
 
 - Record component accessors are treated as existing no-arg methods during source-preserving record
   updates, so `record UserId(String value)` does not receive a generated `value()` stub.
+- Constructor-driven record specs can evolve record headers: `beConstructedWith(...)` plus a
+  component accessor such as `value()` can update `record CertificateProfileId()` to
+  `record CertificateProfileId(String value)` instead of failing with `No matching constructor`.
 - Record updates preserve compact constructors and tolerate generic/annotated component declarations.
 - Existing sealed classes with multiline `permits` and nested permitted subclasses receive missing
   root method bodies idempotently and are checked with Java 17 compilation when available.

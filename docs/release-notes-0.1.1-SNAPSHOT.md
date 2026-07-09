@@ -27,12 +27,18 @@ moving dependency-heavy behavior into optional artifacts.
   discovery/refinement path falls back safely when those optional compiler classes are unavailable
   at runtime.
 - Generation robustness hardening adds `docs/test-matrix-generation.md`, treats record component
-  accessors as existing methods during record updates, preserves compact constructors while adding
-  record methods, checks multiline sealed-class `permits` updates with Java 17 compilation,
-  verifies `run --generate --compile --release 17` for generated record/sealed skeletons, and
-  expands parser coverage for generic method type parameters and annotated varargs.
+  accessors as existing methods during record updates, evolves record headers from
+  constructor-driven specs such as `beConstructedWith(...)` plus `value()`, preserves compact
+  constructors while adding record methods/components, checks multiline sealed-class `permits`
+  updates with Java 17 compilation, verifies `run --generate --compile --release 17` for generated
+  record/sealed skeletons, and expands parser coverage for generic method type parameters and
+  annotated varargs.
 - `Doubles.controlFromHandler(...)` was added as a public adapter hook so optional adapters do not
   depend on package-private core implementation classes across build-tool classloaders.
+- Phase 46 planning starts the PHPSpec-first JUnit-parity line with
+  `docs/phpspec-compatibility-charter.md`, PHPSpec parity rows in
+  `docs/test-matrix-generation.md`, and CLI/Maven plugin smoke coverage for the canonical
+  subject-centric `let` / `subject()` / `match(...).shouldReturn(...)` authoring style.
 
 ## Optional subclass adapter `javaspec-bytecode-doubles`
 

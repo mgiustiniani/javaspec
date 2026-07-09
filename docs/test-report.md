@@ -1,5 +1,42 @@
 # Test and Quality Report
 
+## Phase 46 PHPSpec compatibility charter verification update
+
+Date: 2026-07-09
+
+This update records the first Phase 46 PHPSpec-first JUnit-parity step. The phase now has a
+compatibility charter, acceptance-matrix rows, and CLI/Maven plugin smoke tests for canonical
+PHPSpec-style Java authoring: `let()`, `beConstructedWith(...)`, `subject()`, and
+`match(...).shouldReturn(...)`.
+
+Verification summary:
+
+- `mvn -q -Dtest=MainPhase46PhpspecCompatibilityCliTest test` passed.
+- `mvn -q -f javaspec-maven-plugin/pom.xml -Dtest=JavaspecRunMojoTest#compileTrueRunsCanonicalPhpspecStyleSubjectBehavior test` passed.
+
+Next Phase 46 verification targets are Gradle plugin and JUnit Platform adapter smoke coverage for
+the same canonical authoring style.
+
+## Record component evolution hardening verification update
+
+Date: 2026-07-09
+
+This update records the completed follow-up hardening for constructor-driven Java record evolution.
+When a spec combines `beConstructedWith(...)` with a record component accessor such as `value()`,
+javaspec now evolves the record header instead of failing with `No matching constructor found`.
+
+Verification summary:
+
+- `mvn -q -Dtest=TypeSkeletonGeneratorTest,TypeFileGeneratorTest,ClassConstructorUpdaterTest test`
+  passed for focused regression coverage.
+- `mvn -q test` passed for the core test suite.
+- `mvn -q -DskipTests install` passed for local snapshot installation.
+- `./scripts/verify-all.sh` passed after commit `a88fa71`, including version alignment, root verify,
+  Maven plugin, JUnit Platform engine, bytecode doubles adapter, bytecode agent adapter, Gradle
+  plugin, and standalone examples.
+
+No blockers were reported.
+
 ## Phase E documentation verification update
 
 Date: 2026-06-12
