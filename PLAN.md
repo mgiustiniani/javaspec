@@ -151,6 +151,18 @@ construction-aware interception. The core artifact remains zero-runtime-dependen
 **Remaining:** none for Phase 45. Full aggregate verification remains script-driven because the
 repository intentionally keeps standalone adapters/examples out of a root Maven reactor.
 
+## Follow-up Functional Hardening Backlog
+
+- **Record component evolution from constructor-driven specs:** when a spec uses
+  `beConstructedWith(...)` and then asserts a record component accessor such as `value()`, javaspec
+  should guide a valid RED/GREEN path instead of leaving the run BROKEN with `No matching constructor
+  found`. The generator/updater should either evolve the existing record header, for example from
+  `record CertificateProfileId()` to `record CertificateProfileId(String value)`, and recognize the
+  generated component accessor as satisfying `value()`, or emit an explicit actionable diagnostic that
+  asks for a structural record-component slice. Add regression coverage for existing records, new
+  record components, generated accessors, compact constructors, and dataset-friendly assertion-level
+  RED behavior.
+
 ## Course Correction — Gradle Plugin Test and Example Dependency Version (ADR 0025)
 
 **Derailment:** After the `0.1.0` release, the Gradle plugin test file still references

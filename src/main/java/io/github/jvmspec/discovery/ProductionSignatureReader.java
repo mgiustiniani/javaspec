@@ -52,7 +52,14 @@ public final class ProductionSignatureReader {
         } catch (IOException ex) {
             return describedType;
         }
-        CompilationUnitTree unit = SpecCallScanner.parseUnit(source);
+        CompilationUnitTree unit;
+        try {
+            unit = SpecCallScanner.parseUnit(source);
+        } catch (LinkageError ex) {
+            // On Java 8, com.sun.source.* lives in tools.jar and may be absent from the
+            // runtime classpath. Refinement is optional; keep the discovered type unchanged.
+            return describedType;
+        }
         if (unit == null) {
             return describedType;
         }

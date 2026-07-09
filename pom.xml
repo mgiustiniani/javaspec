@@ -95,6 +95,9 @@
                                         <exclude>*:*:*:*:provided</exclude>
                                         <exclude>*:*:*:*:system</exclude>
                                     </excludes>
+                                    <includes>
+                                        <include>com.sun:tools</include>
+                                    </includes>
                                     <message>Only test-scoped third-party dependencies are allowed. Remove runtime dependencies or move verification-only libraries to test scope.</message>
                                 </bannedDependencies>
                             </rules>
@@ -129,6 +132,21 @@
     </build>
 
     <profiles>
+        <profile>
+            <id>java8-tools</id>
+            <activation>
+                <jdk>[1.8,1.9)</jdk>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>com.sun</groupId>
+                    <artifactId>tools</artifactId>
+                    <version>1.8</version>
+                    <scope>system</scope>
+                    <systemPath>${java.home}/../lib/tools.jar</systemPath>
+                </dependency>
+            </dependencies>
+        </profile>
         <profile>
             <id>release</id>
             <activation>

@@ -23,6 +23,9 @@ moving dependency-heavy behavior into optional artifacts.
 - Extension discovery includes `list-extensions` and classpath repair hints.
 - Parser/updater generation is backed by a parser SPI and ignores signatures inside comments and
   strings.
+- Java 8 verification now adds the JDK `tools.jar` compiler tree API when needed and the AST-based
+  discovery/refinement path falls back safely when those optional compiler classes are unavailable
+  at runtime.
 - Generation robustness hardening adds `docs/test-matrix-generation.md`, treats record component
   accessors as existing methods during record updates, preserves compact constructors while adding
   record methods, checks multiline sealed-class `permits` updates with Java 17 compilation,

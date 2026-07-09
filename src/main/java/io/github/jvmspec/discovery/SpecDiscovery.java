@@ -134,7 +134,7 @@ public final class SpecDiscovery {
             if (request.hasExampleFilters() && examples.isEmpty()) {
                 return;
             }
-            SpecCallScanner.ScanResult scan = SpecCallScanner.scan(source);
+            SpecCallScanner.ScanResult scan = scanSpecCalls(source);
             List<ConstructorDescriptor> constructors = extractConstructors(source, describedPackageName, scan);
             List<MethodDescriptor> methods = extractMethods(source, describedPackageName, describedQualifiedName, scan);
             List<DescribedType.EnumConstantInfo> enumConstants = extractEnumConstants(source, describedPackageName);
@@ -160,6 +160,16 @@ public final class SpecDiscovery {
             ));
         } catch (IllegalArgumentException ignored) {
             // Ignore files that match the suffix convention but cannot be mapped to a valid Java type name.
+        }
+    }
+
+    private static SpecCallScanner.ScanResult scanSpecCalls(String source) {
+        try {
+            return SpecCallScanner.scan(source);
+        } catch (LinkageError ex) {
+            // On Java 8, com.sun.source.* lives in tools.jar and may be absent from the
+            // runtime classpath. Fall back to legacy text-based extraction instead of failing.
+            return null;
         }
     }
 

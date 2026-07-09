@@ -24,7 +24,8 @@ language forms or generator behavior are added.
 3. Generated or updated Java 17-only forms should compile under `--release 17` when the host JDK
    supports it.
 4. Java 8 compatibility of the javaspec binary must remain intact; post-Java-8 APIs stay out of the
-   core runtime surface.
+   core runtime surface. Optional compiler-tree APIs must either be supplied explicitly on Java 8
+   verification classpaths or fall back safely at runtime.
 5. Dry-run behavior must be updated together with any new mutating generation/update path.
 6. Profile enforcement must reject record/sealed generation below Java 17 before writes.
 
