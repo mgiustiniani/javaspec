@@ -23,6 +23,10 @@ moving dependency-heavy behavior into optional artifacts.
 - Extension discovery includes `list-extensions` and classpath repair hints.
 - Parser/updater generation is backed by a parser SPI and ignores signatures inside comments and
   strings.
+- Generation robustness hardening adds `docs/test-matrix-generation.md`, treats record component
+  accessors as existing methods during record updates, preserves compact constructors while adding
+  record methods, checks multiline sealed-class `permits` updates with Java 17 compilation, and
+  expands parser coverage for generic method type parameters and annotated varargs.
 - `Doubles.controlFromHandler(...)` was added as a public adapter hook so optional adapters do not
   depend on package-private core implementation classes across build-tool classloaders.
 

@@ -3,6 +3,9 @@ package io.github.jvmspec.generation;
 import io.github.jvmspec.discovery.DiscoveredSpec;
 import io.github.jvmspec.discovery.SpecDiscovery;
 import io.github.jvmspec.discovery.SpecNamingConvention;
+import io.github.jvmspec.model.DescribedType;
+import io.github.jvmspec.model.JavaTypeKind;
+import io.github.jvmspec.model.MethodDescriptor;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -10,6 +13,8 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -90,5 +95,41 @@ public class SpecSupportFileGeneratorTest {
         SpecSupportFileGenerator.SupportWriteResult second = SpecSupportFileGenerator.writeOrUpdateResult(plan);
         assertFalse("re-running with identical content must report no change", second.changed());
         assertEquals(plan.targetFile(), second.file());
+    }
+
+    @Test
+    public void updateSourceSkipsObjectOverrideMethodsInProxyAndThrowUpdates() {
+        String source = "package spec.com.example;\n\n" +
+                "import com.example.NamedThing;\n\n" +
+                "public class NamedThingSpecSupport extends io.github.jvmspec.api.ObjectBehavior<NamedThing> {\n" +
+                "    public NamedThingSpecSupport() {\n" +
+                "        super(NamedThing.class);\n" +
+                "    }\n" +
+                "}\n";
+        DescribedType describedType = DescribedType.of(
+                "com.example.NamedThing",
+                JavaTypeKind.CLASS,
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<io.github.jvmspec.model.ConstructorDescriptor>emptyList(),
+                Arrays.asList(
+                        MethodDescriptor.of("name", "String"),
+                        MethodDescriptor.of("equals", "boolean", Arrays.asList("Object"), Arrays.asList("other")),
+                        MethodDescriptor.of("hashCode", "int"),
+                        MethodDescriptor.of("toString", "String")
+                )
+        );
+
+        String updated = SpecSupportFileGenerator.updateSource(source, describedType);
+
+        assertTrue(updated.contains("protected io.github.jvmspec.matcher.Matchable<String> name()"));
+        assertTrue(updated.contains("public void duringName()"));
+        assertFalse(updated.contains("Matchable<Boolean> equals"));
+        assertFalse(updated.contains("Matchable<Integer> hashCode"));
+        assertFalse(updated.contains("Matchable<String> toString"));
+        assertFalse(updated.contains("duringEquals"));
+        assertFalse(updated.contains("duringHashCode"));
+        assertFalse(updated.contains("duringToString"));
     }
 }

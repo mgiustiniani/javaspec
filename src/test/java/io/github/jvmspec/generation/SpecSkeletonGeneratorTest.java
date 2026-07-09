@@ -172,4 +172,59 @@ public class SpecSkeletonGeneratorTest {
         assertTrue(source.contains("public void duringSetRating(final int rating)"));
         assertTrue(source.contains("subject().setRating(rating);"));
     }
+
+    @Test
+    public void supportPlanSkipsObjectOverrideMethodsInProxiesAndThrowProxy() throws Exception {
+        File specRoot = temporaryFolder.newFolder("support-object-method-root");
+        DescribedType describedType = DescribedType.of(
+                "com.example.NamedThing",
+                JavaTypeKind.CLASS,
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<io.github.jvmspec.model.ConstructorDescriptor>emptyList(),
+                Arrays.asList(
+                        MethodDescriptor.of("name", "String"),
+                        MethodDescriptor.of("equals", "boolean", Arrays.asList("Object"), Arrays.asList("other")),
+                        MethodDescriptor.of("hashCode", "int"),
+                        MethodDescriptor.of("toString", "String")
+                )
+        );
+
+        String source = SpecSkeletonGenerator.supportPlan(describedType, specRoot).sourceContent();
+
+        assertTrue(source.contains("protected io.github.jvmspec.matcher.Matchable<String> name()"));
+        assertTrue(source.contains("public void duringName()"));
+        assertFalse(source.contains("Matchable<Boolean> equals"));
+        assertFalse(source.contains("Matchable<Integer> hashCode"));
+        assertFalse(source.contains("Matchable<String> toString"));
+        assertFalse(source.contains("duringEquals"));
+        assertFalse(source.contains("duringHashCode"));
+        assertFalse(source.contains("duringToString"));
+    }
+
+    @Test
+    public void supportPlanDoesNotAddThrowProxyWhenOnlyObjectOverrideMethodsExist() throws Exception {
+        File specRoot = temporaryFolder.newFolder("support-only-object-method-root");
+        DescribedType describedType = DescribedType.of(
+                "com.example.NamedThing",
+                JavaTypeKind.CLASS,
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<io.github.jvmspec.model.ConstructorDescriptor>emptyList(),
+                Arrays.asList(
+                        MethodDescriptor.of("equals", "boolean", Arrays.asList("java.lang.Object"), Arrays.asList("other")),
+                        MethodDescriptor.of("hashCode", "int"),
+                        MethodDescriptor.of("toString", "String")
+                )
+        );
+
+        String source = SpecSkeletonGenerator.supportPlan(describedType, specRoot).sourceContent();
+
+        assertFalse(source.contains("NamedThingThrowExpectation"));
+        assertFalse(source.contains("subject().equals"));
+        assertFalse(source.contains("subject().hashCode"));
+        assertFalse(source.contains("subject().toString"));
+    }
 }

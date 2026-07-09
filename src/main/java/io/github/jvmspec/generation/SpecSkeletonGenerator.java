@@ -267,7 +267,7 @@ public final class SpecSkeletonGenerator {
     static boolean hasInstanceSubjectMethods(DescribedType describedType) {
         List<MethodDescriptor> methods = describedType.methods();
         for (int i = 0; i < methods.size(); i++) {
-            if (!methods.get(i).isStatic()) {
+            if (isSupportSubjectMethod(methods.get(i))) {
                 return true;
             }
         }
@@ -279,7 +279,7 @@ public final class SpecSkeletonGenerator {
         boolean appendedAny = false;
         for (int i = 0; i < methods.size(); i++) {
             MethodDescriptor method = methods.get(i);
-            if (method.isStatic()) {
+            if (!isSupportSubjectMethod(method)) {
                 continue;
             }
             if (appendedAny) {
@@ -290,8 +290,23 @@ public final class SpecSkeletonGenerator {
         }
     }
 
+    static boolean isSupportSubjectMethod(MethodDescriptor method) {
+        return !method.isStatic() && !isObjectOverrideMethod(method);
+    }
+
+    private static boolean isObjectOverrideMethod(MethodDescriptor method) {
+        return "equals".equals(method.methodName()) && method.parameterTypes().size() == 1
+                && isObjectType(method.parameterTypes().get(0))
+                || "hashCode".equals(method.methodName()) && !method.hasParameters()
+                || "toString".equals(method.methodName()) && !method.hasParameters();
+    }
+
+    private static boolean isObjectType(String typeName) {
+        return "Object".equals(typeName) || "java.lang.Object".equals(typeName);
+    }
+
     static void appendSupportProxyMethod(StringBuilder builder, MethodDescriptor method) {
-        if (method.isStatic()) {
+        if (!isSupportSubjectMethod(method)) {
             return;
         }
         if (method.isVoid()) {
@@ -334,7 +349,7 @@ public final class SpecSkeletonGenerator {
         List<MethodDescriptor> methods = describedType.methods();
         for (int i = 0; i < methods.size(); i++) {
             MethodDescriptor method = methods.get(i);
-            if (method.isStatic()) {
+            if (!isSupportSubjectMethod(method)) {
                 continue;
             }
             builder.append("\n");
@@ -344,7 +359,7 @@ public final class SpecSkeletonGenerator {
     }
 
     static void appendDuringMethod(StringBuilder builder, MethodDescriptor method) {
-        if (method.isStatic()) {
+        if (!isSupportSubjectMethod(method)) {
             return;
         }
         builder.append("        public void during").append(capitalize(method.methodName())).append("(");

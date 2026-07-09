@@ -2,10 +2,12 @@ package io.github.jvmspec.gradle;
 
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
+import org.gradle.api.Project;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.TaskAction;
+import org.gradle.work.DisableCachingByDefault;
 import io.github.jvmspec.bootstrap.BootstrapException;
 import io.github.jvmspec.compilation.SourceCompilationException;
 import io.github.jvmspec.compilation.SourceCompilationResult;
@@ -44,13 +46,18 @@ import java.util.Set;
 /**
  * Gradle task that adapts to the canonical no-JUnit javaspec launcher.
  */
+@DisableCachingByDefault(
+        because = "Javaspec execution is not cacheable across user-configured runtime classpaths and report side effects."
+)
 public class JavaspecRunTask extends DefaultTask {
+    private final Project project;
     private final JavaspecExtension taskOptions;
     private JavaspecExtension extension;
     private FileCollection defaultClasspath;
 
     public JavaspecRunTask() {
-        this.taskOptions = new JavaspecExtension(getProject());
+        this.project = getProject();
+        this.taskOptions = new JavaspecExtension(project);
         setGroup("verification");
         setDescription("Runs javaspec specifications with the canonical no-JUnit launcher.");
     }
@@ -196,7 +203,7 @@ public class JavaspecRunTask extends DefaultTask {
         if (defaultClasspath != null) {
             return defaultClasspath;
         }
-        return getProject().files();
+        return project.files();
     }
 
     public void setClasspath(Object classpath) {
@@ -584,11 +591,11 @@ public class JavaspecRunTask extends DefaultTask {
         if (propertySpecRoot != null) {
             return propertySpecRoot;
         }
-        return getProject().file(selectedSuite.specDirectory());
+        return project.file(selectedSuite.specDirectory());
     }
 
     private File sourceDirectoryFor(JavaspecSuiteConfiguration selectedSuite) {
-        return getProject().file(selectedSuite.sourceDirectory());
+        return project.file(selectedSuite.sourceDirectory());
     }
 
     private File effectiveCompilationOutputDirectory() {
@@ -596,7 +603,7 @@ public class JavaspecRunTask extends DefaultTask {
         if (configuredOutput != null) {
             return configuredOutput;
         }
-        return getProject().file("build/javaspec-classes");
+        return project.file("build/javaspec-classes");
     }
 
     private List<File> classpathEntries() {
@@ -776,7 +783,7 @@ public class JavaspecRunTask extends DefaultTask {
         if (path == null) {
             return null;
         }
-        return getProject().file(path);
+        return project.file(path);
     }
 
     private void writeJsonReportIfRequested(RunResult runResult, File configuredFile) {
@@ -1054,11 +1061,11 @@ public class JavaspecRunTask extends DefaultTask {
         if (propertyValue.trim().length() == 0) {
             throw new GradleException("Invalid " + propertyName + ": value must not be blank.");
         }
-        return getProject().file(propertyValue);
+        return project.file(propertyValue);
     }
 
     private String projectProperty(String propertyName) {
-        Object value = getProject().findProperty(propertyName);
+        Object value = project.findProperty(propertyName);
         if (value == null) {
             return null;
         }

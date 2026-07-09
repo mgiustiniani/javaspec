@@ -34,6 +34,7 @@ public final class ClassMethodUpdater {
             "(?m)(?:^|[\\s;{}])" +
             "(?:(?:public|protected|private)\\s+)?" +
             "(?:(?:static|final|synchronized|abstract|native|strictfp)\\s+)*" +
+            "(?:<[^\\n;{}()]+>\\s+)?" +
             "([A-Za-z_$][A-Za-z0-9_$.<>?\\[\\]]*(?:\\s*\\[\\])?)\\s+" +
             "([A-Za-z_$][A-Za-z0-9_$]*)\\s*\\(([^)]*)\\)"
     );
@@ -319,14 +320,28 @@ public final class ClassMethodUpdater {
     }
 
     private static List<MethodDescriptor> missingMethods(String source, DescribedType describedType) {
-        return missingMethodsInScope(source, eligibleMethods(describedType));
+        String recordSimpleName = JavaTypeKind.RECORD.equals(describedType.kind())
+                ? describedType.simpleName()
+                : null;
+        return missingMethodsInScope(source, eligibleMethods(describedType), recordSimpleName);
     }
 
     private static List<MethodDescriptor> missingMethodsInScope(String scopeSource, List<MethodDescriptor> methods) {
+        return missingMethodsInScope(scopeSource, methods, null);
+    }
+
+    private static List<MethodDescriptor> missingMethodsInScope(
+            String scopeSource,
+            List<MethodDescriptor> methods,
+            String recordSimpleName
+    ) {
         // Use the comment-stripping parser (SPI) to detect existing methods, eliminating false
         // positives from method names that appear inside comments or string literals.
         ParsedSource parsed = JavaSourceParserLoader.select(effectiveParserClassLoader()).parse(scopeSource);
         Set<String> existingSignatures = existingMethodSignatures(scopeSource);
+        if (recordSimpleName != null) {
+            existingSignatures.addAll(recordComponentAccessorSignatures(scopeSource, recordSimpleName));
+        }
         List<MethodDescriptor> missing = new ArrayList<MethodDescriptor>();
         Set<String> plannedSignatures = new LinkedHashSet<String>();
         for (int i = 0; i < methods.size(); i++) {
@@ -536,6 +551,89 @@ public final class ClassMethodUpdater {
             signatures.add(signatureKey(methodName, parameterTypes));
         }
         return signatures;
+    }
+
+    private static Set<String> recordComponentAccessorSignatures(String source, String simpleName) {
+        Set<String> signatures = new LinkedHashSet<String>();
+        String codeOnlySource = maskNonCode(source);
+        Pattern recordPattern = Pattern.compile(
+                "\\brecord\\s+" + Pattern.quote(simpleName) + "\\b(?:\\s*<[^\\n;{}()]+>)?\\s*\\(",
+                Pattern.DOTALL
+        );
+        Matcher matcher = recordPattern.matcher(codeOnlySource);
+        if (!matcher.find()) {
+            return signatures;
+        }
+        int openParen = matcher.end() - 1;
+        int closeParen = findMatchingParenthesisInMasked(codeOnlySource, openParen);
+        if (closeParen < 0) {
+            return signatures;
+        }
+        String componentSource = codeOnlySource.substring(openParen + 1, closeParen);
+        List<String> components = splitArguments(componentSource);
+        for (int i = 0; i < components.size(); i++) {
+            String component = stripRecordComponentDecorators(components.get(i).trim());
+            int lastSpace = component.lastIndexOf(' ');
+            if (lastSpace < 0) {
+                continue;
+            }
+            String componentName = component.substring(lastSpace + 1).trim();
+            if (componentName.endsWith("[]")) {
+                componentName = componentName.substring(0, componentName.length() - 2).trim();
+            }
+            if (isJavaIdentifier(componentName)) {
+                signatures.add(signatureKey(componentName, new ArrayList<String>()));
+            }
+        }
+        return signatures;
+    }
+
+    private static String stripRecordComponentDecorators(String component) {
+        String result = component.trim();
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+            while (result.startsWith("@")) {
+                int index = 1;
+                int nesting = 0;
+                while (index < result.length()) {
+                    char c = result.charAt(index);
+                    if (c == '(') {
+                        nesting++;
+                    } else if (c == ')') {
+                        if (nesting > 0) {
+                            nesting--;
+                        }
+                    } else if (Character.isWhitespace(c) && nesting == 0) {
+                        break;
+                    }
+                    index++;
+                }
+                result = index < result.length() ? result.substring(index + 1).trim() : "";
+                changed = true;
+            }
+            if (result.startsWith("final ")) {
+                result = result.substring("final ".length()).trim();
+                changed = true;
+            }
+        }
+        return result;
+    }
+
+    private static int findMatchingParenthesisInMasked(String masked, int openParen) {
+        int depth = 0;
+        for (int i = openParen; i < masked.length(); i++) {
+            char c = masked.charAt(i);
+            if (c == '(') {
+                depth++;
+            } else if (c == ')') {
+                depth--;
+                if (depth == 0) {
+                    return i;
+                }
+            }
+        }
+        return -1;
     }
 
     private static ClassLoader effectiveParserClassLoader() {

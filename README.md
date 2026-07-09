@@ -178,9 +178,9 @@ Common authoring concepts:
 After building from the repository root:
 
 ```sh
-java -cp target/javaspec-0.1.0-SNAPSHOT.jar org.javaspec.cli.Main --help
-java -cp target/javaspec-0.1.0-SNAPSHOT.jar org.javaspec.cli.Main describe com.example.Calculator
-java -cp target/javaspec-0.1.0-SNAPSHOT.jar org.javaspec.cli.Main run --compile --generate
+java -cp target/javaspec-0.1.0-SNAPSHOT.jar io.github.jvmspec.cli.Main --help
+java -cp target/javaspec-0.1.0-SNAPSHOT.jar io.github.jvmspec.cli.Main describe com.example.Calculator
+java -cp target/javaspec-0.1.0-SNAPSHOT.jar io.github.jvmspec.cli.Main run --compile --generate
 ```
 
 Useful `run` options:
@@ -428,8 +428,8 @@ notifier.control().verifyCalled("send", "hello");
 Argument matchers, throwing stubs, and answer callbacks are supported:
 
 ```java
-import static org.javaspec.doubles.Doubles.any;
-import static org.javaspec.doubles.Doubles.eq;
+import static io.github.jvmspec.doubles.Doubles.any;
+import static io.github.jvmspec.doubles.Doubles.eq;
 
 notifier.control().returnsFor("send", true, eq("alerts"), any(String.class));
 notifier.control().verifyCalled("send", eq("alerts"), any(String.class));
@@ -483,8 +483,8 @@ mvn -q -f javaspec-bytecode-doubles/pom.xml -DskipTests install
 Example:
 
 ```java
-import org.javaspec.doubles.Doubles;
-import org.javaspec.doubles.InterfaceDouble;
+import io.github.jvmspec.doubles.Doubles;
+import io.github.jvmspec.doubles.InterfaceDouble;
 
 InterfaceDouble<DataStore> storeDouble = Doubles.concreteDouble(DataStore.class);
 storeDouble.control().returns("save", true);
@@ -552,7 +552,7 @@ collaborates with — not the subject itself.
 
 ### Reflective API
 
-The core prophecy types live in `org.javaspec.doubles.prophecy`:
+The core prophecy types live in `io.github.jvmspec.doubles.prophecy`:
 
 | Type | Purpose |
 |---|---|
@@ -567,7 +567,7 @@ Use the reflective API in specs via `ObjectBehavior.prophesize(Class<T>)`. The s
 under test accesses dependencies via `subject()`:
 
 ```java
-import static org.javaspec.doubles.prophecy.Argument.*;
+import static io.github.jvmspec.doubles.prophecy.Argument.*;
 
 public class UserServiceSpec extends ObjectBehavior<UserService> {
     public UserServiceSpec() {
@@ -660,7 +660,7 @@ new typed helper in the spec.
 Import from `Argument`:
 
 ```java
-import static org.javaspec.doubles.prophecy.Argument.*;
+import static io.github.jvmspec.doubles.prophecy.Argument.*;
 ```
 
 | Matcher | Description |
@@ -703,7 +703,7 @@ standalone verification test.
 The CLI and adapters can write both JSON and JUnit XML-compatible reports:
 
 ```sh
-java -cp target/javaspec-0.1.0-SNAPSHOT.jar org.javaspec.cli.Main run \
+java -cp target/javaspec-0.1.0-SNAPSHOT.jar io.github.jvmspec.cli.Main run \
   --compile \
   --report target/javaspec-report.json \
   --junit-xml target/javaspec-report.xml
@@ -748,7 +748,7 @@ suite.domain.bootstrap=com.example.SpecBootstrap
 Use it with:
 
 ```sh
-java -cp target/javaspec-0.1.0-SNAPSHOT.jar org.javaspec.cli.Main run --config javaspec.conf --suite domain
+java -cp target/javaspec-0.1.0-SNAPSHOT.jar io.github.jvmspec.cli.Main run --config javaspec.conf --suite domain
 ```
 
 CLI options override matching config values where an override exists.
@@ -758,10 +758,10 @@ CLI options override matching config values where an override exists.
 javaspec is classpath/reflection based by default. Source/spec compilation is explicit:
 
 ```sh
-java -cp target/javaspec-0.1.0-SNAPSHOT.jar org.javaspec.cli.Main run --compile
-java -cp target/javaspec-0.1.0-SNAPSHOT.jar org.javaspec.cli.Main run --compile-output target/javaspec-classes
-java -cp target/javaspec-0.1.0-SNAPSHOT.jar org.javaspec.cli.Main run --compile --release 8
-java -cp target/javaspec-0.1.0-SNAPSHOT.jar org.javaspec.cli.Main run --compile --resolve-pom pom.xml
+java -cp target/javaspec-0.1.0-SNAPSHOT.jar io.github.jvmspec.cli.Main run --compile
+java -cp target/javaspec-0.1.0-SNAPSHOT.jar io.github.jvmspec.cli.Main run --compile-output target/javaspec-classes
+java -cp target/javaspec-0.1.0-SNAPSHOT.jar io.github.jvmspec.cli.Main run --compile --release 8
+java -cp target/javaspec-0.1.0-SNAPSHOT.jar io.github.jvmspec.cli.Main run --compile --resolve-pom pom.xml
 ```
 
 Compilation uses the current JDK `javax.tools.JavaCompiler` API. It can use `--release <N>` on

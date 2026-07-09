@@ -782,7 +782,7 @@ public class JavaspecGradlePluginTest {
         BuildResult result = runGradleAndFail(projectDir, "javaspecRun");
 
         assertEquals(TaskOutcome.FAILED, result.task(":javaspecRun").getOutcome());
-        assertContains(result.getOutput(), "Invalid javaspec formatter: missing. Valid values: progress, pretty, external.");
+        assertContains(result.getOutput(), "Invalid javaspec formatter: missing. Valid values: progress, pretty, json, external.");
     }
 
     @Test
@@ -824,7 +824,7 @@ public class JavaspecGradlePluginTest {
 
     @Test
     public void gradleTaskUsesCanonicalLauncherAndDoesNotCallSystemExit() throws Exception {
-        String source = readFile(new File("src/main/java/org/javaspec/gradle/JavaspecRunTask.java"));
+        String source = readFile(new File("src/main/java/io/github/jvmspec/gradle/JavaspecRunTask.java"));
 
         assertContains(source, "import io.github.jvmspec.invocation.JavaspecLauncher;");
         assertContains(source, "JavaspecLauncher.run(invocation)");

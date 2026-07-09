@@ -123,6 +123,29 @@ public class CommentStrippingSourceParserTest {
         assertTrue(parsed.hasMethod("baz", noParams()));
     }
 
+    @Test
+    public void detectsGenericMethodWithNestedTypeParameterBoundAndThrowsClause() {
+        String source = "class Foo {\n" +
+                "    public <T extends Comparable<T>> T max(T left, T right) throws Exception {\n" +
+                "        return left.compareTo(right) >= 0 ? left : right;\n" +
+                "    }\n" +
+                "}\n";
+        ParsedSource parsed = parser.parse(source);
+
+        assertTrue(parsed.hasMethod("max", params("T", "T")));
+    }
+
+    @Test
+    public void detectsAnnotatedVarargsAsArrayParameter() {
+        String source = "class Foo {\n" +
+                "    public void send(@Deprecated final String... messages) {\n" +
+                "    }\n" +
+                "}\n";
+        ParsedSource parsed = parser.parse(source);
+
+        assertTrue(parsed.hasMethod("send", params("String[]")));
+    }
+
     // -------------------------------------------------------------------------
     // ParsedSource.hasMethod() — negative cases
 

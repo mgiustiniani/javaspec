@@ -6,13 +6,13 @@ This artifact is intentionally not registered as a root Maven module and remains
 
 ## Artifact
 
-- Coordinates: `org.javaspec:javaspec-junit-platform-engine:0.1.0-SNAPSHOT`
+- Coordinates: `io.github.jvmspec:javaspec-junit-platform-engine:0.1.0-SNAPSHOT`
 - Packaging: `jar`
 - Java source/target: `1.8`
 - JUnit Platform baseline: `1.10.2` (not JUnit Platform 6/JUnit 6)
 - Engine id: `javaspec`
 
-Runtime dependencies are isolated to this optional engine artifact: core `org.javaspec:javaspec`, `org.junit.platform:junit-platform-engine`, and transitives `opentest4j`, `junit-platform-commons`, and `apiguardian-api`. Test-only dependencies include JUnit Platform Launcher, JUnit Platform TestKit, and JUnit Jupiter.
+Runtime dependencies are isolated to this optional engine artifact: core `io.github.jvmspec:javaspec`, `org.junit.platform:junit-platform-engine`, and transitives `opentest4j`, `junit-platform-commons`, and `apiguardian-api`. Test-only dependencies include JUnit Platform Launcher, JUnit Platform TestKit, and JUnit Jupiter.
 
 ## Local build and verification
 
@@ -33,7 +33,7 @@ mvn -f javaspec-junit-platform-engine/pom.xml dependency:tree -Dscope=runtime
 
 ## Usage
 
-Place this artifact on the JUnit Platform test runtime classpath used by the selected IDE/CI/build launcher. The engine is discovered through `META-INF/services/org.junit.platform.engine.TestEngine`, which registers `org.javaspec.junit.platform.JavaspecTestEngine`.
+Place this artifact on the JUnit Platform test runtime classpath used by the selected IDE/CI/build launcher. The engine is discovered through `META-INF/services/org.junit.platform.engine.TestEngine`, which registers `io.github.jvmspec.junit.platform.JavaspecTestEngine`.
 
 Discovery uses canonical `SpecDiscovery` / `SpecDiscoveryRequest`. Supported configuration parameters:
 

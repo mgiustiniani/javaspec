@@ -188,7 +188,7 @@ public final class CommentStrippingSourceParser implements JavaSourceParser {
                 "(?m)(?:^|[\\s;{}])" +
                 "(?:(?:public|protected|private)\\s+)?" +
                 "(?:(?:static|final|synchronized|abstract|native|strictfp|default)\\s+)*" +
-                "(?:<[^>]*>\\s+)?" +                       // optional type-parameter prefix
+                "(?:<[^\\n;{}()]+>\\s+)?" +                 // optional type-parameter prefix
                 "([A-Za-z_$][A-Za-z0-9_$.<>?\\[\\], ]*?)\\s+" +  // return type
                 "([A-Za-z_$][A-Za-z0-9_$]*)\\s*\\(([^)]*)\\)"    // name(params)
         );
@@ -305,8 +305,8 @@ public final class CommentStrippingSourceParser implements JavaSourceParser {
             if (typeName == null || typeName.isEmpty()) {
                 return typeName;
             }
-            // Strip array brackets for comparison purposes
-            String base = typeName.replace("[]", "").trim();
+            // Strip array/varargs markers for comparison purposes
+            String base = typeName.replace("[]", "").replace("...", "").trim();
             int lastDot = base.lastIndexOf('.');
             return lastDot < 0 ? base : base.substring(lastDot + 1);
         }

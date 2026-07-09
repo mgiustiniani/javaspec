@@ -180,7 +180,7 @@ public final class SpecSupportFileGenerator {
         List<MethodDescriptor> methods = describedType.methods();
         for (int i = 0; i < methods.size(); i++) {
             MethodDescriptor method = methods.get(i);
-            if (method.isStatic()) {
+            if (!SpecSkeletonGenerator.isSupportSubjectMethod(method)) {
                 continue;
             }
             if (!hasDeclaredMethod(source, method.methodName(), method.parameterTypes())) {
@@ -227,7 +227,7 @@ public final class SpecSupportFileGenerator {
         List<MethodDescriptor> methods = describedType.methods();
         for (int i = 0; i < methods.size(); i++) {
             MethodDescriptor method = methods.get(i);
-            if (method.isStatic()) {
+            if (!SpecSkeletonGenerator.isSupportSubjectMethod(method)) {
                 continue;
             }
             String duringName = "during" + SpecSkeletonGenerator.capitalize(method.methodName());
