@@ -15,7 +15,7 @@ language forms or generator behavior are added.
 | Sealed class | Skeletons, explicit `permits`, Java 17 profile gating, method-body insertion into root | Multiline permits, nested permitted classes, Java 17 compile checks |
 | Sealed interface | Skeletons, explicit permits, nested permitted implementations, source-preserving existing updates | Additional nested generic/default-method cases |
 | Parser | Comment/string masking, brace matching, ServiceLoader replacement | Generic method type parameters, annotations, varargs, multiline declarations |
-| End-to-end CLI | Generate/compile/report paths for core flows | Java 17 record/sealed compile fixtures and dry-run assertions |
+| End-to-end CLI | Generate/compile/report paths for core flows; Java 17 record/sealed `run --generate --compile --release 17` fixture | Additional dry-run assertions for complex generated-source combinations |
 
 ## Acceptance rules for new generator work
 
@@ -37,3 +37,5 @@ language forms or generator behavior are added.
   root method bodies idempotently and are checked with Java 17 compilation when available.
 - The built-in comment-stripping parser recognizes generic method declarations with nested type
   parameter bounds and annotated varargs parameters.
+- CLI `run --generate --compile --release 17` is covered for generated record and sealed-class
+  skeletons, including execution of the resulting specs and class-file major-version checks.

@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 public class MainPhase29CompileCliTest {
     @Rule
@@ -265,6 +266,52 @@ public class MainPhase29CompileCliTest {
     }
 
     @Test
+    public void runGenerateCompileRelease17CompilesAndRunsRecordAndSealedSpecs() throws Exception {
+        requireJdkCompiler();
+        assumeTrue(supportsJavaSpecificationVersion(17));
+        File sourceRoot = temporaryFolder.newFolder("generate-compile-java17-source-root");
+        File specRoot = temporaryFolder.newFolder("generate-compile-java17-spec-root");
+        File compileOutput = new File(temporaryFolder.getRoot(), "generate-compile-java17-classes");
+        writeSource(specRoot, "spec.com.phase29.GeneratedRecordSpec",
+                "public class GeneratedRecordSpec extends io.github.jvmspec.api.ObjectBehavior<com.phase29.GeneratedRecord> {\n" +
+                        "    public void it_generates_compiles_and_runs_record() {\n" +
+                        "        shouldBeARecord();\n" +
+                        "    }\n" +
+                        "}\n");
+        writeSource(specRoot, "spec.com.phase29.GeneratedShapeSpec",
+                "public class GeneratedShapeSpec extends io.github.jvmspec.api.ObjectBehavior<com.phase29.GeneratedShape> {\n" +
+                        "    public void it_generates_compiles_and_runs_sealed_class() {\n" +
+                        "        shouldBeASealedClass();\n" +
+                        "    }\n" +
+                        "}\n");
+
+        CommandResult result = run(
+                "run",
+                "--spec-dir", specRoot.getAbsolutePath(),
+                "--source-dir", sourceRoot.getAbsolutePath(),
+                "--profile", "java17",
+                "--generate",
+                "--compile",
+                "--release", "17",
+                "--compile-output", compileOutput.getAbsolutePath()
+        );
+
+        assertEquals("stdout:\n" + result.out + "\nstderr:\n" + result.err, 0, result.exitCode);
+        assertEquals("", result.err);
+        assertContains(result.out, "Generated record skeleton: " + sourceFileFor(sourceRoot, "com.phase29.GeneratedRecord").getPath());
+        assertContains(result.out, "Generated sealed class skeleton: " + sourceFileFor(sourceRoot, "com.phase29.GeneratedShape").getPath());
+        assertContains(result.out, "Compiled 4 source file(s) to " + compileOutput.getAbsolutePath() + ".");
+        assertContains(result.out, "Examples: 2 total, 2 passed, 0 failed, 0 broken, 0 skipped, 0 pending.");
+        assertTrue(classFileFor(compileOutput, "com.phase29.GeneratedRecord").isFile());
+        assertTrue(classFileFor(compileOutput, "com.phase29.GeneratedShape").isFile());
+        assertTrue(new File(compileOutput, "com/phase29/GeneratedShape$Permitted.class").isFile());
+        assertTrue(classFileFor(compileOutput, "spec.com.phase29.GeneratedRecordSpec").isFile());
+        assertTrue(classFileFor(compileOutput, "spec.com.phase29.GeneratedShapeSpec").isFile());
+        assertEquals(61, classFileMajorVersion(classFileFor(compileOutput, "com.phase29.GeneratedRecord")));
+        assertEquals(61, classFileMajorVersion(classFileFor(compileOutput, "com.phase29.GeneratedShape")));
+    }
+
+    @Test
     public void runCompileReleaseWritesExpectedClassFileMajorVersion() throws Exception {
         requireJdkCompiler();
         File sourceRoot = temporaryFolder.newFolder("release-source-root");
@@ -434,6 +481,25 @@ public class MainPhase29CompileCliTest {
             out.closeEntry();
         } finally {
             out.close();
+        }
+    }
+
+    private static boolean supportsJavaSpecificationVersion(int minimumVersion) {
+        String version = System.getProperty("java.specification.version");
+        if (version == null) {
+            return false;
+        }
+        if (version.startsWith("1.")) {
+            version = version.substring(2);
+        }
+        int dot = version.indexOf('.');
+        if (dot >= 0) {
+            version = version.substring(0, dot);
+        }
+        try {
+            return Integer.parseInt(version) >= minimumVersion;
+        } catch (NumberFormatException ex) {
+            return false;
         }
     }
 
