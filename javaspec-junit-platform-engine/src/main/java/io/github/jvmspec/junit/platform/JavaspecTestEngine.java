@@ -1,5 +1,6 @@
 package io.github.jvmspec.junit.platform;
 
+import io.github.jvmspec.api.ExampleDataRowResult;
 import io.github.jvmspec.config.ConfigurationException;
 import io.github.jvmspec.config.JavaspecConfiguration;
 import io.github.jvmspec.config.JavaspecSuiteConfiguration;
@@ -56,6 +57,7 @@ public final class JavaspecTestEngine implements TestEngine {
     private static final String ENGINE_DISPLAY_NAME = "javaspec";
     private static final String SPEC_SEGMENT_TYPE = "spec";
     private static final String EXAMPLE_SEGMENT_TYPE = "example";
+    private static final String ROW_SEGMENT_TYPE = "row";
 
     private static final String CONFIG_FILE_KEY = "javaspec.configFile";
     private static final String SUITE_KEY = "javaspec.suite";
@@ -208,12 +210,64 @@ public final class JavaspecTestEngine implements TestEngine {
             listener.executionSkipped(exampleDescriptor, skipReason(exampleResult.detail()));
             return;
         }
+        if (exampleResult.hasExampleDataRows()) {
+            publishExampleDataRows(listener, exampleDescriptor, exampleResult);
+            return;
+        }
         listener.executionStarted(exampleDescriptor);
         if (exampleResult.isPassed()) {
             listener.executionFinished(exampleDescriptor, TestExecutionResult.successful());
             return;
         }
         listener.executionFinished(exampleDescriptor, TestExecutionResult.failed(throwableFor(exampleResult)));
+    }
+
+    private static void publishExampleDataRows(
+            EngineExecutionListener listener,
+            JavaspecExampleDescriptor exampleDescriptor,
+            ExampleResult exampleResult
+    ) {
+        listener.executionStarted(exampleDescriptor);
+        List<ExampleDataRowResult> rows = exampleResult.exampleDataRows();
+        for (int i = 0; i < rows.size(); i++) {
+            ExampleDataRowResult row = rows.get(i);
+            JavaspecExampleDataRowDescriptor rowDescriptor = new JavaspecExampleDataRowDescriptor(
+                    exampleDescriptor.getUniqueId().append(ROW_SEGMENT_TYPE, String.valueOf(row.index())),
+                    exampleDescriptor,
+                    row
+            );
+            exampleDescriptor.addChild(rowDescriptor);
+            listener.dynamicTestRegistered(rowDescriptor);
+            publishRowResult(listener, rowDescriptor, row);
+        }
+        if (exampleResult.isFailure() && !hasFailingRow(exampleResult)) {
+            listener.executionFinished(exampleDescriptor, TestExecutionResult.failed(throwableFor(exampleResult)));
+            return;
+        }
+        listener.executionFinished(exampleDescriptor, TestExecutionResult.successful());
+    }
+
+    private static void publishRowResult(
+            EngineExecutionListener listener,
+            JavaspecExampleDataRowDescriptor rowDescriptor,
+            ExampleDataRowResult row
+    ) {
+        listener.executionStarted(rowDescriptor);
+        if (row.isPassed()) {
+            listener.executionFinished(rowDescriptor, TestExecutionResult.successful());
+            return;
+        }
+        listener.executionFinished(rowDescriptor, TestExecutionResult.failed(throwableFor(row)));
+    }
+
+    private static boolean hasFailingRow(ExampleResult exampleResult) {
+        List<ExampleDataRowResult> rows = exampleResult.exampleDataRows();
+        for (int i = 0; i < rows.size(); i++) {
+            if (!rows.get(i).isPassed()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static Map<String, SpecResult> specResultsByName(RunResult runResult) {
@@ -234,6 +288,22 @@ public final class JavaspecTestEngine implements TestEngine {
             results.put(result.stableId(), result);
         }
         return results;
+    }
+
+    private static Throwable throwableFor(ExampleDataRowResult row) {
+        String message = rowFailureMessage(row);
+        if (row.isFailed()) {
+            return new JavaspecAssertionFailure(message);
+        }
+        return new JavaspecBrokenExampleException(message);
+    }
+
+    private static String rowFailureMessage(ExampleDataRowResult row) {
+        String message = "Example data row " + row.index() + " " + row.description() + " " + row.status().toLowerCase();
+        if (isBlank(row.detail())) {
+            return message;
+        }
+        return message + ": " + row.detail();
     }
 
     private static Throwable throwableFor(ExampleResult result) {
@@ -819,7 +889,8 @@ public final class JavaspecTestEngine implements TestEngine {
                 }
             }
             for (int i = 0; i < selectedUniqueIds.size(); i++) {
-                if (exampleUniqueId.hasPrefix(selectedUniqueIds.get(i))) {
+                UniqueId selectedUniqueId = selectedUniqueIds.get(i);
+                if (exampleUniqueId.hasPrefix(selectedUniqueId) || selectedUniqueId.hasPrefix(exampleUniqueId)) {
                     return true;
                 }
             }
@@ -969,7 +1040,7 @@ public final class JavaspecTestEngine implements TestEngine {
         }
 
         public Type getType() {
-            return Type.TEST;
+            return Type.CONTAINER_AND_TEST;
         }
 
         public String getLegacyReportingName() {
@@ -984,6 +1055,14 @@ public final class JavaspecTestEngine implements TestEngine {
             return example;
         }
 
+        String specQualifiedName() {
+            return specQualifiedName;
+        }
+
+        String methodName() {
+            return example.methodName();
+        }
+
         String fullName() {
             return stableId();
         }
@@ -994,6 +1073,34 @@ public final class JavaspecTestEngine implements TestEngine {
 
         private static String stableExampleId(String specQualifiedName, SpecExample example) {
             return example.stableId(specQualifiedName);
+        }
+    }
+
+    private static final class JavaspecExampleDataRowDescriptor extends AbstractTestDescriptor {
+        private final JavaspecExampleDescriptor exampleDescriptor;
+        private final ExampleDataRowResult row;
+
+        private JavaspecExampleDataRowDescriptor(
+                UniqueId uniqueId,
+                JavaspecExampleDescriptor exampleDescriptor,
+                ExampleDataRowResult row
+        ) {
+            super(uniqueId, rowDisplayName(exampleDescriptor, row),
+                    MethodSource.from(exampleDescriptor.specQualifiedName(), exampleDescriptor.methodName()));
+            this.exampleDescriptor = exampleDescriptor;
+            this.row = row;
+        }
+
+        public Type getType() {
+            return Type.TEST;
+        }
+
+        public String getLegacyReportingName() {
+            return exampleDescriptor.stableId() + "[row " + row.index() + "]";
+        }
+
+        private static String rowDisplayName(JavaspecExampleDescriptor exampleDescriptor, ExampleDataRowResult row) {
+            return exampleDescriptor.methodName() + "[row " + row.index() + "] " + row.description();
         }
     }
 

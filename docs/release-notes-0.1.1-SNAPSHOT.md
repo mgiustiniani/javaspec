@@ -45,8 +45,9 @@ moving dependency-heavy behavior into optional artifacts.
 - Phase 47 begins PHPSpec-style example data with zero-dependency core APIs: `row(...)`,
   `examples(...)`, `Example1`, and `Example2`. Rows execute inside the containing behavior example,
   failing rows include row number/value context, JSON reports include first-class
-  `exampleDataRows` entries for row index, description, status, and detail, and JUnit XML reports
-  expose rows as testcase entries for CI-visible row diagnostics.
+  `exampleDataRows` entries for row index, description, status, and detail, JUnit XML reports
+  expose rows as testcase entries for CI-visible row diagnostics, and the optional JUnit Platform
+  adapter publishes dynamic row descriptors during execution.
 
 ## Optional subclass adapter `javaspec-bytecode-doubles`
 

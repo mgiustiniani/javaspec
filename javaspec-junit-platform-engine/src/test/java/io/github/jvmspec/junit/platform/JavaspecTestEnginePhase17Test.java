@@ -136,6 +136,93 @@ class JavaspecTestEnginePhase17Test {
     }
 
     @Test
+    void exampleDataRowsArePublishedAsDynamicJUnitPlatformDescriptors(@TempDir Path temp) throws Exception {
+        Path specRoot = temp.resolve("specs");
+        Path packageDirectory = Files.createDirectories(specRoot.resolve("phase47"));
+        Path source = packageDirectory.resolve("ExampleDataSpec.java");
+        Files.write(source, (
+                "package phase47;\n\n" +
+                        "public class ExampleDataSpec extends io.github.jvmspec.api.ObjectBehavior<ExampleDataSpec.NameNormalizer> {\n" +
+                        "    public ExampleDataSpec() { super(NameNormalizer.class); }\n" +
+                        "\n" +
+                        "    public void it_reports_row_results() {\n" +
+                        "        examples(row(\"Alice\", \"Alice\"), row(\" Bob \", \"Robert\"))\n" +
+                        "            .verify(new io.github.jvmspec.api.Example2<String, String>() {\n" +
+                        "                public void run(String input, String expected) {\n" +
+                        "                    match(subject().normalize(input)).shouldReturn(expected);\n" +
+                        "                }\n" +
+                        "            });\n" +
+                        "    }\n" +
+                        "\n" +
+                        "    public static class NameNormalizer {\n" +
+                        "        public String normalize(String value) { return value.trim(); }\n" +
+                        "    }\n" +
+                        "}\n").getBytes(StandardCharsets.UTF_8));
+
+        try (URLClassLoader classLoader = compileToClassLoader(temp.resolve("classes"), source)) {
+            Class<?> specClass = classLoader.loadClass("phase47.ExampleDataSpec");
+            RunOutcome outcome = execute(
+                    requestBuilder()
+                            .configurationParameter("javaspec.specRoot", specRoot.toString())
+                            .selectors(DiscoverySelectors.selectClass(specClass))
+                            .build(),
+                    classLoader
+            );
+
+            assertTrue(outcome.recorder().dynamicallyRegisteredDisplayNames()
+                    .contains("it_reports_row_results[row 1] [Alice, Alice]"),
+                    "Expected row 1 dynamic descriptor in " + outcome.recorder().dynamicallyRegisteredDisplayNames());
+            assertTrue(outcome.recorder().dynamicallyRegisteredDisplayNames()
+                    .contains("it_reports_row_results[row 2] [ Bob , Robert]"),
+                    "Expected row 2 dynamic descriptor in " + outcome.recorder().dynamicallyRegisteredDisplayNames());
+            assertTrue(outcome.recorder().startedDisplayNames()
+                    .contains("it_reports_row_results[row 1] [Alice, Alice]"),
+                    "Expected row 1 start event in " + outcome.recorder().startedDisplayNames());
+            assertTrue(outcome.recorder().startedDisplayNames()
+                    .contains("it_reports_row_results[row 2] [ Bob , Robert]"),
+                    "Expected row 2 start event in " + outcome.recorder().startedDisplayNames());
+            FinishedEvent rowFailure = failedEventFor(outcome.recorder(), "it_reports_row_results[row 2]");
+            assertTrue(rowFailure.throwable().getMessage().contains("Example data row 2 [ Bob , Robert] failed"));
+            assertTrue(rowFailure.throwable().getMessage().contains("Expected equality(Robert) but got Bob"));
+        }
+    }
+
+    @Test
+    void rowUniqueIdSelectorsSelectTheOwningExample(@TempDir Path temp) throws Exception {
+        Path specRoot = temp.resolve("row-selector-specs");
+        Path source = writeSpec(specRoot, "phase47.selector", "RowSelectorSpec",
+                "    public static int selectedRuns = 0;\n" +
+                "\n" +
+                "    public void it_selected_by_row_unique_id() {\n" +
+                "        selectedRuns++;\n" +
+                "    }\n" +
+                "\n" +
+                "    public void it_should_not_run() {\n" +
+                "        throw new AssertionError(\"row unique id should select only the owning example\");\n" +
+                "    }\n");
+
+        try (URLClassLoader classLoader = compileToClassLoader(temp.resolve("classes"), source)) {
+            Class<?> specClass = classLoader.loadClass("phase47.selector.RowSelectorSpec");
+            UniqueId selectedRowId = UniqueId.forEngine(ENGINE_ID)
+                    .append("spec", "phase47.selector.RowSelectorSpec")
+                    .append("example", "it_selected_by_row_unique_id")
+                    .append("row", "2");
+            RunOutcome outcome = execute(
+                    requestBuilder()
+                            .configurationParameter("javaspec.specRoot", specRoot.toString())
+                            .selectors(DiscoverySelectors.selectUniqueId(selectedRowId))
+                            .build(),
+                    classLoader
+            );
+
+            assertEquals(1, outcome.summary().getTestsFoundCount());
+            assertEquals(1, outcome.summary().getTestsSucceededCount());
+            assertEquals(0, outcome.summary().getTestsFailedCount());
+            assertEquals(1, staticInt(specClass, "selectedRuns"));
+        }
+    }
+
+    @Test
     void assertionFailureAndUnexpectedThrowableMapToJUnitPlatformFailures(@TempDir Path temp) throws Exception {
         Path specRoot = temp.resolve("specs");
         Path source = writeSpec(specRoot, "phase17.outcomes", "OutcomeSpec",
@@ -652,6 +739,18 @@ class JavaspecTestEnginePhase17Test {
         return false;
     }
 
+    private static FinishedEvent failedEventFor(RecordingListener recorder, String displayNameFragment) {
+        List<FinishedEvent> failedEvents = recorder.failedEvents();
+        for (int i = 0; i < failedEvents.size(); i++) {
+            FinishedEvent failed = failedEvents.get(i);
+            if (failed.displayName().contains(displayNameFragment)) {
+                return failed;
+            }
+        }
+        throw new AssertionError("Expected failed event containing display name fragment '" + displayNameFragment
+                + "' but got " + failedEvents);
+    }
+
     private static SkippedEvent skippedEventFor(RecordingListener recorder, String displayNameFragment) {
         List<SkippedEvent> skippedEvents = recorder.skippedEvents();
         for (int i = 0; i < skippedEvents.size(); i++) {
@@ -906,8 +1005,13 @@ class JavaspecTestEnginePhase17Test {
 
     private static final class RecordingListener implements TestExecutionListener {
         private final List<String> startedDisplayNames = new ArrayList<String>();
+        private final List<String> dynamicallyRegisteredDisplayNames = new ArrayList<String>();
         private final List<FinishedEvent> failedEvents = new ArrayList<FinishedEvent>();
         private final List<SkippedEvent> skippedEvents = new ArrayList<SkippedEvent>();
+
+        public void dynamicTestRegistered(TestIdentifier testIdentifier) {
+            dynamicallyRegisteredDisplayNames.add(testIdentifier.getDisplayName());
+        }
 
         public void executionStarted(TestIdentifier testIdentifier) {
             startedDisplayNames.add(testIdentifier.getDisplayName());
@@ -927,6 +1031,10 @@ class JavaspecTestEnginePhase17Test {
             return startedDisplayNames;
         }
 
+        List<String> dynamicallyRegisteredDisplayNames() {
+            return dynamicallyRegisteredDisplayNames;
+        }
+
         List<FinishedEvent> failedEvents() {
             return failedEvents;
         }
@@ -943,6 +1051,14 @@ class JavaspecTestEnginePhase17Test {
         private FinishedEvent(String displayName, Throwable throwable) {
             this.displayName = displayName;
             this.throwable = throwable;
+        }
+
+        String displayName() {
+            return displayName;
+        }
+
+        Throwable throwable() {
+            return throwable;
         }
 
         public String toString() {
