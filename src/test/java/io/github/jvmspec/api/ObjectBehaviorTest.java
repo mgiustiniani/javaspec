@@ -1,5 +1,7 @@
 package io.github.jvmspec.api;
 
+import io.github.jvmspec.doubles.prophecy.PredictionRegistry;
+
 import org.junit.Test;
 
 import java.lang.reflect.Array;
@@ -117,6 +119,14 @@ public class ObjectBehaviorTest {
         behavior.beConstructedThrough("explode");
 
         behavior.shouldThrow(UnsupportedOperationException.class).duringInstantiation();
+    }
+
+    @Test
+    public void sharedProphecyRegistryIsPublicAdapterHookForSameProtectedRegistry() {
+        RegistryProbeBehavior behavior = new RegistryProbeBehavior();
+
+        assertSame(behavior.protectedRegistry(), behavior.sharedProphecyRegistry());
+        assertSame(behavior.sharedProphecyRegistry(), behavior.sharedProphecyRegistry());
     }
 
     @Test
@@ -557,6 +567,12 @@ public class ObjectBehaviorTest {
 
         public NoArgSubject() {
             constructionCount++;
+        }
+    }
+
+    private static final class RegistryProbeBehavior extends ObjectBehavior<Object> {
+        PredictionRegistry protectedRegistry() {
+            return prophecyRegistry();
         }
     }
 

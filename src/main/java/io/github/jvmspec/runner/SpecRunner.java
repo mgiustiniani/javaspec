@@ -539,22 +539,7 @@ public final class SpecRunner {
         }
 
         private static PredictionRegistry prophecyRegistryOf(ObjectBehavior<?> behavior) {
-            try {
-                Method registryMethod = ObjectBehavior.class.getDeclaredMethod("prophecyRegistry");
-                if (!registryMethod.isAccessible()) {
-                    registryMethod.setAccessible(true);
-                }
-                return (PredictionRegistry) registryMethod.invoke(behavior);
-            } catch (InvocationTargetException ex) {
-                Throwable cause = invocationCause(ex);
-                if (cause instanceof RuntimeException) {
-                    throw (RuntimeException) cause;
-                }
-                throw new IllegalArgumentException("Could not access the spec prophecy registry: "
-                        + throwableSummary(cause), cause);
-            } catch (Throwable ex) {
-                throw new IllegalArgumentException("Could not access the spec prophecy registry.", ex);
-            }
+            return behavior.sharedProphecyRegistry();
         }
     }
 

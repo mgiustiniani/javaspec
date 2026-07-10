@@ -2164,11 +2164,12 @@ public void it_sends_a_welcome_email(MailerProphecy mailer) {
 }
 ```
 
-For one example run, javaspec reuses the same collaborator object for the same parameter type across
-`let`, the example, and `letGo`. Ordinary interface parameters are injected as zero-dependency
-interface doubles. A single method may declare each collaborator type at most once; duplicate
-same-type parameters, unsupported parameter types, and ambiguous overloads fail as BROKEN with
-actionable diagnostics. This feature is not a general-purpose dependency-injection container.
+For one example run, javaspec resolves parameters in declared method-parameter order and reuses the
+same collaborator object for the same parameter type across `let`, the example, and `letGo`.
+Ordinary interface parameters are injected as zero-dependency interface doubles. A single method may
+declare each collaborator type at most once; duplicate same-type parameters, unsupported parameter
+types, and ambiguous overloads fail as BROKEN with actionable diagnostics. This feature is not a
+general-purpose dependency-injection container.
 
 ## Interface doubles
 

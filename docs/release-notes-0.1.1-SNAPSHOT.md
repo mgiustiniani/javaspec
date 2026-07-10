@@ -59,9 +59,11 @@ moving dependency-heavy behavior into optional artifacts.
   `letGo()` methods may declare supported collaborator parameters. Ordinary interface parameters are
   injected as interface doubles, generated typed `*Prophecy` wrapper parameters are backed by the
   spec's shared prediction registry, and the same collaborator instance is reused across
-  `let`/example/`letGo` for one example run. Automatic prediction checking now runs before
-  `letGo` while still guaranteeing teardown execution; duplicate same-type collaborator parameters
-  and ambiguous overloads report BROKEN diagnostics.
+  `let`/example/`letGo` for one example run through deterministic declared-parameter resolution.
+  Automatic prediction checking now runs before `letGo` while still guaranteeing teardown execution;
+  duplicate same-type collaborator parameters and ambiguous overloads report BROKEN diagnostics.
+  `ObjectBehavior.sharedProphecyRegistry()` exposes the runner/generator adapter hook without
+  reflective protected-method access.
 - Phase 49 has begun expanding Prophecy parity with identity (`same` / `identicalTo`), membership
   (`in` / `notIn`), and custom callback (`matching`) argument tokens, available through core
   `Doubles` / `ArgumentMatchers` and prophecy `Argument` / `Arg` aliases. Generated typed

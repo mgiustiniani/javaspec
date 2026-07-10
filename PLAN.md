@@ -336,17 +336,18 @@ Deliverables:
 
 Non-goal: general-purpose dependency injection or Spring-style context management in core.
 
-**Status:** In progress — slice 1 lets the reflection runner invoke public `void` `it_*` / `its_*`,
-`let()`, and `letGo()` methods with supported collaborator parameters. Supported parameters are
-ordinary interfaces (injected as zero-dependency interface doubles) and generated typed
-`*Prophecy` wrappers (instantiated with the spec's shared prediction registry). Parameters are
-cached per example run so `let`, the example, and `letGo` receive the same collaborator object for
-the same parameter type. Automatic prediction checking now runs after a successful example body and
+**Status:** Completed — the reflection runner invokes public `void` `it_*` / `its_*`, `let()`, and
+`letGo()` methods with supported collaborator parameters. Supported parameters are ordinary
+interfaces (injected as zero-dependency interface doubles) and generated typed `*Prophecy` wrappers
+(instantiated with the spec's shared prediction registry through the public
+`sharedProphecyRegistry()` adapter hook). Parameters are resolved in declared method-parameter order
+and cached per example run so `let`, the example, and `letGo` receive the same collaborator object
+for the same parameter type. Automatic prediction checking runs after a successful example body and
 before `letGo`, while still guaranteeing teardown execution; teardown failure after prediction
 failure is reported as BROKEN with the prediction failure suppressed. Unsupported parameter types,
-duplicate same-type collaborator parameters, and ambiguous overloads produce BROKEN execution
-diagnostics rather than being treated as missing no-arg examples. Discovery now includes
-parameterized example methods so source metadata reaches the runner.
+duplicate same-type collaborator parameters, ambiguous overloads, and non-constructible wrappers
+produce BROKEN execution diagnostics rather than being treated as missing no-arg examples. Discovery
+includes parameterized example methods so source metadata reaches the runner.
 
 ### Phase 49 — Prophecy parity completion
 

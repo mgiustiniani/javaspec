@@ -305,6 +305,14 @@ public class ObjectBehavior<T> {
      * Returns the prediction registry, creating one lazily if needed.
      */
     protected PredictionRegistry prophecyRegistry() {
+        return sharedProphecyRegistry();
+    }
+
+    /**
+     * Public adapter hook for runners and generated support that need this spec's shared
+     * prediction registry without reflective access to protected internals.
+     */
+    public PredictionRegistry sharedProphecyRegistry() {
         if (prophecyRegistry == null) {
             prophecyRegistry = new PredictionRegistry();
         }
