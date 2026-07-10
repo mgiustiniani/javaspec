@@ -91,16 +91,23 @@ final class SpecCallScanner {
         }
     }
 
-    /** Declared parameters of a spec method: raw (unresolved) type texts and names. */
+    /** Declared parameters and local variables of a spec method. */
     static final class SpecMethodParams {
         final List<String> typeTexts;
         final List<String> names;
         final List<String> initializerTexts;
+        final int formalParameterCount;
 
-        SpecMethodParams(List<String> typeTexts, List<String> names, List<String> initializerTexts) {
+        SpecMethodParams(
+                List<String> typeTexts,
+                List<String> names,
+                List<String> initializerTexts,
+                int formalParameterCount
+        ) {
             this.typeTexts = typeTexts;
             this.names = names;
             this.initializerTexts = initializerTexts;
+            this.formalParameterCount = formalParameterCount;
         }
 
         void addIfAbsent(String typeText, String name, String initializerText) {
@@ -190,7 +197,8 @@ final class SpecCallScanner {
                     names.add(parameter.getName().toString());
                     initializerTexts.add(null);
                 }
-                result.specMethods.put(currentMethod, new SpecMethodParams(typeTexts, names, initializerTexts));
+                result.specMethods.put(currentMethod, new SpecMethodParams(
+                        typeTexts, names, initializerTexts, parameters.size()));
             }
             try {
                 return super.visitMethod(methodTree, unused);

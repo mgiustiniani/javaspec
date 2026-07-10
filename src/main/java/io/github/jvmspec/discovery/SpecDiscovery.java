@@ -242,7 +242,7 @@ public final class SpecDiscovery {
                     paramNames.add(info.names.get(parameterIndex));
                     continue;
                 }
-                if (i < info.types.size()) {
+                if (i < info.formalParameterCount) {
                     paramTypes.add(info.types.get(i));
                     paramNames.add(info.names.get(i));
                     continue;
@@ -614,7 +614,8 @@ public final class SpecDiscovery {
                     types.add(resolveTypeName(typeText, imports, describedPackageName));
                 }
             }
-            methods.put(entry.getKey(), new MethodParameterInfo(types, params.names));
+            methods.put(entry.getKey(), new MethodParameterInfo(
+                    types, params.names, params.formalParameterCount));
         }
         return methods;
     }
@@ -1202,7 +1203,7 @@ public final class SpecDiscovery {
                     }
                 }
             }
-            methods.put(methodName, new MethodParameterInfo(types, names));
+            methods.put(methodName, new MethodParameterInfo(types, names, types.size()));
         }
         return methods;
     }
@@ -1261,10 +1262,12 @@ public final class SpecDiscovery {
     private static final class MethodParameterInfo {
         final List<String> types;
         final List<String> names;
+        final int formalParameterCount;
 
-        MethodParameterInfo(List<String> types, List<String> names) {
+        MethodParameterInfo(List<String> types, List<String> names, int formalParameterCount) {
             this.types = types;
             this.names = names;
+            this.formalParameterCount = formalParameterCount;
         }
     }
 

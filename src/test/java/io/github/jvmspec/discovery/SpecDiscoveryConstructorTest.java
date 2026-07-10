@@ -231,6 +231,32 @@ public class SpecDiscoveryConstructorTest {
         assertFalse(type.hasConstructors());
     }
 
+    @Test
+    public void preservesLiteralConstructorArgumentsBeforeNamedLocalVariable() throws Exception {
+        File specRoot = temporaryFolder.newFolder("local-final-arg-spec-root");
+        File specDir = new File(specRoot, "spec" + File.separator + "com" + File.separator + "example");
+        assertTrue(specDir.mkdirs());
+        File specFile = new File(specDir, "LifecycleEventSpec.java");
+        String specSource =
+                "package spec.com.example;\n\n" +
+                "import io.github.jvmspec.api.ObjectBehavior;\n" +
+                "import java.time.Instant;\n\n" +
+                "public class LifecycleEventSpec extends ObjectBehavior<LifecycleEvent> {\n" +
+                "    public void let() {\n" +
+                "        Instant occurredAt = Instant.parse(\"2026-07-10T12:00:00Z\");\n" +
+                "        beConstructedWith(\"event-id\", \"profile-id\", 7L, \"created\", \"actor\", occurredAt);\n" +
+                "    }\n" +
+                "}\n";
+        Files.write(specFile.toPath(), specSource.getBytes(StandardCharsets.UTF_8));
+
+        List<DiscoveredSpec> specs = SpecDiscovery.discover(specRoot);
+
+        List<String> parameterTypes = specs.get(0).describedType().constructors().get(0).parameterTypes();
+        assertEquals(Arrays.asList(
+                "String", "String", "long", "String", "String", "java.time.Instant"
+        ), parameterTypes);
+    }
+
     // --- Regression: enum-constant arguments must infer the enum type, not widen to Object ---
 
     @Test
