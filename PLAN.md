@@ -126,7 +126,7 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
 - Macro-area: C — Stable diagnostics, APIs and reports
 - Priority: P0
 - Disposition: REQUIRED_BEFORE_RC
-- Status: TODO
+- Status: COMPLETED
 - Motivation: 1.0 must freeze command semantics, configuration precedence, exit codes, and report schemas.
 - Dependencies: M2.
 - Acceptance criteria:
@@ -138,15 +138,19 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
   - Core CLI/report tests
   - Maven/Gradle/JUnit Platform adapter tests
   - `scripts/verify-all.sh`
+- Evidence:
+  - `docs/result-contract-1.0.md` documents state semantics, exit codes, adapter mappings, report schema policy, and diagnostics taxonomy.
+  - `docs/release-1.0-acceptance-tests.md` maps mandatory semantic scenarios to automated tests.
+  - `MainPhase29CompileCliTest.runCompileWithPendingGeneratedStubCannotAccidentallyGreen` protects pending generated stubs from accidental GREEN.
 - Completion commit: pending.
 
 ### M4 — Example data contract freeze
 
 - Macro-area: A — PHPSpec semantic core
-- Compatibility matrix status: `JAVA_ADAPTED`, with selector/lifecycle contract still required before RC
+- Compatibility matrix status: `JAVA_ADAPTED`
 - Priority: P0
 - Disposition: REQUIRED_BEFORE_RC
-- Status: TODO
+- Status: COMPLETED
 - Motivation: Phase 47 features are implemented, but the 1.0 contract needs explicit decisions around row selectors, row result structure, lifecycle, stop-on-failure, and public/internal API boundaries.
 - Dependencies: M3.
 - Acceptance criteria:
@@ -158,6 +162,9 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
   - Phase 47 CLI/report tests
   - JUnit Platform row descriptor/selector tests
   - `scripts/verify-all.sh`
+- Evidence:
+  - `docs/phpspec-compatibility-matrix.md` records inline row execution and adapter translation as the 1.0 Java adaptation.
+  - `docs/release-1.0-acceptance-tests.md` maps row lifecycle/failure/report/JUnit Platform evidence.
 - Completion commit: pending.
 
 ### M5 — Collaborator injection and Prophecy 1.0 contract freeze
@@ -184,21 +191,25 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
 - Compatibility matrix status: approximate numeric, iterator, and generated object-state matchers are `JAVA_ADAPTED`
 - Priority: P0
 - Disposition: REQUIRED_BEFORE_RC
-- Status: TODO
+- Status: COMPLETED
 - User behavior: users express behavior through readable `should*` expectations that produce meaningful RED feedback, including Java-adapted object-state, iterable, and numeric expectations.
 - Java intentional difference: object-state expectations use deterministic generated support methods and accessor inference instead of PHP runtime dynamic method lookup.
 - Risk if deferred: inline/configured custom matcher APIs can be deferred only if public docs keep the 1.0 matcher promise narrowed to the implemented PHPSpec-first core.
-- Motivation: Phase 50 is partially implemented for approximate numeric, iterator, and generated object-state matchers. Inline/configured custom matcher scope still needs a 1.0 classification decision.
+- Motivation: Phase 50 is implemented for approximate numeric, iterator, and generated object-state matchers. Inline/configured custom matcher expansion is deferred as P1/post-1.0 scope because `MatcherRegistry`/`shouldMatch` already provide a documented minimal custom matcher surface.
 - Dependencies: M3.
 - Acceptance criteria:
   - Approximate numeric matchers are implemented and documented with Java decimal comparison semantics.
   - Iterable/Iterator matchers are implemented and documented with explicit iterator-consumption semantics.
   - Dynamic object-state expectations are implemented with generated Java support helpers, accessor inference, and ambiguity skip rules.
-  - Inline/configured custom matchers are implemented or deferred.
+  - Inline/configured custom matcher expansion is deferred with the existing `MatcherRegistry`/`shouldMatch` surface documented as the 1.0 minimum.
 - Verification:
   - Matcher tests added for any implemented scope.
   - Documentation updated for any deferred scope.
   - Contract tests required before RC: custom matcher registration or documented deferral.
+- Evidence:
+  - Approximate numeric: `MatchableTest`, `ObjectBehaviorTest`.
+  - Iterator semantics: `MatchableBoundedIterableTest`, `MatchableTest` iterator cases.
+  - Generated object-state: `SpecSkeletonGeneratorTest`, `SpecDiscoveryTest`.
 - Completion commit: pending.
 
 ### M7 — Safe generation P0 hardening

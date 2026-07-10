@@ -62,15 +62,15 @@ Evidence:
 
 - [x] PHPSpec compatibility matrix has no `UNSPECIFIED` entries.
 - [x] All `PARTIAL_BLOCKING_1_0` entries have been implemented or intentionally reclassified with tests/docs.
-- [ ] Seven mandatory PHPSpec semantic acceptance scenarios from `docs/phpspec-compatibility-matrix.md` are mapped to automated tests.
-- [ ] PASSED/FAILED/BROKEN/SKIPPED/PENDING contract documented.
-- [ ] State mapping verified across CLI, launcher, JSON, JUnit XML, JUnit Platform, Maven, Gradle.
+- [x] Seven mandatory PHPSpec semantic acceptance scenarios from `docs/phpspec-compatibility-matrix.md` are mapped to automated tests (`docs/release-1.0-acceptance-tests.md`).
+- [x] PASSED/FAILED/BROKEN/SKIPPED/PENDING contract documented (`docs/result-contract-1.0.md`).
+- [x] State mapping verified across CLI, launcher, JSON, JUnit XML, JUnit Platform, Maven, Gradle.
 - [x] Pending generation cannot be reported as final GREEN (`// javaspec:stub` creates a synthetic BROKEN result in compiled runs).
-- [ ] Lifecycle and prediction ordering documented/tested.
-- [ ] Example-data row semantics documented/tested.
-- [ ] Collaborator injection contract documented/tested.
-- [ ] Prophecy contract documented/tested.
-- [ ] Matcher 1.0 scope implemented or explicitly deferred.
+- [x] Lifecycle and prediction ordering documented/tested.
+- [x] Example-data row semantics documented/tested.
+- [x] Collaborator injection contract documented/tested.
+- [x] Prophecy contract documented/tested.
+- [x] Matcher 1.0 scope implemented or explicitly deferred.
 
 ## Generation gates
 
