@@ -305,10 +305,13 @@ $javaspec prophesize <ClassName> [--package <pkg>] [--output <dir>] [--overwrite
 ```
 
 `prophesize` generates a typed `*Prophecy` wrapper for an interface or concrete class under
-`target/generated-sources/javaspec` by default. During `run --generate`, javaspec can also update the
-generated `*SpecSupport` class with helper methods such as `prophesizeMailer()` / `prophecyMailer()`.
-Java 8 specs can declare `MailerProphecy mailer = prophesizeMailer();`; Java 10+ specs can write
-`var mailer = prophesizeMailer();` and keep the same typed method syntax.
+`target/generated-sources/javaspec` by default. This generated wrapper is the recommended
+PHPSpec-like collaborator syntax: Java 8 specs can declare
+`MailerProphecy mailer = prophesizeMailer();`, and Java 10+ specs can write
+`var mailer = prophesizeMailer();`; both keep typed calls such as
+`mailer.send(...).willReturn(...).shouldBeCalled()`. During `run --generate`, javaspec can also
+update the generated `*SpecSupport` class with helper methods such as `prophesizeMailer()` /
+`prophecyMailer()`.
 
 
 Aliases and defaults:
@@ -1572,10 +1575,11 @@ interfaces change how the concepts are expressed.
   and Maven/Gradle opt-in settings can use current-JDK compilation before bootstrap/examples;
   defaults remain classpath-based.
 - **Prophecy-style collaborators**: Core javaspec doubles ordinary Java interfaces through JDK
-  dynamic proxies. Typed `*Prophecy` wrappers provide `mailer.send(...).willReturn(...)` syntax;
-  Java 8 specs name the wrapper type explicitly, while Java 10+ specs can use `var`. Optional
-  non-final concrete-class doubles require the standalone bytecode adapter, and final-class
-  collaborators require the optional bytecode agent adapter.
+  dynamic proxies. Prefer generated typed `*Prophecy` wrappers for PHPSpec-like syntax such as
+  `mailer.send(...).willReturn(...).shouldBeCalled()`; Java 8 specs name the wrapper type
+  explicitly, while Java 10+ specs can use `var`. The reflective `mailer.method("send", ...)` form
+  is a bootstrap/fallback. Optional non-final concrete-class doubles require the standalone bytecode
+  adapter, and final-class collaborators require the optional bytecode agent adapter.
 - **Formatters/extensions**: Built-in `progress`/`pretty` formatters, programmatic extension
   contracts, config-driven extension activation, and ServiceLoader-discovered run
   formatter/extension providers where implemented.
@@ -2080,6 +2084,53 @@ match(null).shouldMatch("beAbsent");
 
 `SpecDiscovery` recognizes the expanded chained matcher names on typed proxy calls for
 method-discovery/default-return inference where applicable.
+
+## Prophecy-style collaborators
+
+Prophecy-style doubles are the recommended PHPSpec-like collaborator syntax when the subject depends
+on another object. They are for **dependencies of the subject**, not for the subject itself.
+
+Prefer generated typed `*Prophecy` wrappers in concrete specs:
+
+```java
+import static io.github.jvmspec.doubles.prophecy.Argument.*;
+
+public class UserServiceSpec extends UserServiceSpecSupport {
+    public void it_sends_a_welcome_email() {
+        MailerProphecy mailer = prophesizeMailer();
+
+        mailer.send(any(String.class), any(String.class), any(String.class))
+            .willReturn(true)
+            .shouldBeCalled();
+
+        setMailer(mailer.reveal());
+        sendWelcomeEmail("user@example.com");
+
+        checkPredictions();
+    }
+}
+```
+
+On Java 10+, `var mailer = prophesizeMailer();` keeps the same typed method syntax while hiding the
+wrapper type. This mirrors PHPSpec/Prophecy's intent: describe the collaborator promise and
+prediction close to the behavior example, without stringly method names in the spec body.
+
+Use the reflective form only as a bootstrap/fallback before the wrapper has been generated:
+
+```java
+ObjectProphecy<Mailer> mailer = prophesize(Mailer.class);
+mailer.method("send", any(String.class), any(String.class), any(String.class))
+    .willReturn(true)
+    .shouldBeCalled();
+```
+
+`javaspec prophesize com.example.Mailer` generates `MailerProphecy`. During
+`javaspec run --generate`, javaspec can detect `prophesize(Mailer.class)` / `prophecy(Mailer.class)`
+usage, generate the missing wrapper under `target/generated-sources/javaspec`, and update generated
+`*SpecSupport` helpers such as `prophesizeMailer()` / `prophecyMailer()`.
+
+Predictions are checked by `checkPredictions()` or automatically when `--auto-check-predictions` is
+enabled.
 
 ## Interface doubles
 

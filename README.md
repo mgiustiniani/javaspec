@@ -565,55 +565,14 @@ declarative doubles API built around prophecies, promises, and predictions.
 Doubles replace **dependencies** of the subject under test — interfaces that the subject
 collaborates with — not the subject itself.
 
-### Reflective API
+The recommended PHPSpec-like collaborator style is the generated typed `*Prophecy` wrapper:
+write `MailerProphecy mailer = prophesizeMailer();`, configure promises with
+`mailer.send(...).willReturn(...)`, inject `mailer.reveal()`, then add predictions such as
+`mailer.send(...).shouldBeCalled()`. The lower-level reflective `mailer.method("send", ...)` form is
+available as a bootstrap/fallback API, but should not be the primary style in user specs once the
+wrapper has been generated.
 
-The core prophecy types live in `io.github.jvmspec.doubles.prophecy`:
-
-| Type | Purpose |
-|---|---|
-| `ObjectProphecy<T>` | Prophecy about an object of type `T` — wraps an `InterfaceDouble<T>` produced by core interface doubles or an optional concrete-double adapter |
-| `MethodProphecy<R>` | Prophecy about a specific method call — stub setup and predictions |
-| `Promise<R>` | A promised return value or side-effect (`willReturn`, `willThrow`, `will`) |
-| `Prediction` | A verification that a method was called, not called, or called N times |
-| `PredictionRegistry` | Collects predictions and checks them all at once |
-| `Argument` / `Arg` | Static matcher DSL (`any()`, `eq()`, `containingString()`, `isNull()`, `notNull()`) |
-
-Use the reflective API in specs via `ObjectBehavior.prophesize(Class<T>)`. The subject
-under test accesses dependencies via `subject()`:
-
-```java
-import static io.github.jvmspec.doubles.prophecy.Argument.*;
-
-public class UserServiceSpec extends ObjectBehavior<UserService> {
-    public UserServiceSpec() {
-        super(UserService.class);
-    }
-
-    public void it_sends_a_welcome_email() {
-        ObjectProphecy<Mailer> mailer = prophesize(Mailer.class);
-
-        // Promise: stub the dependency method
-        mailer.method("send", any(String.class), any(String.class), any(String.class))
-                .willReturn(true);
-
-        // Inject the double into the subject
-        subject().setMailer(mailer.reveal());
-
-        // Execute — subject uses the double
-        subject().sendWelcomeEmail("user@example.com");
-
-        // Prediction: verify the dependency was called as expected
-        mailer.method("send", any(String.class), any(String.class), any(String.class))
-                .shouldBeCalled();
-        checkPredictions();
-    }
-}
-```
-
-Predictions are checked by calling `checkPredictions()` at the end of an example, or
-automatically when `--auto-check-predictions` is enabled.
-
-### Typed wrapper API
+### Typed wrapper API (recommended PHPSpec-like syntax)
 
 For concise, method-name-safe syntax, generate typed `*Prophecy` wrapper classes using the
 reflection-based generator:
@@ -626,14 +585,26 @@ This produces `MailerProphecy extends ObjectProphecy<Mailer>` with typed delegat
 so you can call `mailer.send(...)` instead of `mailer.method("send", ...)`:
 
 ```java
-// Java 8+
-MailerProphecy mailer = prophesizeMailer();
-mailer.send(any(String.class), any(String.class), any(String.class))
-    .willReturn(true)
-    .shouldBeCalled();
+import static io.github.jvmspec.doubles.prophecy.Argument.*;
+
+public class UserServiceSpec extends UserServiceSpecSupport {
+    public void it_sends_a_welcome_email() {
+        MailerProphecy mailer = prophesizeMailer();
+
+        mailer.send(any(String.class), any(String.class), any(String.class))
+            .willReturn(true)
+            .shouldBeCalled();
+
+        setMailer(mailer.reveal());
+        sendWelcomeEmail("user@example.com");
+
+        checkPredictions();
+    }
+}
 ```
 
-On Java 10+, the same generated helper also supports local-variable inference:
+On Java 10+, the same generated helper also supports local-variable inference while keeping the same
+typed PHPSpec-like method syntax:
 
 ```java
 var mailer = prophesizeMailer();
@@ -645,6 +616,34 @@ mailer.send(any(String.class), any(String.class), any(String.class))
 The typed wrapper and the support helper are generated under `target/generated-sources/javaspec`.
 The wrapper is not written to `src/`; Java 8 specs name the wrapper type explicitly, while Java 10+
 specs can hide it with `var`.
+
+Predictions are checked by calling `checkPredictions()` at the end of an example, or automatically
+when `--auto-check-predictions` is enabled.
+
+### Reflective API (bootstrap/fallback)
+
+The core prophecy types live in `io.github.jvmspec.doubles.prophecy`:
+
+| Type | Purpose |
+|---|---|
+| `ObjectProphecy<T>` | Prophecy about an object of type `T` — wraps an `InterfaceDouble<T>` produced by core interface doubles or an optional concrete-double adapter |
+| `MethodProphecy<R>` | Prophecy about a specific method call — stub setup and predictions |
+| `Promise<R>` | A promised return value or side-effect (`willReturn`, `willThrow`, `will`) |
+| `Prediction` | A verification that a method was called, not called, or called N times |
+| `PredictionRegistry` | Collects predictions and checks them all at once |
+| `Argument` / `Arg` | Static matcher DSL (`any()`, `eq()`, `containingString()`, `isNull()`, `notNull()`) |
+
+Use `ObjectBehavior.prophesize(Class<T>)` when the typed wrapper/helper has not been generated yet:
+
+```java
+ObjectProphecy<Mailer> mailer = prophesize(Mailer.class);
+mailer.method("send", any(String.class), any(String.class), any(String.class))
+        .willReturn(true)
+        .shouldBeCalled();
+```
+
+A common workflow is to start with the reflective call, run `javaspec run --generate`, then switch
+the concrete spec to the generated `MailerProphecy` / `prophesizeMailer()` syntax.
 
 ### Generating wrappers via CLI
 
@@ -667,8 +666,8 @@ updates the generated `*SpecSupport` class with typed helpers such as `prophesiz
 javaspec run --generate --compile --formatter pretty
 ```
 
-A common workflow is to write `prophesize(Mailer.class)` first, run generation once, then use the
-new typed helper in the spec.
+A common workflow is to write `prophesize(Mailer.class)` first, run generation once, then switch the
+spec to the recommended typed helper (`MailerProphecy mailer = prophesizeMailer();`).
 
 ### Argument matchers
 
@@ -709,9 +708,9 @@ the example is marked FAILED with a descriptive message.
 
 ### Full example
 
-See [`examples/prophecy-basic/`](examples/prophecy-basic/) for a complete working example with
-an interface to prophesize, a spec using both reflective and typed-wrapper syntax, and a
-standalone verification test.
+See [`examples/prophecy-basic/`](examples/prophecy-basic/) for a complete working example with an
+interface to prophesize, the recommended typed-wrapper syntax, the reflective bootstrap/fallback
+form, and a standalone verification test.
 
 ## Reports
 
