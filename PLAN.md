@@ -266,8 +266,10 @@ failing row context in console output, JSON failure messages, and JUnit XML fail
 records first-class example-data row results on the containing example and serializes them to JSON
 reports. Slice 3 maps example-data rows to JUnit XML testcases for CI-visible row diagnostics while
 retaining the behavior example as the public Java method. Slice 4 publishes JUnit Platform dynamic
-row descriptors during execution and lets row unique-id selectors select the owning example. Exact
-row-only filtering remains future refinement.
+row descriptors during execution and lets row unique-id selectors select the owning example while
+filtering published row events to the selected row. Because PHPSpec-style rows execute inline inside
+the owning behavior method, row selectors are descriptor/event filters rather than per-row execution
+isolation.
 
 ### Phase 48 — Collaborator injection for `let` and examples
 

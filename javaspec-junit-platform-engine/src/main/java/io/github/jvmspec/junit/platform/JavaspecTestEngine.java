@@ -135,7 +135,7 @@ public final class JavaspecTestEngine implements TestEngine {
             }
             RunResult runResult = invocationResult.runResult();
 
-            publishResults(listener, specDescriptors, runResult);
+            publishResults(listener, specDescriptors, runResult, settings.selectorFilter());
             renderFormattedOutput(runResult, settings, invocationResult);
             listener.executionFinished(rootDescriptor, TestExecutionResult.successful());
         } catch (Throwable throwable) {
@@ -169,7 +169,8 @@ public final class JavaspecTestEngine implements TestEngine {
     private static void publishResults(
             EngineExecutionListener listener,
             List<JavaspecSpecDescriptor> specDescriptors,
-            RunResult runResult
+            RunResult runResult,
+            SelectorFilter selectorFilter
     ) {
         Map<String, SpecResult> specResults = specResultsByName(runResult);
         Map<String, ExampleResult> exampleResults = exampleResultsByFullName(runResult);
@@ -191,7 +192,7 @@ public final class JavaspecTestEngine implements TestEngine {
                             "Skipped because javaspec stop-on-failure halted execution before this example.");
                     continue;
                 }
-                publishExampleResult(listener, exampleDescriptor, exampleResult);
+                publishExampleResult(listener, exampleDescriptor, exampleResult, selectorFilter);
             }
             listener.executionFinished(specDescriptor, TestExecutionResult.successful());
         }
@@ -200,7 +201,8 @@ public final class JavaspecTestEngine implements TestEngine {
     private static void publishExampleResult(
             EngineExecutionListener listener,
             JavaspecExampleDescriptor exampleDescriptor,
-            ExampleResult exampleResult
+            ExampleResult exampleResult,
+            SelectorFilter selectorFilter
     ) {
         if (exampleResult.isPending()) {
             listener.executionSkipped(exampleDescriptor, pendingReason(exampleResult.detail()));
@@ -211,7 +213,7 @@ public final class JavaspecTestEngine implements TestEngine {
             return;
         }
         if (exampleResult.hasExampleDataRows()) {
-            publishExampleDataRows(listener, exampleDescriptor, exampleResult);
+            publishExampleDataRows(listener, exampleDescriptor, exampleResult, selectorFilter);
             return;
         }
         listener.executionStarted(exampleDescriptor);
@@ -225,12 +227,17 @@ public final class JavaspecTestEngine implements TestEngine {
     private static void publishExampleDataRows(
             EngineExecutionListener listener,
             JavaspecExampleDescriptor exampleDescriptor,
-            ExampleResult exampleResult
+            ExampleResult exampleResult,
+            SelectorFilter selectorFilter
     ) {
         listener.executionStarted(exampleDescriptor);
         List<ExampleDataRowResult> rows = exampleResult.exampleDataRows();
+        List<Integer> selectedRowIndexes = selectorFilter.selectedRowIndexesFor(exampleDescriptor.getUniqueId());
         for (int i = 0; i < rows.size(); i++) {
             ExampleDataRowResult row = rows.get(i);
+            if (!shouldPublishRow(row, selectedRowIndexes)) {
+                continue;
+            }
             JavaspecExampleDataRowDescriptor rowDescriptor = new JavaspecExampleDataRowDescriptor(
                     exampleDescriptor.getUniqueId().append(ROW_SEGMENT_TYPE, String.valueOf(row.index())),
                     exampleDescriptor,
@@ -240,7 +247,7 @@ public final class JavaspecTestEngine implements TestEngine {
             listener.dynamicTestRegistered(rowDescriptor);
             publishRowResult(listener, rowDescriptor, row);
         }
-        if (exampleResult.isFailure() && !hasFailingRow(exampleResult)) {
+        if (exampleResult.isFailure() && !hasFailingRow(exampleResult, selectedRowIndexes)) {
             listener.executionFinished(exampleDescriptor, TestExecutionResult.failed(throwableFor(exampleResult)));
             return;
         }
@@ -260,10 +267,15 @@ public final class JavaspecTestEngine implements TestEngine {
         listener.executionFinished(rowDescriptor, TestExecutionResult.failed(throwableFor(row)));
     }
 
-    private static boolean hasFailingRow(ExampleResult exampleResult) {
+    private static boolean shouldPublishRow(ExampleDataRowResult row, List<Integer> selectedRowIndexes) {
+        return selectedRowIndexes.isEmpty() || selectedRowIndexes.contains(Integer.valueOf(row.index()));
+    }
+
+    private static boolean hasFailingRow(ExampleResult exampleResult, List<Integer> selectedRowIndexes) {
         List<ExampleDataRowResult> rows = exampleResult.exampleDataRows();
         for (int i = 0; i < rows.size(); i++) {
-            if (!rows.get(i).isPassed()) {
+            ExampleDataRowResult row = rows.get(i);
+            if (shouldPublishRow(row, selectedRowIndexes) && !row.isPassed()) {
                 return true;
             }
         }
@@ -895,6 +907,48 @@ public final class JavaspecTestEngine implements TestEngine {
                 }
             }
             return false;
+        }
+
+        List<Integer> selectedRowIndexesFor(UniqueId exampleUniqueId) {
+            if (selectedUniqueIds.isEmpty()) {
+                return Collections.emptyList();
+            }
+            List<Integer> rowIndexes = new ArrayList<Integer>();
+            int exampleSegmentCount = exampleUniqueId.getSegments().size();
+            for (int i = 0; i < selectedUniqueIds.size(); i++) {
+                UniqueId selectedUniqueId = selectedUniqueIds.get(i);
+                if (!selectedUniqueId.hasPrefix(exampleUniqueId)) {
+                    continue;
+                }
+                List<UniqueId.Segment> segments = selectedUniqueId.getSegments();
+                if (segments.size() <= exampleSegmentCount) {
+                    continue;
+                }
+                UniqueId.Segment nextSegment = segments.get(exampleSegmentCount);
+                if (!ROW_SEGMENT_TYPE.equals(nextSegment.getType())) {
+                    continue;
+                }
+                Integer rowIndex = parsePositiveInt(nextSegment.getValue());
+                if (rowIndex != null && !rowIndexes.contains(rowIndex)) {
+                    rowIndexes.add(rowIndex);
+                }
+            }
+            if (rowIndexes.isEmpty()) {
+                return Collections.emptyList();
+            }
+            return Collections.unmodifiableList(rowIndexes);
+        }
+
+        private static Integer parsePositiveInt(String value) {
+            try {
+                int parsed = Integer.parseInt(value);
+                if (parsed > 0) {
+                    return Integer.valueOf(parsed);
+                }
+            } catch (NumberFormatException ignored) {
+                // Malformed row segments cannot map to a recorded row; ignore them as non-row selectors.
+            }
+            return null;
         }
 
         private boolean hasSelectors() {

@@ -188,18 +188,35 @@ class JavaspecTestEnginePhase17Test {
     }
 
     @Test
-    void rowUniqueIdSelectorsSelectTheOwningExample(@TempDir Path temp) throws Exception {
+    void rowUniqueIdSelectorsPublishOnlyTheSelectedRowDescriptor(@TempDir Path temp) throws Exception {
         Path specRoot = temp.resolve("row-selector-specs");
-        Path source = writeSpec(specRoot, "phase47.selector", "RowSelectorSpec",
-                "    public static int selectedRuns = 0;\n" +
-                "\n" +
-                "    public void it_selected_by_row_unique_id() {\n" +
-                "        selectedRuns++;\n" +
-                "    }\n" +
-                "\n" +
-                "    public void it_should_not_run() {\n" +
-                "        throw new AssertionError(\"row unique id should select only the owning example\");\n" +
-                "    }\n");
+        Path packageDirectory = Files.createDirectories(specRoot.resolve("phase47/selector"));
+        Path source = packageDirectory.resolve("RowSelectorSpec.java");
+        Files.write(source, (
+                "package phase47.selector;\n\n" +
+                        "public class RowSelectorSpec extends io.github.jvmspec.api.ObjectBehavior<RowSelectorSpec.NameNormalizer> {\n" +
+                        "    public static int selectedRuns = 0;\n" +
+                        "\n" +
+                        "    public RowSelectorSpec() { super(NameNormalizer.class); }\n" +
+                        "\n" +
+                        "    public void it_selected_by_row_unique_id() {\n" +
+                        "        selectedRuns++;\n" +
+                        "        examples(row(\"Alice\", \"Alice\"), row(\" Bob \", \"Bob\"))\n" +
+                        "            .verify(new io.github.jvmspec.api.Example2<String, String>() {\n" +
+                        "                public void run(String input, String expected) {\n" +
+                        "                    match(subject().normalize(input)).shouldReturn(expected);\n" +
+                        "                }\n" +
+                        "            });\n" +
+                        "    }\n" +
+                        "\n" +
+                        "    public void it_should_not_run() {\n" +
+                        "        throw new AssertionError(\"row unique id should select only the owning example\");\n" +
+                        "    }\n" +
+                        "\n" +
+                        "    public static class NameNormalizer {\n" +
+                        "        public String normalize(String value) { return value.trim(); }\n" +
+                        "    }\n" +
+                        "}\n").getBytes(StandardCharsets.UTF_8));
 
         try (URLClassLoader classLoader = compileToClassLoader(temp.resolve("classes"), source)) {
             Class<?> specClass = classLoader.loadClass("phase47.selector.RowSelectorSpec");
@@ -215,10 +232,17 @@ class JavaspecTestEnginePhase17Test {
                     classLoader
             );
 
-            assertEquals(1, outcome.summary().getTestsFoundCount());
-            assertEquals(1, outcome.summary().getTestsSucceededCount());
+            assertEquals(2, outcome.summary().getTestsFoundCount());
             assertEquals(0, outcome.summary().getTestsFailedCount());
             assertEquals(1, staticInt(specClass, "selectedRuns"));
+            assertFalse(outcome.recorder().dynamicallyRegisteredDisplayNames()
+                    .contains("it_selected_by_row_unique_id[row 1] [Alice, Alice]"),
+                    "Expected row 1 to stay unpublished for row-2 selector in "
+                            + outcome.recorder().dynamicallyRegisteredDisplayNames());
+            assertTrue(outcome.recorder().dynamicallyRegisteredDisplayNames()
+                    .contains("it_selected_by_row_unique_id[row 2] [ Bob , Bob]"),
+                    "Expected selected row 2 dynamic descriptor in "
+                            + outcome.recorder().dynamicallyRegisteredDisplayNames());
         }
     }
 

@@ -21,7 +21,8 @@ entries with row index, description, status, and detail on the containing exampl
 map recorded example-data rows to testcase entries named with the parent behavior method and row
 number so CI output can identify the failing data row directly. The JUnit Platform adapter now
 publishes dynamic row descriptors during execution and accepts row unique IDs by selecting the owning
-example; exact row-only filtering remains future refinement.
+example and filtering published row events to the selected row. Row selectors are descriptor/event
+filters because PHPSpec-style rows execute inline inside the owning behavior method.
 
 ## Phase 46 PHPSpec compatibility charter verification update
 
@@ -108,7 +109,7 @@ Final verification summary:
 - Root: 549 tests, 0 failures, 0 errors, 0 skipped.
 - Bytecode adapter: 17 tests, 0 failures, 0 errors, 0 skipped.
 - Maven plugin: 30 tests, 0 failures, 0 errors, 0 skipped.
-- JUnit Platform engine: 19 tests, 0 failures, 0 errors, 0 skipped.
+- JUnit Platform engine: 22 tests, 0 failures, 0 errors, 0 skipped.
 - Gradle plugin: 32 tests, 0 failures, 0 errors, 0 skipped.
 - Examples verification passed, including Maven basic (1), bytecode doubles basic (2), JUnit
   Platform example, and Gradle basic (1).

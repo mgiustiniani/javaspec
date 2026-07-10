@@ -47,7 +47,7 @@ moving dependency-heavy behavior into optional artifacts.
   failing rows include row number/value context, JSON reports include first-class
   `exampleDataRows` entries for row index, description, status, and detail, JUnit XML reports
   expose rows as testcase entries for CI-visible row diagnostics, and the optional JUnit Platform
-  adapter publishes dynamic row descriptors during execution.
+  adapter publishes dynamic row descriptors during execution with row unique-id event filtering.
 
 ## Optional subclass adapter `javaspec-bytecode-doubles`
 
