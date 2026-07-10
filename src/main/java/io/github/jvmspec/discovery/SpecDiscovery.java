@@ -763,6 +763,14 @@ public final class SpecDiscovery {
         if ("null".equals(value)) {
             return InferredType.unknownObject();
         }
+        String constructedType = constructedType(value);
+        if (constructedType != null) {
+            return InferredType.known(resolveTypeName(constructedType, imports, describedPackageName));
+        }
+        String staticFactoryType = staticFactoryReceiverType(value);
+        if (staticFactoryType != null) {
+            return InferredType.known(resolveTypeName(staticFactoryType, imports, describedPackageName));
+        }
         if (value.matches("[-+]?\\d+[lL]")) {
             return InferredType.known("long");
         }
@@ -783,6 +791,60 @@ public final class SpecDiscovery {
             return InferredType.known(resolveTypeName(qualifiedConstantType, imports, describedPackageName));
         }
         return InferredType.unknownObject();
+    }
+
+    private static String constructedType(String value) {
+        String trimmed = value.trim();
+        if (!trimmed.startsWith("new ")) {
+            return null;
+        }
+        int open = trimmed.indexOf('(');
+        if (open < 0) {
+            return null;
+        }
+        String typeName = trimmed.substring(4, open).trim();
+        int genericStart = typeName.indexOf('<');
+        if (genericStart >= 0) {
+            typeName = typeName.substring(0, genericStart).trim();
+        }
+        if (!isLikelyTypeName(typeName)) {
+            return null;
+        }
+        return typeName;
+    }
+
+    private static String staticFactoryReceiverType(String value) {
+        Matcher matcher = Pattern.compile("^([A-Za-z_$][A-Za-z0-9_$]*(?:\\.[A-Za-z_$][A-Za-z0-9_$]*)*)\\.([A-Za-z_$][A-Za-z0-9_$]*)\\s*\\(.*\\)$").matcher(value.trim());
+        if (!matcher.matches()) {
+            return null;
+        }
+        String receiver = matcher.group(1);
+        String methodName = matcher.group(2);
+        if (!isLikelyStaticFactoryMethod(methodName)) {
+            return null;
+        }
+        String simpleReceiver = simpleName(receiver);
+        if (simpleReceiver.length() == 0 || !Character.isUpperCase(simpleReceiver.charAt(0))) {
+            return null;
+        }
+        return receiver;
+    }
+
+    private static String simpleName(String qualifiedName) {
+        int lastDot = qualifiedName.lastIndexOf('.');
+        return lastDot < 0 ? qualifiedName : qualifiedName.substring(lastDot + 1);
+    }
+
+    private static boolean isLikelyStaticFactoryMethod(String methodName) {
+        return "of".equals(methodName)
+                || "ofNullable".equals(methodName)
+                || "from".equals(methodName)
+                || "fromString".equals(methodName)
+                || "fromValue".equals(methodName)
+                || "parse".equals(methodName)
+                || "valueOf".equals(methodName)
+                || "create".equals(methodName)
+                || "named".equals(methodName);
     }
 
     private static String castType(String value) {

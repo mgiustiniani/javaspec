@@ -446,6 +446,74 @@ public class SpecDiscoveryTest {
     }
 
     @Test
+    public void constructedValueObjectArgumentContributesStaticTypeForProxyCalls() throws Exception {
+        File specRoot = temporaryFolder.newFolder("constructed-value-root");
+        writeFile(
+                specRoot,
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator + "CanonicalTextSpec.java",
+                "package spec.com.example;\n" +
+                "public class CanonicalTextSpec extends CanonicalTextSpecSupport {\n" +
+                "    public void it_classifies_constructed_value_object() {\n" +
+                "        isCanonical(new CertificateProfileId(\"abc\")).shouldReturn(true);\n" +
+                "    }\n" +
+                "}\n"
+        );
+
+        List<DiscoveredSpec> specs = SpecDiscovery.discover(specRoot);
+
+        assertEquals(1, specs.size());
+        assertEquals(Arrays.asList(
+                MethodDescriptor.of("isCanonical", "boolean", Arrays.asList("com.example.CertificateProfileId"), Arrays.asList("arg0"))
+        ), specs.get(0).describedType().methods());
+    }
+
+    @Test
+    public void staticFactoryValueObjectArgumentContributesStaticTypeForProxyCalls() throws Exception {
+        File specRoot = temporaryFolder.newFolder("factory-value-root");
+        writeFile(
+                specRoot,
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator + "CanonicalTextSpec.java",
+                "package spec.com.example;\n" +
+                "public class CanonicalTextSpec extends CanonicalTextSpecSupport {\n" +
+                "    public void it_classifies_factory_value_object() {\n" +
+                "        isCanonical(CertificateProfileId.of(\"abc\")).shouldReturn(true);\n" +
+                "    }\n" +
+                "}\n"
+        );
+
+        List<DiscoveredSpec> specs = SpecDiscovery.discover(specRoot);
+
+        assertEquals(1, specs.size());
+        assertEquals(Arrays.asList(
+                MethodDescriptor.of("isCanonical", "boolean", Arrays.asList("com.example.CertificateProfileId"), Arrays.asList("arg0"))
+        ), specs.get(0).describedType().methods());
+    }
+
+    @Test
+    public void varStaticFactoryInitializerContributesStaticTypeForProxyCalls() throws Exception {
+        assumeTrue(supportsJavaSpecificationVersion(10));
+        File specRoot = temporaryFolder.newFolder("var-factory-value-root");
+        writeFile(
+                specRoot,
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator + "CanonicalTextSpec.java",
+                "package spec.com.example;\n" +
+                "public class CanonicalTextSpec extends CanonicalTextSpecSupport {\n" +
+                "    public void it_classifies_var_factory_value_object() {\n" +
+                "        var value = CertificateProfileId.of(\"abc\");\n" +
+                "        isCanonical(value).shouldReturn(true);\n" +
+                "    }\n" +
+                "}\n"
+        );
+
+        List<DiscoveredSpec> specs = SpecDiscovery.discover(specRoot);
+
+        assertEquals(1, specs.size());
+        assertEquals(Arrays.asList(
+                MethodDescriptor.of("isCanonical", "boolean", Arrays.asList("com.example.CertificateProfileId"), Arrays.asList("arg0"))
+        ), specs.get(0).describedType().methods());
+    }
+
+    @Test
     public void uncastNullArgumentIsTrackedAsUnknownObjectPlaceholder() throws Exception {
         File specRoot = temporaryFolder.newFolder("unknown-null-root");
         writeFile(
