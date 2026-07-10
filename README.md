@@ -380,6 +380,7 @@ Available expectation families include:
 - equality/identity: `shouldReturn`, `shouldEqual`, `shouldBe`, and negated aliases;
 - type checks: `shouldHaveType`, `shouldBeAnInstanceOf`, `shouldImplement`;
 - numeric approximation: `shouldBeApproximately(expected, tolerance)`, `shouldReturnApproximately(...)`, and negated aliases;
+- generated object-state helpers: `shouldBeActive()` / `shouldNotBeActive()` for boolean accessors and `shouldHaveTitle(expected)` / `shouldNotHaveTitle(unexpected)` for value accessors;
 - strings, collections, maps, arrays, iterables, and iterators: contain/count/empty/key/value checks;
 - string helpers: starts-with, ends-with, and regular-expression checks;
 - exception expectations through `shouldThrow(...).during...` support methods;

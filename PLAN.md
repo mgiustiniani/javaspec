@@ -177,24 +177,24 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
 ### M6 — Matcher parity 1.0 scope
 
 - Macro-area: A — PHPSpec semantic core
-- Compatibility matrix status: approximate numeric and iterator matchers are `JAVA_ADAPTED`; dynamic object-state matchers remain `PARTIAL_BLOCKING_1_0` until implemented or explicitly narrowed without contradicting public docs
+- Compatibility matrix status: approximate numeric, iterator, and generated object-state matchers are `JAVA_ADAPTED`
 - Priority: P0
 - Disposition: REQUIRED_BEFORE_RC
 - Status: TODO
 - User behavior: users express behavior through readable `should*` expectations that produce meaningful RED feedback, including Java-adapted object-state, iterable, and numeric expectations.
-- Java intentional difference: dynamic matcher resolution must use deterministic JavaBean/reflection rules and fail closed instead of PHP dynamic method lookup.
-- Risk if deferred: users may need to fall back to JUnit/assertion style for common behavior checks, weakening the PHPSpec-first 1.0 promise.
-- Motivation: Phase 50 is not implemented. 1.0 must either include approximate/iterator/dynamic/custom matchers or explicitly defer them in the matrix without contradicting public docs.
+- Java intentional difference: object-state expectations use deterministic generated support methods and accessor inference instead of PHP runtime dynamic method lookup.
+- Risk if deferred: inline/configured custom matcher APIs can be deferred only if public docs keep the 1.0 matcher promise narrowed to the implemented PHPSpec-first core.
+- Motivation: Phase 50 is partially implemented for approximate numeric, iterator, and generated object-state matchers. Inline/configured custom matcher scope still needs a 1.0 classification decision.
 - Dependencies: M3.
 - Acceptance criteria:
   - Approximate numeric matchers are implemented and documented with Java decimal comparison semantics.
   - Iterable/Iterator matchers are implemented and documented with explicit iterator-consumption semantics.
-  - Dynamic object-state expectations are implemented or rejected/deferred with JavaBean resolution rules and ambiguity diagnostics.
+  - Dynamic object-state expectations are implemented with generated Java support helpers, accessor inference, and ambiguity skip rules.
   - Inline/configured custom matchers are implemented or deferred.
 - Verification:
   - Matcher tests added for any implemented scope.
   - Documentation updated for any deferred scope.
-  - Contract tests required before RC: dynamic object-state success, ambiguity, missing-method, primitive/boxed/null cases; custom matcher registration or documented deferral.
+  - Contract tests required before RC: custom matcher registration or documented deferral.
 - Completion commit: pending.
 
 ### M7 — Safe generation P0 hardening

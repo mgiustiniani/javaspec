@@ -214,6 +214,8 @@ public class SpecSkeletonGeneratorTest {
                 Arrays.asList(
                         MethodDescriptor.of("getRating", "int"),
                         MethodDescriptor.of("getTitle", "String"),
+                        MethodDescriptor.of("isActive", "boolean"),
+                        MethodDescriptor.of("hasInventory", "java.lang.Boolean"),
                         MethodDescriptor.voidMethod("setRating", Arrays.asList("int"), Arrays.asList("rating"))
                 )
         );
@@ -230,12 +232,50 @@ public class SpecSkeletonGeneratorTest {
         assertTrue(source.contains("return match(subject().getRating());"));
         assertTrue(source.contains("protected io.github.jvmspec.matcher.Matchable<String> getTitle()"));
         assertTrue(source.contains("return match(subject().getTitle());"));
+        assertTrue(source.contains("protected io.github.jvmspec.matcher.Matchable<Boolean> isActive()"));
+        assertTrue(source.contains("protected io.github.jvmspec.matcher.Matchable<java.lang.Boolean> hasInventory()"));
+        assertTrue(source.contains("protected void shouldHaveTitle(String expected)"));
+        assertTrue(source.contains("getTitle().shouldReturn(expected);"));
+        assertTrue(source.contains("protected void shouldNotHaveTitle(String unexpected)"));
+        assertTrue(source.contains("getTitle().shouldNotReturn(unexpected);"));
+        assertTrue(source.contains("protected void shouldBeActive()"));
+        assertTrue(source.contains("isActive().shouldReturn(true);"));
+        assertTrue(source.contains("protected void shouldNotBeActive()"));
+        assertTrue(source.contains("isActive().shouldReturn(false);"));
+        assertTrue(source.contains("protected void shouldHaveInventory()"));
+        assertTrue(source.contains("hasInventory().shouldReturn(true);"));
+        assertTrue(source.contains("protected void shouldNotHaveInventory()"));
+        assertTrue(source.contains("hasInventory().shouldReturn(false);"));
         assertTrue(source.contains("protected void setRating(int rating)"));
         assertTrue(source.contains("subject().setRating(rating);"));
         assertTrue(source.contains("@Override\n    public BookThrowExpectation shouldThrow(Class<? extends Throwable> expectedType)"));
         assertTrue(source.contains("protected class BookThrowExpectation extends io.github.jvmspec.api.ObjectBehavior.ThrowExpectation"));
         assertTrue(source.contains("public void duringSetRating(final int rating)"));
         assertTrue(source.contains("subject().setRating(rating);"));
+    }
+
+    @Test
+    public void supportPlanSkipsAmbiguousGeneratedStateExpectationMethods() throws Exception {
+        File specRoot = temporaryFolder.newFolder("support-state-ambiguity-root");
+        DescribedType describedType = DescribedType.of(
+                "com.example.Switch",
+                JavaTypeKind.CLASS,
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<io.github.jvmspec.model.ConstructorDescriptor>emptyList(),
+                Arrays.asList(
+                        MethodDescriptor.of("isActive", "boolean"),
+                        MethodDescriptor.of("getActive", "Boolean")
+                )
+        );
+
+        String source = SpecSkeletonGenerator.supportPlan(describedType, specRoot).sourceContent();
+
+        assertTrue(source.contains("protected io.github.jvmspec.matcher.Matchable<Boolean> isActive()"));
+        assertTrue(source.contains("protected io.github.jvmspec.matcher.Matchable<Boolean> getActive()"));
+        assertFalse(source.contains("protected void shouldBeActive()"));
+        assertFalse(source.contains("protected void shouldNotBeActive()"));
     }
 
     @Test

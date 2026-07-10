@@ -9,7 +9,9 @@ import io.github.jvmspec.model.MethodDescriptor;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -339,6 +341,14 @@ public final class SpecSkeletonGenerator {
             appendSupportProxyMethod(builder, method);
             appendedAny = true;
         }
+        List<StateExpectationMethod> stateExpectationMethods = stateExpectationMethods(methods);
+        for (int i = 0; i < stateExpectationMethods.size(); i++) {
+            if (appendedAny) {
+                builder.append("\n");
+            }
+            appendStateExpectationMethod(builder, stateExpectationMethods.get(i));
+            appendedAny = true;
+        }
     }
 
     static boolean isSupportSubjectMethod(MethodDescriptor method) {
@@ -379,6 +389,129 @@ public final class SpecSkeletonGenerator {
         appendArgumentNames(builder, method.parameterNames());
         builder.append("));\n");
         builder.append("    }\n");
+    }
+
+    private static List<StateExpectationMethod> stateExpectationMethods(List<MethodDescriptor> methods) {
+        List<StateExpectationMethod> candidates = new ArrayList<StateExpectationMethod>();
+        Map<String, Integer> signatureCounts = new LinkedHashMap<String, Integer>();
+        for (int i = 0; i < methods.size(); i++) {
+            MethodDescriptor method = methods.get(i);
+            StateExpectationMethod positive = positiveStateExpectation(method);
+            if (positive != null) {
+                candidates.add(positive);
+                increment(signatureCounts, positive.signature());
+            }
+            StateExpectationMethod negative = negativeStateExpectation(method);
+            if (negative != null) {
+                candidates.add(negative);
+                increment(signatureCounts, negative.signature());
+            }
+        }
+        List<StateExpectationMethod> unique = new ArrayList<StateExpectationMethod>();
+        for (int i = 0; i < candidates.size(); i++) {
+            StateExpectationMethod candidate = candidates.get(i);
+            if (Integer.valueOf(1).equals(signatureCounts.get(candidate.signature()))) {
+                unique.add(candidate);
+            }
+        }
+        return unique;
+    }
+
+    private static void increment(Map<String, Integer> counts, String key) {
+        Integer count = counts.get(key);
+        counts.put(key, Integer.valueOf(count == null ? 1 : count.intValue() + 1));
+    }
+
+    private static StateExpectationMethod positiveStateExpectation(MethodDescriptor method) {
+        if (!isStateExpectationSubjectMethod(method)) {
+            return null;
+        }
+        String property = statePropertyName(method);
+        if (property == null) {
+            return null;
+        }
+        if (isBooleanType(method.returnType())) {
+            String prefix = method.methodName().startsWith("has") ? "shouldHave" : "shouldBe";
+            return new StateExpectationMethod(prefix + property, method.methodName(), null, "shouldReturn", "true");
+        }
+        return new StateExpectationMethod("shouldHave" + property, method.methodName(), boxedType(method.returnType()) + " expected", "shouldReturn", "expected");
+    }
+
+    private static StateExpectationMethod negativeStateExpectation(MethodDescriptor method) {
+        if (!isStateExpectationSubjectMethod(method)) {
+            return null;
+        }
+        String property = statePropertyName(method);
+        if (property == null) {
+            return null;
+        }
+        if (isBooleanType(method.returnType())) {
+            String prefix = method.methodName().startsWith("has") ? "shouldNotHave" : "shouldNotBe";
+            return new StateExpectationMethod(prefix + property, method.methodName(), null, "shouldReturn", "false");
+        }
+        return new StateExpectationMethod("shouldNotHave" + property, method.methodName(), boxedType(method.returnType()) + " unexpected", "shouldNotReturn", "unexpected");
+    }
+
+    private static boolean isStateExpectationSubjectMethod(MethodDescriptor method) {
+        return isSupportSubjectMethod(method) && !method.isVoid() && !method.hasParameters();
+    }
+
+    private static String statePropertyName(MethodDescriptor method) {
+        String methodName = method.methodName();
+        if (methodName.startsWith("is") && methodName.length() > 2 && Character.isUpperCase(methodName.charAt(2))) {
+            return methodName.substring(2);
+        }
+        if (methodName.startsWith("has") && methodName.length() > 3 && Character.isUpperCase(methodName.charAt(3))) {
+            return methodName.substring(3);
+        }
+        if (methodName.startsWith("get") && methodName.length() > 3 && Character.isUpperCase(methodName.charAt(3))) {
+            return methodName.substring(3);
+        }
+        if (methodName.length() > 0 && Character.isLowerCase(methodName.charAt(0))) {
+            return Character.toUpperCase(methodName.charAt(0)) + methodName.substring(1);
+        }
+        return null;
+    }
+
+    private static boolean isBooleanType(String typeName) {
+        return "boolean".equals(typeName) || "Boolean".equals(typeName) || "java.lang.Boolean".equals(typeName);
+    }
+
+    private static void appendStateExpectationMethod(StringBuilder builder, StateExpectationMethod method) {
+        builder.append("    protected void ").append(method.methodName).append("(");
+        if (method.parameterDeclaration != null) {
+            builder.append(method.parameterDeclaration);
+        }
+        builder.append(") {\n");
+        builder.append("        ").append(method.subjectMethodName).append("().").append(method.matcherName)
+                .append("(").append(method.matcherArgument).append(");\n");
+        builder.append("    }\n");
+    }
+
+    private static final class StateExpectationMethod {
+        private final String methodName;
+        private final String subjectMethodName;
+        private final String parameterDeclaration;
+        private final String matcherName;
+        private final String matcherArgument;
+
+        private StateExpectationMethod(
+                String methodName,
+                String subjectMethodName,
+                String parameterDeclaration,
+                String matcherName,
+                String matcherArgument
+        ) {
+            this.methodName = methodName;
+            this.subjectMethodName = subjectMethodName;
+            this.parameterDeclaration = parameterDeclaration;
+            this.matcherName = matcherName;
+            this.matcherArgument = matcherArgument;
+        }
+
+        private String signature() {
+            return methodName + "#" + (parameterDeclaration == null ? "0" : "1");
+        }
     }
 
     static void appendThrowProxy(StringBuilder builder, DescribedType describedType) {

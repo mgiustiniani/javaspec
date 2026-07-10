@@ -1995,6 +1995,19 @@ identity/equality/negated-identity matchers and a default negated-equality match
 
 Java adaptation: primitive, boxed, integral, floating, and `BigDecimal` values are compared through deterministic decimal values. `NaN`, infinities, nulls, non-numeric values, and negative tolerances fail with assertion errors instead of being treated as domain RED successes.
 
+### Generated object-state expectations
+
+Generated `*SpecSupport` classes adapt PHPSpec dynamic object-state expectations to compiled Java helper methods:
+
+| Subject accessor | Generated expectation helpers |
+|---|---|
+| `boolean isActive()` | `shouldBeActive()` / `shouldNotBeActive()` |
+| `Boolean hasInventory()` | `shouldHaveInventory()` / `shouldNotHaveInventory()` |
+| `String getTitle()` | `shouldHaveTitle(expected)` / `shouldNotHaveTitle(unexpected)` |
+| `String title()` | `shouldHaveTitle(expected)` / `shouldNotHaveTitle(unexpected)` |
+
+When a spec calls `shouldBeActive()` before the subject exists, discovery can infer an `isActive()` boolean accessor for generation. Java adaptation: helper methods are generated deterministically instead of resolved by runtime dynamic dispatch. If two accessors would generate the same helper signature, javaspec skips that state helper rather than generating ambiguous Java source.
+
 ### Type, implementation, and containment
 
 | Method | Meaning |

@@ -47,7 +47,7 @@ This document records capabilities verified while preparing the 1.0 roadmap. It 
 - JUnit Platform row selectors currently filter descriptors/events while row execution remains inline in the owning example; this is intentional but must be documented as the 1.0 contract or changed before RC.
 - `ExampleDataRowRecorder` is public under `api`; its 1.0 public/internal status and ThreadLocal/sequential execution limits require a decision.
 - Generated typed Prophecy `Object` token overloads require an explicit edge-case audit for overload ambiguity, primitive/boxing, arrays, varargs, generics, bridge/synthetic methods, and mixed token/exact calls.
-- Approximate numeric and iterator matchers are implemented; dynamic object-state and inline/configured matcher scope still require a 1.0 decision.
+- Approximate numeric, iterator, and generated object-state matchers are implemented; inline/configured matcher scope still requires a 1.0 decision.
 - Event/extension model v2 is not implemented; existing extension/formatter/parser/resolver/bootstrap surfaces require classification.
 - Generation result semantics are not yet a uniform structured plan/result model across every mutating path.
 - Atomic file-write guarantees and adversarial parser fixture coverage need audit/hardening.
@@ -90,7 +90,7 @@ Areas needing classification before API freeze:
 | P0-DOC-001 | P0 | Documentation can contradict current capabilities/version. | Add automated current-doc/version/package checks. |
 | P1-ROW-001 | P1 | Example-data row selector semantics are subtle and could be misrepresented. | Document and test inline row execution vs descriptor/event filtering. |
 | P1-PROP-001 | P1 | Generated Prophecy token overloads need edge-case audit. | Add regression matrix and document limits. |
-| P0-MATCH-001 | P0 | Dynamic object-state matcher contract is not finalized. | Implement or explicitly defer/narrow scope before RC without contradicting the PHPSpec-first promise. |
+| P1-MATCH-001 | P1 | Inline/configured custom matcher scope is not finalized. | Implement or explicitly defer/narrow scope before RC without contradicting the PHPSpec-first promise. |
 | P1-EXT-001 | P1 | Event/extension v2 scope could affect API freeze. | Decide 1.0 scope and classify existing extension APIs. |
 | P2-PERF-001 | P2 | No large-suite performance baseline yet. | Add reproducible benchmark before final 1.0 if feasible; otherwise document post-1.0 plan. |
 

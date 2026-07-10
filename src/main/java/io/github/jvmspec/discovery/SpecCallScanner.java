@@ -122,6 +122,7 @@ final class SpecCallScanner {
         final List<Call> throwDuringCalls = new ArrayList<Call>();
         final List<Call> subjectVoidStatements = new ArrayList<Call>();
         final List<Call> setterStatements = new ArrayList<Call>();
+        final List<Call> stateExpectationStatements = new ArrayList<Call>();
         final Map<String, SpecMethodParams> specMethods = new LinkedHashMap<String, SpecMethodParams>();
     }
 
@@ -234,6 +235,9 @@ final class SpecCallScanner {
                     String name = ((IdentifierTree) select).getName().toString();
                     if (isSetterName(name)) {
                         result.setterStatements.add(
+                                new Call(name, argumentTexts(invocation), currentMethod));
+                    } else if (isStateExpectationName(name)) {
+                        result.stateExpectationStatements.add(
                                 new Call(name, argumentTexts(invocation), currentMethod));
                     }
                 }
@@ -351,6 +355,36 @@ final class SpecCallScanner {
             return name.startsWith("set")
                     && name.length() > 3
                     && Character.isUpperCase(name.charAt(3));
+        }
+
+        private static boolean isStateExpectationName(String name) {
+            if (MATCHER_NAMES.contains(name) || isSubjectMarkerName(name)) {
+                return false;
+            }
+            return hasStateExpectationPrefix(name, "shouldBe")
+                    || hasStateExpectationPrefix(name, "shouldNotBe")
+                    || hasStateExpectationPrefix(name, "shouldHave")
+                    || hasStateExpectationPrefix(name, "shouldNotHave");
+        }
+
+        private static boolean hasStateExpectationPrefix(String name, String prefix) {
+            return name.startsWith(prefix)
+                    && name.length() > prefix.length()
+                    && Character.isUpperCase(name.charAt(prefix.length()));
+        }
+
+        private static boolean isSubjectMarkerName(String name) {
+            return "shouldBeAClass".equals(name)
+                    || "shouldBeAFinalClass".equals(name)
+                    || "shouldBeAnInterface".equals(name)
+                    || "shouldBeAnEnum".equals(name)
+                    || "shouldBeAnAnnotation".equals(name)
+                    || "shouldBeARecord".equals(name)
+                    || "shouldBeASealedClass".equals(name)
+                    || "shouldBeASealedInterface".equals(name)
+                    || "shouldExtend".equals(name)
+                    || "shouldPermit".equals(name)
+                    || "shouldHaveConstant".equals(name);
         }
 
         private static boolean isIgnoredName(String methodName) {

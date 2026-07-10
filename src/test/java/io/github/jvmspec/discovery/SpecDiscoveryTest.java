@@ -257,6 +257,39 @@ public class SpecDiscoveryTest {
     }
 
     @Test
+    public void discoversGeneratedStateExpectationCallsAsProductionAccessors() throws Exception {
+        File specRoot = temporaryFolder.newFolder("state-expectation-discovery-root");
+        writeFile(
+                specRoot,
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator + "BookSpec.java",
+                "package spec.com.example;\n\n" +
+                        "public class BookSpec extends BookSpecSupport {\n" +
+                        "    public void it_describes_state() {\n" +
+                        "        shouldBeActive();\n" +
+                        "        shouldNotBeArchived();\n" +
+                        "        shouldHaveInventory();\n" +
+                        "        shouldNotHaveDiscount();\n" +
+                        "        shouldHaveTitle(\"Wizard\");\n" +
+                        "        shouldNotHaveRating(0);\n" +
+                        "        shouldHaveType(Book.class);\n" +
+                        "    }\n" +
+                        "}\n"
+        );
+
+        List<DiscoveredSpec> specs = SpecDiscovery.discover(specRoot);
+
+        assertEquals(1, specs.size());
+        assertEquals(Arrays.asList(
+                MethodDescriptor.of("isActive", "boolean"),
+                MethodDescriptor.of("isArchived", "boolean"),
+                MethodDescriptor.of("hasInventory", "boolean"),
+                MethodDescriptor.of("hasDiscount", "boolean"),
+                MethodDescriptor.of("getTitle", "String"),
+                MethodDescriptor.of("getRating", "int")
+        ), specs.get(0).describedType().methods());
+    }
+
+    @Test
     public void discoversLegacySamePackageSpecsByConvention() throws Exception {
         File specRoot = temporaryFolder.newFolder("legacy-spec-root");
         File specFile = writeFile(specRoot, "com" + File.separator + "example" + File.separator + "LegacySpec.java");

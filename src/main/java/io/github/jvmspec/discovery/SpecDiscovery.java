@@ -52,6 +52,9 @@ public final class SpecDiscovery {
     private static final Pattern PLAIN_SETTER_CALL_PATTERN = Pattern.compile(
             "(?m)^\\s*(set[A-Z][A-Za-z0-9_$]*)\\s*\\(([^;{}]*)\\)\\s*;"
     );
+    private static final Pattern STATE_EXPECTATION_PATTERN = Pattern.compile(
+            "(?m)^\\s*((?:shouldBe|shouldNotBe|shouldHave|shouldNotHave)[A-Z][A-Za-z0-9_$]*)\\s*\\(([^;{}]*)\\)\\s*;"
+    );
     private static final Pattern MATCH_SUBJECT_PROXY_PATTERN = Pattern.compile(
             "match\\s*\\(\\s*subject\\s*\\(\\s*\\)\\s*\\.\\s*([a-z][A-Za-z0-9_$]*)\\s*\\(([^;{}]*)\\)\\s*\\)\\s*\\.\\s*"
                     + "(shouldReturn|shouldNotReturn|shouldBe|shouldNotBe|shouldEqual|shouldNotEqual|shouldBeLike|shouldNotBeLike|shouldBeEqualTo|shouldNotBeEqualTo|shouldBeApproximately|shouldReturnApproximately|shouldNotBeApproximately|shouldNotReturnApproximately|shouldHaveType|shouldBeAnInstanceOf|shouldReturnAnInstanceOf|shouldImplement|shouldContain|shouldNotContain|shouldStartWith|shouldNotStartWith|shouldEndWith|shouldNotEndWith|shouldMatchPattern|shouldNotMatchPattern|shouldHaveCount|shouldBeEmpty|shouldNotBeEmpty|shouldHaveKey|shouldNotHaveKey|shouldHaveValue|shouldNotHaveValue)"
@@ -346,6 +349,17 @@ public final class SpecDiscovery {
             addMethod(discovered, voidMethodDescriptor(methodName, arguments, parameterNames));
         }
 
+        Matcher stateExpectationMatcher = STATE_EXPECTATION_PATTERN.matcher(source);
+        while (stateExpectationMatcher.find()) {
+            String expectationName = stateExpectationMatcher.group(1);
+            if (isKnownMatcherName(expectationName)) {
+                continue;
+            }
+            String argumentSource = stateExpectationMatcher.group(2).trim();
+            InferredArguments arguments = inferArgumentTypes(argumentSource, source, stateExpectationMatcher.start(), specMethods, imports, describedPackageName);
+            addStateExpectationMethod(expectationName, arguments, discovered);
+        }
+
         return new ArrayList<MethodDescriptor>(discovered.values());
     }
 
@@ -417,6 +431,123 @@ public final class SpecDiscovery {
                     call.argumentTexts, specMethods.get(call.enclosingMethod), imports, describedPackageName);
             addMethod(discovered, voidMethodDescriptor(
                     call.name, arguments, parameterNamesFor(call.name, arguments.size())));
+        }
+
+        for (int i = 0; i < scan.stateExpectationStatements.size(); i++) {
+            SpecCallScanner.Call call = scan.stateExpectationStatements.get(i);
+            InferredArguments arguments = inferArgumentTypesCore(
+                    call.argumentTexts, specMethods.get(call.enclosingMethod), imports, describedPackageName);
+            addStateExpectationMethod(call.name, arguments, discovered);
+        }
+    }
+
+    private static void addStateExpectationMethod(
+            String expectationName,
+            InferredArguments arguments,
+            Map<String, MethodDescriptor> discovered
+    ) {
+        StateExpectationTarget target = stateExpectationTarget(expectationName, arguments);
+        if (target == null) {
+            return;
+        }
+        addMethod(discovered, MethodDescriptor.of(target.methodName, target.returnType));
+    }
+
+    private static StateExpectationTarget stateExpectationTarget(String expectationName, InferredArguments arguments) {
+        if (hasStateExpectationPrefix(expectationName, "shouldNotBe")) {
+            if (arguments.size() == 0) {
+                return new StateExpectationTarget("is" + expectationName.substring("shouldNotBe".length()), "boolean");
+            }
+            return null;
+        }
+        if (hasStateExpectationPrefix(expectationName, "shouldBe")) {
+            if (arguments.size() == 0) {
+                return new StateExpectationTarget("is" + expectationName.substring("shouldBe".length()), "boolean");
+            }
+            return null;
+        }
+        if (hasStateExpectationPrefix(expectationName, "shouldNotHave")) {
+            String property = expectationName.substring("shouldNotHave".length());
+            if (arguments.size() == 0) {
+                return new StateExpectationTarget("has" + property, "boolean");
+            }
+            if (arguments.size() == 1) {
+                return new StateExpectationTarget("get" + property, arguments.types.get(0));
+            }
+            return null;
+        }
+        if (hasStateExpectationPrefix(expectationName, "shouldHave")) {
+            String property = expectationName.substring("shouldHave".length());
+            if (arguments.size() == 0) {
+                return new StateExpectationTarget("has" + property, "boolean");
+            }
+            if (arguments.size() == 1) {
+                return new StateExpectationTarget("get" + property, arguments.types.get(0));
+            }
+        }
+        return null;
+    }
+
+    private static boolean hasStateExpectationPrefix(String name, String prefix) {
+        return name.startsWith(prefix)
+                && name.length() > prefix.length()
+                && Character.isUpperCase(name.charAt(prefix.length()));
+    }
+
+    private static boolean isKnownMatcherName(String name) {
+        return "shouldReturn".equals(name)
+                || "shouldNotReturn".equals(name)
+                || "shouldBe".equals(name)
+                || "shouldNotBe".equals(name)
+                || "shouldEqual".equals(name)
+                || "shouldNotEqual".equals(name)
+                || "shouldBeLike".equals(name)
+                || "shouldNotBeLike".equals(name)
+                || "shouldBeEqualTo".equals(name)
+                || "shouldNotBeEqualTo".equals(name)
+                || "shouldBeApproximately".equals(name)
+                || "shouldReturnApproximately".equals(name)
+                || "shouldNotBeApproximately".equals(name)
+                || "shouldNotReturnApproximately".equals(name)
+                || "shouldHaveType".equals(name)
+                || "shouldBeAnInstanceOf".equals(name)
+                || "shouldReturnAnInstanceOf".equals(name)
+                || "shouldImplement".equals(name)
+                || "shouldContain".equals(name)
+                || "shouldNotContain".equals(name)
+                || "shouldStartWith".equals(name)
+                || "shouldNotStartWith".equals(name)
+                || "shouldEndWith".equals(name)
+                || "shouldNotEndWith".equals(name)
+                || "shouldMatchPattern".equals(name)
+                || "shouldNotMatchPattern".equals(name)
+                || "shouldHaveCount".equals(name)
+                || "shouldBeEmpty".equals(name)
+                || "shouldNotBeEmpty".equals(name)
+                || "shouldHaveKey".equals(name)
+                || "shouldNotHaveKey".equals(name)
+                || "shouldHaveValue".equals(name)
+                || "shouldNotHaveValue".equals(name)
+                || "shouldBeAClass".equals(name)
+                || "shouldBeAFinalClass".equals(name)
+                || "shouldBeAnInterface".equals(name)
+                || "shouldBeAnEnum".equals(name)
+                || "shouldBeAnAnnotation".equals(name)
+                || "shouldBeARecord".equals(name)
+                || "shouldBeASealedClass".equals(name)
+                || "shouldBeASealedInterface".equals(name)
+                || "shouldExtend".equals(name)
+                || "shouldPermit".equals(name)
+                || "shouldHaveConstant".equals(name);
+    }
+
+    private static final class StateExpectationTarget {
+        private final String methodName;
+        private final String returnType;
+
+        private StateExpectationTarget(String methodName, String returnType) {
+            this.methodName = methodName;
+            this.returnType = returnType;
         }
     }
 
