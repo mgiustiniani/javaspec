@@ -242,8 +242,9 @@ Rules:
 - Failed rows show row values in diagnostics.
 
 **Status:** In progress — slice 1 implements the zero-dependency core API for `row(...)`,
-`examples(...)`, `Example1`, and `Example2`, runs data rows inside the current example, and reports
-failing row context. Row-level reports and JUnit Platform descriptors remain as later Phase 47 work.
+`examples(...)`, `Example1`, and `Example2`, runs data rows inside the current example, and includes
+failing row context in console output, JSON failure messages, and JUnit XML failure messages. First-class
+row child results and JUnit Platform descriptors remain as later Phase 47 work.
 
 ### Phase 48 — Collaborator injection for `let` and examples
 

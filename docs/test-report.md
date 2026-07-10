@@ -12,9 +12,12 @@ row value context in the assertion message.
 Verification summary:
 
 - `mvn -q -Dtest=ObjectBehaviorTest,MainPhase47ExampleDataCliTest test` passed.
+- `mvn -q -Dtest=MainPhase47ExampleDataCliTest test` passed after adding JSON/JUnit XML assertions
+  for failing-row context.
 
-Remaining Phase 47 work: row-level report/formatter representation and JUnit Platform child
-descriptors/selectors.
+Current reporting behavior: failing row context is included in pretty/progress output, JSON failure
+messages, and JUnit XML failure messages. Remaining Phase 47 work: first-class row child results and
+JUnit Platform child descriptors/selectors.
 
 ## Phase 46 PHPSpec compatibility charter verification update
 

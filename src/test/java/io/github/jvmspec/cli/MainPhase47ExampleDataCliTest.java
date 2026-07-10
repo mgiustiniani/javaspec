@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 
 import javax.tools.ToolProvider;
 
@@ -75,6 +76,8 @@ public class MainPhase47ExampleDataCliTest {
         File sourceRoot = temporaryFolder.newFolder("phase47-failing-source-root");
         File specRoot = temporaryFolder.newFolder("phase47-failing-spec-root");
         File compileOutput = new File(temporaryFolder.getRoot(), "phase47-failing-classes");
+        File jsonReport = new File(temporaryFolder.getRoot(), "phase47-failing-report.json");
+        File junitReport = new File(temporaryFolder.getRoot(), "phase47-failing-report.xml");
         writeSource(sourceRoot, "com.phase47.FailingNameNormalizer",
                 "public class FailingNameNormalizer {\n" +
                         "    public String normalize(String value) {\n" +
@@ -106,7 +109,9 @@ public class MainPhase47ExampleDataCliTest {
                 "--source-dir", sourceRoot.getAbsolutePath(),
                 "--compile",
                 "--compile-output", compileOutput.getAbsolutePath(),
-                "--formatter", "pretty"
+                "--formatter", "pretty",
+                "--report", jsonReport.getAbsolutePath(),
+                "--junit-xml", junitReport.getAbsolutePath()
         );
 
         assertEquals(1, result.exitCode);
@@ -114,6 +119,12 @@ public class MainPhase47ExampleDataCliTest {
         assertContains(result.out, "Example data row 2 [ Bob , Robert] failed");
         assertContains(result.out, "Expected equality(Robert) but got Bob");
         assertEquals("", result.err);
+        assertTrue(jsonReport.isFile());
+        assertTrue(junitReport.isFile());
+        assertContains(readFile(jsonReport), "Example data row 2 [ Bob , Robert] failed");
+        assertContains(readFile(jsonReport), "Expected equality(Robert) but got Bob");
+        assertContains(readFile(junitReport), "Example data row 2 [ Bob , Robert] failed");
+        assertContains(readFile(junitReport), "Expected equality(Robert) but got Bob");
     }
 
     private static void requireJdkCompiler() {
@@ -143,6 +154,10 @@ public class MainPhase47ExampleDataCliTest {
         } finally {
             output.close();
         }
+    }
+
+    private static String readFile(File file) throws Exception {
+        return new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
     }
 
     private static void assertContains(String value, String expected) {
