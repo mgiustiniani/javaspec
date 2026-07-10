@@ -37,17 +37,18 @@ Evidence:
 | `scripts/verify-release-dry-run.sh` | `7256969` | PASS | Packages all artifacts, verifies checksums, and runs consumer examples |
 | `scripts/check-core-java8-bytecode.sh` | local RC hardening slice | PASS | Core classfiles max major 52 |
 | `scripts/check-release-preflight.sh` | release/tag-time gate | PENDING | Expected to pass only after `1.0.0-RC1` / `1.0.0` version cut and matching tag |
+| GitHub Actions Java 8/11/17/21/25 + full Java 21 | `0f89906` | PASS | [CI run 29115347259](https://github.com/mgiustiniani/javaspec/actions/runs/29115347259) |
 
 ## Core gates
 
-- [ ] Java 8 runtime compatibility verified.
-- [ ] Java 11 verified.
-- [ ] Java 17 verified.
-- [x] Java 21 verified locally (`JAVA_HOME=/usr/lib/jvm/java-21-openjdk ... mvn -q verify`).
-- [x] Java 25 verified locally (`mvn -q verify`, `scripts/verify-all.sh`, `scripts/verify-release-dry-run.sh`).
+- [x] Java 8 runtime compatibility verified ([CI run 29115347259](https://github.com/mgiustiniani/javaspec/actions/runs/29115347259)).
+- [x] Java 11 verified ([CI run 29115347259](https://github.com/mgiustiniani/javaspec/actions/runs/29115347259)).
+- [x] Java 17 verified ([CI run 29115347259](https://github.com/mgiustiniani/javaspec/actions/runs/29115347259)).
+- [x] Java 21 verified locally and in CI.
+- [x] Java 25 verified locally and in CI.
 - [x] Root runtime dependency tree has no third-party runtime dependencies.
 - [x] No direct linkage to post-Java-8 APIs in core (`mvn -q verify` runs Animal Sniffer against Java 8 API signature; `com.sun.source.*` javac tree API is explicitly allowed for JDK 8 `tools.jar` compatibility).
-- [x] Core classfiles are Java 8 bytecode-compatible (max major 52 checked by `scripts/check-core-java8-bytecode.sh`; full Java 8 runtime smoke remains CI/JDK8 evidence task).
+- [x] Core classfiles are Java 8 bytecode-compatible (max major 52 checked by `scripts/check-core-java8-bytecode.sh`; Java 8 runtime matrix job passed).
 - [x] CLI contract tests green.
 - [x] JSON schema/golden fixtures green.
 - [x] JUnit XML golden fixtures green.

@@ -48,10 +48,18 @@ Release dry-run evidence:
 - Ran external consumer examples for Maven, Gradle, JUnit Platform, Prophecy, bytecode doubles, and
   bytecode agent from locally installed/staged artifacts.
 
+## 2026-07-10 — CI runtime matrix
+
+GitHub Actions [run 29115347259](https://github.com/mgiustiniani/javaspec/actions/runs/29115347259)
+passed at commit `0f89906`:
+
+- Core `mvn -q verify` on Java 8, 11, 17, 21, and 25.
+- Root runtime dependency audit in every core matrix job.
+- Full adapter and standalone consumer verification on Java 21.
+- Release contract guards, including the portable API-surface classification check.
+
 Remaining RC/final cut-time evidence:
 
-- Java 8, Java 11, and Java 17 matrix evidence where those runtimes are available in CI/release
-  infrastructure.
 - `scripts/check-release-preflight.sh` on the actual version-cut commit. A disposable-copy simulation
   with all aligned build files set to `1.0.0-RC1` and `JAVASPEC_RELEASE_TAG=v1.0.0-RC1` passed; the
   current snapshot branch correctly fails the same gate.
