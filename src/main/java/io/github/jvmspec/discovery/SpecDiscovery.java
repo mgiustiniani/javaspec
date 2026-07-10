@@ -763,6 +763,9 @@ public final class SpecDiscovery {
         if ("null".equals(value)) {
             return InferredType.unknownObject();
         }
+        if (isClassLiteral(value)) {
+            return InferredType.known("Class");
+        }
         String constructedType = constructedType(value);
         if (constructedType != null) {
             return InferredType.known(resolveTypeName(constructedType, imports, describedPackageName));
@@ -888,6 +891,15 @@ public final class SpecDiscovery {
         }
         int lastDot = value.lastIndexOf('.');
         return value.substring(0, lastDot);
+    }
+
+    private static boolean isClassLiteral(String value) {
+        String trimmed = value.trim();
+        if (!trimmed.endsWith(".class")) {
+            return false;
+        }
+        String target = trimmed.substring(0, trimmed.length() - ".class".length()).trim();
+        return isLikelyTypeName(target);
     }
 
     private static boolean isStringLiteral(String value) {

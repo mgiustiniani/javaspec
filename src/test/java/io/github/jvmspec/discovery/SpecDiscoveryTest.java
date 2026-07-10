@@ -446,6 +446,29 @@ public class SpecDiscoveryTest {
     }
 
     @Test
+    public void classLiteralArgumentContributesClassStaticTypeForProxyCalls() throws Exception {
+        File specRoot = temporaryFolder.newFolder("class-literal-root");
+        writeFile(
+                specRoot,
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator + "TypeMatcherSpec.java",
+                "package spec.com.example;\n" +
+                "public class TypeMatcherSpec extends TypeMatcherSpecSupport {\n" +
+                "    public void it_accepts_class_literal() {\n" +
+                "        supports(String.class).shouldReturn(true);\n" +
+                "        supports(int.class).shouldReturn(false);\n" +
+                "    }\n" +
+                "}\n"
+        );
+
+        List<DiscoveredSpec> specs = SpecDiscovery.discover(specRoot);
+
+        assertEquals(1, specs.size());
+        assertEquals(Arrays.asList(
+                MethodDescriptor.of("supports", "boolean", Arrays.asList("Class"), Arrays.asList("arg0"))
+        ), specs.get(0).describedType().methods());
+    }
+
+    @Test
     public void constructedValueObjectArgumentContributesStaticTypeForProxyCalls() throws Exception {
         File specRoot = temporaryFolder.newFolder("constructed-value-root");
         writeFile(
