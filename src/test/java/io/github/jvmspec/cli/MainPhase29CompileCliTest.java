@@ -359,6 +359,47 @@ public class MainPhase29CompileCliTest {
     }
 
     @Test
+    public void runGenerateCompileRecordPrefixConstructionReachesAssertionRedAfterArityGrowth() throws Exception {
+        requireJdkCompiler();
+        assumeTrue(supportsJavaSpecificationVersion(17));
+        File sourceRoot = temporaryFolder.newFolder("record-prefix-source-root");
+        File specRoot = temporaryFolder.newFolder("record-prefix-spec-root");
+        File compileOutput = new File(temporaryFolder.getRoot(), "record-prefix-classes");
+        writeSource(sourceRoot, "com.phase29.EvolvedEnvelope",
+                "public record EvolvedEnvelope(String id, int version, String status) {\n" +
+                        "    public String statusText() { return status; }\n" +
+                        "}\n");
+        writeSource(specRoot, "spec.com.phase29.EvolvedEnvelopeSpec",
+                "public class EvolvedEnvelopeSpec extends io.github.jvmspec.api.ObjectBehavior<com.phase29.EvolvedEnvelope> {\n" +
+                        "    public EvolvedEnvelopeSpec() { super(com.phase29.EvolvedEnvelope.class); }\n" +
+                        "    public void it_reaches_domain_red_after_record_arity_growth() {\n" +
+                        "        beConstructedWith(\"abc\", 7);\n" +
+                        "        match(subject().statusText()).shouldReturn(\"ready\");\n" +
+                        "    }\n" +
+                        "}\n");
+
+        CommandResult result = run(
+                "run",
+                "--spec-dir", specRoot.getAbsolutePath(),
+                "--source-dir", sourceRoot.getAbsolutePath(),
+                "--profile", "java17",
+                "--generate",
+                "--compile",
+                "--release", "17",
+                "--compile-output", compileOutput.getAbsolutePath()
+        );
+
+        assertEquals("stdout:\n" + result.out + "\nstderr:\n" + result.err, 1, result.exitCode);
+        assertEquals("", result.err);
+        assertContains(result.out, "Compiled 2 source file(s) to " + compileOutput.getAbsolutePath() + ".");
+        assertContains(result.out, "FAILED spec.com.phase29.EvolvedEnvelopeSpec#it_reaches_domain_red_after_record_arity_growth");
+        assertContains(result.out, "Expected equality(ready) but got null");
+        assertFalse("record prefix compatibility must avoid infrastructure BROKEN diagnostics",
+                result.out.contains("No matching constructor found"));
+        assertContains(result.out, "Examples: 1 total, 0 passed, 1 failed, 0 broken, 0 skipped, 0 pending.");
+    }
+
+    @Test
     public void runCompileReleaseWritesExpectedClassFileMajorVersion() throws Exception {
         requireJdkCompiler();
         File sourceRoot = temporaryFolder.newFolder("release-source-root");

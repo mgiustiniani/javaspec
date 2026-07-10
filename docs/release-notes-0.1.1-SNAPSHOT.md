@@ -35,7 +35,9 @@ moving dependency-heavy behavior into optional artifacts.
   accessors as existing methods during record updates, evolves record headers from
   constructor-driven specs such as `beConstructedWith(...)` plus `value()`, refines existing source
   kind before updates so records are not evolved as classes, emits generated support default
-  `beConstructedWith(...)` calls for evolved records with canonical constructors, preserves compact
+  `beConstructedWith(...)` calls for evolved records with canonical constructors, and allows explicit
+  legacy `beConstructedWith(...)` prefix arguments for records to be padded with Java defaults for
+  newly added trailing canonical components while exact constructors still win. It preserves compact
   constructors while adding record methods/components, checks multiline sealed-class `permits`
   updates with Java 17 compilation, verifies `run --generate --compile --release 17` for generated
   record/sealed skeletons, and expands parser coverage for generic method type parameters and

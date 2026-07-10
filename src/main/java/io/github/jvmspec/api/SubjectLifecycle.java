@@ -34,7 +34,7 @@ public class SubjectLifecycle<T> {
      */
     public SubjectLifecycle(Class<? extends T> subjectType) {
         this.subjectType = subjectType;
-        this.construction = Construction.withConstructor(new Object[0]);
+        this.construction = Construction.withDefaultConstructor(new Object[0]);
     }
 
     /**
@@ -83,7 +83,7 @@ public class SubjectLifecycle<T> {
      */
     public void beConstructedWith(Object... args) {
         ensureConstructionCanChange();
-        construction = Construction.withConstructor(copyArgs(args));
+        construction = Construction.withExplicitConstructor(copyArgs(args));
     }
 
     /**
@@ -168,15 +168,15 @@ public class SubjectLifecycle<T> {
 
     @SuppressWarnings("unchecked")
     private T constructThroughConstructor() throws Throwable {
-        Constructor<?> constructor = findConstructor();
-        if (constructor == null) {
+        ResolvedConstructor resolved = resolveConstructor();
+        if (resolved == null) {
             throw new IllegalStateException("No matching constructor found for " + subjectType.getName());
         }
         try {
-            if (!constructor.isAccessible()) {
-                constructor.setAccessible(true);
+            if (!resolved.constructor.isAccessible()) {
+                resolved.constructor.setAccessible(true);
             }
-            return (T) constructor.newInstance(construction.args);
+            return (T) resolved.constructor.newInstance(resolved.args);
         } catch (InvocationTargetException ex) {
             throw invocationCause(ex);
         }
@@ -200,15 +200,52 @@ public class SubjectLifecycle<T> {
         }
     }
 
-    private Constructor<?> findConstructor() {
+    private ResolvedConstructor resolveConstructor() {
+        Constructor<?> exact = findExactConstructor(construction.args);
+        if (exact != null) {
+            return new ResolvedConstructor(exact, construction.args);
+        }
+        if (construction.explicitConstructor) {
+            ResolvedConstructor paddedRecordConstructor = findCanonicalRecordConstructorWithTrailingDefaults();
+            if (paddedRecordConstructor != null) {
+                return paddedRecordConstructor;
+            }
+        }
+        return null;
+    }
+
+    private Constructor<?> findExactConstructor(Object[] args) {
         Constructor<?>[] constructors = subjectType.getDeclaredConstructors();
         for (int i = 0; i < constructors.length; i++) {
             Constructor<?> constructor = constructors[i];
-            if (parametersMatch(constructor.getParameterTypes(), construction.args)) {
+            if (parametersMatch(constructor.getParameterTypes(), args)) {
                 return constructor;
             }
         }
         return null;
+    }
+
+    private ResolvedConstructor findCanonicalRecordConstructorWithTrailingDefaults() {
+        Class<?>[] componentTypes = recordComponentTypes();
+        if (componentTypes == null || construction.args.length >= componentTypes.length) {
+            return null;
+        }
+        for (int i = 0; i < construction.args.length; i++) {
+            if (!argumentMatches(componentTypes[i], construction.args[i])) {
+                return null;
+            }
+        }
+        try {
+            Constructor<?> canonical = subjectType.getDeclaredConstructor(componentTypes);
+            Object[] paddedArgs = new Object[componentTypes.length];
+            System.arraycopy(construction.args, 0, paddedArgs, 0, construction.args.length);
+            for (int i = construction.args.length; i < componentTypes.length; i++) {
+                paddedArgs[i] = defaultValue(componentTypes[i]);
+            }
+            return new ResolvedConstructor(canonical, paddedArgs);
+        } catch (NoSuchMethodException ex) {
+            return null;
+        }
     }
 
     private Method findFactoryMethod() {
@@ -317,6 +354,61 @@ public class SubjectLifecycle<T> {
         return primitiveType;
     }
 
+    private Class<?>[] recordComponentTypes() {
+        if (!isRecordType()) {
+            return null;
+        }
+        try {
+            Method getRecordComponents = Class.class.getMethod("getRecordComponents");
+            Object rawComponents = getRecordComponents.invoke(subjectType);
+            if (!(rawComponents instanceof Object[])) {
+                return null;
+            }
+            Object[] components = (Object[]) rawComponents;
+            Class<?>[] componentTypes = new Class<?>[components.length];
+            for (int i = 0; i < components.length; i++) {
+                Method getType = components[i].getClass().getMethod("getType");
+                Object rawType = getType.invoke(components[i]);
+                if (!(rawType instanceof Class<?>)) {
+                    return null;
+                }
+                componentTypes[i] = (Class<?>) rawType;
+            }
+            return componentTypes;
+        } catch (ReflectiveOperationException ex) {
+            return null;
+        } catch (RuntimeException ex) {
+            return null;
+        }
+    }
+
+    private boolean isRecordType() {
+        try {
+            Method isRecord = Class.class.getMethod("isRecord");
+            Object result = isRecord.invoke(subjectType);
+            return Boolean.TRUE.equals(result);
+        } catch (ReflectiveOperationException ex) {
+            return false;
+        } catch (RuntimeException ex) {
+            return false;
+        }
+    }
+
+    private static Object defaultValue(Class<?> type) {
+        if (!type.isPrimitive()) {
+            return null;
+        }
+        if (boolean.class.equals(type)) return Boolean.FALSE;
+        if (byte.class.equals(type)) return Byte.valueOf((byte) 0);
+        if (short.class.equals(type)) return Short.valueOf((short) 0);
+        if (int.class.equals(type)) return Integer.valueOf(0);
+        if (long.class.equals(type)) return Long.valueOf(0L);
+        if (float.class.equals(type)) return Float.valueOf(0.0f);
+        if (double.class.equals(type)) return Double.valueOf(0.0d);
+        if (char.class.equals(type)) return Character.valueOf('\0');
+        return null;
+    }
+
     private static Throwable invocationCause(InvocationTargetException ex) {
         Throwable cause = ex.getCause();
         if (cause == null) {
@@ -332,21 +424,37 @@ public class SubjectLifecycle<T> {
         }
     }
 
+    private static final class ResolvedConstructor {
+        private final Constructor<?> constructor;
+        private final Object[] args;
+
+        ResolvedConstructor(Constructor<?> constructor, Object[] args) {
+            this.constructor = constructor;
+            this.args = copyArgs(args);
+        }
+    }
+
     private static final class Construction {
         private final String methodName;
         private final Object[] args;
+        private final boolean explicitConstructor;
 
-        private Construction(String methodName, Object[] args) {
+        private Construction(String methodName, Object[] args, boolean explicitConstructor) {
             this.methodName = methodName;
             this.args = args;
+            this.explicitConstructor = explicitConstructor;
         }
 
-        static Construction withConstructor(Object[] args) {
-            return new Construction(null, args);
+        static Construction withDefaultConstructor(Object[] args) {
+            return new Construction(null, args, false);
+        }
+
+        static Construction withExplicitConstructor(Object[] args) {
+            return new Construction(null, args, true);
         }
 
         static Construction withFactory(String methodName, Object[] args) {
-            return new Construction(methodName, args);
+            return new Construction(methodName, args, false);
         }
 
         boolean usesFactory() {
