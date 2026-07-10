@@ -66,7 +66,9 @@ moving dependency-heavy behavior into optional artifacts.
   (`in` / `notIn`), and custom callback (`matching`) argument tokens, available through core
   `Doubles` / `ArgumentMatchers` and prophecy `Argument` / `Arg` aliases. Generated typed
   `*Prophecy` wrappers include same-name `Object` argument-token overloads, so matcher-token calls
-  compile without falling back to reflective `method("...")` syntax. `MethodProphecy.should(...)`
+  compile without falling back to reflective `method("...")` syntax. Custom tokens can implement
+  `ArgumentToken` and be passed through `Argument.token(...)` / `Argument.custom(...)`.
+  `MethodProphecy.should(...)`
   now supports custom prediction callbacks receiving a `PredictionContext` with matching calls,
   all calls, method name, and argument pattern. Prediction and verification failure messages include
   recorded/matching call context, including ordered-verification failures and same-method calls with

@@ -16,6 +16,38 @@ import static org.junit.Assert.fail;
 
 public class MethodProphecyTest {
     @Test
+    public void customArgumentTokenParticipatesInProphecyMatchingAndDiagnostics() {
+        ObjectProphecy<Mailer> prophecy = Prophecies.prophesize(Mailer.class);
+        Mailer mailer = prophecy.reveal();
+
+        prophecy.<Boolean>method("send", Argument.token(new ArgumentToken() {
+            @Override
+            public boolean matches(Object actual) {
+                return actual instanceof String && ((String) actual).endsWith("@example.com");
+            }
+
+            @Override
+            public String describe() {
+                return "exampleAddress()";
+            }
+        })).willReturn(Boolean.TRUE).shouldBeCalled();
+
+        assertEquals(Boolean.TRUE, Boolean.valueOf(mailer.send("user@example.com")));
+        prophecy.predictionRegistry().checkAll();
+    }
+
+    @Test
+    public void customArgumentTokenAliasRejectsNull() {
+        NullPointerException error = (NullPointerException) expect(NullPointerException.class, new ThrowingCheck() {
+            @Override
+            public void run() {
+                Arg.custom(null);
+            }
+        });
+        assertTrue(error.getMessage().contains("token must not be null"));
+    }
+
+    @Test
     public void customPredictionCallbackReceivesMatchingCallsAndAllCalls() {
         ObjectProphecy<Mailer> prophecy = Prophecies.prophesize(Mailer.class);
         Mailer mailer = prophecy.reveal();
@@ -88,12 +120,22 @@ public class MethodProphecyTest {
     }
 
     private static AssertionError expectAssertion(ThrowingCheck check) {
+        return (AssertionError) expect(AssertionError.class, check);
+    }
+
+    private static Throwable expect(Class<? extends Throwable> expectedType, ThrowingCheck check) {
         try {
             check.run();
-        } catch (AssertionError failure) {
-            return failure;
+        } catch (Throwable thrown) {
+            if (expectedType.isAssignableFrom(thrown.getClass())) {
+                return thrown;
+            }
+            AssertionError error = new AssertionError("Expected " + expectedType.getName()
+                    + " but got " + thrown.getClass().getName());
+            error.initCause(thrown);
+            throw error;
         }
-        fail("Expected AssertionError");
+        fail("Expected " + expectedType.getName());
         return null;
     }
 

@@ -3,6 +3,7 @@ package io.github.jvmspec.doubles.prophecy;
 import io.github.jvmspec.doubles.ArgumentMatcher;
 import io.github.jvmspec.doubles.ArgumentMatchers;
 
+import java.util.Objects;
 import java.util.function.Predicate;
 
 /**
@@ -125,6 +126,20 @@ public final class Argument {
      */
     public static ArgumentMatcher matching(Predicate<Object> predicate, String description) {
         return ArgumentMatchers.matching(predicate, description);
+    }
+
+    /**
+     * Uses a custom Prophecy-style argument token.
+     */
+    public static ArgumentMatcher token(ArgumentToken token) {
+        return Objects.requireNonNull(token, "token must not be null");
+    }
+
+    /**
+     * Alias for {@link #token(ArgumentToken)}.
+     */
+    public static ArgumentMatcher custom(ArgumentToken token) {
+        return token(token);
     }
 
     private static final class ContainsStringMatcher implements ArgumentMatcher {

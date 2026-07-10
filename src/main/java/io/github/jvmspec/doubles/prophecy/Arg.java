@@ -100,4 +100,18 @@ public final class Arg {
     public static ArgumentMatcher matching(Predicate<Object> predicate, String description) {
         return Argument.matching(predicate, description);
     }
+
+    /**
+     * Uses a custom Prophecy-style argument token.
+     */
+    public static ArgumentMatcher token(ArgumentToken token) {
+        return Argument.token(token);
+    }
+
+    /**
+     * Alias for {@link #token(ArgumentToken)}.
+     */
+    public static ArgumentMatcher custom(ArgumentToken token) {
+        return Argument.custom(token);
+    }
 }

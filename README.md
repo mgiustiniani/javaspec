@@ -706,6 +706,7 @@ import static io.github.jvmspec.doubles.prophecy.Argument.*;
 | `same(Object)` / `identicalTo(Object)` | Matches the same object reference |
 | `in(Object...)` / `notIn(Object...)` | Matches membership using array-aware equality |
 | `matching(Predicate<Object>, String)` | Matches with a custom callback and diagnostic description |
+| `token(ArgumentToken)` / `custom(ArgumentToken)` | Uses a named custom Prophecy-style token |
 
 Custom prediction callbacks are available when built-in predictions are not expressive enough:
 

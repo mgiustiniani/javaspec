@@ -2143,7 +2143,9 @@ mailer.send(any(String.class)).should(context -> {
 ```
 
 The callback receives a `PredictionContext` with matching calls, all calls, the method name, and the
-argument pattern.
+argument pattern. For domain-specific argument semantics, implement `ArgumentToken` and pass it via
+`Argument.token(...)` / `Argument.custom(...)`; generated typed wrappers accept these tokens through
+their argument-token overloads.
 
 ### Collaborator parameters in `let`, examples, and `letGo`
 

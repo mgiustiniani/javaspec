@@ -358,7 +358,8 @@ Deliverables:
   and `matching(Predicate, description)` are now available through core doubles and prophecy aliases.
   Generated typed `*Prophecy` wrappers now include same-name `Object` argument-token overloads so
   PHPSpec-like calls such as `mailer.send(any(String.class)).shouldBeCalled()` compile without
-  falling back to reflective `method("send", ...)`.
+  falling back to reflective `method("send", ...)`. Prophecy also exposes a named `ArgumentToken`
+  custom-token interface plus `Argument.token(...)` / `Argument.custom(...)` aliases.
 - Add custom prediction callbacks equivalent to Prophecy `should(callback)`. **Done:**
   `MethodProphecy.should(PredictionCallback)` supplies `PredictionContext` with matching calls,
   all calls, method name, and argument pattern.
