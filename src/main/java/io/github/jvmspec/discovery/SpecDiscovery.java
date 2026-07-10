@@ -545,10 +545,22 @@ public final class SpecDiscovery {
     }
 
     private static void addMethod(Map<String, MethodDescriptor> methods, MethodDescriptor candidate) {
-        String key = methodKey(candidate.methodName(), candidate.parameterTypes());
-        MethodDescriptor existing = methods.get(key);
-        if (existing == null || shouldReplace(existing, candidate)) {
-            methods.put(key, candidate);
+        String matchingKey = null;
+        MethodDescriptor existing = null;
+        for (Map.Entry<String, MethodDescriptor> entry : methods.entrySet()) {
+            if (entry.getValue().hasCompatibleSignature(candidate)) {
+                matchingKey = entry.getKey();
+                existing = entry.getValue();
+                break;
+            }
+        }
+        if (existing == null) {
+            methods.put(candidate.normalizedSignatureKey(), candidate);
+            return;
+        }
+        if (shouldReplace(existing, candidate)) {
+            methods.remove(matchingKey);
+            methods.put(candidate.normalizedSignatureKey(), candidate);
         }
     }
 
@@ -556,23 +568,29 @@ public final class SpecDiscovery {
         if (existing.isStatic() != candidate.isStatic()) {
             return false;
         }
+        if (hasLessSpecificParameterTypes(existing, candidate)) {
+            return true;
+        }
         if ("Object".equals(existing.returnType()) && !"Object".equals(candidate.returnType())) {
             return true;
         }
         return existing.isVoid() && !candidate.isVoid();
     }
 
-    private static String methodKey(String methodName, List<String> parameterTypes) {
-        StringBuilder builder = new StringBuilder(methodName);
-        builder.append('(');
-        for (int i = 0; i < parameterTypes.size(); i++) {
-            if (i > 0) {
-                builder.append(',');
-            }
-            builder.append(parameterTypes.get(i));
+    private static boolean hasLessSpecificParameterTypes(MethodDescriptor existing, MethodDescriptor candidate) {
+        List<String> existingTypes = existing.parameterTypes();
+        List<String> candidateTypes = candidate.parameterTypes();
+        if (existingTypes.size() != candidateTypes.size()) {
+            return false;
         }
-        builder.append(')');
-        return builder.toString();
+        for (int i = 0; i < existingTypes.size(); i++) {
+            String existingType = MethodDescriptor.normalizedTypeName(existingTypes.get(i));
+            String candidateType = MethodDescriptor.normalizedTypeName(candidateTypes.get(i));
+            if ("Object".equals(existingType) && !"Object".equals(candidateType)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static String inferReturnType(
@@ -698,6 +716,10 @@ public final class SpecDiscovery {
         if (value.length() == 0) {
             return "Object";
         }
+        String castType = castType(value);
+        if (castType != null) {
+            return resolveTypeName(castType, imports, describedPackageName);
+        }
         if (isStringLiteral(value)) {
             return "String";
         }
@@ -730,6 +752,34 @@ public final class SpecDiscovery {
             return resolveTypeName(qualifiedConstantType, imports, describedPackageName);
         }
         return "Object";
+    }
+
+    private static String castType(String value) {
+        if (!value.startsWith("(")) {
+            return null;
+        }
+        int close = value.indexOf(')');
+        if (close <= 1 || close == value.length() - 1) {
+            return null;
+        }
+        String typeName = value.substring(1, close).trim();
+        String expression = value.substring(close + 1).trim();
+        if (!isLikelyTypeName(typeName)) {
+            return null;
+        }
+        if (expression.length() == 0) {
+            return null;
+        }
+        return typeName;
+    }
+
+    private static boolean isLikelyTypeName(String value) {
+        String trimmed = value.trim();
+        if (trimmed.matches("(?:byte|short|int|long|float|double|boolean|char)(?:\\s*\\[\\s*\\])*")) {
+            return true;
+        }
+        return trimmed.matches("[A-Z_$][A-Za-z0-9_$]*(?:\\s*\\[\\s*\\])*")
+                || trimmed.matches("[A-Za-z_$][A-Za-z0-9_$]*(?:\\.[A-Za-z_$][A-Za-z0-9_$]*)+(?:\\s*\\[\\s*\\])*");
     }
 
     /**

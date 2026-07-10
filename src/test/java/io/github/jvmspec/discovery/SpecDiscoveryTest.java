@@ -374,6 +374,53 @@ public class SpecDiscoveryTest {
     }
 
     @Test
+    public void repeatedProxyCallsWithLocalStringAndCastNullCollapseToOneMethod() throws Exception {
+        File specRoot = temporaryFolder.newFolder("duplicate-signature-root");
+        writeFile(
+                specRoot,
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator + "CanonicalTextSpec.java",
+                "package spec.com.example;\n" +
+                "public class CanonicalTextSpec extends CanonicalTextSpecSupport {\n" +
+                "    public void it_classifies_canonical_text() {\n" +
+                "        String validId = \"abc\";\n" +
+                "        isCanonicalText(validId).shouldReturn(true);\n" +
+                "        isCanonicalText((String) null).shouldReturn(false);\n" +
+                "    }\n" +
+                "}\n"
+        );
+
+        List<DiscoveredSpec> specs = SpecDiscovery.discover(specRoot);
+
+        assertEquals(1, specs.size());
+        assertEquals(Arrays.asList(
+                MethodDescriptor.of("isCanonicalText", "boolean", Arrays.asList("String"), Arrays.asList("arg0"))
+        ), specs.get(0).describedType().methods());
+    }
+
+    @Test
+    public void repeatedProxyCallsWithJavaLangStringAndStringCollapseToOneMethod() throws Exception {
+        File specRoot = temporaryFolder.newFolder("normalized-signature-root");
+        writeFile(
+                specRoot,
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator + "CanonicalTextSpec.java",
+                "package spec.com.example;\n" +
+                "public class CanonicalTextSpec extends CanonicalTextSpecSupport {\n" +
+                "    public void it_classifies_canonical_text(java.lang.String value) {\n" +
+                "        isCanonicalText(value).shouldReturn(true);\n" +
+                "        isCanonicalText(\"abc\").shouldReturn(true);\n" +
+                "    }\n" +
+                "}\n"
+        );
+
+        List<DiscoveredSpec> specs = SpecDiscovery.discover(specRoot);
+
+        assertEquals(1, specs.size());
+        assertEquals(Arrays.asList(
+                MethodDescriptor.of("isCanonicalText", "boolean", Arrays.asList("java.lang.String"), Arrays.asList("arg0"))
+        ), specs.get(0).describedType().methods());
+    }
+
+    @Test
     public void subjectCallNestedInShouldReturnArgumentDoesNotFabricatePhantomMethod() throws Exception {
         File specRoot = temporaryFolder.newFolder("nested-subject-arg-root");
         writeFile(

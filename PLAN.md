@@ -153,6 +153,20 @@ repository intentionally keeps standalone adapters/examples out of a root Maven 
 
 ## Follow-up Functional Hardening Backlog
 
+- **Parser/model signature normalization and generated-support de-duplication (Completed):** repeated
+  examples that call the same subject method with different argument expressions now collapse to one
+  logical method descriptor. The Magrathea PKI blocker where
+  `isCanonicalText(validId).shouldReturn(true)` followed by
+  `isCanonicalText((String) null).shouldReturn(false)` regenerated duplicate
+  `isCanonicalText(String)` and `duringIsCanonicalText(String)` methods in `*SpecSupport` is covered
+  by regressions. The fix improves AST/spec-call parsing for local variables and cast expressions,
+  normalizes compatible method signatures (`String`, `java.lang.String`, `(String) null`, and
+  safe `Object`/concrete convergence), de-duplicates `DescribedType.methods()` by static-ness,
+  method name, and normalized parameter types, and keeps support-generation de-duplication as a
+  defensive backstop. Regression coverage includes discovery/model tests, support-generation
+  duplicate guards, and a CLI `run --generate --compile` case that reaches a meaningful domain RED
+  instead of duplicate-method compilation errors.
+
 - **Record component evolution from constructor-driven specs (Completed):** when a spec uses
   `beConstructedWith(...)` and then asserts a record component accessor such as `value()`, javaspec
   now avoids the BROKEN `No matching constructor found` path by evolving record headers from

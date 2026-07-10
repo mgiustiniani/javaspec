@@ -99,6 +99,14 @@ final class SpecCallScanner {
             this.typeTexts = typeTexts;
             this.names = names;
         }
+
+        void addIfAbsent(String typeText, String name) {
+            if (names.contains(name)) {
+                return;
+            }
+            typeTexts.add(typeText);
+            names.add(name);
+        }
     }
 
     /** Everything the extraction phase needs, collected in one AST pass. */
@@ -182,6 +190,17 @@ final class SpecCallScanner {
             } finally {
                 currentMethod = previousMethod;
             }
+        }
+
+        @Override
+        public Void visitVariable(VariableTree variableTree, Void unused) {
+            if (currentMethod != null && variableTree.getType() != null) {
+                SpecMethodParams params = result.specMethods.get(currentMethod);
+                if (params != null) {
+                    params.addIfAbsent(variableTree.getType().toString(), variableTree.getName().toString());
+                }
+            }
+            return super.visitVariable(variableTree, unused);
         }
 
         @Override

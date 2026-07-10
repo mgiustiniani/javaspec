@@ -103,6 +103,27 @@ public class SpecSkeletonGeneratorTest {
     }
 
     @Test
+    public void supportGenerationDefensivelyDeduplicatesNormalizedMethodSignatures() {
+        DescribedType describedType = DescribedType.of(
+                "com.example.CanonicalText",
+                JavaTypeKind.CLASS,
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<ConstructorDescriptor>emptyList(),
+                Arrays.asList(
+                        MethodDescriptor.of("isCanonicalText", "boolean", Arrays.asList("Object"), Arrays.asList("arg0")),
+                        MethodDescriptor.of("isCanonicalText", "boolean", Arrays.asList("java.lang.String"), Arrays.asList("arg0"))
+                )
+        );
+
+        String source = SpecSkeletonGenerator.renderSupport(describedType);
+
+        assertEquals(1, countOccurrences(source, "protected io.github.jvmspec.matcher.Matchable<Boolean> isCanonicalText(java.lang.String arg0)"));
+        assertEquals(1, countOccurrences(source, "public void duringIsCanonicalText(final java.lang.String arg0)"));
+    }
+
+    @Test
     public void supportPlanSkipsStaticFactoryMethodsInTypedProxiesAndThrowProxies() throws Exception {
         File specRoot = temporaryFolder.newFolder("support-static-factory-root");
         DescribedType describedType = DescribedType.of(
@@ -270,5 +291,18 @@ public class SpecSkeletonGeneratorTest {
         assertFalse(source.contains("subject().equals"));
         assertFalse(source.contains("subject().hashCode"));
         assertFalse(source.contains("subject().toString"));
+    }
+
+    private static int countOccurrences(String text, String fragment) {
+        int count = 0;
+        int index = 0;
+        while (true) {
+            int found = text.indexOf(fragment, index);
+            if (found < 0) {
+                return count;
+            }
+            count++;
+            index = found + fragment.length();
+        }
     }
 }

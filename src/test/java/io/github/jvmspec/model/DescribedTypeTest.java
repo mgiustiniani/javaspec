@@ -60,6 +60,27 @@ public class DescribedTypeTest {
     }
 
     @Test
+    public void deduplicatesCompatibleMethodSignaturesUsingNormalizedParameterTypes() {
+        DescribedType describedType = DescribedType.of(
+                "com.example.CanonicalText",
+                JavaTypeKind.CLASS,
+                Arrays.<String>asList(),
+                Arrays.<String>asList(),
+                Arrays.<String>asList(),
+                Arrays.<ConstructorDescriptor>asList(),
+                Arrays.asList(
+                        MethodDescriptor.of("isCanonicalText", "Object", Arrays.asList("Object"), Arrays.asList("arg0")),
+                        MethodDescriptor.of("isCanonicalText", "boolean", Arrays.asList("java.lang.String"), Arrays.asList("arg0")),
+                        MethodDescriptor.of("isCanonicalText", "boolean", Arrays.asList("String"), Arrays.asList("arg0"))
+                )
+        );
+
+        assertEquals(Arrays.asList(
+                MethodDescriptor.of("isCanonicalText", "boolean", Arrays.asList("java.lang.String"), Arrays.asList("arg0"))
+        ), describedType.methods());
+    }
+
+    @Test
     public void rejectsNullKind() {
         assertThrows(NullPointerException.class, new ThrowingRunnable() {
             public void run() {

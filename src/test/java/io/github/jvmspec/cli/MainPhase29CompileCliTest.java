@@ -266,6 +266,53 @@ public class MainPhase29CompileCliTest {
     }
 
     @Test
+    public void runGenerateCompileDeduplicatesRepeatedProxySignaturesBeforeDomainRed() throws Exception {
+        requireJdkCompiler();
+        File sourceRoot = temporaryFolder.newFolder("duplicate-proxy-source-root");
+        File specRoot = temporaryFolder.newFolder("duplicate-proxy-spec-root");
+        File compileOutput = new File(temporaryFolder.getRoot(), "duplicate-proxy-classes");
+        writeSource(sourceRoot, "com.phase29.CanonicalText",
+                "public class CanonicalText {\n" +
+                        "    public boolean isCanonicalText(String value) {\n" +
+                        "        return false;\n" +
+                        "    }\n" +
+                        "}\n");
+        writeSource(specRoot, "spec.com.phase29.CanonicalTextSpec",
+                "public class CanonicalTextSpec extends CanonicalTextSpecSupport {\n" +
+                        "    public void it_accepts_valid_id() {\n" +
+                        "        String validId = \"abc\";\n" +
+                        "        isCanonicalText(validId).shouldReturn(true);\n" +
+                        "    }\n" +
+                        "\n" +
+                        "    public void it_rejects_null() {\n" +
+                        "        isCanonicalText((String) null).shouldReturn(false);\n" +
+                        "    }\n" +
+                        "}\n");
+
+        CommandResult result = run(
+                "run",
+                "--spec-dir", specRoot.getAbsolutePath(),
+                "--source-dir", sourceRoot.getAbsolutePath(),
+                "--generate",
+                "--compile",
+                "--compile-output", compileOutput.getAbsolutePath()
+        );
+
+        assertEquals("stdout:\n" + result.out + "\nstderr:\n" + result.err, 1, result.exitCode);
+        assertEquals("", result.err);
+        assertContains(result.out, "Compiled 2 source file(s) to " + compileOutput.getAbsolutePath() + ".");
+        assertContains(result.out, "FAILED spec.com.phase29.CanonicalTextSpec#it_accepts_valid_id");
+        assertContains(result.out, "Expected equality(true) but got false");
+        assertContains(result.out, "Examples: 2 total, 1 passed, 1 failed, 0 broken, 0 skipped, 0 pending.");
+        String support = readFile(sourceFileFor(new File("target/generated-sources/javaspec"),
+                "spec.com.phase29.CanonicalTextSpecSupport"));
+        assertEquals(1, countOccurrences(support,
+                "protected io.github.jvmspec.matcher.Matchable<Boolean> isCanonicalText(String value)"));
+        assertEquals(1, countOccurrences(support,
+                "public void duringIsCanonicalText(final String value)"));
+    }
+
+    @Test
     public void runGenerateCompileRelease17CompilesAndRunsRecordAndSealedSpecs() throws Exception {
         requireJdkCompiler();
         assumeTrue(supportsJavaSpecificationVersion(17));
@@ -536,6 +583,19 @@ public class MainPhase29CompileCliTest {
             }
         }
         path.delete();
+    }
+
+    private static int countOccurrences(String text, String fragment) {
+        int count = 0;
+        int index = 0;
+        while (true) {
+            int found = text.indexOf(fragment, index);
+            if (found < 0) {
+                return count;
+            }
+            count++;
+            index = found + fragment.length();
+        }
     }
 
     private static int countFiles(File root) {

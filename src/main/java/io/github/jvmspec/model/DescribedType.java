@@ -479,10 +479,51 @@ public final class DescribedType {
 
     private static List<MethodDescriptor> validatedMethods(List<MethodDescriptor> methods) {
         Objects.requireNonNull(methods, "methods must not be null");
-        List<MethodDescriptor> copy = new ArrayList<MethodDescriptor>(methods);
-        for (int i = 0; i < copy.size(); i++) {
-            Objects.requireNonNull(copy.get(i), "methods[" + i + "] must not be null");
+        List<MethodDescriptor> copy = new ArrayList<MethodDescriptor>();
+        for (int i = 0; i < methods.size(); i++) {
+            MethodDescriptor method = Objects.requireNonNull(methods.get(i), "methods[" + i + "] must not be null");
+            addMethod(copy, method);
         }
         return Collections.unmodifiableList(copy);
+    }
+
+    private static void addMethod(List<MethodDescriptor> methods, MethodDescriptor candidate) {
+        for (int i = 0; i < methods.size(); i++) {
+            MethodDescriptor existing = methods.get(i);
+            if (!existing.hasCompatibleSignature(candidate)) {
+                continue;
+            }
+            if (shouldReplace(existing, candidate)) {
+                methods.set(i, candidate);
+            }
+            return;
+        }
+        methods.add(candidate);
+    }
+
+    private static boolean shouldReplace(MethodDescriptor existing, MethodDescriptor candidate) {
+        if (hasLessSpecificParameterTypes(existing, candidate)) {
+            return true;
+        }
+        if ("Object".equals(existing.returnType()) && !"Object".equals(candidate.returnType())) {
+            return true;
+        }
+        return existing.isVoid() && !candidate.isVoid();
+    }
+
+    private static boolean hasLessSpecificParameterTypes(MethodDescriptor existing, MethodDescriptor candidate) {
+        List<String> existingTypes = existing.parameterTypes();
+        List<String> candidateTypes = candidate.parameterTypes();
+        if (existingTypes.size() != candidateTypes.size()) {
+            return false;
+        }
+        for (int i = 0; i < existingTypes.size(); i++) {
+            String existingType = MethodDescriptor.normalizedTypeName(existingTypes.get(i));
+            String candidateType = MethodDescriptor.normalizedTypeName(candidateTypes.get(i));
+            if ("Object".equals(existingType) && !"Object".equals(candidateType)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
