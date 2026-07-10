@@ -49,8 +49,10 @@ on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. The active relea
    - Reconfirm MIT license and maintainer metadata are acceptable for the publication target.
    - First publication may require Plugin Portal review; verify the published version at
      <https://plugins.gradle.org/plugin/io.github.jvmspec> before declaring the Gradle release complete.
-   - The tag workflow checks that both Gradle secrets and all Maven/GPG secrets are non-empty before
-     any publication step, preventing a known missing credential from causing a partial release.
+   - The tag workflow requires Maven/GPG credentials before Maven publication. If Gradle credentials
+     are absent, it publishes Maven artifacts and explicitly skips the Plugin Portal step with a
+     warning; rerunning after configuring Gradle credentials is safe because an existing Maven
+     release is detected and not deployed again.
 9. Tag and create the release only after local verification and CI are green. The release workflow runs
    the release preflight, release dry-run, Maven Central publication for all Maven artifacts, and
    Gradle Plugin Portal publication.
