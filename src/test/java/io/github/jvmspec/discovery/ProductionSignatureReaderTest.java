@@ -72,7 +72,8 @@ public class ProductionSignatureReaderTest {
                         MethodDescriptor.of("id", "Object"),
                         MethodDescriptor.of("toKeyHandle", "Object"),
                         MethodDescriptor.voidMethod("rotate",
-                                Arrays.asList("Object"), Arrays.asList("arg0")),
+                                Arrays.asList("Object"), Arrays.asList("arg0"))
+                                .withUnknownParameterTypes(Arrays.asList(Boolean.TRUE)),
                         MethodDescriptor.of("missingInProduction", "String")
                 ));
 
@@ -125,12 +126,31 @@ public class ProductionSignatureReaderTest {
         DescribedType described = describedKey(
                 Collections.<ConstructorDescriptor>emptyList(),
                 Arrays.asList(MethodDescriptor.of(
-                        "isCanonicalText", "boolean", Arrays.asList("Object"), Arrays.asList("arg0"))));
+                        "isCanonicalText", "boolean", Arrays.asList("Object"), Arrays.asList("arg0"))
+                        .withUnknownParameterTypes(Arrays.asList(Boolean.TRUE))));
 
         DescribedType refined = ProductionSignatureReader.refine(described, sourceRoot);
 
         assertEquals(Arrays.asList(MethodDescriptor.of(
                 "isCanonicalText", "boolean", Arrays.asList("String"), Arrays.asList("value"))), refined.methods());
+    }
+
+    @Test
+    public void doesNotRefineKnownObjectArgumentToStringOverload() throws Exception {
+        File sourceRoot = writeProductionSource("com/example/Key.java",
+                "package com.example;\n\n" +
+                "public class Key {\n" +
+                "    public boolean isCanonicalText(String value) { return true; }\n" +
+                "}\n");
+        DescribedType described = describedKey(
+                Collections.<ConstructorDescriptor>emptyList(),
+                Arrays.asList(MethodDescriptor.of(
+                        "isCanonicalText", "boolean", Arrays.asList("Object"), Arrays.asList("value"))));
+
+        DescribedType refined = ProductionSignatureReader.refine(described, sourceRoot);
+
+        assertEquals(Arrays.asList(MethodDescriptor.of(
+                "isCanonicalText", "boolean", Arrays.asList("Object"), Arrays.asList("value"))), refined.methods());
     }
 
     @Test

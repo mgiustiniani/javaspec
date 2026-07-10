@@ -163,12 +163,13 @@ repository intentionally keeps standalone adapters/examples out of a root Maven 
   normalizes equivalent method signatures (`String`, `java.lang.String`, and `(String) null`),
   de-duplicates `DescribedType.methods()` by static-ness, method name, and normalized parameter
   types, and keeps support-generation de-duplication as a defensive backstop. A deeper follow-up
-  adds production-source-guided overload resolution: unknown `Object` placeholders can refine to the
-  only compatible production overload, while real `Object` and `String` overloads are preserved
-  instead of being collapsed prematurely. Regression coverage includes discovery/model tests,
-  production-signature overload tests, support-generation duplicate guards, and a CLI
-  `run --generate --compile` case that reaches a meaningful domain RED instead of duplicate-method
-  compilation errors.
+  separates unknown argument placeholders from real `Object` parameters inside `MethodDescriptor`,
+  then uses production-source-guided overload resolution: unknown `Object` placeholders can refine to
+  the only compatible production overload, while real `Object` and `String` overloads are preserved
+  instead of being collapsed prematurely. Regression coverage includes discovery/model tests for
+  unknown-vs-real-Object handling, production-signature overload tests, support-generation duplicate
+  guards, and a CLI `run --generate --compile` case that reaches a meaningful domain RED instead of
+  duplicate-method compilation errors.
 
 - **Record component evolution from constructor-driven specs (Completed):** when a spec uses
   `beConstructedWith(...)` and then asserts a record component accessor such as `value()`, javaspec

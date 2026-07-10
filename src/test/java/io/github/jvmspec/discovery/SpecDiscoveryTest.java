@@ -421,6 +421,28 @@ public class SpecDiscoveryTest {
     }
 
     @Test
+    public void uncastNullArgumentIsTrackedAsUnknownObjectPlaceholder() throws Exception {
+        File specRoot = temporaryFolder.newFolder("unknown-null-root");
+        writeFile(
+                specRoot,
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator + "CanonicalTextSpec.java",
+                "package spec.com.example;\n" +
+                "public class CanonicalTextSpec extends CanonicalTextSpecSupport {\n" +
+                "    public void it_classifies_null() {\n" +
+                "        isCanonicalText(null).shouldReturn(false);\n" +
+                "    }\n" +
+                "}\n"
+        );
+
+        List<DiscoveredSpec> specs = SpecDiscovery.discover(specRoot);
+
+        assertEquals(1, specs.size());
+        MethodDescriptor method = specs.get(0).describedType().methods().get(0);
+        assertEquals(MethodDescriptor.of("isCanonicalText", "boolean", Arrays.asList("Object"), Arrays.asList("arg0")), method);
+        assertTrue(method.isParameterTypeUnknown(0));
+    }
+
+    @Test
     public void repeatedProxyCallsWithObjectAndStringArgumentsPreserveOverloads() throws Exception {
         File specRoot = temporaryFolder.newFolder("overload-signature-root");
         writeFile(

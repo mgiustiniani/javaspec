@@ -245,7 +245,7 @@ public final class SpecDiscovery {
                     continue;
                 }
             }
-            paramTypes.add(inferLiteralType(argName, imports, describedPackageName));
+            paramTypes.add(inferLiteralType(argName, imports, describedPackageName).typeName);
             String parameterName = parameterNameForArgument(argName, i);
             if (parameterName.equals("arg" + i)) {
                 String derivedName = typeDerivedParameterName(argName);
@@ -280,10 +280,10 @@ public final class SpecDiscovery {
             String argumentSource = proxyMatcher.group(2).trim();
             String matcherName = proxyMatcher.group(3);
             String expectationSource = proxyMatcher.group(4).trim();
-            List<String> parameterTypes = inferArgumentTypes(argumentSource, source, proxyMatcher.start(), specMethods, imports, describedPackageName);
-            List<String> parameterNames = parameterNamesFor(methodName, parameterTypes.size());
+            InferredArguments arguments = inferArgumentTypes(argumentSource, source, proxyMatcher.start(), specMethods, imports, describedPackageName);
+            List<String> parameterNames = parameterNamesFor(methodName, arguments.size());
             String returnType = inferReturnType(matcherName, expectationSource, imports, describedPackageName);
-            addMethod(discovered, MethodDescriptor.of(methodName, returnType, parameterTypes, parameterNames));
+            addMethod(discovered, methodDescriptor(methodName, returnType, arguments, parameterNames));
         }
 
         Matcher duringMatcher = SHOULD_THROW_DURING_PATTERN.matcher(source);
@@ -294,9 +294,9 @@ public final class SpecDiscovery {
             }
             String methodName = decapitalize(duringTarget);
             String argumentSource = duringMatcher.group(2).trim();
-            List<String> parameterTypes = inferArgumentTypes(argumentSource, source, duringMatcher.start(), specMethods, imports, describedPackageName);
-            List<String> parameterNames = parameterNamesFor(methodName, parameterTypes.size());
-            addMethod(discovered, MethodDescriptor.voidMethod(methodName, parameterTypes, parameterNames));
+            InferredArguments arguments = inferArgumentTypes(argumentSource, source, duringMatcher.start(), specMethods, imports, describedPackageName);
+            List<String> parameterNames = parameterNamesFor(methodName, arguments.size());
+            addMethod(discovered, voidMethodDescriptor(methodName, arguments, parameterNames));
         }
 
         Matcher subjectVoidMatcher = SUBJECT_VOID_CALL_PATTERN.matcher(source);
@@ -317,9 +317,9 @@ public final class SpecDiscovery {
                 // treating that fragment as an argument list would fabricate phantom parameters.
                 continue;
             }
-            List<String> parameterTypes = inferArgumentTypes(argumentSource, source, subjectVoidMatcher.start(), specMethods, imports, describedPackageName);
-            List<String> parameterNames = parameterNamesFor(methodName, parameterTypes.size());
-            addMethod(discovered, MethodDescriptor.voidMethod(methodName, parameterTypes, parameterNames));
+            InferredArguments arguments = inferArgumentTypes(argumentSource, source, subjectVoidMatcher.start(), specMethods, imports, describedPackageName);
+            List<String> parameterNames = parameterNamesFor(methodName, arguments.size());
+            addMethod(discovered, voidMethodDescriptor(methodName, arguments, parameterNames));
         }
 
         Matcher matchSubjectMatcher = MATCH_SUBJECT_PROXY_PATTERN.matcher(source);
@@ -331,19 +331,19 @@ public final class SpecDiscovery {
             String argumentSource = matchSubjectMatcher.group(2).trim();
             String matcherName = matchSubjectMatcher.group(3);
             String expectationSource = matchSubjectMatcher.group(4).trim();
-            List<String> parameterTypes = inferArgumentTypes(argumentSource, source, matchSubjectMatcher.start(), specMethods, imports, describedPackageName);
-            List<String> parameterNames = parameterNamesFor(methodName, parameterTypes.size());
+            InferredArguments arguments = inferArgumentTypes(argumentSource, source, matchSubjectMatcher.start(), specMethods, imports, describedPackageName);
+            List<String> parameterNames = parameterNamesFor(methodName, arguments.size());
             String returnType = inferReturnType(matcherName, expectationSource, imports, describedPackageName);
-            addMethod(discovered, MethodDescriptor.of(methodName, returnType, parameterTypes, parameterNames));
+            addMethod(discovered, methodDescriptor(methodName, returnType, arguments, parameterNames));
         }
 
         Matcher setterMatcher = PLAIN_SETTER_CALL_PATTERN.matcher(source);
         while (setterMatcher.find()) {
             String methodName = setterMatcher.group(1);
             String argumentSource = setterMatcher.group(2).trim();
-            List<String> parameterTypes = inferArgumentTypes(argumentSource, source, setterMatcher.start(), specMethods, imports, describedPackageName);
-            List<String> parameterNames = parameterNamesFor(methodName, parameterTypes.size());
-            addMethod(discovered, MethodDescriptor.voidMethod(methodName, parameterTypes, parameterNames));
+            InferredArguments arguments = inferArgumentTypes(argumentSource, source, setterMatcher.start(), specMethods, imports, describedPackageName);
+            List<String> parameterNames = parameterNamesFor(methodName, arguments.size());
+            addMethod(discovered, voidMethodDescriptor(methodName, arguments, parameterNames));
         }
 
         return new ArrayList<MethodDescriptor>(discovered.values());
@@ -392,18 +392,18 @@ public final class SpecDiscovery {
                 continue;
             }
             String methodName = decapitalize(call.name);
-            List<String> parameterTypes = inferArgumentTypesCore(
+            InferredArguments arguments = inferArgumentTypesCore(
                     call.argumentTexts, specMethods.get(call.enclosingMethod), imports, describedPackageName);
-            addMethod(discovered, MethodDescriptor.voidMethod(
-                    methodName, parameterTypes, parameterNamesFor(methodName, parameterTypes.size())));
+            addMethod(discovered, voidMethodDescriptor(
+                    methodName, arguments, parameterNamesFor(methodName, arguments.size())));
         }
 
         for (int i = 0; i < scan.subjectVoidStatements.size(); i++) {
             SpecCallScanner.Call call = scan.subjectVoidStatements.get(i);
-            List<String> parameterTypes = inferArgumentTypesCore(
+            InferredArguments arguments = inferArgumentTypesCore(
                     call.argumentTexts, specMethods.get(call.enclosingMethod), imports, describedPackageName);
-            addMethod(discovered, MethodDescriptor.voidMethod(
-                    call.name, parameterTypes, parameterNamesFor(call.name, parameterTypes.size())));
+            addMethod(discovered, voidMethodDescriptor(
+                    call.name, arguments, parameterNamesFor(call.name, arguments.size())));
         }
 
         for (int i = 0; i < scan.matchSubjectExpectations.size(); i++) {
@@ -413,10 +413,10 @@ public final class SpecDiscovery {
 
         for (int i = 0; i < scan.setterStatements.size(); i++) {
             SpecCallScanner.Call call = scan.setterStatements.get(i);
-            List<String> parameterTypes = inferArgumentTypesCore(
+            InferredArguments arguments = inferArgumentTypesCore(
                     call.argumentTexts, specMethods.get(call.enclosingMethod), imports, describedPackageName);
-            addMethod(discovered, MethodDescriptor.voidMethod(
-                    call.name, parameterTypes, parameterNamesFor(call.name, parameterTypes.size())));
+            addMethod(discovered, voidMethodDescriptor(
+                    call.name, arguments, parameterNamesFor(call.name, arguments.size())));
         }
     }
 
@@ -427,12 +427,31 @@ public final class SpecDiscovery {
             Map<String, String> imports,
             String describedPackageName
     ) {
-        List<String> parameterTypes = inferArgumentTypesCore(
+        InferredArguments arguments = inferArgumentTypesCore(
                 expectation.argumentTexts, specMethods.get(expectation.enclosingMethod), imports, describedPackageName);
-        List<String> parameterNames = parameterNamesFor(expectation.name, parameterTypes.size());
+        List<String> parameterNames = parameterNamesFor(expectation.name, arguments.size());
         String returnType = inferReturnType(
                 expectation.matcherName, joinArguments(expectation.expectationTexts), imports, describedPackageName);
-        addMethod(discovered, MethodDescriptor.of(expectation.name, returnType, parameterTypes, parameterNames));
+        addMethod(discovered, methodDescriptor(expectation.name, returnType, arguments, parameterNames));
+    }
+
+    private static MethodDescriptor methodDescriptor(
+            String methodName,
+            String returnType,
+            InferredArguments arguments,
+            List<String> parameterNames
+    ) {
+        return MethodDescriptor.of(methodName, returnType, arguments.types, parameterNames)
+                .withUnknownParameterTypes(arguments.unknowns);
+    }
+
+    private static MethodDescriptor voidMethodDescriptor(
+            String methodName,
+            InferredArguments arguments,
+            List<String> parameterNames
+    ) {
+        return MethodDescriptor.voidMethod(methodName, arguments.types, parameterNames)
+                .withUnknownParameterTypes(arguments.unknowns);
     }
 
     private static String joinArguments(List<String> argumentTexts) {
@@ -571,9 +590,28 @@ public final class SpecDiscovery {
         if ("Object".equals(existing.returnType()) && !"Object".equals(candidate.returnType())) {
             return true;
         }
+        if (hasLessSpecificUnknownParameters(existing, candidate)) {
+            return true;
+        }
         return existing.isVoid() && !candidate.isVoid();
     }
 
+    private static boolean hasLessSpecificUnknownParameters(MethodDescriptor existing, MethodDescriptor candidate) {
+        if (existing.parameterTypes().size() != candidate.parameterTypes().size()) {
+            return false;
+        }
+        boolean lessSpecific = false;
+        for (int i = 0; i < existing.parameterTypes().size(); i++) {
+            if (existing.isParameterTypeUnknown(i) && !candidate.isParameterTypeUnknown(i)) {
+                lessSpecific = true;
+                continue;
+            }
+            if (!existing.isParameterTypeUnknown(i) && candidate.isParameterTypeUnknown(i)) {
+                return false;
+            }
+        }
+        return lessSpecific;
+    }
 
     private static String inferReturnType(
             String matcherName,
@@ -611,10 +649,10 @@ public final class SpecDiscovery {
         if (expectationArgs.isEmpty()) {
             return "Object";
         }
-        return inferLiteralType(expectationArgs.get(0), imports, describedPackageName);
+        return inferLiteralType(expectationArgs.get(0), imports, describedPackageName).typeName;
     }
 
-    private static List<String> inferArgumentTypes(
+    private static InferredArguments inferArgumentTypes(
             String argumentSource,
             String source,
             int position,
@@ -630,13 +668,14 @@ public final class SpecDiscovery {
         return inferArgumentTypesCore(splitArguments(argumentSource), enclosingInfo, imports, describedPackageName);
     }
 
-    private static List<String> inferArgumentTypesCore(
+    private static InferredArguments inferArgumentTypesCore(
             List<String> argumentValues,
             MethodParameterInfo enclosingInfo,
             Map<String, String> imports,
             String describedPackageName
     ) {
         List<String> types = new ArrayList<String>();
+        List<Boolean> unknowns = new ArrayList<Boolean>();
         for (int i = 0; i < argumentValues.size(); i++) {
             String argument = argumentValues.get(i).trim();
             String type = null;
@@ -646,12 +685,16 @@ public final class SpecDiscovery {
                     type = enclosingInfo.types.get(parameterIndex);
                 }
             }
-            if (type == null) {
-                type = inferLiteralType(argument, imports, describedPackageName);
+            if (type != null) {
+                types.add(type);
+                unknowns.add(Boolean.FALSE);
+            } else {
+                InferredType inferred = inferLiteralType(argument, imports, describedPackageName);
+                types.add(inferred.typeName);
+                unknowns.add(Boolean.valueOf(inferred.unknown));
             }
-            types.add(type);
         }
-        return types;
+        return new InferredArguments(types, unknowns);
     }
 
     private static List<String> parameterNamesFor(String methodName, int count) {
@@ -693,47 +736,47 @@ public final class SpecDiscovery {
         return "arg" + index;
     }
 
-    private static String inferLiteralType(String expression, Map<String, String> imports, String describedPackageName) {
+    private static InferredType inferLiteralType(String expression, Map<String, String> imports, String describedPackageName) {
         String value = expression.trim();
         if (value.length() == 0) {
-            return "Object";
+            return InferredType.unknownObject();
         }
         String castType = castType(value);
         if (castType != null) {
-            return resolveTypeName(castType, imports, describedPackageName);
+            return InferredType.known(resolveTypeName(castType, imports, describedPackageName));
         }
         if (isStringLiteral(value)) {
-            return "String";
+            return InferredType.known("String");
         }
         if (isCharLiteral(value)) {
-            return "char";
+            return InferredType.known("char");
         }
         if ("true".equals(value) || "false".equals(value)) {
-            return "boolean";
+            return InferredType.known("boolean");
         }
         if ("null".equals(value)) {
-            return "Object";
+            return InferredType.unknownObject();
         }
         if (value.matches("[-+]?\\d+[lL]")) {
-            return "long";
+            return InferredType.known("long");
         }
         if (value.matches("[-+]?\\d+[dDfF]")) {
-            return "double";
+            return InferredType.known("double");
         }
         if (value.matches("[-+]?(?:\\d+\\.\\d*|\\d*\\.\\d+)(?:[eE][-+]?\\d+)?[dDfF]?")) {
-            return "double";
+            return InferredType.known("double");
         }
         if (value.matches("[-+]?\\d+(?:[eE][-+]?\\d+)[dDfF]?")) {
-            return "double";
+            return InferredType.known("double");
         }
         if (value.matches("[-+]?\\d+")) {
-            return "int";
+            return InferredType.known("int");
         }
         String qualifiedConstantType = qualifiedConstantReferenceType(value);
         if (qualifiedConstantType != null) {
-            return resolveTypeName(qualifiedConstantType, imports, describedPackageName);
+            return InferredType.known(resolveTypeName(qualifiedConstantType, imports, describedPackageName));
         }
-        return "Object";
+        return InferredType.unknownObject();
     }
 
     private static String castType(String value) {
@@ -922,6 +965,38 @@ public final class SpecDiscovery {
         }
     }
 
+    private static final class InferredArguments {
+        final List<String> types;
+        final List<Boolean> unknowns;
+
+        InferredArguments(List<String> types, List<Boolean> unknowns) {
+            this.types = types;
+            this.unknowns = unknowns;
+        }
+
+        int size() {
+            return types.size();
+        }
+    }
+
+    private static final class InferredType {
+        final String typeName;
+        final boolean unknown;
+
+        private InferredType(String typeName, boolean unknown) {
+            this.typeName = typeName;
+            this.unknown = unknown;
+        }
+
+        static InferredType known(String typeName) {
+            return new InferredType(typeName, false);
+        }
+
+        static InferredType unknownObject() {
+            return new InferredType("Object", true);
+        }
+    }
+
     private static final class MethodParameterInfo {
         final List<String> types;
         final List<String> names;
@@ -997,7 +1072,7 @@ public final class SpecDiscovery {
             List<String> paramValues = new ArrayList<String>();
             for (int i = 1; i < args.size(); i++) {
                 String arg = args.get(i).trim();
-                String type = inferLiteralType(arg, imports, describedPackageName);
+                String type = inferLiteralType(arg, imports, describedPackageName).typeName;
                 paramTypes.add(type);
                 paramNames.add("arg" + (i - 1));
                 paramValues.add(arg);

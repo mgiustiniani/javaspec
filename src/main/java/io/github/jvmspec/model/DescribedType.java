@@ -505,7 +505,27 @@ public final class DescribedType {
         if ("Object".equals(existing.returnType()) && !"Object".equals(candidate.returnType())) {
             return true;
         }
+        if (hasLessSpecificUnknownParameters(existing, candidate)) {
+            return true;
+        }
         return existing.isVoid() && !candidate.isVoid();
+    }
+
+    private static boolean hasLessSpecificUnknownParameters(MethodDescriptor existing, MethodDescriptor candidate) {
+        if (existing.parameterTypes().size() != candidate.parameterTypes().size()) {
+            return false;
+        }
+        boolean lessSpecific = false;
+        for (int i = 0; i < existing.parameterTypes().size(); i++) {
+            if (existing.isParameterTypeUnknown(i) && !candidate.isParameterTypeUnknown(i)) {
+                lessSpecific = true;
+                continue;
+            }
+            if (!existing.isParameterTypeUnknown(i) && candidate.isParameterTypeUnknown(i)) {
+                return false;
+            }
+        }
+        return lessSpecific;
     }
 
 }

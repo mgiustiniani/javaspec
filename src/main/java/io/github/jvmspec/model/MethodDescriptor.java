@@ -13,6 +13,7 @@ public final class MethodDescriptor {
     private final String returnType;
     private final List<String> parameterTypes;
     private final List<String> parameterNames;
+    private final List<Boolean> unknownParameterTypes;
     private final boolean staticMethod;
 
     private MethodDescriptor(
@@ -20,12 +21,14 @@ public final class MethodDescriptor {
             String returnType,
             List<String> parameterTypes,
             List<String> parameterNames,
+            List<Boolean> unknownParameterTypes,
             boolean staticMethod
     ) {
         this.methodName = methodName;
         this.returnType = returnType;
         this.parameterTypes = Collections.unmodifiableList(parameterTypes);
         this.parameterNames = Collections.unmodifiableList(parameterNames);
+        this.unknownParameterTypes = Collections.unmodifiableList(unknownParameterTypes);
         this.staticMethod = staticMethod;
     }
 
@@ -51,7 +54,7 @@ public final class MethodDescriptor {
             types.set(i, validateTypeName(types.get(i), "parameterTypes[" + i + "]"));
             names.set(i, validateParameterName(names.get(i), "parameterNames[" + i + "]"));
         }
-        return create(validatedMethodName, validatedReturnType, types, names, false);
+        return create(validatedMethodName, validatedReturnType, types, names, knownParameterTypes(types.size()), false);
     }
 
     public static MethodDescriptor staticMethod(String methodName, String returnType) {
@@ -76,7 +79,7 @@ public final class MethodDescriptor {
             types.set(i, validateTypeName(types.get(i), "parameterTypes[" + i + "]"));
             names.set(i, validateParameterName(names.get(i), "parameterNames[" + i + "]"));
         }
-        return create(validatedMethodName, validatedReturnType, types, names, true);
+        return create(validatedMethodName, validatedReturnType, types, names, knownParameterTypes(types.size()), true);
     }
 
     private static MethodDescriptor create(
@@ -84,9 +87,10 @@ public final class MethodDescriptor {
             String returnType,
             List<String> parameterTypes,
             List<String> parameterNames,
+            List<Boolean> unknownParameterTypes,
             boolean staticMethod
     ) {
-        return new MethodDescriptor(methodName, returnType, parameterTypes, parameterNames, staticMethod);
+        return new MethodDescriptor(methodName, returnType, parameterTypes, parameterNames, unknownParameterTypes, staticMethod);
     }
 
     public static MethodDescriptor voidMethod(String methodName) {
@@ -115,6 +119,33 @@ public final class MethodDescriptor {
 
     public List<String> parameterNames() {
         return parameterNames;
+    }
+
+    public MethodDescriptor withUnknownParameterTypes(List<Boolean> unknownParameterTypes) {
+        return create(
+                methodName,
+                returnType,
+                new ArrayList<String>(parameterTypes),
+                new ArrayList<String>(parameterNames),
+                validateUnknownParameterTypes(unknownParameterTypes, parameterTypes.size()),
+                staticMethod
+        );
+    }
+
+    public boolean hasUnknownParameterTypes() {
+        for (int i = 0; i < unknownParameterTypes.size(); i++) {
+            if (Boolean.TRUE.equals(unknownParameterTypes.get(i))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean isParameterTypeUnknown(int index) {
+        if (index < 0 || index >= unknownParameterTypes.size()) {
+            throw new IndexOutOfBoundsException("parameter index: " + index);
+        }
+        return Boolean.TRUE.equals(unknownParameterTypes.get(index));
     }
 
     public boolean hasParameters() {
@@ -151,9 +182,18 @@ public final class MethodDescriptor {
             return false;
         }
         for (int i = 0; i < parameterTypes.size(); i++) {
-            if (!normalizedTypeName(parameterTypes.get(i)).equals(normalizedTypeName(other.parameterTypes.get(i)))) {
-                return false;
+            String left = normalizedTypeName(parameterTypes.get(i));
+            String right = normalizedTypeName(other.parameterTypes.get(i));
+            if (left.equals(right)) {
+                continue;
             }
+            if (isParameterTypeUnknown(i) && "Object".equals(left)) {
+                continue;
+            }
+            if (other.isParameterTypeUnknown(i) && "Object".equals(right)) {
+                continue;
+            }
+            return false;
         }
         return true;
     }
@@ -269,6 +309,27 @@ public final class MethodDescriptor {
             throw new IllegalArgumentException(fieldName + " must be a Java identifier: " + parameterName);
         }
         return parameterName;
+    }
+
+    private static List<Boolean> knownParameterTypes(int size) {
+        List<Boolean> values = new ArrayList<Boolean>();
+        for (int i = 0; i < size; i++) {
+            values.add(Boolean.FALSE);
+        }
+        return values;
+    }
+
+    private static List<Boolean> validateUnknownParameterTypes(List<Boolean> unknownParameterTypes, int expectedSize) {
+        Objects.requireNonNull(unknownParameterTypes, "unknownParameterTypes must not be null");
+        if (unknownParameterTypes.size() != expectedSize) {
+            throw new IllegalArgumentException("unknownParameterTypes size (" + unknownParameterTypes.size()
+                    + ") must equal parameterTypes size (" + expectedSize + ")");
+        }
+        List<Boolean> values = new ArrayList<Boolean>(unknownParameterTypes.size());
+        for (int i = 0; i < unknownParameterTypes.size(); i++) {
+            values.add(Boolean.TRUE.equals(unknownParameterTypes.get(i)) ? Boolean.TRUE : Boolean.FALSE);
+        }
+        return values;
     }
 
     private static String validateTypeName(String typeName, String fieldName) {

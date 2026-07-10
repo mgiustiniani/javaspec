@@ -134,7 +134,7 @@ public final class ProductionSignatureReader {
                     || production.isStatic != descriptor.isStatic()) {
                 continue;
             }
-            int score = parameterCompatibilityScore(descriptor.parameterTypes(), production.parameterTypes);
+            int score = parameterCompatibilityScore(descriptor, production.parameterTypes);
             if (score > bestScore) {
                 best = production;
                 bestScore = score;
@@ -178,7 +178,19 @@ public final class ProductionSignatureReader {
      * placeholder fallback. This preserves real {@code Object} overloads while still allowing
      * unknown spec expressions to resolve to the only compatible production overload.
      */
+    private static int parameterCompatibilityScore(MethodDescriptor descriptor, List<String> productionTypes) {
+        return parameterCompatibilityScore(descriptor.parameterTypes(), descriptor, productionTypes);
+    }
+
     private static int parameterCompatibilityScore(List<String> inferredTypes, List<String> productionTypes) {
+        return parameterCompatibilityScore(inferredTypes, null, productionTypes);
+    }
+
+    private static int parameterCompatibilityScore(
+            List<String> inferredTypes,
+            MethodDescriptor descriptor,
+            List<String> productionTypes
+    ) {
         if (inferredTypes.size() != productionTypes.size()) {
             return -1;
         }
@@ -194,13 +206,24 @@ public final class ProductionSignatureReader {
                 score += 3;
                 continue;
             }
-            if ("Object".equals(inferred)) {
+            if ("Object".equals(inferred) && isUnknownOrLegacyPlaceholder(descriptor, i)) {
                 score += 1;
                 continue;
             }
             return -1;
         }
         return score;
+    }
+
+    private static boolean isUnknownOrLegacyPlaceholder(MethodDescriptor descriptor, int index) {
+        if (descriptor == null) {
+            return true;
+        }
+        if (descriptor.isParameterTypeUnknown(index)) {
+            return true;
+        }
+        return index < descriptor.parameterNames().size()
+                && ("arg" + index).equals(descriptor.parameterNames().get(index));
     }
 
     private static String simpleName(String typeName) {
