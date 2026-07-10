@@ -340,7 +340,7 @@ Consumer Maven example:
 </dependency>
 ```
 
-Configure your JUnit Platform launcher, IDE, or Surefire setup to include `*Spec.java`. See [`examples/junit-platform-basic/`](examples/junit-platform-basic/) and [`javaspec-junit-platform-engine/README.md`](javaspec-junit-platform-engine/README.md).
+Configure your JUnit Platform launcher, IDE, or Surefire setup to include `*Spec.java`. The stable 1.0 engine id, selector, unique-id, source, row, status-mapping, and IDE boundaries are documented in [`docs/junit-platform-contract-1.0.md`](docs/junit-platform-contract-1.0.md). See [`examples/junit-platform-basic/`](examples/junit-platform-basic/) and [`javaspec-junit-platform-engine/README.md`](javaspec-junit-platform-engine/README.md).
 
 ### Programmatic invocation
 

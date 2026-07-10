@@ -65,6 +65,12 @@ else
   fail "docs/matcher-contract-1.0.md is missing"
 fi
 
+if [ -f docs/junit-platform-contract-1.0.md ]; then
+  pass "docs/junit-platform-contract-1.0.md exists"
+else
+  fail "docs/junit-platform-contract-1.0.md is missing"
+fi
+
 if [ -e docs/release-notes-0.1.1-SNAPSHOT.md ]; then
   fail "obsolete docs/release-notes-0.1.1-SNAPSHOT.md still exists"
 else
@@ -82,6 +88,7 @@ current_paths=(
   docs/extension-spi-1.0.md
   docs/example-data-contract-1.0.md
   docs/matcher-contract-1.0.md
+  docs/junit-platform-contract-1.0.md
   docs/usermanual
   docs/arc42
   docs/bytecode-doubles.md

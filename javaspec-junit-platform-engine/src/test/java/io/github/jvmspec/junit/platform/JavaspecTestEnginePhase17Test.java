@@ -6,6 +6,8 @@ import org.junit.platform.commons.JUnitException;
 import org.junit.platform.engine.TestExecutionResult;
 import org.junit.platform.engine.UniqueId;
 import org.junit.platform.engine.discovery.DiscoverySelectors;
+import org.junit.platform.engine.support.descriptor.ClassSource;
+import org.junit.platform.engine.support.descriptor.MethodSource;
 import org.junit.platform.engine.TestEngine;
 import org.junit.platform.launcher.EngineFilter;
 import org.junit.platform.launcher.Launcher;
@@ -87,6 +89,43 @@ class JavaspecTestEnginePhase17Test {
             assertEquals(1, outcome.summary().getTestsSucceededCount());
             assertEquals(0, outcome.summary().getTestsFailedCount());
             assertEquals(0, outcome.summary().getTestsSkippedCount());
+        }
+    }
+
+    @Test
+    void descriptorsUseStableUniqueIdsDisplayNamesAndSources(@TempDir Path temp) throws Exception {
+        Path specRoot = temp.resolve("sources-specs");
+        Path source = writeSpec(specRoot, "phase17.sources", "SourceSpec",
+                "    public void it_has_source_metadata() {\n" +
+                "    }\n");
+
+        try (URLClassLoader classLoader = compileToClassLoader(temp.resolve("classes"), source)) {
+            Class<?> specClass = classLoader.loadClass("phase17.sources.SourceSpec");
+            RunOutcome outcome = execute(
+                    requestBuilder()
+                            .configurationParameter("javaspec.specRoot", specRoot.toString())
+                            .selectors(DiscoverySelectors.selectClass(specClass))
+                            .build(),
+                    classLoader
+            );
+
+            assertEquals(1, outcome.summary().getTestsSucceededCount());
+            assertTrue(outcome.recorder().startedUniqueIds().contains(
+                    "[engine:javaspec]/[spec:phase17.sources.SourceSpec]/[example:it_has_source_metadata]"),
+                    "Expected stable example unique id in " + outcome.recorder().startedUniqueIds());
+            assertTrue(outcome.recorder().startedDisplayNames().contains(
+                    "phase17.sources.SourceSpec#it_has_source_metadata"),
+                    "Expected stable example display name in " + outcome.recorder().startedDisplayNames());
+            SourceEvent specSource = outcome.recorder().sourceFor("phase17.sources.SourceSpec");
+            assertTrue(specSource.source() instanceof ClassSource,
+                    "Expected ClassSource for spec descriptor but was " + specSource.source());
+            assertEquals("phase17.sources.SourceSpec", ((ClassSource) specSource.source()).getClassName());
+            SourceEvent exampleSource = outcome.recorder().sourceFor("phase17.sources.SourceSpec#it_has_source_metadata");
+            assertTrue(exampleSource.source() instanceof MethodSource,
+                    "Expected MethodSource for example descriptor but was " + exampleSource.source());
+            MethodSource methodSource = (MethodSource) exampleSource.source();
+            assertEquals("phase17.sources.SourceSpec", methodSource.getClassName());
+            assertEquals("it_has_source_metadata", methodSource.getMethodName());
         }
     }
 
@@ -1085,16 +1124,21 @@ class JavaspecTestEnginePhase17Test {
 
     private static final class RecordingListener implements TestExecutionListener {
         private final List<String> startedDisplayNames = new ArrayList<String>();
+        private final List<String> startedUniqueIds = new ArrayList<String>();
         private final List<String> dynamicallyRegisteredDisplayNames = new ArrayList<String>();
+        private final List<SourceEvent> sources = new ArrayList<SourceEvent>();
         private final List<FinishedEvent> failedEvents = new ArrayList<FinishedEvent>();
         private final List<SkippedEvent> skippedEvents = new ArrayList<SkippedEvent>();
 
         public void dynamicTestRegistered(TestIdentifier testIdentifier) {
             dynamicallyRegisteredDisplayNames.add(testIdentifier.getDisplayName());
+            recordSource(testIdentifier);
         }
 
         public void executionStarted(TestIdentifier testIdentifier) {
             startedDisplayNames.add(testIdentifier.getDisplayName());
+            startedUniqueIds.add(testIdentifier.getUniqueId());
+            recordSource(testIdentifier);
         }
 
         public void executionSkipped(TestIdentifier testIdentifier, String reason) {
@@ -1111,8 +1155,28 @@ class JavaspecTestEnginePhase17Test {
             return startedDisplayNames;
         }
 
+        List<String> startedUniqueIds() {
+            return startedUniqueIds;
+        }
+
         List<String> dynamicallyRegisteredDisplayNames() {
             return dynamicallyRegisteredDisplayNames;
+        }
+
+        SourceEvent sourceFor(String displayName) {
+            for (int i = 0; i < sources.size(); i++) {
+                SourceEvent source = sources.get(i);
+                if (source.displayName().equals(displayName)) {
+                    return source;
+                }
+            }
+            throw new AssertionError("Expected source for display name '" + displayName + "' but got " + sources);
+        }
+
+        private void recordSource(TestIdentifier testIdentifier) {
+            if (testIdentifier.getSource().isPresent()) {
+                sources.add(new SourceEvent(testIdentifier.getDisplayName(), testIdentifier.getSource().get()));
+            }
         }
 
         List<FinishedEvent> failedEvents() {
@@ -1121,6 +1185,28 @@ class JavaspecTestEnginePhase17Test {
 
         List<SkippedEvent> skippedEvents() {
             return skippedEvents;
+        }
+    }
+
+    private static final class SourceEvent {
+        private final String displayName;
+        private final Object source;
+
+        private SourceEvent(String displayName, Object source) {
+            this.displayName = displayName;
+            this.source = source;
+        }
+
+        String displayName() {
+            return displayName;
+        }
+
+        Object source() {
+            return source;
+        }
+
+        public String toString() {
+            return "SourceEvent{" + displayName + ", source=" + source + "}";
         }
     }
 

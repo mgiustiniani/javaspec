@@ -44,7 +44,7 @@ Compatibility policy:
 |---|---|---|---|
 | `io.github.jvmspec.maven` | `javaspec-maven-plugin` | `ADAPTER_API` | Mojo goals, documented parameters, generated-sources registration, report paths, and failure propagation. Java classes are plugin implementation details. |
 | `io.github.jvmspec.gradle` | Gradle plugin `io.github.jvmspec` | `ADAPTER_API` | Plugin id, extension/task properties, source-set integration, report paths, and failure propagation. Task/extension Java members are Gradle DSL surface. |
-| `io.github.jvmspec.junit.platform` | `javaspec-junit-platform-engine` | `ADAPTER_API` | Engine id, descriptor hierarchy, selectors, unique-id behavior, source mapping, and status translation. |
+| `io.github.jvmspec.junit.platform` | `javaspec-junit-platform-engine` | `ADAPTER_API` | Engine id, descriptor hierarchy, selectors, unique-id behavior, source mapping, and status translation; see `docs/junit-platform-contract-1.0.md`. |
 | `io.github.jvmspec.doubles` | `javaspec-bytecode-doubles` | `PUBLIC_API` / `PUBLIC_SPI` | Optional ByteBuddy concrete-double provider and capability reporting. |
 | `io.github.jvmspec.doubles` | `javaspec-bytecode-agent` | `PUBLIC_API` | Optional final/static/constructor double entrypoints `BytecodeAgentDoubles`, `StaticDouble`, and `ConstructionDouble`. |
 | `io.github.jvmspec.doubles.agent` | `javaspec-bytecode-agent` | `INTERNAL` | Bytecode instrumentation internals. |

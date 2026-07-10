@@ -60,6 +60,9 @@ moving dependency-heavy behavior into optional artifacts.
   The 1.0 row execution/reporting/selector contract is frozen in
   `docs/example-data-contract-1.0.md`: rows execute inline in the owning example; adapter row
   selectors filter descriptors/events without isolating per-row execution.
+- The optional JUnit Platform engine contract is frozen in `docs/junit-platform-contract-1.0.md`,
+  covering engine id, class/method/package/unique-id selectors, descriptor sources, unique-id shape,
+  row projection, status mapping, discovery-only behavior, and IDE/Surefire/Gradle boundaries.
 - Phase 48 starts PHPSpec-style collaborator injection: public `it_*` / `its_*`, `let()`, and
   `letGo()` methods may declare supported collaborator parameters. Ordinary interface parameters are
   injected as interface doubles, generated typed `*Prophecy` wrapper parameters are backed by the

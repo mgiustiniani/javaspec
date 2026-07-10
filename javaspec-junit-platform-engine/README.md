@@ -23,7 +23,7 @@ mvn -q -DskipTests install
 mvn -q -f javaspec-junit-platform-engine/pom.xml verify
 ```
 
-Phase 18 verification passed standalone engine `verify` with 12 tests after refreshing the local core snapshot.
+Use repository-root `scripts/verify-all.sh` for aggregate verification. The 1.0 adapter contract is documented in [`../docs/junit-platform-contract-1.0.md`](../docs/junit-platform-contract-1.0.md).
 
 Optional runtime dependency audit:
 
@@ -44,7 +44,7 @@ Discovery uses canonical `SpecDiscovery` / `SpecDiscoveryRequest`. Supported con
 - `javaspec.exampleFilters` / `javaspec.exampleFilter` / `javaspec.example`
 - `javaspec.stopOnFailure`
 
-Class, package, method, and unique-id selectors are supported as filters over canonical discovery results. UniqueId segments use `[engine:javaspec]`, `[spec:<specQualifiedName>]`, and `[example:<methodName>]`; Phase 18 retains this stable shape and MethodSource behavior while aligning descriptor reporting to stable ids.
+Class, package, method, and unique-id selectors are supported as filters over canonical discovery results. UniqueId segments use `[engine:javaspec]`, `[spec:<specQualifiedName>]`, `[example:<methodName>]`, and dynamic `[row:<oneBasedRowIndex>]` row segments. See [`../docs/junit-platform-contract-1.0.md`](../docs/junit-platform-contract-1.0.md) and [`../docs/example-data-contract-1.0.md`](../docs/example-data-contract-1.0.md) for selector, source, row, and IDE boundaries.
 
 Execution delegates to canonical no-JUnit `JavaspecLauncher`, avoids `System.exit`, and does not require changes to javaspec spec authoring style. Result mapping is: passed -> successful, failed assertion results -> failed assertion-style throwable, broken results -> failed/error-style throwable, and skipped/non-loadable/pending -> skipped.
 

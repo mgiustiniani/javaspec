@@ -123,7 +123,7 @@ Evidence:
 - [ ] Generation safety guide present.
 - [ ] Maven guide current.
 - [ ] Gradle guide current.
-- [ ] JUnit Platform/IDE guide current.
+- [x] JUnit Platform/IDE guide current.
 - [x] Extension SPI guide current.
 - [x] Example data contract current.
 - [ ] Java compatibility matrix current.

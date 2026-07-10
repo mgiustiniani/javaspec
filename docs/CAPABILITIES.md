@@ -44,7 +44,7 @@ This document records capabilities verified while preparing the 1.0 roadmap. It 
 
 - API/SPI classification is frozen in `docs/api-surface-1.0.md`; `scripts/check-api-surface.sh` guards unclassified shipped Java packages.
 - JSON schema is versioned (`schemaVersion: 1`) and documented in `docs/result-contract-1.0.md`.
-- JUnit Platform row selectors filter descriptors/events while row execution remains inline in the owning example; this is documented in `docs/example-data-contract-1.0.md` as the 1.0 contract.
+- JUnit Platform selectors, unique IDs, sources, status mapping, and row descriptor/event filtering are documented in `docs/junit-platform-contract-1.0.md` and `docs/example-data-contract-1.0.md` as the 1.0 contract.
 - Example data APIs, Prophecy/collaborator APIs, generation semantics, extension SPI, and report contracts have 1.0 contract documents.
 - Generated typed Prophecy wrappers remain the canonical collaborator API; reflective `method("...")` is a bootstrap/fallback path.
 - Approximate numeric, iterator, and generated object-state matchers are implemented as Java-adapted PHPSpec semantics; custom matcher 1.0 scope is frozen in `docs/matcher-contract-1.0.md`.
@@ -91,6 +91,7 @@ Areas needing classification before API freeze:
 | P1-PROP-001 | P1 | Generated Prophecy token overloads need edge-case audit. | DONE: `ProphecySkeletonGeneratorTest` covers primitive, array, varargs, bounded generic, bridge/synthetic, duplicate, and mixed exact/token call cases; `docs/prophecy-contract-1.0.md` documents limits. |
 | P1-MATCH-001 | P1 | Inline/configured custom matcher scope is not finalized. | DONE: `docs/matcher-contract-1.0.md` freezes programmatic `MatcherRegistry`/`shouldMatch(...)` support and defers config/inline dynamic custom matcher conveniences. |
 | P1-EXT-001 | P1 | Event/extension v2 scope could affect API freeze. | DONE: `docs/extension-spi-1.0.md` freezes existing SPI semantics and defers typed event model v2. |
+| P1-JUNIT-001 | P1 | JUnit Platform IDE/source/selector parity needed a contract audit. | DONE: `docs/junit-platform-contract-1.0.md` freezes engine id, selector, unique-id, source, row, status, and IDE boundaries with engine regression coverage. |
 | P2-PERF-001 | P2 | No large-suite performance baseline yet. | Add reproducible benchmark before final 1.0 if feasible; otherwise document post-1.0 plan. |
 
 ## Decisions required before API freeze

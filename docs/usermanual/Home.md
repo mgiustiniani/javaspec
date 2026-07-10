@@ -1302,9 +1302,10 @@ parameters are:
 | `javaspec.stopOnFailure` | Stop after the first failed or broken executable example. |
 
 Class, package, method, and unique-id selectors are supported as filters over canonical discovery
-results. UniqueId segments use `[engine:javaspec]`, `[spec:<specQualifiedName>]`, and
-`[example:<methodName>]`; Phase 18 retains this stable shape and MethodSource behavior while
-aligning descriptor reporting to stable ids.
+results. UniqueId segments use `[engine:javaspec]`, `[spec:<specQualifiedName>]`,
+`[example:<methodName>]`, and dynamic `[row:<oneBasedRowIndex>]` row segments. The stable 1.0 engine
+id, selector, unique-id, source, row, status-mapping, and IDE boundaries are documented in
+`docs/junit-platform-contract-1.0.md`.
 
 Execution delegates to canonical no-JUnit `JavaspecLauncher` using discovered specs. Result mapping
 to JUnit Platform listener events is: passed -> successful, failed assertion results -> failed
