@@ -173,8 +173,8 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
 - Compatibility matrix status: `JAVA_ADAPTED`; Prophecy is part of the promised PHPSpec experience, not a generic optional mock layer
 - Priority: P0
 - Disposition: REQUIRED_BEFORE_RC
-- Status: PARTIALLY_DONE
-- Motivation: Phase 48 and 49 implementation is complete enough for 1.0, but wrapper overload edge cases and contract docs need final audit.
+- Status: COMPLETED
+- Motivation: Phase 48 and 49 implementation is complete enough for 1.0; the 1.0 collaborator/Prophecy contract is documented and linked to tests.
 - Dependencies: M3.
 - Acceptance criteria:
   - Collaborator injection contract covers interface doubles, typed `*Prophecy` wrappers, reuse, duplicate type rejection, unsupported types, inherited lifecycle methods, deterministic parameter order, prediction verification, teardown precedence, and suppressed failures.
@@ -183,6 +183,9 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
 - Verification:
   - `mvn -q -Dtest=SpecRunnerTest,ProphecySkeletonGeneratorTest,MethodProphecyTest,DoublesTest test`
   - `scripts/verify-all.sh`
+- Evidence:
+  - `docs/prophecy-contract-1.0.md` documents collaborator injection, prediction lifecycle, typed wrappers, argument tokens, callbacks, Java overload adaptation, and diagnostics.
+  - Phase 48/49 tests and `examples/prophecy-basic` are included in `scripts/verify-all.sh`.
 - Completion commit: pending.
 
 ### M6 — Matcher parity 1.0 scope
