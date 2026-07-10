@@ -10,7 +10,7 @@ Use the 1.0 coordinates under `io.github.jvmspec`:
 <dependency>
   <groupId>io.github.jvmspec</groupId>
   <artifactId>javaspec</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>1.0.0-RC1</version>
   <scope>test</scope>
 </dependency>
 ```

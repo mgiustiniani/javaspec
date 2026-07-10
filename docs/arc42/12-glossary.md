@@ -121,7 +121,7 @@
   Platform selectors/configuration parameters, and delegates execution to `JavaspecLauncher` without
   `System.exit`.
 - **JUnit Platform engine adapter**: Standalone optional artifact `javaspec-junit-platform-engine/`
-  packaging `io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-SNAPSHOT`; it is not a root Maven
+  packaging `io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-RC1`; it is not a root Maven
   module and does not add JUnit Platform dependencies to the core runtime artifact.
 - **JUnit Platform selector**: Class, package, method, or unique-id selector supplied by JUnit
   Platform and applied by the optional engine as a filter over canonical javaspec discovery results.
@@ -134,7 +134,7 @@
   `run` enforces the effective profile before generation/update writes.
 - **Matchable**: Fluent expectation wrapper returned by typed proxy methods and `match(actual)`.
 - **Maven plugin adapter**: Standalone optional artifact `javaspec-maven-plugin/` packaging
-  `io.github.jvmspec:javaspec-maven-plugin:1.0.0-SNAPSHOT` as a Maven plugin with goal prefix `javaspec`.
+  `io.github.jvmspec:javaspec-maven-plugin:1.0.0-RC1` as a Maven plugin with goal prefix `javaspec`.
   It is not a root module and does not require JUnit in projects under test.
 - **Maven test classpath**: The compiled test-scope classpath supplied by Maven to the optional
   plugin and used as input to the canonical javaspec runner.

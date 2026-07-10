@@ -59,7 +59,7 @@ run_at_root "API surface classification check" "${repo_root}/scripts/check-api-s
 run_at_root "Root core verify" "${MAVEN_BIN}" -q verify
 run_at_root "Core Java 8 bytecode compatibility check" "${repo_root}/scripts/check-core-java8-bytecode.sh"
 run_at_root "Root runtime dependency tree audit" "${MAVEN_BIN}" dependency:tree -Dscope=runtime
-run_at_root "Install root core snapshot" "${MAVEN_BIN}" -q -DskipTests install
+run_at_root "Install root core artifact" "${MAVEN_BIN}" -q -DskipTests install
 run_at_root "Maven plugin verify" "${MAVEN_BIN}" -q -f javaspec-maven-plugin/pom.xml verify
 run_at_root "Maven plugin runtime dependency tree audit" "${MAVEN_BIN}" -f javaspec-maven-plugin/pom.xml dependency:tree -Dscope=runtime
 run_at_root "JUnit Platform engine verify" "${MAVEN_BIN}" -q -f javaspec-junit-platform-engine/pom.xml verify

@@ -1,4 +1,4 @@
-# Release notes — 1.0.0 / Unreleased
+# Release notes — 1.0.0 / RC1
 
 This development line keeps the core artifact Java 8-compatible and zero-runtime-dependency while
 moving dependency-heavy behavior into optional artifacts.
@@ -133,3 +133,5 @@ moving dependency-heavy behavior into optional artifacts.
   version 52.
 - 1.0 documentation includes compatibility policy, Java compatibility matrix, migration guide,
   JUnit-to-javaspec guide, Cucumber/Gherkin boundary, and troubleshooting pages.
+- RC1 local evidence passed with aligned `1.0.0-RC1` artifacts, no build-file `SNAPSHOT`
+  references, release dry-run consumers, checksums, and a deterministic archived API inventory.

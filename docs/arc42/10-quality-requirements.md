@@ -12,10 +12,10 @@ Quality attributes and evidence:
   - Scenario: Runtime dependency scope contains only the javaspec artifact for core; optional
     adapters do not leak dependencies into core.
   - Evidence / current status: Phase 12 Java 25 runtime dependency audit passed with only
-    `io.github.jvmspec:javaspec:jar:1.0.0-SNAPSHOT`; Phase 15 root runtime audit passed with only
+    `io.github.jvmspec:javaspec:jar:1.0.0-RC1`; Phase 15 root runtime audit passed with only
     `io.github.jvmspec:javaspec`, and Maven plugin runtime audit passed with the plugin plus
     compile-scope core only; Phase 16 root runtime audit passed with only `io.github.jvmspec:javaspec`,
-    and Gradle plugin runtimeClasspath contained only `io.github.jvmspec:javaspec:1.0.0-SNAPSHOT`; Phase
+    and Gradle plugin runtimeClasspath contained only `io.github.jvmspec:javaspec:1.0.0-RC1`; Phase
     17 root runtime audit passed with only `io.github.jvmspec:javaspec`, and JUnit Platform engine
     runtime dependencies stayed isolated to the optional engine artifact; Phase 18 root runtime
     audit passed with only `io.github.jvmspec:javaspec` and adapter runtime summaries remained isolated;
@@ -271,7 +271,7 @@ integration:
 - **`/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin test`**: PASS — 11 plugin tests
 - **`/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin build`**: PASS
 - **`/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin dependencies --configuration
-  runtimeClasspath`**: PASS — runtimeClasspath contained only `io.github.jvmspec:javaspec:1.0.0-SNAPSHOT`
+  runtimeClasspath`**: PASS — runtimeClasspath contained only `io.github.jvmspec:javaspec:1.0.0-RC1`
 - **`/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin dependencies --configuration
   testRuntimeClasspath`**: PASS — testRuntimeClasspath contained javaspec, JUnit, and Hamcrest only
 Verified Phase 16 quality points:
@@ -282,7 +282,7 @@ Verified Phase 16 quality points:
   artifact.
 - The plugin uses `java-gradle-plugin`, Java source/target `1.8`, plugin id `io.github.jvmspec`,
   implementation class `io.github.jvmspec.gradle.JavaspecPlugin`, and a core dependency on
-  `io.github.jvmspec:javaspec:1.0.0-SNAPSHOT`.
+  `io.github.jvmspec:javaspec:1.0.0-RC1`.
 - `JavaspecPlugin` registers extension `javaspec` and task `javaspecRun`; Java plugin/source-set
   defaults use the `test` source set runtime classpath and depend on `testClasses`.
 - `JavaspecRunTask` supports the documented filters/options/reports, logs through Gradle, manages
@@ -375,14 +375,14 @@ Phase 19 remains the authoritative verification for post-roadmap release/CI hard
 - **`JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-all.sh`**: PASS — Gradle 8.8
 - **Root `mvn -q verify` executed by script**: PASS — 386 tests, 0 failures, 0 errors, 0 skipped
 - **Root `mvn dependency:tree -Dscope=runtime` executed by script**: PASS — only
-  `io.github.jvmspec:javaspec:jar:1.0.0-SNAPSHOT`
+  `io.github.jvmspec:javaspec:jar:1.0.0-RC1`
 - **Root `mvn -q -DskipTests install` executed by script**: PASS
 - **Maven plugin `verify` and runtime audit executed by script**: PASS — 12 tests; runtime summary
   plugin plus core
 - **JUnit Platform engine `verify` and runtime audit executed by script**: PASS — 12 tests; runtime
   summary core plus isolated JUnit Platform engine dependencies
 - **Gradle plugin `clean test build` and `runtimeClasspath` audit executed by script**: PASS — 11
-  tests; runtimeClasspath only `io.github.jvmspec:javaspec:1.0.0-SNAPSHOT`
+  tests; runtimeClasspath only `io.github.jvmspec:javaspec:1.0.0-RC1`
 
 Verified Phase 19 quality points:
 
@@ -406,7 +406,7 @@ Phase 20 remains the authoritative verification for release-readiness scaffoldin
   checks**: PASS
 - **Script executable bits**: PASS — both scripts executable (`-rwxr-xr-x`)
 - **`bash scripts/check-version-alignment.sh`**: PASS — all checked versions aligned at
-  `1.0.0-SNAPSHOT`
+  `1.0.0-RC1`
 - **`git diff --check`, `git diff --cached --check`, and untracked whitespace checks**: PASS
 - **Effective POM generation for root, Maven plugin, and JUnit engine**: PASS
 - **`LICENSE` identity against `origin/main:LICENSE`**: PASS — blob
@@ -430,7 +430,7 @@ Phase 20 remains the authoritative verification for release-readiness scaffoldin
 - **Gradle plugin generated POMs and `clean test build`**: PASS — generated POMs passed metadata
   checks; 11 tests and main/sources/javadoc jars non-empty; non-blocking Java 8 source/target
   obsolete warnings on JDK 21
-- **Gradle runtime dependency audit**: PASS — only `io.github.jvmspec:javaspec:1.0.0-SNAPSHOT`
+- **Gradle runtime dependency audit**: PASS — only `io.github.jvmspec:javaspec:1.0.0-RC1`
 - **`JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-all.sh`**: PASS — covered version
   alignment, core verify, root audit, local install, Maven plugin verify/audit, JUnit engine
   verify/audit, and Gradle plugin build/audit

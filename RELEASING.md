@@ -2,7 +2,7 @@
 
 Artifacts are published on Maven Central under `io.github.jvmspec`. The Gradle plugin is published
 on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. The active release line is
-`1.0.0-SNAPSHOT`; use this guide for RC and final 1.0.0 publication.
+`1.0.0-RC1`; use this guide for RC and final 1.0.0 publication.
 
 ## Release checklist (for future releases)
 

@@ -2,21 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
-## 0.1.0 — 2026-06-13
-
-- Initial public release on Maven Central under `io.github.jvmspec`.
-- Gradle plugin published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`.
-- All implementation phases A-E, D2, and publication are complete.
-- Java 8-compatible, zero-runtime-dependency core artifact.
-- CLI describe/run workflows, configuration, discovery, generation support, matchers, interface doubles, run controls, reports, and programmatic no-JUnit invocation.
-- Standalone optional adapters: Maven plugin (`javaspec-maven-plugin`), Gradle plugin (`javaspec-gradle-plugin`), JUnit Platform engine (`javaspec-junit-platform-engine`), and bytecode doubles adapter (`javaspec-bytecode-doubles`).
-- Prophecy-style doubles API with ObjectProphecy, MethodProphecy, Promise, Prediction, and typed wrapper generation.
-- Aggregate local/CI verification for core, standalone adapters, and examples.
-- Release-readiness scaffolding with MIT license, maintainer metadata, version-alignment checks, and source/javadoc artifact profiles.
-- Adoption examples, report schema, golden reports, and full documentation.
-- Bounded generic Iterable matcher checks, source-preserving sealed-interface updates, config-driven extension activation, ServiceLoader bootstrap hook discovery, programmatic/Maven/Gradle opt-in compilation, additive report metadata/properties, deeper target-profile enforcement, and optional ByteBuddy concrete-class doubles.
-
 ## Unreleased
+
+- No changes yet.
+
+## 1.0.0-RC1 — 2026-07-10
 
 - Added generated-source hygiene for spec support and Prophecy wrappers: generated support classes
   and `*Prophecy` wrappers live under `target/generated-sources/javaspec` by default, not `src/`.
@@ -99,8 +89,6 @@ All notable changes to this project will be documented in this file.
   - config keys, Maven/Gradle/JUnit adapter behavior, report schemas, dependency resolution,
     incremental caches, and release/source-level management remain unchanged.
 
-## 1.0.0-SNAPSHOT
-
 - Implemented the Java 8-compatible, zero-runtime-dependency javaspec core with CLI describe/run
   workflows, configuration, discovery, generation support, matchers, interface doubles, run
   controls, reports, and programmatic no-JUnit invocation.
@@ -108,3 +96,17 @@ All notable changes to this project will be documented in this file.
   runtime artifact.
 - Added aggregate local/CI verification for the core and standalone adapters while preserving the
   zero-runtime-dependency core policy.
+
+## 0.1.0 — 2026-06-13
+
+- Initial public release on Maven Central under `io.github.jvmspec`.
+- Gradle plugin published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`.
+- All implementation phases A-E, D2, and publication are complete.
+- Java 8-compatible, zero-runtime-dependency core artifact.
+- CLI describe/run workflows, configuration, discovery, generation support, matchers, interface doubles, run controls, reports, and programmatic no-JUnit invocation.
+- Standalone optional adapters: Maven plugin (`javaspec-maven-plugin`), Gradle plugin (`javaspec-gradle-plugin`), JUnit Platform engine (`javaspec-junit-platform-engine`), and bytecode doubles adapter (`javaspec-bytecode-doubles`).
+- Prophecy-style doubles API with ObjectProphecy, MethodProphecy, Promise, Prediction, and typed wrapper generation.
+- Aggregate local/CI verification for core, standalone adapters, and examples.
+- Release-readiness scaffolding with MIT license, maintainer metadata, version-alignment checks, and source/javadoc artifact profiles.
+- Adoption examples, report schema, golden reports, and full documentation.
+- Bounded generic Iterable matcher checks, source-preserving sealed-interface updates, config-driven extension activation, ServiceLoader bootstrap hook discovery, programmatic/Maven/Gradle opt-in compilation, additive report metadata/properties, deeper target-profile enforcement, and optional ByteBuddy concrete-class doubles.

@@ -14,7 +14,7 @@ Artifacts are published on Maven Central under `io.github.jvmspec`. Add the depe
 <dependency>
     <groupId>io.github.jvmspec</groupId>
     <artifactId>javaspec</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0-RC1</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -38,10 +38,10 @@ The Gradle plugin id is `io.github.jvmspec`.
 
 ### Setup
 
-Build the local snapshot and make the launcher available:
+Build the local release candidate and make the launcher available:
 
 ```sh
-# Build and install the local snapshot
+# Build and install the local release candidate
 mvn -q -DskipTests install
 
 # Add bin/ to your PATH for this session
@@ -171,9 +171,9 @@ Common authoring concepts:
 After building from the repository root:
 
 ```sh
-java -cp target/javaspec-1.0.0-SNAPSHOT.jar io.github.jvmspec.cli.Main --help
-java -cp target/javaspec-1.0.0-SNAPSHOT.jar io.github.jvmspec.cli.Main describe com.example.Calculator
-java -cp target/javaspec-1.0.0-SNAPSHOT.jar io.github.jvmspec.cli.Main run --compile --generate
+java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main --help
+java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main describe com.example.Calculator
+java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main run --compile --generate
 ```
 
 Useful `run` options:
@@ -222,7 +222,7 @@ Consumer `pom.xml` example:
 
 ```xml
 <properties>
-  <javaspec.version>1.0.0-SNAPSHOT</javaspec.version>
+  <javaspec.version>1.0.0-RC1</javaspec.version>
 </properties>
 
 <dependencies>
@@ -288,7 +288,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation 'io.github.jvmspec:javaspec:1.0.0-SNAPSHOT'
+    testImplementation 'io.github.jvmspec:javaspec:1.0.0-RC1'
 }
 
 javaspec {
@@ -323,13 +323,13 @@ Consumer Maven example:
 <dependency>
   <groupId>io.github.jvmspec</groupId>
   <artifactId>javaspec</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>1.0.0-RC1</version>
   <scope>test</scope>
 </dependency>
 <dependency>
   <groupId>io.github.jvmspec</groupId>
   <artifactId>javaspec-junit-platform-engine</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>1.0.0-RC1</version>
   <scope>test</scope>
 </dependency>
 <dependency>
@@ -499,7 +499,7 @@ mvn -q -f javaspec-bytecode-doubles/pom.xml -DskipTests install
 <dependency>
   <groupId>io.github.jvmspec</groupId>
   <artifactId>javaspec-bytecode-doubles</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>1.0.0-RC1</version>
   <scope>test</scope>
 </dependency>
 ```
@@ -531,7 +531,7 @@ mvn -q -f javaspec-bytecode-agent/pom.xml -DskipTests install
 <dependency>
   <groupId>io.github.jvmspec</groupId>
   <artifactId>javaspec-bytecode-agent</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>1.0.0-RC1</version>
   <scope>test</scope>
 </dependency>
 ```
@@ -761,7 +761,7 @@ form, and a standalone verification test.
 The CLI and adapters can write both JSON and JUnit XML-compatible reports:
 
 ```sh
-java -cp target/javaspec-1.0.0-SNAPSHOT.jar io.github.jvmspec.cli.Main run \
+java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main run \
   --compile \
   --report target/javaspec-report.json \
   --junit-xml target/javaspec-report.xml
@@ -806,7 +806,7 @@ suite.domain.bootstrap=com.example.SpecBootstrap
 Use it with:
 
 ```sh
-java -cp target/javaspec-1.0.0-SNAPSHOT.jar io.github.jvmspec.cli.Main run --config javaspec.conf --suite domain
+java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main run --config javaspec.conf --suite domain
 ```
 
 CLI options override matching config values where an override exists.
@@ -816,10 +816,10 @@ CLI options override matching config values where an override exists.
 javaspec is classpath/reflection based by default. Source/spec compilation is explicit:
 
 ```sh
-java -cp target/javaspec-1.0.0-SNAPSHOT.jar io.github.jvmspec.cli.Main run --compile
-java -cp target/javaspec-1.0.0-SNAPSHOT.jar io.github.jvmspec.cli.Main run --compile-output target/javaspec-classes
-java -cp target/javaspec-1.0.0-SNAPSHOT.jar io.github.jvmspec.cli.Main run --compile --release 8
-java -cp target/javaspec-1.0.0-SNAPSHOT.jar io.github.jvmspec.cli.Main run --compile --resolve-pom pom.xml
+java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main run --compile
+java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main run --compile-output target/javaspec-classes
+java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main run --compile --release 8
+java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main run --compile --resolve-pom pom.xml
 ```
 
 Compilation uses the current JDK `javax.tools.JavaCompiler` API. It can use `--release <N>` on
@@ -886,7 +886,7 @@ Start here:
 - [`examples/bytecode-doubles-basic/`](examples/bytecode-doubles-basic/) — optional non-final concrete-class doubles.
 - [`examples/bytecode-agent-basic/`](examples/bytecode-agent-basic/) — optional final-class and static-method doubles.
 - [`docs/usermanual/Home.md`](docs/usermanual/Home.md) — user manual with more CLI details.
-- [`docs/release-notes-1.0.0.md`](docs/release-notes-1.0.0.md) — unreleased development-line notes.
+- [`docs/release-notes-1.0.0.md`](docs/release-notes-1.0.0.md) — 1.0 RC release notes.
 - [`docs/compatibility-policy-1.0.md`](docs/compatibility-policy-1.0.md), [`docs/java-compatibility-1.0.md`](docs/java-compatibility-1.0.md), and [`docs/troubleshooting.md`](docs/troubleshooting.md) — 1.0 policy, Java matrix, and diagnostics.
 - [`docs/migration-guide-1.0.md`](docs/migration-guide-1.0.md), [`docs/junit-to-javaspec-guide.md`](docs/junit-to-javaspec-guide.md), and [`docs/cucumber-boundary.md`](docs/cucumber-boundary.md) — migration and boundary guides.
 - [`javaspec-gradle-plugin/README.md`](javaspec-gradle-plugin/README.md) — Gradle plugin details.

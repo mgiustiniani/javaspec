@@ -292,7 +292,7 @@ allowing standalone plugin verification after the current core has been installe
 
 The plugin boundary principles are:
 
-- The plugin packages `io.github.jvmspec:javaspec-maven-plugin:1.0.0-SNAPSHOT` as `maven-plugin` with
+- The plugin packages `io.github.jvmspec:javaspec-maven-plugin:1.0.0-RC1` as `maven-plugin` with
   Java source/target `1.8` and goal prefix `javaspec`.
 - Maven API and plugin annotations are `provided`; JUnit is only a plugin test dependency.
 - The only plugin runtime dependency beyond the plugin itself is compile-scope core
@@ -316,10 +316,10 @@ while allowing standalone plugin verification after the current core has been in
 
 The plugin boundary principles are:
 
-- The plugin uses `java-gradle-plugin`, group `io.github.jvmspec`, version `1.0.0-SNAPSHOT`, Java
+- The plugin uses `java-gradle-plugin`, group `io.github.jvmspec`, version `1.0.0-RC1`, Java
   source/target `1.8`, plugin id `io.github.jvmspec`, and implementation class
   `io.github.jvmspec.gradle.JavaspecPlugin`.
-- The plugin depends on core `io.github.jvmspec:javaspec:1.0.0-SNAPSHOT`; verified runtimeClasspath
+- The plugin depends on core `io.github.jvmspec:javaspec:1.0.0-RC1`; verified runtimeClasspath
   contains only that core dependency.
 - JUnit and TestKit are plugin test dependencies only; projects under test do not need JUnit.
 - `javaspecRun` uses the configured Gradle classpath and defaults to the Java plugin `test` source
@@ -341,7 +341,7 @@ build/audit while allowing standalone engine verification after the current core
 
 The engine boundary principles are:
 
-- The engine packages `io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-SNAPSHOT` as a Java
+- The engine packages `io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-RC1` as a Java
   8-compatible `jar` using JUnit Platform `1.10.2`, not JUnit Platform 6/JUnit 6.
 - `JavaspecTestEngine` is registered by ServiceLoader with engine id `javaspec`.
 - Runtime dependencies are isolated to the engine artifact: core `io.github.jvmspec:javaspec`,

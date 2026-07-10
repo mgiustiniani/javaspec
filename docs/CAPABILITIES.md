@@ -12,7 +12,7 @@ This document records capabilities verified while preparing the 1.0 roadmap. It 
   - `scripts/check-version-alignment.sh`: PASS (previous pre-1.0 snapshot aligned)
   - `mvn -q verify`: PASS for core
   - `scripts/verify-all.sh`: PASS including Gradle
-- Active release line after this audit slice: `1.0.0-SNAPSHOT`.
+- Active release candidate line: `1.0.0-RC1`.
 
 ## Artifacts and modules
 

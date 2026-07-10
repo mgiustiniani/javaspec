@@ -25,7 +25,7 @@ Core constraints:
   - `scripts/check-version-alignment.sh`: PASS, baseline was the previous pre-1.0 snapshot
   - `mvn -q verify`: PASS for core
   - `scripts/verify-all.sh`: PASS including Gradle
-- The active release line has since been normalized to `1.0.0-SNAPSHOT`.
+- The active release line is now `1.0.0-RC1` after completing the snapshot readiness gates.
 
 ## Priority definitions
 
@@ -84,7 +84,7 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
 - Priority: P0
 - Disposition: REQUIRED_FOR_1_0
 - Status: COMPLETED
-- Motivation: the project is preparing a 1.0 line; project versions and active release notes are now normalized to `1.0.0-SNAPSHOT` / `docs/release-notes-1.0.0.md`.
+- Motivation: the project is preparing a 1.0 line; project versions are now on `1.0.0-RC1` and active release notes live in `docs/release-notes-1.0.0.md`.
 - Dependencies: M0.
 - Acceptance criteria:
   - Development line version is consistently `1.0.0-SNAPSHOT` before RC work.

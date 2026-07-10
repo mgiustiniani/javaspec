@@ -5,9 +5,9 @@ This checklist is the release gate source for 1.0. It must be updated with comma
 ## Phase progression
 
 - [x] Development line normalized to `1.0.0-SNAPSHOT`.
-- [x] API/SPI classification complete; binary baseline archive remains RC task.
-- [ ] `1.0.0-RC1` prepared from a clean commit.
-- [ ] RC consumer verification complete.
+- [x] API/SPI classification complete and RC1 binary signature inventory archived.
+- [x] `1.0.0-RC1` prepared from an aligned, locally verified version-cut commit.
+- [x] RC consumer verification complete against locally staged `1.0.0-RC1` artifacts.
 - [ ] Final `1.0.0` prepared from verified RC or documented RC fix commit.
 - [ ] Post-release snapshot bump complete.
 
@@ -36,7 +36,7 @@ Evidence:
 | `scripts/verify-all.sh` | `7256969` | PASS | Includes standalone adapters and examples |
 | `scripts/verify-release-dry-run.sh` | `7256969` | PASS | Packages all artifacts, verifies checksums, and runs consumer examples |
 | `scripts/check-core-java8-bytecode.sh` | local RC hardening slice | PASS | Core classfiles max major 52 |
-| `scripts/check-release-preflight.sh` | release/tag-time gate | PENDING | Expected to pass only after `1.0.0-RC1` / `1.0.0` version cut and matching tag |
+| `scripts/check-release-preflight.sh` | local RC1 version cut | PASS | `JAVASPEC_RELEASE_TAG=v1.0.0-RC1`; actual tag publication remains pending |
 | GitHub Actions Java 8/11/17/21/25 + full Java 21 | `0f89906` | PASS | [CI run 29115347259](https://github.com/mgiustiniani/javaspec/actions/runs/29115347259) |
 
 ## Core gates
@@ -64,6 +64,7 @@ Evidence:
 - [x] Support window documented.
 - [x] API compatibility tool added as test/build tooling.
 - [x] 1.0 API baseline generation procedure documented.
+- [x] RC1 public/protected JVM signature inventory archived in `docs/history/api-baseline-1.0.0.md`.
 
 ## Semantic gates
 
@@ -105,7 +106,7 @@ Evidence:
 ## Release engineering gates
 
 - [x] Version alignment green.
-- [ ] No `SNAPSHOT` dependencies in release build (guarded by `scripts/check-release-preflight.sh`; expected to pass after RC/final version cut).
+- [x] No `SNAPSHOT` dependencies in the RC1 build (`scripts/check-release-preflight.sh` passed locally).
 - [x] Source JARs present.
 - [x] Javadoc JARs present.
 - [x] POM metadata complete: SCM, license, developers, issues.

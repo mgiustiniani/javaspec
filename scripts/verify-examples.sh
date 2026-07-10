@@ -89,11 +89,11 @@ remove_path() {
   (cd "${repo_root}" && rm -rf "$@")
 }
 
-run_at_root "Install root core snapshot for examples" "${MAVEN_BIN}" -q -DskipTests install
-run_at_root "Install Maven plugin snapshot for examples" "${MAVEN_BIN}" -q -f javaspec-maven-plugin/pom.xml -DskipTests install
-run_at_root "Install bytecode doubles adapter snapshot for examples" "${MAVEN_BIN}" -q -f javaspec-bytecode-doubles/pom.xml -DskipTests install
-run_at_root "Install bytecode agent adapter snapshot for examples" "${MAVEN_BIN}" -q -f javaspec-bytecode-agent/pom.xml -DskipTests install
-run_at_root "Install JUnit Platform engine snapshot for examples" "${MAVEN_BIN}" -q -f javaspec-junit-platform-engine/pom.xml -DskipTests install
+run_at_root "Install root core artifact for examples" "${MAVEN_BIN}" -q -DskipTests install
+run_at_root "Install Maven plugin artifact for examples" "${MAVEN_BIN}" -q -f javaspec-maven-plugin/pom.xml -DskipTests install
+run_at_root "Install bytecode doubles adapter artifact for examples" "${MAVEN_BIN}" -q -f javaspec-bytecode-doubles/pom.xml -DskipTests install
+run_at_root "Install bytecode agent adapter artifact for examples" "${MAVEN_BIN}" -q -f javaspec-bytecode-agent/pom.xml -DskipTests install
+run_at_root "Install JUnit Platform engine artifact for examples" "${MAVEN_BIN}" -q -f javaspec-junit-platform-engine/pom.xml -DskipTests install
 
 remove_path "Clean previous Maven example reports" examples/maven-basic/target/javaspec
 run_at_root "Verify Maven plugin basic example" "${MAVEN_BIN}" -q -f examples/maven-basic/pom.xml verify

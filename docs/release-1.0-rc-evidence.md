@@ -58,10 +58,27 @@ passed at commit `0f89906`:
 - Full adapter and standalone consumer verification on Java 21.
 - Release contract guards, including the portable API-surface classification check.
 
+## 2026-07-10 — RC1 version-cut candidate
+
+The repository was aligned at `1.0.0-RC1` and passed locally:
+
+```sh
+scripts/check-version-alignment.sh
+scripts/check-current-docs.sh
+JAVASPEC_RELEASE_TAG=v1.0.0-RC1 scripts/check-release-preflight.sh
+scripts/verify-all.sh
+scripts/verify-release-dry-run.sh
+scripts/generate-api-baseline.sh
+```
+
+Evidence:
+
+- No `SNAPSHOT` references remain in Maven/Gradle build files.
+- RC1 main/source/Javadoc artifacts, checksums, adapter builds, and consumer examples passed.
+- `docs/history/api-baseline-1.0.0.md` contains the deterministic RC1 public/protected JVM signature
+  inventory; a second generation produced no diff.
+
 Remaining RC/final cut-time evidence:
 
-- `scripts/check-release-preflight.sh` on the actual version-cut commit. A disposable-copy simulation
-  with all aligned build files set to `1.0.0-RC1` and `JAVASPEC_RELEASE_TAG=v1.0.0-RC1` passed; the
-  current snapshot branch correctly fails the same gate.
-- Tag/version/workflow alignment at tag time.
+- Tag/version/workflow alignment at actual tag time.
 - Publication-generated signatures and Central/Gradle Plugin Portal staging evidence.
