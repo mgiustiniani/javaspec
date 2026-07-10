@@ -178,6 +178,7 @@ public final class SpecRunner {
 
         Throwable letFailure = null;
         Throwable exampleFailure = null;
+        Throwable predictionFailure = null;
         Throwable letGoFailure = null;
         ExampleSignal runtimeSignal = null;
 
@@ -191,6 +192,9 @@ public final class SpecRunner {
             if (letFailure == null && runtimeSignal == null) {
                 exampleFailure = invoke(exampleMethod, instance, invocationContext);
                 runtimeSignal = signalFor(exampleFailure);
+            }
+            if (letFailure == null && exampleFailure == null && runtimeSignal == null) {
+                predictionFailure = checkPredictionsIfEnabled(instance);
             }
         } finally {
             if (letGoMethod != null) {
@@ -213,6 +217,11 @@ public final class SpecRunner {
                 primary = suppress(primary, exampleFailure);
                 return withExampleDataRows(ExampleResult.broken(spec, example, "letGo() failed after example execution", primary));
             }
+            if (predictionFailure != null) {
+                primary = suppress(primary, predictionFailure);
+                return withExampleDataRows(ExampleResult.broken(spec, example,
+                        "letGo() failed after automatic prediction checking failure", primary));
+            }
             return withExampleDataRows(ExampleResult.broken(spec, example, "letGo() failed", primary));
         }
 
@@ -228,16 +237,12 @@ public final class SpecRunner {
             }
             return withExampleDataRows(ExampleResult.broken(spec, example, "Example method threw an unexpected throwable", exampleFailure));
         }
-        // Auto-check predictions if enabled on the spec instance.
-        if (instance instanceof ObjectBehavior) {
-            try {
-                ((ObjectBehavior<?>) instance).checkPredictionsIfEnabled();
-            } catch (AssertionError ex) {
-                return withExampleDataRows(ExampleResult.failed(spec, example, "Assertion failed", ex));
-            } catch (Throwable ex) {
-                return withExampleDataRows(ExampleResult.broken(spec, example,
-                        "Automatic prediction checking threw an unexpected throwable", ex));
+        if (predictionFailure != null) {
+            if (predictionFailure instanceof AssertionError) {
+                return withExampleDataRows(ExampleResult.failed(spec, example, "Assertion failed", predictionFailure));
             }
+            return withExampleDataRows(ExampleResult.broken(spec, example,
+                    "Automatic prediction checking threw an unexpected throwable", predictionFailure));
         }
         return withExampleDataRows(ExampleResult.passed(spec, example));
     }
@@ -264,6 +269,18 @@ public final class SpecRunner {
             return ExampleSignal.pending(annotationReason(pending.value(), pending.reason(), "Pending by javaspec."), null);
         }
         return null;
+    }
+
+    private static Throwable checkPredictionsIfEnabled(Object instance) {
+        if (!(instance instanceof ObjectBehavior)) {
+            return null;
+        }
+        try {
+            ((ObjectBehavior<?>) instance).checkPredictionsIfEnabled();
+            return null;
+        } catch (Throwable ex) {
+            return ex;
+        }
     }
 
     private static ExampleSignal signalFor(Throwable throwable) {

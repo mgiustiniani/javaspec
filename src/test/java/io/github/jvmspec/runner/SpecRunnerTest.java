@@ -402,6 +402,38 @@ public class SpecRunnerTest {
     }
 
     @Test
+    public void automaticPredictionCheckingRunsBeforeLetGoButStillRunsLetGo() {
+        PredictionBeforeLetGoSpec.reset();
+
+        RunResult result = run(PredictionBeforeLetGoSpec.class, "it_defers_the_collaborator_call_to_let_go");
+
+        assertEquals(1, result.totalCount());
+        assertEquals(1, result.failedCount());
+        assertEquals(Arrays.asList("example", "letGo"), PredictionBeforeLetGoSpec.events);
+        ExampleResult failure = result.exampleResults().get(0);
+        assertEquals(ExampleStatus.FAILED, failure.status());
+        assertNotNull(failure.failureDetail());
+        assertTrue(failure.failureDetail().message().contains("Expected method 'send'"));
+        assertTrue(failure.failureDetail().message().contains("to have been called"));
+    }
+
+    @Test
+    public void letGoFailureAfterPredictionFailureBecomesBrokenWithSuppressedPredictionFailure() {
+        LetGoFailsAfterPredictionFailureSpec.reset();
+
+        RunResult result = run(LetGoFailsAfterPredictionFailureSpec.class, "it_has_an_unmet_prediction");
+
+        assertEquals(1, result.totalCount());
+        assertEquals(1, result.brokenCount());
+        assertEquals(Arrays.asList("example", "letGo"), LetGoFailsAfterPredictionFailureSpec.events);
+        ExampleResult broken = result.exampleResults().get(0);
+        assertEquals(ExampleStatus.BROKEN, broken.status());
+        assertEquals("letGo() failed after automatic prediction checking failure", broken.detail());
+        assertNotNull(broken.failureDetail());
+        assertEquals("teardown after prediction", broken.failureDetail().message());
+    }
+
+    @Test
     public void createsFreshSpecInstancePerExample() {
         FreshInstanceSpec.reset();
 
@@ -797,6 +829,58 @@ public class SpecRunnerTest {
 
         public void it_receives_an_interface_double(Mailer mailer) {
             doubleReceived = Doubles.isDouble(mailer);
+        }
+    }
+
+    public static final class PredictionBeforeLetGoSpec extends ObjectBehavior<MailSubject> {
+        static List<String> events = new ArrayList<String>();
+        private MailerProphecy prepared;
+
+        public PredictionBeforeLetGoSpec() {
+            super(MailSubject.class);
+        }
+
+        static void reset() {
+            events = new ArrayList<String>();
+        }
+
+        public void let(MailerProphecy mailer) {
+            prepared = mailer;
+            mailer.send("late@example.com").willReturn(Boolean.TRUE).shouldBeCalled();
+        }
+
+        public void it_defers_the_collaborator_call_to_let_go(MailerProphecy mailer) {
+            events.add("example");
+            if (prepared != mailer) {
+                throw new AssertionError("expected shared prophecy instance");
+            }
+        }
+
+        public void letGo(MailerProphecy mailer) {
+            events.add("letGo");
+            mailer.reveal().send("late@example.com");
+        }
+    }
+
+    public static final class LetGoFailsAfterPredictionFailureSpec extends ObjectBehavior<MailSubject> {
+        static List<String> events = new ArrayList<String>();
+
+        public LetGoFailsAfterPredictionFailureSpec() {
+            super(MailSubject.class);
+        }
+
+        static void reset() {
+            events = new ArrayList<String>();
+        }
+
+        public void it_has_an_unmet_prediction(MailerProphecy mailer) {
+            events.add("example");
+            mailer.send("never@example.com").willReturn(Boolean.TRUE).shouldBeCalled();
+        }
+
+        public void letGo(MailerProphecy mailer) {
+            events.add("letGo");
+            throw new IllegalStateException("teardown after prediction");
         }
     }
 
