@@ -33,11 +33,11 @@ Evidence:
 | `scripts/check-api-surface.sh` | `7256969` | PASS | API/SPI classification guard green |
 | `mvn -q verify` | local RC hardening slice | PASS | Core on default Java 25 JVM; includes Java 8 API linkage check |
 | `JAVA_HOME=/usr/lib/jvm/java-21-openjdk ... mvn -q verify` | `7256969` | PASS | Core on local Java 21 runtime |
-| `scripts/verify-all.sh` | `7256969` | PASS | Includes standalone adapters and examples |
-| `scripts/verify-release-dry-run.sh` | `7256969` | PASS | Packages all artifacts, verifies checksums, and runs consumer examples |
-| `scripts/check-core-java8-bytecode.sh` | local RC hardening slice | PASS | Core classfiles max major 52 |
-| `scripts/check-release-preflight.sh` | local RC1 version cut | PASS | `JAVASPEC_RELEASE_TAG=v1.0.0-RC1`; actual tag publication remains pending |
-| GitHub Actions Java 8/11/17/21/25 + full Java 21 | `0f89906` | PASS | [CI run 29115347259](https://github.com/mgiustiniani/javaspec/actions/runs/29115347259) |
+| `scripts/verify-all.sh` | `e212a39` | PASS | Aligned RC1 adapters and examples |
+| `scripts/verify-release-dry-run.sh` | `e212a39` | PASS | RC1 artifacts, checksums, and consumer examples |
+| `scripts/check-core-java8-bytecode.sh` | `e212a39` | PASS | Core classfiles max major 52 |
+| `scripts/check-release-preflight.sh` | `e212a39` | PASS | `JAVASPEC_RELEASE_TAG=v1.0.0-RC1`; actual tag publication remains pending |
+| GitHub Actions Java 8/11/17/21/25 + full Java 21 | `e212a39` | PASS | [RC1 CI run 29118310277](https://github.com/mgiustiniani/javaspec/actions/runs/29118310277) |
 
 ## Core gates
 

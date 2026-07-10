@@ -58,9 +58,9 @@ passed at commit `0f89906`:
 - Full adapter and standalone consumer verification on Java 21.
 - Release contract guards, including the portable API-surface classification check.
 
-## 2026-07-10 — RC1 version-cut candidate
+## 2026-07-10 — RC1 version cut
 
-The repository was aligned at `1.0.0-RC1` and passed locally:
+Commit `e212a39` (`chore: prepare 1.0.0-RC1`) aligned the repository at `1.0.0-RC1` and passed locally:
 
 ```sh
 scripts/check-version-alignment.sh
@@ -77,6 +77,9 @@ Evidence:
 - RC1 main/source/Javadoc artifacts, checksums, adapter builds, and consumer examples passed.
 - `docs/history/api-baseline-1.0.0.md` contains the deterministic RC1 public/protected JVM signature
   inventory; a second generation produced no diff.
+- GitHub Actions [run 29118310277](https://github.com/mgiustiniani/javaspec/actions/runs/29118310277)
+  passed the Java 8/11/17/21/25 core matrix and full Java 21 adapter/consumer verification on the RC1
+  version-cut commit.
 
 Remaining RC/final cut-time evidence:
 

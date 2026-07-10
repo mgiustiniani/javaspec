@@ -133,5 +133,6 @@ moving dependency-heavy behavior into optional artifacts.
   version 52.
 - 1.0 documentation includes compatibility policy, Java compatibility matrix, migration guide,
   JUnit-to-javaspec guide, Cucumber/Gherkin boundary, and troubleshooting pages.
-- RC1 local evidence passed with aligned `1.0.0-RC1` artifacts, no build-file `SNAPSHOT`
-  references, release dry-run consumers, checksums, and a deterministic archived API inventory.
+- RC1 evidence passed with aligned `1.0.0-RC1` artifacts, no build-file `SNAPSHOT` references,
+  release dry-run consumers, checksums, a deterministic archived API inventory, and the Java
+  8/11/17/21/25 matrix plus full Java 21 verification in CI run 29118310277.
