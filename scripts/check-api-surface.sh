@@ -23,14 +23,18 @@ fi
 
 SOURCE_DIRS="src/main/java javaspec-maven-plugin/src/main/java javaspec-junit-platform-engine/src/main/java javaspec-bytecode-doubles/src/main/java javaspec-bytecode-agent/src/main/java javaspec-gradle-plugin/src/main/java"
 
-packages="$(find $SOURCE_DIRS -name '*.java' -print \
-  | xargs rg -n '^package ' \
-  | sed 's/.*package //;s/;//' \
-  | sort -u)"
+packages="$(find $SOURCE_DIRS -name '*.java' -exec awk '
+  /^[[:space:]]*package[[:space:]]+/ {
+    line = $0
+    sub(/^[[:space:]]*package[[:space:]]+/, "", line)
+    sub(/[[:space:]]*;.*/, "", line)
+    print line
+  }
+' {} + | sort -u)"
 
 missing=""
 for package_name in $packages; do
-  if ! rg -q "\`$package_name\`" "$DOC"; then
+  if ! grep -Fq "\`$package_name\`" "$DOC"; then
     missing="$missing $package_name"
   fi
 done
@@ -44,14 +48,14 @@ else
 fi
 
 for term in PUBLIC_API PUBLIC_SPI ADAPTER_API GENERATED_API INTERNAL; do
-  if rg -q "$term" "$DOC"; then
+  if grep -Fq "$term" "$DOC"; then
     pass "classification term present: $term"
   else
     fail "classification term missing: $term"
   fi
 done
 
-if rg -q '1.0 baseline procedure' "$DOC"; then
+if grep -Fq '1.0 baseline procedure' "$DOC"; then
   pass "1.0 baseline procedure documented"
 else
   fail "1.0 baseline procedure missing"
