@@ -18,7 +18,6 @@ jobs:
           server-id: central
           server-username: SONATYPE_TOKEN_USER
           server-password: SONATYPE_TOKEN_PASS
-          settings-path: ${{ github.workspace }}/.github/maven-settings.xml
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.8'
@@ -84,11 +83,11 @@ jobs:
       - name: Publish Maven artifacts to Maven Central
         if: steps.central.outputs.published != 'true'
         run: |
-          mvn -q deploy -pl . -P release,release-artifacts -DperformRelease=true
-          mvn -q deploy -f javaspec-maven-plugin/pom.xml -P release,release-artifacts -DperformRelease=true
-          mvn -q deploy -f javaspec-junit-platform-engine/pom.xml -P release,release-artifacts -DperformRelease=true
-          mvn -q deploy -f javaspec-bytecode-doubles/pom.xml -P release,release-artifacts -DperformRelease=true
-          mvn -q deploy -f javaspec-bytecode-agent/pom.xml -P release,release-artifacts -DperformRelease=true
+          mvn -q -s .github/maven-settings.xml deploy -pl . -P release,release-artifacts -DperformRelease=true
+          mvn -q -s .github/maven-settings.xml deploy -f javaspec-maven-plugin/pom.xml -P release,release-artifacts -DperformRelease=true
+          mvn -q -s .github/maven-settings.xml deploy -f javaspec-junit-platform-engine/pom.xml -P release,release-artifacts -DperformRelease=true
+          mvn -q -s .github/maven-settings.xml deploy -f javaspec-bytecode-doubles/pom.xml -P release,release-artifacts -DperformRelease=true
+          mvn -q -s .github/maven-settings.xml deploy -f javaspec-bytecode-agent/pom.xml -P release,release-artifacts -DperformRelease=true
         env:
           SONATYPE_TOKEN_USER: ${{ secrets.SONATYPE_TOKEN_USER }}
           SONATYPE_TOKEN_PASS: ${{ secrets.SONATYPE_TOKEN_PASS }}
