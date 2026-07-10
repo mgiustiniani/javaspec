@@ -64,17 +64,15 @@ moving dependency-heavy behavior into optional artifacts.
   duplicate same-type collaborator parameters and ambiguous overloads report BROKEN diagnostics.
   `ObjectBehavior.sharedProphecyRegistry()` exposes the runner/generator adapter hook without
   reflective protected-method access.
-- Phase 49 has begun expanding Prophecy parity with identity (`same` / `identicalTo`), membership
-  (`in` / `notIn`), and custom callback (`matching`) argument tokens, available through core
-  `Doubles` / `ArgumentMatchers` and prophecy `Argument` / `Arg` aliases. Generated typed
-  `*Prophecy` wrappers include same-name `Object` argument-token overloads, so matcher-token calls
-  compile without falling back to reflective `method("...")` syntax. Custom tokens can implement
-  `ArgumentToken` and be passed through `Argument.token(...)` / `Argument.custom(...)`.
-  `MethodProphecy.should(...)`
-  now supports custom prediction callbacks receiving a `PredictionContext` with matching calls,
-  all calls, method name, and argument pattern. Prediction and verification failure messages include
-  recorded/matching call context, including ordered-verification failures and same-method calls with
-  different arguments.
+- Phase 49 completes the current Prophecy parity slice with identity (`same` / `identicalTo`),
+  membership (`in` / `notIn`), custom callback (`matching`), and named custom `ArgumentToken`
+  argument tokens through core `Doubles` / `ArgumentMatchers` and prophecy `Argument` / `Arg`
+  aliases. Generated typed `*Prophecy` wrappers include same-name `Object` argument-token overloads,
+  so matcher-token calls compile without falling back to reflective `method("...")` syntax.
+  `MethodProphecy.should(...)` supports custom prediction callbacks receiving a `PredictionContext`
+  with matching calls, all calls, method name, argument pattern, and call count. Prediction and
+  verification failure messages include recorded/matching call context, including ordered-verification
+  failures and same-method calls with different arguments.
 
 ## Optional subclass adapter `javaspec-bytecode-doubles`
 

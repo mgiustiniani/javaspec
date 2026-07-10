@@ -353,22 +353,26 @@ includes parameterized example methods so source metadata reaches the runner.
 
 **Goal:** make interaction testing feel like Prophecy, not Mockito.
 
+**Status:** Completed — interaction testing now has Prophecy-style argument tokens, generated typed
+wrapper ergonomics, custom predictions, and stronger diagnostics while keeping concrete/final/static
+and constructor cases in optional bytecode adapters.
+
 Deliverables:
 - Complete argument-token coverage: exact/identity, type, callback, any, cetera, containing string,
-  in/not-in, and custom token interfaces. **In progress:** `same` / `identicalTo`, `in` / `notIn`,
-  and `matching(Predicate, description)` are now available through core doubles and prophecy aliases.
-  Generated typed `*Prophecy` wrappers now include same-name `Object` argument-token overloads so
+  in/not-in, and custom token interfaces. `same` / `identicalTo`, `in` / `notIn`,
+  `matching(Predicate, description)`, and `ArgumentToken` custom tokens are available through core
+  doubles and prophecy aliases.
+- Generated typed `*Prophecy` wrappers include same-name `Object` argument-token overloads so
   PHPSpec-like calls such as `mailer.send(any(String.class)).shouldBeCalled()` compile without
-  falling back to reflective `method("send", ...)`. Prophecy also exposes a named `ArgumentToken`
-  custom-token interface plus `Argument.token(...)` / `Argument.custom(...)` aliases.
-- Add custom prediction callbacks equivalent to Prophecy `should(callback)`. **Done:**
-  `MethodProphecy.should(PredictionCallback)` supplies `PredictionContext` with matching calls,
-  all calls, method name, and argument pattern.
-- Harden automatic prediction checking after examples and before `letGo` result finalization.
-- Improve failure messages for unmet predictions, unexpected calls, ordered calls, and argument-token
-  mismatch explanations. **In progress:** call-count, unexpected-call, missing-call, ordered-call,
-  and same-method/different-arguments diagnostics now include recorded/matching call context.
-- Keep concrete/final/static/constructor cases in optional bytecode adapters.
+  falling back to reflective `method("send", ...)`.
+- Custom prediction callbacks equivalent to Prophecy `should(callback)` are available through
+  `MethodProphecy.should(PredictionCallback)` with `PredictionContext` supplying matching calls,
+  all calls, method name, argument pattern, and call count.
+- Automatic prediction checking is hardened after examples and before `letGo` result finalization.
+  `letGo` still always runs; teardown failure after prediction failure becomes BROKEN with the
+  prediction failure suppressed.
+- Failure messages for unmet predictions, unexpected calls, ordered calls, call counts, and
+  same-method/different-arguments mismatches include recorded/matching call context.
 
 ### Phase 50 — Matcher parity and PHPSpec dynamic expectations
 
