@@ -57,7 +57,8 @@ moving dependency-heavy behavior into optional artifacts.
   `letGo()` methods may declare supported collaborator parameters. Ordinary interface parameters are
   injected as interface doubles, generated typed `*Prophecy` wrapper parameters are backed by the
   spec's shared prediction registry, and the same collaborator instance is reused across
-  `let`/example/`letGo` for one example run.
+  `let`/example/`letGo` for one example run. Automatic prediction checking now runs before
+  `letGo` while still guaranteeing teardown execution.
 
 ## Optional subclass adapter `javaspec-bytecode-doubles`
 
