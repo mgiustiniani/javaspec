@@ -1746,8 +1746,11 @@ public class NameNormalizerSpec extends ObjectBehavior<NameNormalizer> {
 ```
 
 `Example1` and `Example2` callbacks are available in core for Java 8-compatible one- and two-column
-rows. Rows currently execute inside the containing `it_*` example. If a row fails, the assertion
-message includes the row number and values, for example `Example data row 2 [ Bob , Robert] failed`.
+rows. Rows execute inside the containing `it_*` example. If a row fails, the assertion message
+includes the row number and values, for example `Example data row 2 [ Bob , Robert] failed`. The
+stable JSON/JUnit XML/JUnit Platform row reporting and selector contract is in
+`docs/example-data-contract-1.0.md`; row unique-id selectors filter adapter descriptors/events and do
+not create isolated per-row lifecycles.
 
 ## Typed proxy matcher syntax
 

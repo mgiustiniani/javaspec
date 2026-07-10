@@ -55,7 +55,7 @@ See [`docs/CAPABILITIES.md`](CAPABILITIES.md) for the capability matrix. The imp
 - Phase 50 matcher scope is frozen for 1.0 as approximate numeric, iterator, and generated object-state Java-adapted semantics.
 - Event/extension model v2 is deferred; existing extension surfaces are classified for 1.0.
 - JSON schema evolution and compatibility policy are recorded in `docs/result-contract-1.0.md`.
-- Example-data row execution semantics are frozen as inline execution with row descriptor/event/report projection.
+- Example-data row execution semantics are frozen in `docs/example-data-contract-1.0.md` as inline execution with row descriptor/event/report projection.
 - Prophecy generated wrappers, typed token overloads, and custom predictions are frozen in `docs/prophecy-contract-1.0.md`.
 
 ## Public contracts observed
@@ -104,7 +104,7 @@ Public-facing contracts are classified for 1.0 in `docs/api-surface-1.0.md`:
 
 ### P1
 
-- P1-ROW-001: example-data row selection semantics need a 1.0 contract.
+- P1-ROW-001: DONE — example-data row execution/selector/report semantics are frozen in `docs/example-data-contract-1.0.md`.
 - P1-PROP-001: generated Prophecy token overload edge cases need audit.
 - P1-MATCH-001: Phase 50 matcher parity requires implementation or explicit deferral.
 - P1-EXT-001: DONE — existing SPI semantics are frozen in `docs/extension-spi-1.0.md`; typed event model v2 is deferred.
@@ -121,7 +121,7 @@ Public-facing contracts are classified for 1.0 in `docs/api-surface-1.0.md`:
 | Area | 1.0 disposition | Notes |
 |---|---|---|
 | Phase 46 PHPSpec compatibility | REQUIRED_FOR_1_0 | Implemented; keep docs current. |
-| Phase 47 example data | REQUIRED_BEFORE_RC | Implemented; contract/documentation audit remains. |
+| Phase 47 example data | REQUIRED_BEFORE_RC | Implemented; 1.0 contract documented in `docs/example-data-contract-1.0.md`. |
 | Phase 48 collaborator injection | REQUIRED_BEFORE_RC | Implemented; contract docs and edge cases still audited in M5. |
 | Phase 49 Prophecy parity | REQUIRED_BEFORE_RC | Implemented; generated wrapper overload audit remains. |
 | Phase 50 matcher parity | REQUIRED_BEFORE_RC scope decision | Implement or defer explicit parts. |

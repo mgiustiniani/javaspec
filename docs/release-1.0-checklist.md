@@ -125,6 +125,7 @@ Evidence:
 - [ ] Gradle guide current.
 - [ ] JUnit Platform/IDE guide current.
 - [x] Extension SPI guide current.
+- [x] Example data contract current.
 - [ ] Java compatibility matrix current.
 - [ ] Migration guide from 0.1.0/snapshots present.
 - [ ] JUnit-to-javaspec guide present or explicitly deferred.

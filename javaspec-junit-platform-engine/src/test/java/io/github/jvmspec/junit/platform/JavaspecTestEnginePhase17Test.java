@@ -247,6 +247,62 @@ class JavaspecTestEnginePhase17Test {
     }
 
     @Test
+    void rowUniqueIdSelectorsDoNotIsolateRowsFromOwningExampleExecution(@TempDir Path temp) throws Exception {
+        Path specRoot = temp.resolve("row-selector-inline-specs");
+        Path packageDirectory = Files.createDirectories(specRoot.resolve("phase47/inline"));
+        Path source = packageDirectory.resolve("InlineRowSelectorSpec.java");
+        Files.write(source, (
+                "package phase47.inline;\n\n" +
+                        "public class InlineRowSelectorSpec extends io.github.jvmspec.api.ObjectBehavior<InlineRowSelectorSpec.NameNormalizer> {\n" +
+                        "    public static int selectedRuns = 0;\n" +
+                        "\n" +
+                        "    public InlineRowSelectorSpec() { super(NameNormalizer.class); }\n" +
+                        "\n" +
+                        "    public void it_row_selector_runs_full_example_body() {\n" +
+                        "        selectedRuns++;\n" +
+                        "        examples(row(\"Alice\", \"Alicia\"), row(\" Bob \", \"Bob\"))\n" +
+                        "            .verify(new io.github.jvmspec.api.Example2<String, String>() {\n" +
+                        "                public void run(String input, String expected) {\n" +
+                        "                    match(subject().normalize(input)).shouldReturn(expected);\n" +
+                        "                }\n" +
+                        "            });\n" +
+                        "    }\n" +
+                        "\n" +
+                        "    public static class NameNormalizer {\n" +
+                        "        public String normalize(String value) { return value.trim(); }\n" +
+                        "    }\n" +
+                        "}\n").getBytes(StandardCharsets.UTF_8));
+
+        try (URLClassLoader classLoader = compileToClassLoader(temp.resolve("inline-row-classes"), source)) {
+            Class<?> specClass = classLoader.loadClass("phase47.inline.InlineRowSelectorSpec");
+            UniqueId selectedRowId = UniqueId.forEngine(ENGINE_ID)
+                    .append("spec", "phase47.inline.InlineRowSelectorSpec")
+                    .append("example", "it_row_selector_runs_full_example_body")
+                    .append("row", "2");
+            RunOutcome outcome = execute(
+                    requestBuilder()
+                            .configurationParameter("javaspec.specRoot", specRoot.toString())
+                            .selectors(DiscoverySelectors.selectUniqueId(selectedRowId))
+                            .build(),
+                    classLoader
+            );
+
+            assertEquals(1, staticInt(specClass, "selectedRuns"));
+            assertEquals(1, outcome.summary().getTestsFailedCount());
+            TestExecutionSummary.Failure failure = failureFor(outcome.summary(), "it_row_selector_runs_full_example_body");
+            assertTrue(failure.getException().getMessage().contains("Example data row 1 [Alice, Alicia] failed"));
+            assertFalse(outcome.recorder().dynamicallyRegisteredDisplayNames()
+                    .contains("it_row_selector_runs_full_example_body[row 1] [Alice, Alicia]"),
+                    "Row 1 descriptor must remain filtered by row-2 selector in "
+                            + outcome.recorder().dynamicallyRegisteredDisplayNames());
+            assertFalse(outcome.recorder().dynamicallyRegisteredDisplayNames()
+                    .contains("it_row_selector_runs_full_example_body[row 2] [ Bob , Bob]"),
+                    "Row 2 is not reached because rows execute inline in owning example body: "
+                            + outcome.recorder().dynamicallyRegisteredDisplayNames());
+        }
+    }
+
+    @Test
     void assertionFailureAndUnexpectedThrowableMapToJUnitPlatformFailures(@TempDir Path temp) throws Exception {
         Path specRoot = temp.resolve("specs");
         Path source = writeSpec(specRoot, "phase17.outcomes", "OutcomeSpec",

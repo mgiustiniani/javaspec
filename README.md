@@ -425,7 +425,9 @@ public void it_normalizes_known_inputs() {
 ```
 
 `Example1` and `Example2` callbacks are available in core and keep the API Java 8-compatible without
-Jupiter dependencies.
+Jupiter dependencies. JSON/JUnit XML/JUnit Platform row reporting and selector boundaries are frozen
+in `docs/example-data-contract-1.0.md`; row selectors filter adapter descriptors/events and do not
+turn rows into isolated Jupiter parameterized invocations.
 
 ## Doubles
 

@@ -57,6 +57,9 @@ moving dependency-heavy behavior into optional artifacts.
   `exampleDataRows` entries for row index, description, status, and detail, JUnit XML reports
   expose rows as testcase entries for CI-visible row diagnostics, and the optional JUnit Platform
   adapter publishes dynamic row descriptors during execution with row unique-id event filtering.
+  The 1.0 row execution/reporting/selector contract is frozen in
+  `docs/example-data-contract-1.0.md`: rows execute inline in the owning example; adapter row
+  selectors filter descriptors/events without isolating per-row execution.
 - Phase 48 starts PHPSpec-style collaborator injection: public `it_*` / `its_*`, `let()`, and
   `letGo()` methods may declare supported collaborator parameters. Ordinary interface parameters are
   injected as interface doubles, generated typed `*Prophecy` wrapper parameters are backed by the

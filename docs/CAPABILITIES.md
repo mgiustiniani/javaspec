@@ -44,8 +44,8 @@ This document records capabilities verified while preparing the 1.0 roadmap. It 
 
 - API/SPI classification is frozen in `docs/api-surface-1.0.md`; `scripts/check-api-surface.sh` guards unclassified shipped Java packages.
 - JSON schema is versioned (`schemaVersion: 1`) and documented in `docs/result-contract-1.0.md`.
-- JUnit Platform row selectors filter descriptors/events while row execution remains inline in the owning example; this is documented as the 1.0 contract.
-- Example data APIs, Prophecy/collaborator APIs, generation semantics, and report contracts have 1.0 contract documents.
+- JUnit Platform row selectors filter descriptors/events while row execution remains inline in the owning example; this is documented in `docs/example-data-contract-1.0.md` as the 1.0 contract.
+- Example data APIs, Prophecy/collaborator APIs, generation semantics, extension SPI, and report contracts have 1.0 contract documents.
 - Generated typed Prophecy wrappers remain the canonical collaborator API; reflective `method("...")` is a bootstrap/fallback path.
 - Approximate numeric, iterator, and generated object-state matchers are implemented as Java-adapted PHPSpec semantics.
 - Event/extension model v2 is deferred; existing extension/formatter/parser/resolver/bootstrap surfaces are classified for 1.0.
@@ -87,7 +87,7 @@ Areas needing classification before API freeze:
 | P0-GEN-001 | P0 | Generation needed frozen structured outcomes and atomic-write audit. | DONE: `docs/generation-contract-1.0.md`, `AtomicFileWriter`, and pending-stub synthetic BROKEN result. |
 | P0-REL-002 | P0 | Release workflow may not publish/verify every real artifact. | DONE: `scripts/verify-release-dry-run.sh`, `RELEASING.md`, and bytecode-agent release metadata/artifacts verify the declared artifact set and consumer examples. |
 | P0-DOC-001 | P0 | Documentation can contradict current capabilities/version. | DONE: `scripts/check-current-docs.sh` and `scripts/check-version-alignment.sh` gate current docs/version/package consistency. |
-| P1-ROW-001 | P1 | Example-data row selector semantics are subtle and could be misrepresented. | Document and test inline row execution vs descriptor/event filtering. |
+| P1-ROW-001 | P1 | Example-data row selector semantics are subtle and could be misrepresented. | DONE: `docs/example-data-contract-1.0.md` documents inline execution vs descriptor/event filtering, with JUnit Platform regression coverage. |
 | P1-PROP-001 | P1 | Generated Prophecy token overloads need edge-case audit. | Add regression matrix and document limits. |
 | P1-MATCH-001 | P1 | Inline/configured custom matcher scope is not finalized. | Implement or explicitly defer/narrow scope before RC without contradicting the PHPSpec-first promise. |
 | P1-EXT-001 | P1 | Event/extension v2 scope could affect API freeze. | DONE: `docs/extension-spi-1.0.md` freezes existing SPI semantics and defers typed event model v2. |

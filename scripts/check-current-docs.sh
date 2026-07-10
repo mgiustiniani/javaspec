@@ -53,6 +53,12 @@ else
   fail "docs/extension-spi-1.0.md is missing"
 fi
 
+if [ -f docs/example-data-contract-1.0.md ]; then
+  pass "docs/example-data-contract-1.0.md exists"
+else
+  fail "docs/example-data-contract-1.0.md is missing"
+fi
+
 if [ -e docs/release-notes-0.1.1-SNAPSHOT.md ]; then
   fail "obsolete docs/release-notes-0.1.1-SNAPSHOT.md still exists"
 else
@@ -68,6 +74,7 @@ current_paths=(
   docs/release-1.0-checklist.md
   docs/release-notes-1.0.0.md
   docs/extension-spi-1.0.md
+  docs/example-data-contract-1.0.md
   docs/usermanual
   docs/arc42
   docs/bytecode-doubles.md
