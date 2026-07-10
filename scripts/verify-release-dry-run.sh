@@ -34,9 +34,27 @@ section() { printf '\n==> %s\n' "$1"; }
 pass() { printf 'PASS: %s\n' "$1"; }
 fail() { printf 'FAIL: %s\n' "$1" >&2; exit 1; }
 
+artifact_files=()
+
 require_file() {
   [ -f "$1" ] || fail "missing expected artifact: $1"
+  artifact_files+=("$1")
   pass "artifact exists: $1"
+}
+
+generate_and_verify_checksums() {
+  if ! command -v sha256sum >/dev/null 2>&1; then
+    fail "sha256sum is required for release artifact checksum verification"
+  fi
+  local checksum_file="target/release-dry-run-checksums.sha256"
+  section "Generate and verify release artifact checksums"
+  : > "$checksum_file"
+  local artifact
+  for artifact in "${artifact_files[@]}"; do
+    sha256sum "$artifact" >> "$checksum_file"
+  done
+  sha256sum -c "$checksum_file"
+  pass "release artifact checksums generated and verified: $checksum_file"
 }
 
 package_maven_module() {
@@ -84,6 +102,8 @@ section "Build Gradle plugin release artifacts"
 require_file "javaspec-gradle-plugin/build/libs/javaspec-gradle-plugin-${version}.jar"
 require_file "javaspec-gradle-plugin/build/libs/javaspec-gradle-plugin-${version}-sources.jar"
 require_file "javaspec-gradle-plugin/build/libs/javaspec-gradle-plugin-${version}-javadoc.jar"
+
+generate_and_verify_checksums
 
 section "Run external consumer examples"
 scripts/verify-examples.sh

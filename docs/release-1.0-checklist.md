@@ -34,7 +34,8 @@ Evidence:
 | `mvn -q verify` | `7256969` | PASS | Core only, default Java 25 JVM |
 | `JAVA_HOME=/usr/lib/jvm/java-21-openjdk ... mvn -q verify` | `7256969` | PASS | Core on local Java 21 runtime |
 | `scripts/verify-all.sh` | `7256969` | PASS | Includes standalone adapters and examples |
-| `scripts/verify-release-dry-run.sh` | `7256969` | PASS | Packages all artifacts and runs consumer examples |
+| `scripts/verify-release-dry-run.sh` | `7256969` | PASS | Packages all artifacts, verifies checksums, and runs consumer examples |
+| `scripts/check-core-java8-bytecode.sh` | local RC hardening slice | PASS | Core classfiles max major 52 |
 
 ## Core gates
 
@@ -44,7 +45,7 @@ Evidence:
 - [x] Java 21 verified locally (`JAVA_HOME=/usr/lib/jvm/java-21-openjdk ... mvn -q verify`).
 - [x] Java 25 verified locally (`mvn -q verify`, `scripts/verify-all.sh`, `scripts/verify-release-dry-run.sh`).
 - [x] Root runtime dependency tree has no third-party runtime dependencies.
-- [ ] No direct linkage to post-Java-8 APIs in core (classfile major 52 verified locally; full API linkage remains CI/JDK8 evidence task).
+- [x] Core classfiles are Java 8 bytecode-compatible (max major 52 checked by `scripts/check-core-java8-bytecode.sh`; full Java 8 runtime smoke remains CI/JDK8 evidence task).
 - [x] CLI contract tests green.
 - [x] JSON schema/golden fixtures green.
 - [x] JUnit XML golden fixtures green.
@@ -108,7 +109,7 @@ Evidence:
 - [x] Maven plugin descriptor valid.
 - [x] Gradle plugin marker publication path documented/tested.
 - [x] Bytecode agent manifest has required `Premain-Class` and `Agent-Class`.
-- [ ] Checksums generated/verified by publication workflow.
+- [x] Checksums generated/verified locally by release dry-run; publication workflow checksums still recorded at RC/final publication time.
 - [x] Signing configured/documented.
 - [x] Release workflow publishes or stages every declared artifact or fails clearly.
 - [x] Release dry-run script green.

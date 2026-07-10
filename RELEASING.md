@@ -21,7 +21,7 @@ on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. The active relea
 4. Run local verification from the repository root:
    - `scripts/verify-all.sh`
    - `scripts/verify-release-dry-run.sh`
-   - The release dry-run packages core, Maven plugin, JUnit Platform engine, bytecode doubles, bytecode agent, and Gradle plugin artifacts; verifies source/javadoc jars; verifies the bytecode-agent manifest; and runs standalone consumer examples.
+   - The release dry-run packages core, Maven plugin, JUnit Platform engine, bytecode doubles, bytecode agent, and Gradle plugin artifacts; verifies source/javadoc jars; verifies the bytecode-agent manifest; generates/verifies SHA-256 checksums; and runs standalone consumer examples.
 5. Confirm GitHub Actions is green for the release commit.
 6. Confirm release artifacts are present locally where expected:
    - Main, source, and Javadoc jars for `javaspec`.
@@ -32,6 +32,7 @@ on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. The active relea
    - Gradle plugin main, source, and Javadoc jars.
    - Generated POM metadata with URL, SCM, issue-management, license, and developer entries.
    - Bytecode agent manifest entries `Premain-Class` and `Agent-Class`.
+   - Local dry-run SHA-256 checksums in `target/release-dry-run-checksums.sha256`.
 7. For Maven Central / Central Portal publication:
    - Reconfirm MIT license and maintainer metadata are still correct.
    - Configure an explicit signing profile or external signing process; GPG signing is required by Central publication workflows.

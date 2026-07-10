@@ -57,6 +57,7 @@ run_at_root "Version alignment check" "${repo_root}/scripts/check-version-alignm
 run_at_root "Current documentation/version check" "${repo_root}/scripts/check-current-docs.sh"
 run_at_root "API surface classification check" "${repo_root}/scripts/check-api-surface.sh"
 run_at_root "Root core verify" "${MAVEN_BIN}" -q verify
+run_at_root "Core Java 8 bytecode compatibility check" "${repo_root}/scripts/check-core-java8-bytecode.sh"
 run_at_root "Root runtime dependency tree audit" "${MAVEN_BIN}" dependency:tree -Dscope=runtime
 run_at_root "Install root core snapshot" "${MAVEN_BIN}" -q -DskipTests install
 run_at_root "Maven plugin verify" "${MAVEN_BIN}" -q -f javaspec-maven-plugin/pom.xml verify

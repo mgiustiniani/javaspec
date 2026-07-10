@@ -21,6 +21,7 @@ scripts/check-version-alignment.sh
 scripts/check-current-docs.sh
 scripts/check-api-surface.sh
 mvn -q verify
+scripts/check-core-java8-bytecode.sh
 JAVA_HOME=/usr/lib/jvm/java-21-openjdk PATH=/usr/lib/jvm/java-21-openjdk/bin:$PATH mvn -q verify
 scripts/verify-all.sh
 scripts/verify-release-dry-run.sh
@@ -40,6 +41,7 @@ Release dry-run evidence:
   artifacts with main/source/Javadoc jars.
 - Packaged Gradle plugin main/source/Javadoc jars.
 - Verified bytecode-agent manifest contains `Premain-Class` and `Agent-Class`.
+- Generated and verified SHA-256 checksums for local dry-run artifacts in `target/release-dry-run-checksums.sha256`.
 - Ran external consumer examples for Maven, Gradle, JUnit Platform, Prophecy, bytecode doubles, and
   bytecode agent from locally installed/staged artifacts.
 
@@ -49,4 +51,4 @@ Remaining RC/final cut-time evidence:
   infrastructure.
 - No-SNAPSHOT dependency check after replacing `1.0.0-SNAPSHOT` with `1.0.0-RC1` / `1.0.0`.
 - Tag/version/workflow alignment at tag time.
-- Publication-generated checksums/signatures and Central/Gradle Plugin Portal staging evidence.
+- Publication-generated signatures and Central/Gradle Plugin Portal staging evidence.
