@@ -887,6 +887,8 @@ Start here:
 - [`examples/bytecode-agent-basic/`](examples/bytecode-agent-basic/) — optional final-class and static-method doubles.
 - [`docs/usermanual/Home.md`](docs/usermanual/Home.md) — user manual with more CLI details.
 - [`docs/release-notes-1.0.0.md`](docs/release-notes-1.0.0.md) — unreleased development-line notes.
+- [`docs/compatibility-policy-1.0.md`](docs/compatibility-policy-1.0.md), [`docs/java-compatibility-1.0.md`](docs/java-compatibility-1.0.md), and [`docs/troubleshooting.md`](docs/troubleshooting.md) — 1.0 policy, Java matrix, and diagnostics.
+- [`docs/migration-guide-1.0.md`](docs/migration-guide-1.0.md), [`docs/junit-to-javaspec-guide.md`](docs/junit-to-javaspec-guide.md), and [`docs/cucumber-boundary.md`](docs/cucumber-boundary.md) — migration and boundary guides.
 - [`javaspec-gradle-plugin/README.md`](javaspec-gradle-plugin/README.md) — Gradle plugin details.
 - [`javaspec-junit-platform-engine/README.md`](javaspec-junit-platform-engine/README.md) — JUnit Platform engine details.
 - [`CHANGELOG.md`](CHANGELOG.md) — release-change log scaffold.

@@ -65,11 +65,22 @@ else
   fail "docs/matcher-contract-1.0.md is missing"
 fi
 
-if [ -f docs/junit-platform-contract-1.0.md ]; then
-  pass "docs/junit-platform-contract-1.0.md exists"
-else
-  fail "docs/junit-platform-contract-1.0.md is missing"
-fi
+required_current_docs=(
+  docs/junit-platform-contract-1.0.md
+  docs/java-compatibility-1.0.md
+  docs/migration-guide-1.0.md
+  docs/junit-to-javaspec-guide.md
+  docs/cucumber-boundary.md
+  docs/troubleshooting.md
+  docs/compatibility-policy-1.0.md
+)
+for required_doc in "${required_current_docs[@]}"; do
+  if [ -f "$required_doc" ]; then
+    pass "$required_doc exists"
+  else
+    fail "$required_doc is missing"
+  fi
+done
 
 if [ -e docs/release-notes-0.1.1-SNAPSHOT.md ]; then
   fail "obsolete docs/release-notes-0.1.1-SNAPSHOT.md still exists"
@@ -89,6 +100,12 @@ current_paths=(
   docs/example-data-contract-1.0.md
   docs/matcher-contract-1.0.md
   docs/junit-platform-contract-1.0.md
+  docs/java-compatibility-1.0.md
+  docs/migration-guide-1.0.md
+  docs/junit-to-javaspec-guide.md
+  docs/cucumber-boundary.md
+  docs/troubleshooting.md
+  docs/compatibility-policy-1.0.md
   docs/usermanual
   docs/arc42
   docs/bytecode-doubles.md

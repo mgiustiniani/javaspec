@@ -78,10 +78,10 @@ Public-facing contracts are classified for 1.0 in `docs/api-surface-1.0.md`:
 - Active roadmap was too large and mixed historical implementation notes with future work.
 - `docs/test-report.md` is a historical accumulator and should not be the current source of truth.
 - Historical docs retain previous `0.1.0` release references; current docs are now guarded by an automated check.
-- Some non-archived docs still mention historical pre-migration package names.
+- Current docs are guarded against historical pre-migration package names by `scripts/check-current-docs.sh`; archived historical docs may retain them with context.
 - Release notes file is now named `docs/release-notes-1.0.0.md`; it still requires final RC evidence.
 - `RELEASING.md` covers the current artifact set, Gradle Plugin Portal path, RC flow, signing, and post-release steps.
-- API/SPI classification, generation safety guide, result contract, Prophecy contract, and release dry-run evidence are present; migration/troubleshooting polish remains documentation work.
+- API/SPI classification, generation safety guide, result contract, Prophecy contract, matcher contract, adapter contracts, migration guide, troubleshooting, compatibility policy, and release dry-run evidence are present.
 
 ## Release gaps
 

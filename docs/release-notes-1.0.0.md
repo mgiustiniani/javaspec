@@ -122,3 +122,5 @@ moving dependency-heavy behavior into optional artifacts.
 - `scripts/verify-release-dry-run.sh` packages and verifies core, Maven plugin, JUnit Platform
   engine, bytecode doubles, bytecode agent, and Gradle plugin artifacts, including source/Javadoc
   jars, bytecode-agent manifest entries, and external consumer examples.
+- 1.0 documentation includes compatibility policy, Java compatibility matrix, migration guide,
+  JUnit-to-javaspec guide, Cucumber/Gherkin boundary, and troubleshooting pages.

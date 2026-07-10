@@ -114,27 +114,27 @@ Evidence:
 
 ## Documentation gates
 
-- [ ] README matches 1.0 capabilities and version.
-- [ ] User manual matches README and capabilities.
-- [ ] CLI reference current.
-- [ ] Configuration reference current.
+- [x] README matches 1.0 capabilities and version.
+- [x] User manual matches README and capabilities.
+- [x] CLI reference current.
+- [x] Configuration reference current.
 - [x] Matcher reference current.
-- [ ] Prophecy/doubles reference current.
-- [ ] Generation safety guide present.
-- [ ] Maven guide current.
-- [ ] Gradle guide current.
+- [x] Prophecy/doubles reference current.
+- [x] Generation safety guide present.
+- [x] Maven guide current.
+- [x] Gradle guide current.
 - [x] JUnit Platform/IDE guide current.
 - [x] Extension SPI guide current.
 - [x] Example data contract current.
-- [ ] Java compatibility matrix current.
-- [ ] Migration guide from 0.1.0/snapshots present.
-- [ ] JUnit-to-javaspec guide present or explicitly deferred.
-- [ ] Cucumber boundary guide present or explicitly deferred.
-- [ ] Troubleshooting current.
-- [ ] Release notes 1.0.0 complete.
-- [ ] Compatibility policy complete.
-- [ ] No current pre-migration package references outside archived/historical docs.
-- [ ] No contradictory current version references.
+- [x] Java compatibility matrix current.
+- [x] Migration guide from 0.1.0/snapshots present.
+- [x] JUnit-to-javaspec guide present.
+- [x] Cucumber boundary guide present.
+- [x] Troubleshooting current.
+- [ ] Release notes 1.0.0 complete (final RC evidence still appended at RC/final cut time).
+- [x] Compatibility policy complete.
+- [x] No current pre-migration package references outside archived/historical docs.
+- [x] No contradictory current version references.
 
 ## Release candidate rules
 

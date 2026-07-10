@@ -72,11 +72,10 @@ Areas needing classification before API freeze:
 
 - Active roadmap was mixed with historical implementation notes before this audit.
 - Historical docs still mention previous `0.1.0` releases; current docs are guarded by `scripts/check-current-docs.sh`.
-- Current areas still contain some historical pre-migration package references; historical documents may keep them only with migration context.
-- README and manual need a 1.0 pass after version strategy is applied.
+- Historical documents may keep pre-migration package/version references only with migration context; current docs are checked automatically.
+- README, user manual, CLI/configuration/matcher/Prophecy/generation/adapter docs, migration, troubleshooting, and compatibility policy have 1.0 contract coverage.
 - Release notes now use `docs/release-notes-1.0.0.md`; content still needs final RC evidence.
 - Release engineering docs now cover the real artifact set and Gradle Plugin Portal marker path; final RC/final tag evidence is still recorded at release time.
-- Migration/troubleshooting polish remains a documentation task, but P0 API/SPI, result, Prophecy, generation, and release contracts are present.
 
 ## Risk register
 
