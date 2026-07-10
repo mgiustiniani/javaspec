@@ -1872,10 +1872,16 @@ Do you want me to add missing method skeletons to org.example.Book in src/main/j
 ```
 
 Default returns are Java 8-compatible: `false` for `boolean`, zero values for numeric primitives,
-`'\0'` for `char`, and `null` for reference types. Before any generated method bodies, declarations,
-or elements are written, profile enforcement checks resolvable return and parameter type owners
-against the selected profile catalog. Unknown project types and ambiguous simple names are left
-alone so generation does not fail on incomplete source-type information.
+`'\0'` for `char`, and `null` for reference types. Each generated production method body carries a
+`// javaspec:stub` marker. That marker is the contract for incomplete generated behavior: compiled
+runs scan for remaining markers, report them, add a synthetic broken generation result to formatter,
+JSON, and JUnit XML outputs, and exit non-zero even if an example happens to match the generated
+Java default. Remove the marker only when the body has been hand-implemented.
+
+Before any generated method bodies, declarations, or elements are written, profile enforcement checks
+resolvable return and parameter type owners against the selected profile catalog. Unknown project
+types and ambiguous simple names are left alone so generation does not fail on incomplete source-type
+information.
 
 ### Interface-style method declarations and annotation elements
 

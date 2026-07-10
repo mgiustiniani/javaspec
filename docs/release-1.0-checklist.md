@@ -60,12 +60,12 @@ Evidence:
 
 ## Semantic gates
 
-- [ ] PHPSpec compatibility matrix has no `UNSPECIFIED` entries.
-- [ ] All `PARTIAL_BLOCKING_1_0` entries have been implemented or intentionally reclassified with tests/docs.
+- [x] PHPSpec compatibility matrix has no `UNSPECIFIED` entries.
+- [x] All `PARTIAL_BLOCKING_1_0` entries have been implemented or intentionally reclassified with tests/docs.
 - [ ] Seven mandatory PHPSpec semantic acceptance scenarios from `docs/phpspec-compatibility-matrix.md` are mapped to automated tests.
 - [ ] PASSED/FAILED/BROKEN/SKIPPED/PENDING contract documented.
 - [ ] State mapping verified across CLI, launcher, JSON, JUnit XML, JUnit Platform, Maven, Gradle.
-- [ ] Pending generation cannot be reported as final GREEN.
+- [x] Pending generation cannot be reported as final GREEN (`// javaspec:stub` creates a synthetic BROKEN result in compiled runs).
 - [ ] Lifecycle and prediction ordering documented/tested.
 - [ ] Example-data row semantics documented/tested.
 - [ ] Collaborator injection contract documented/tested.

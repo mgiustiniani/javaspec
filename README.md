@@ -104,7 +104,7 @@ Compilation output: target/javaspec-classes
 cat src/main/java/com/example/PriceCalculator.java
 ```
 
-javaspec wrote a skeleton with a stub return value (`return 0.0d;`).
+javaspec wrote a skeleton with a stub return value (`return 0.0d;`) and a `// javaspec:stub` marker. Generated production stubs are mechanical scaffolding, not domain logic: while any marker remains, a compiled run reports a synthetic broken generation result and exits non-zero so a default return value cannot become an accidental GREEN.
 
 **Step 5 — Implement the body (minimal fix):**
 

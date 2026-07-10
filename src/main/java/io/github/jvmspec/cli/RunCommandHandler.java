@@ -15,8 +15,13 @@ import io.github.jvmspec.discovery.DiscoveredSpec;
 import io.github.jvmspec.discovery.SpecDiscovery;
 import io.github.jvmspec.discovery.SpecDiscoveryRequest;
 import io.github.jvmspec.formatter.RunFormatterRegistry;
+import io.github.jvmspec.generation.StubMarkerScanner;
 import io.github.jvmspec.invocation.JavaspecExitCode;
+import io.github.jvmspec.runner.ExampleResult;
+import io.github.jvmspec.runner.ExampleStatus;
+import io.github.jvmspec.runner.FailureDetail;
 import io.github.jvmspec.runner.RunResult;
+import io.github.jvmspec.runner.SpecResult;
 import io.github.jvmspec.runner.SpecRunner;
 
 import java.io.BufferedReader;
@@ -25,6 +30,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -160,7 +166,7 @@ final class RunCommandHandler implements CommandHandler {
             return genResult.exitCode();
         }
 
-        reportPendingStubs(sourceRoot, out, err);
+        List<StubMarkerScanner.StubLocation> pendingStubs = reportPendingStubs(sourceRoot, out, err);
 
         ClasspathSelection executionClasspathSelection = classpathSelection;
         if (parsed.compile && !parsed.dryRun) {
@@ -194,6 +200,7 @@ final class RunCommandHandler implements CommandHandler {
 
         RunResult runResult = SpecRunner.run(specs, selectedClassLoader, parsed.stopOnFailure,
                 parsed.autoCheckPredictions);
+        runResult = withPendingStubResult(runResult, parsed.compile ? pendingStubs : null);
         RunDiagnosticsPrinter diagnosticsPrinter = new RunDiagnosticsPrinter();
         diagnosticsPrinter.printRunnerSummary(runResult, out, parsed.effectiveFormatter, runFormatters);
         diagnosticsPrinter.printExecutionDiagnostics(runResult, out, executionClasspathSelection);
@@ -213,21 +220,45 @@ final class RunCommandHandler implements CommandHandler {
      * Reports generated stubs still pending hand implementation, identified by the
      * {@code // javaspec:stub} marker the generator leaves as the first body line.
      */
-    private static void reportPendingStubs(File sourceRoot, PrintStream out, PrintStream err) {
-        List<io.github.jvmspec.generation.StubMarkerScanner.StubLocation> pendingStubs;
+    private static List<StubMarkerScanner.StubLocation> reportPendingStubs(File sourceRoot, PrintStream out, PrintStream err) {
+        List<StubMarkerScanner.StubLocation> pendingStubs;
         try {
-            pendingStubs = io.github.jvmspec.generation.StubMarkerScanner.scan(sourceRoot);
+            pendingStubs = StubMarkerScanner.scan(sourceRoot);
         } catch (java.io.IOException ex) {
             err.println("Warning: could not scan for pending stubs: " + ex.getMessage());
-            return;
+            return new ArrayList<StubMarkerScanner.StubLocation>();
         }
         if (pendingStubs.isEmpty()) {
-            return;
+            return pendingStubs;
         }
         out.println("Pending stubs: " + pendingStubs.size() + " (implement and remove the "
-                + io.github.jvmspec.generation.StubMarkerScanner.STUB_MARKER + " marker)");
+                + StubMarkerScanner.STUB_MARKER + " marker)");
         for (int i = 0; i < pendingStubs.size(); i++) {
             out.println("  " + pendingStubs.get(i));
         }
+        return pendingStubs;
+    }
+
+    private static RunResult withPendingStubResult(RunResult runResult, List<StubMarkerScanner.StubLocation> pendingStubs) {
+        if (pendingStubs == null || pendingStubs.isEmpty()) {
+            return runResult;
+        }
+        List<SpecResult> specResults = new ArrayList<SpecResult>(runResult.specResults());
+        StubMarkerScanner.StubLocation first = pendingStubs.get(0);
+        String detail = "Generated production stubs pending implementation: " + pendingStubs.size();
+        AssertionError failure = new AssertionError(detail + "; first stub at " + first);
+        ExampleResult pendingStubExample = ExampleResult.of(
+                "javaspec.generation.PendingStubs",
+                "generated_stubs_pending_implementation",
+                "generated stubs pending implementation",
+                0,
+                ExampleStatus.BROKEN,
+                detail,
+                FailureDetail.of(failure),
+                first.file().getPath(),
+                first.line()
+        );
+        specResults.add(SpecResult.of("javaspec.generation.PendingStubs", java.util.Arrays.asList(pendingStubExample)));
+        return RunResult.of(specResults);
     }
 }

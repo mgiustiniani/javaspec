@@ -110,6 +110,51 @@ public class MainPhase29CompileCliTest {
     }
 
     @Test
+    public void runCompileWithPendingGeneratedStubCannotAccidentallyGreen() throws Exception {
+        requireJdkCompiler();
+        File sourceRoot = temporaryFolder.newFolder("compile-pending-stub-source-root");
+        File specRoot = temporaryFolder.newFolder("compile-pending-stub-spec-root");
+        File compileOutput = new File(temporaryFolder.getRoot(), "compile-pending-stub-classes");
+        File jsonReport = new File(temporaryFolder.getRoot(), "compile-pending-stub-report.json");
+        File junitReport = new File(temporaryFolder.getRoot(), "compile-pending-stub-report.xml");
+        writeSource(sourceRoot, "com.phase29.PendingStubSubject",
+                "public class PendingStubSubject {\n" +
+                        "    public boolean ready() {\n" +
+                        "        // javaspec:stub\n" +
+                        "        return false;\n" +
+                        "    }\n" +
+                        "}\n");
+        writeSource(specRoot, "spec.com.phase29.PendingStubSubjectSpec",
+                "public class PendingStubSubjectSpec {\n" +
+                        "    public void it_would_accidentally_match_the_generated_default() {\n" +
+                        "        if (new com.phase29.PendingStubSubject().ready()) {\n" +
+                        "            throw new AssertionError(\"expected generated default false\");\n" +
+                        "        }\n" +
+                        "    }\n" +
+                        "}\n");
+
+        CommandResult result = run(
+                "run",
+                "--spec-dir", specRoot.getAbsolutePath(),
+                "--source-dir", sourceRoot.getAbsolutePath(),
+                "--compile",
+                "--compile-output", compileOutput.getAbsolutePath(),
+                "--report", jsonReport.getAbsolutePath(),
+                "--junit-xml", junitReport.getAbsolutePath()
+        );
+
+        assertEquals("stdout:\n" + result.out + "\nstderr:\n" + result.err, 1, result.exitCode);
+        assertContains(result.out, "Pending stubs: 1");
+        assertContains(result.out, "javaspec:stub");
+        assertContains(result.out, "Examples: 2 total, 1 passed, 0 failed, 1 broken, 0 skipped, 0 pending.");
+        assertContains(result.out, "BROKEN javaspec.generation.PendingStubs#generated_stubs_pending_implementation");
+        assertContains(readFile(jsonReport), "\"stableId\": \"javaspec.generation.PendingStubs#generated_stubs_pending_implementation\"");
+        assertContains(readFile(jsonReport), "\"status\": \"BROKEN\"");
+        assertContains(readFile(junitReport), "classname=\"javaspec.generation.PendingStubs\"");
+        assertContains(readFile(junitReport), "errors=\"1\"");
+    }
+
+    @Test
     public void runCompileFailureExitsOneAndDoesNotWriteReports() throws Exception {
         requireJdkCompiler();
         File sourceRoot = temporaryFolder.newFolder("compile-failure-source-root");
