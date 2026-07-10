@@ -1,4 +1,4 @@
-# Release notes — 0.1.1-SNAPSHOT / Unreleased
+# Release notes — 1.0.0 / Unreleased
 
 This development line keeps the core artifact Java 8-compatible and zero-runtime-dependency while
 moving dependency-heavy behavior into optional artifacts.

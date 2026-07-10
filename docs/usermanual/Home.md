@@ -82,7 +82,7 @@ Verification status:
   check for core, standalone adapters, and examples.
 - Artifacts are published on Maven Central under `io.github.jvmspec`. The Gradle plugin is
   published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. Add the dependency
-  `io.github.jvmspec:javaspec:0.1.0` (test scope).
+  `io.github.jvmspec:javaspec:1.0.0-SNAPSHOT` (test scope).
 
 ## Quick start
 
@@ -145,13 +145,13 @@ committed.
 Run the CLI:
 
 ```sh
-java -jar target/javaspec-0.1.0-SNAPSHOT.jar --help
+java -jar target/javaspec-1.0.0-SNAPSHOT.jar --help
 ```
 
 Short form used in the examples below:
 
 ```sh
-javaspec='java -jar target/javaspec-0.1.0-SNAPSHOT.jar'
+javaspec='java -jar target/javaspec-1.0.0-SNAPSHOT.jar'
 ```
 
 ## Release and CI verification
@@ -224,7 +224,7 @@ gradle -p javaspec-gradle-plugin clean test build
 These checks do not sign, stage, deploy, or publish artifacts. The MIT license and maintainer
 metadata are resolved. Artifacts are published on Maven Central under `io.github.jvmspec`. The
 Gradle plugin is published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. Add the
-dependency `io.github.jvmspec:javaspec:0.1.0` (test scope).
+dependency `io.github.jvmspec:javaspec:1.0.0-SNAPSHOT` (test scope).
 
 The GitHub Actions workflow at `.github/workflows/ci.yml` triggers on `push`, `pull_request`, and
 `workflow_dispatch`. It defines a core job matrix over Java 8, 11, 17, 21, and 25 using Temurin and
@@ -1166,7 +1166,7 @@ mvn -q -DskipTests install
 mvn -q -f javaspec-maven-plugin/pom.xml verify
 ```
 
-The plugin packages `io.github.jvmspec:javaspec-maven-plugin:0.1.0-SNAPSHOT` as `maven-plugin`, uses Java
+The plugin packages `io.github.jvmspec:javaspec-maven-plugin:1.0.0-SNAPSHOT` as `maven-plugin`, uses Java
 source/target `1.8`, goal prefix `javaspec`, Maven API baseline `3.6.3`, Maven API and plugin
 annotations in `provided` scope, JUnit in `test` scope, and a compile-scope dependency on core
 `io.github.jvmspec:javaspec`.
@@ -1177,7 +1177,7 @@ A consuming Maven build can declare the plugin as optional project tooling:
 <plugin>
   <groupId>io.github.jvmspec</groupId>
   <artifactId>javaspec-maven-plugin</artifactId>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>1.0.0-SNAPSHOT</version>
 </plugin>
 ```
 
@@ -1216,7 +1216,7 @@ plugin id `io.github.jvmspec` and configure the optional extension/task:
 ```groovy
 plugins {
     id 'java'
-    id 'io.github.jvmspec' version '0.1.0-SNAPSHOT'
+    id 'io.github.jvmspec' version '1.0.0-SNAPSHOT'
 }
 
 javaspec {
@@ -1272,7 +1272,7 @@ mvn -q -DskipTests install
 mvn -q -f javaspec-junit-platform-engine/pom.xml verify
 ```
 
-The engine artifact is `io.github.jvmspec:javaspec-junit-platform-engine:0.1.0-SNAPSHOT`, packaging
+The engine artifact is `io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-SNAPSHOT`, packaging
 `jar`, Java source/target `1.8`, and uses Java 8-compatible JUnit Platform `1.10.2` rather than
 JUnit Platform 6/JUnit 6. Runtime dependencies are isolated to the optional engine artifact: core
 `io.github.jvmspec:javaspec`, `org.junit.platform:junit-platform-engine`, and transitives `opentest4j`,
@@ -2378,7 +2378,7 @@ Add the standalone adapter when a spec needs a non-final concrete collaborator d
 <dependency>
   <groupId>io.github.jvmspec</groupId>
   <artifactId>javaspec-bytecode-doubles</artifactId>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>1.0.0-SNAPSHOT</version>
   <scope>test</scope>
 </dependency>
 ```
@@ -2802,7 +2802,7 @@ artifact with Maven API/plugin annotations in `provided` scope, JUnit only in pl
 and a runtime tree containing the plugin plus compile-scope core `io.github.jvmspec:javaspec` only. The
 Phase 16 Gradle plugin is a separate optional artifact with JUnit/TestKit only as plugin test
 dependencies; its verified runtimeClasspath contains only core
-`io.github.jvmspec:javaspec:0.1.0-SNAPSHOT`. The Phase 17 JUnit Platform engine is a separate optional
+`io.github.jvmspec:javaspec:1.0.0-SNAPSHOT`. The Phase 17 JUnit Platform engine is a separate optional
 artifact over the canonical javaspec runner; its runtime dependencies are isolated to the engine
 artifact and do not enter the core runtime dependency tree. Projects that do not opt into the engine
 keep the no-JUnit CLI/programmatic/Maven/Gradle execution paths. Bootstrap hooks are explicit
@@ -2823,7 +2823,7 @@ mvn dependency:tree -Dscope=runtime
 Expected root output contains only the project artifact:
 
 ```text
-io.github.jvmspec:javaspec:jar:0.1.0-SNAPSHOT
+io.github.jvmspec:javaspec:jar:1.0.0-SNAPSHOT
 ```
 
 Check the standalone optional adapters through the aggregate script or separately when needed:
@@ -2837,7 +2837,7 @@ mvn -f javaspec-junit-platform-engine/pom.xml dependency:tree -Dscope=runtime
 
 Expected Maven plugin runtime scope contains the plugin plus compile-scope core
 `io.github.jvmspec:javaspec` only. Expected Gradle plugin runtimeClasspath contains only core
-`io.github.jvmspec:javaspec:0.1.0-SNAPSHOT`. Expected JUnit Platform engine runtime scope contains core
+`io.github.jvmspec:javaspec:1.0.0-SNAPSHOT`. Expected JUnit Platform engine runtime scope contains core
 `io.github.jvmspec:javaspec`, `org.junit.platform:junit-platform-engine`, `opentest4j`,
 `junit-platform-commons`, and `apiguardian-api`, with no runtime `junit-jupiter`,
 `junit-platform-launcher`, or `junit-platform-testkit`.
@@ -2851,7 +2851,7 @@ Current verification after Phase 22:
 - `bash -n scripts/check-version-alignment.sh`, `bash -n scripts/verify-all.sh`, and `bash -n
   scripts/verify-examples.sh` passed; all three scripts are executable.
 - `bash scripts/check-version-alignment.sh` passed with all checked versions aligned at
-  `0.1.0-SNAPSHOT`.
+  `1.0.0-SNAPSHOT`.
 - `git diff --check`, `git diff --cached --check`, and untracked whitespace checks passed.
 - Effective POM generation passed for root, Maven plugin, and JUnit engine.
 - Maven POM metadata checks for root, Maven plugin, and JUnit engine passed: MIT License, URL
@@ -2871,7 +2871,7 @@ Current verification after Phase 22:
   `mvn -q verify` passed with 12 tests.
 - Gradle plugin publication POM generation passed; Gradle plugin `clean test build` passed with 11
   tests and produced non-empty main/sources/javadoc jars; Gradle runtime dependencies contained only
-  `io.github.jvmspec:javaspec:0.1.0-SNAPSHOT`.
+  `io.github.jvmspec:javaspec:1.0.0-SNAPSHOT`.
 - Full aggregate `JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-all.sh` passed,
   covering version alignment, core verify, root audit, local install, Maven plugin verify/audit,
   JUnit engine verify/audit, Gradle plugin build/audit, and standalone examples verification.

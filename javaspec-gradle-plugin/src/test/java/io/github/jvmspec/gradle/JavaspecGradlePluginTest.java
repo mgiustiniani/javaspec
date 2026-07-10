@@ -204,7 +204,7 @@ public class JavaspecGradlePluginTest {
                         "    mavenCentral()\n" +
                         "}\n" +
                         "dependencies {\n" +
-                        "    testImplementation 'io.github.jvmspec:javaspec:0.1.0-SNAPSHOT'\n" +
+                        "    testImplementation 'io.github.jvmspec:javaspec:1.0.0-SNAPSHOT'\n" +
                         "}\n" +
                         "javaspec {\n" +
                         "    jsonReportFile = file('build/reports/javaspec/phase46.json')\n" +
@@ -618,7 +618,7 @@ public class JavaspecGradlePluginTest {
                         "}\n" +
                         "\n" +
                         "dependencies {\n" +
-                        "    testImplementation 'io.github.jvmspec:javaspec:0.1.0-SNAPSHOT'\n" +
+                        "    testImplementation 'io.github.jvmspec:javaspec:1.0.0-SNAPSHOT'\n" +
                         "}\n" +
                         "\n" +
                         "javaspec {\n" +
@@ -662,7 +662,7 @@ public class JavaspecGradlePluginTest {
                         "}\n" +
                         "\n" +
                         "dependencies {\n" +
-                        "    testImplementation 'io.github.jvmspec:javaspec:0.1.0-SNAPSHOT'\n" +
+                        "    testImplementation 'io.github.jvmspec:javaspec:1.0.0-SNAPSHOT'\n" +
                         "}\n" +
                         "\n" +
                         "javaspec {\n" +
@@ -999,7 +999,7 @@ public class JavaspecGradlePluginTest {
                         "}\n" +
                         "\n" +
                         "dependencies {\n" +
-                        "    testImplementation 'io.github.jvmspec:javaspec:0.1.0-SNAPSHOT'\n" +
+                        "    testImplementation 'io.github.jvmspec:javaspec:1.0.0-SNAPSHOT'\n" +
                         "}\n" +
                         "\n" +
                         javaspecConfiguration
@@ -1092,7 +1092,7 @@ public class JavaspecGradlePluginTest {
                         "}\n" +
                         "\n" +
                         "dependencies {\n" +
-                        "    testImplementation 'io.github.jvmspec:javaspec:0.1.0-SNAPSHOT'\n" +
+                        "    testImplementation 'io.github.jvmspec:javaspec:1.0.0-SNAPSHOT'\n" +
                         "}\n" +
                         "\n" +
                         javaspecConfiguration
@@ -1159,7 +1159,7 @@ public class JavaspecGradlePluginTest {
                         "}\n" +
                         "\n" +
                         "dependencies {\n" +
-                        "    testImplementation 'io.github.jvmspec:javaspec:0.1.0-SNAPSHOT'\n" +
+                        "    testImplementation 'io.github.jvmspec:javaspec:1.0.0-SNAPSHOT'\n" +
                         "}\n" +
                         "\n" +
                         "javaspec {\n" +

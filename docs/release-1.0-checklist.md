@@ -1,0 +1,149 @@
+# javaspec 1.0 release checklist
+
+This checklist is the release gate source for 1.0. It must be updated with command evidence, commit references, and CI links as the release candidate progresses.
+
+## Phase progression
+
+- [x] Development line normalized to `1.0.0-SNAPSHOT`.
+- [ ] API/SPI freeze complete.
+- [ ] `1.0.0-RC1` prepared from a clean commit.
+- [ ] RC consumer verification complete.
+- [ ] Final `1.0.0` prepared from verified RC or documented RC fix commit.
+- [ ] Post-release snapshot bump complete.
+
+## Mandatory local gates
+
+Run from a clean checkout:
+
+```sh
+git diff --check
+scripts/check-version-alignment.sh
+scripts/check-current-docs.sh
+mvn -q verify
+scripts/verify-all.sh
+```
+
+Evidence:
+
+| Gate | Last verified commit | Result | Notes |
+|---|---|---|---|
+| `git diff --check` | `a71297f1bb234b5faa70eca22abe3a5a3b3d6675` | PASS | Audit baseline |
+| `scripts/check-version-alignment.sh` | working 1.0 audit slice | PASS | `1.0.0-SNAPSHOT` aligned after normalization |
+| `scripts/check-current-docs.sh` | working 1.0 audit slice | PASS | Added in first 1.0 audit slice |
+| `mvn -q verify` | `a71297f1bb234b5faa70eca22abe3a5a3b3d6675` | PASS | Core only |
+| `scripts/verify-all.sh` | `a71297f1bb234b5faa70eca22abe3a5a3b3d6675` | PASS | Includes Gradle |
+
+## Core gates
+
+- [ ] Java 8 runtime compatibility verified.
+- [ ] Java 11 verified.
+- [ ] Java 17 verified.
+- [ ] Java 21 verified.
+- [ ] Java 25 verified.
+- [ ] Root runtime dependency tree has no third-party runtime dependencies.
+- [ ] No direct linkage to post-Java-8 APIs in core.
+- [ ] CLI contract tests green.
+- [ ] JSON schema/golden fixtures green.
+- [ ] JUnit XML golden fixtures green.
+
+## API/SPI gates
+
+- [ ] Public API classified.
+- [ ] Public SPI classified.
+- [ ] Internal implementation packages documented.
+- [ ] Pre-1.0 deprecations documented or removed.
+- [ ] SemVer policy documented.
+- [ ] Deprecation policy documented.
+- [ ] Support window documented.
+- [ ] API compatibility tool added as test/build tooling.
+- [ ] 1.0 API baseline generation procedure documented.
+
+## Semantic gates
+
+- [ ] PHPSpec compatibility matrix has no `UNSPECIFIED` entries.
+- [ ] All `PARTIAL_BLOCKING_1_0` entries have been implemented or intentionally reclassified with tests/docs.
+- [ ] Seven mandatory PHPSpec semantic acceptance scenarios from `docs/phpspec-compatibility-matrix.md` are mapped to automated tests.
+- [ ] PASSED/FAILED/BROKEN/SKIPPED/PENDING contract documented.
+- [ ] State mapping verified across CLI, launcher, JSON, JUnit XML, JUnit Platform, Maven, Gradle.
+- [ ] Pending generation cannot be reported as final GREEN.
+- [ ] Lifecycle and prediction ordering documented/tested.
+- [ ] Example-data row semantics documented/tested.
+- [ ] Collaborator injection contract documented/tested.
+- [ ] Prophecy contract documented/tested.
+- [ ] Matcher 1.0 scope implemented or explicitly deferred.
+
+## Generation gates
+
+- [ ] Every mutating path has structured plan/result semantics.
+- [ ] Dry-run parity for every mutating path included in 1.0.
+- [ ] Atomic writes audited/implemented where possible.
+- [ ] No silent refusal path.
+- [ ] Record updates use semantic record components for existing records.
+- [ ] Constructor and type identity edge cases covered.
+- [ ] Adversarial parser fixtures covered.
+- [ ] `run --generate --compile` regressions green for records, sealed types, interfaces, annotations, collaborators.
+
+## Adapter gates
+
+- [ ] Maven plugin verification green.
+- [ ] Gradle plugin verification green.
+- [ ] JUnit Platform engine verification green.
+- [ ] Bytecode doubles verification green.
+- [ ] Bytecode agent verification green.
+- [ ] External Maven consumer smoke green from staged artifacts.
+- [ ] External Gradle consumer smoke green from staged artifacts.
+- [ ] External JUnit Platform consumer smoke green from staged artifacts.
+- [ ] Bytecode adapter consumer smokes green from staged artifacts.
+
+## Release engineering gates
+
+- [ ] Version alignment green.
+- [ ] No `SNAPSHOT` dependencies in release build.
+- [ ] Source JARs present.
+- [ ] Javadoc JARs present.
+- [ ] POM metadata complete: SCM, license, developers, issues.
+- [ ] Maven plugin descriptor valid.
+- [ ] Gradle plugin marker publication path documented/tested.
+- [ ] Bytecode agent manifest has required `Premain-Class` and `Agent-Class`.
+- [ ] Checksums generated/verified.
+- [ ] Signing configured/documented.
+- [ ] Release workflow publishes or stages every declared artifact or fails clearly.
+- [ ] Release dry-run script green.
+- [ ] Tag/version/workflow alignment verified.
+- [ ] Post-release checklist documented.
+
+## Documentation gates
+
+- [ ] README matches 1.0 capabilities and version.
+- [ ] User manual matches README and capabilities.
+- [ ] CLI reference current.
+- [ ] Configuration reference current.
+- [ ] Matcher reference current.
+- [ ] Prophecy/doubles reference current.
+- [ ] Generation safety guide present.
+- [ ] Maven guide current.
+- [ ] Gradle guide current.
+- [ ] JUnit Platform/IDE guide current.
+- [ ] Extension SPI guide current.
+- [ ] Java compatibility matrix current.
+- [ ] Migration guide from 0.1.0/snapshots present.
+- [ ] JUnit-to-javaspec guide present or explicitly deferred.
+- [ ] Cucumber boundary guide present or explicitly deferred.
+- [ ] Troubleshooting current.
+- [ ] Release notes 1.0.0 complete.
+- [ ] Compatibility policy complete.
+- [ ] No current pre-migration package references outside archived/historical docs.
+- [ ] No contradictory current version references.
+
+## Release candidate rules
+
+After RC1:
+
+- [ ] No new features.
+- [ ] Only bug fixes, compatibility fixes, release hardening, and documentation.
+- [ ] Every breaking change has explicit motivation and triggers a new RC.
+- [ ] Consumer smoke tests rerun from clean staged artifacts.
+
+## Final release decision
+
+The release is ready only when all P0 gates above are green, P1 deferrals are explicitly documented, and no current documentation contradicts the 1.0 contract.

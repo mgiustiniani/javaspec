@@ -14,7 +14,7 @@ Artifacts are published on Maven Central under `io.github.jvmspec`. Add the depe
 <dependency>
     <groupId>io.github.jvmspec</groupId>
     <artifactId>javaspec</artifactId>
-    <version>0.1.0</version>
+    <version>1.0.0-SNAPSHOT</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -171,9 +171,9 @@ Common authoring concepts:
 After building from the repository root:
 
 ```sh
-java -cp target/javaspec-0.1.0-SNAPSHOT.jar io.github.jvmspec.cli.Main --help
-java -cp target/javaspec-0.1.0-SNAPSHOT.jar io.github.jvmspec.cli.Main describe com.example.Calculator
-java -cp target/javaspec-0.1.0-SNAPSHOT.jar io.github.jvmspec.cli.Main run --compile --generate
+java -cp target/javaspec-1.0.0-SNAPSHOT.jar io.github.jvmspec.cli.Main --help
+java -cp target/javaspec-1.0.0-SNAPSHOT.jar io.github.jvmspec.cli.Main describe com.example.Calculator
+java -cp target/javaspec-1.0.0-SNAPSHOT.jar io.github.jvmspec.cli.Main run --compile --generate
 ```
 
 Useful `run` options:
@@ -222,7 +222,7 @@ Consumer `pom.xml` example:
 
 ```xml
 <properties>
-  <javaspec.version>0.1.0-SNAPSHOT</javaspec.version>
+  <javaspec.version>1.0.0-SNAPSHOT</javaspec.version>
 </properties>
 
 <dependencies>
@@ -288,7 +288,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation 'io.github.jvmspec:javaspec:0.1.0-SNAPSHOT'
+    testImplementation 'io.github.jvmspec:javaspec:1.0.0-SNAPSHOT'
 }
 
 javaspec {
@@ -323,13 +323,13 @@ Consumer Maven example:
 <dependency>
   <groupId>io.github.jvmspec</groupId>
   <artifactId>javaspec</artifactId>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>1.0.0-SNAPSHOT</version>
   <scope>test</scope>
 </dependency>
 <dependency>
   <groupId>io.github.jvmspec</groupId>
   <artifactId>javaspec-junit-platform-engine</artifactId>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>1.0.0-SNAPSHOT</version>
   <scope>test</scope>
 </dependency>
 <dependency>
@@ -490,7 +490,7 @@ mvn -q -f javaspec-bytecode-doubles/pom.xml -DskipTests install
 <dependency>
   <groupId>io.github.jvmspec</groupId>
   <artifactId>javaspec-bytecode-doubles</artifactId>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>1.0.0-SNAPSHOT</version>
   <scope>test</scope>
 </dependency>
 ```
@@ -522,7 +522,7 @@ mvn -q -f javaspec-bytecode-agent/pom.xml -DskipTests install
 <dependency>
   <groupId>io.github.jvmspec</groupId>
   <artifactId>javaspec-bytecode-agent</artifactId>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>1.0.0-SNAPSHOT</version>
   <scope>test</scope>
 </dependency>
 ```
@@ -752,7 +752,7 @@ form, and a standalone verification test.
 The CLI and adapters can write both JSON and JUnit XML-compatible reports:
 
 ```sh
-java -cp target/javaspec-0.1.0-SNAPSHOT.jar io.github.jvmspec.cli.Main run \
+java -cp target/javaspec-1.0.0-SNAPSHOT.jar io.github.jvmspec.cli.Main run \
   --compile \
   --report target/javaspec-report.json \
   --junit-xml target/javaspec-report.xml
@@ -797,7 +797,7 @@ suite.domain.bootstrap=com.example.SpecBootstrap
 Use it with:
 
 ```sh
-java -cp target/javaspec-0.1.0-SNAPSHOT.jar io.github.jvmspec.cli.Main run --config javaspec.conf --suite domain
+java -cp target/javaspec-1.0.0-SNAPSHOT.jar io.github.jvmspec.cli.Main run --config javaspec.conf --suite domain
 ```
 
 CLI options override matching config values where an override exists.
@@ -807,10 +807,10 @@ CLI options override matching config values where an override exists.
 javaspec is classpath/reflection based by default. Source/spec compilation is explicit:
 
 ```sh
-java -cp target/javaspec-0.1.0-SNAPSHOT.jar io.github.jvmspec.cli.Main run --compile
-java -cp target/javaspec-0.1.0-SNAPSHOT.jar io.github.jvmspec.cli.Main run --compile-output target/javaspec-classes
-java -cp target/javaspec-0.1.0-SNAPSHOT.jar io.github.jvmspec.cli.Main run --compile --release 8
-java -cp target/javaspec-0.1.0-SNAPSHOT.jar io.github.jvmspec.cli.Main run --compile --resolve-pom pom.xml
+java -cp target/javaspec-1.0.0-SNAPSHOT.jar io.github.jvmspec.cli.Main run --compile
+java -cp target/javaspec-1.0.0-SNAPSHOT.jar io.github.jvmspec.cli.Main run --compile-output target/javaspec-classes
+java -cp target/javaspec-1.0.0-SNAPSHOT.jar io.github.jvmspec.cli.Main run --compile --release 8
+java -cp target/javaspec-1.0.0-SNAPSHOT.jar io.github.jvmspec.cli.Main run --compile --resolve-pom pom.xml
 ```
 
 Compilation uses the current JDK `javax.tools.JavaCompiler` API. It can use `--release <N>` on
@@ -871,7 +871,7 @@ Start here:
 - [`examples/bytecode-doubles-basic/`](examples/bytecode-doubles-basic/) — optional non-final concrete-class doubles.
 - [`examples/bytecode-agent-basic/`](examples/bytecode-agent-basic/) — optional final-class and static-method doubles.
 - [`docs/usermanual/Home.md`](docs/usermanual/Home.md) — user manual with more CLI details.
-- [`docs/release-notes-0.1.1-SNAPSHOT.md`](docs/release-notes-0.1.1-SNAPSHOT.md) — unreleased development-line notes.
+- [`docs/release-notes-1.0.0.md`](docs/release-notes-1.0.0.md) — unreleased development-line notes.
 - [`javaspec-gradle-plugin/README.md`](javaspec-gradle-plugin/README.md) — Gradle plugin details.
 - [`javaspec-junit-platform-engine/README.md`](javaspec-junit-platform-engine/README.md) — JUnit Platform engine details.
 - [`CHANGELOG.md`](CHANGELOG.md) — release-change log scaffold.

@@ -312,7 +312,7 @@ remain unsupported.
 ## 6.10 Optional Maven Plugin Runtime Scenario
 
 1. A Maven build configures or invokes the optional
-   `io.github.jvmspec:javaspec-maven-plugin:0.1.0-SNAPSHOT` artifact and its `javaspec:run` goal.
+   `io.github.jvmspec:javaspec-maven-plugin:1.0.0-SNAPSHOT` artifact and its `javaspec:run` goal.
 2. The Mojo participates as a standalone Maven plugin, not as a root repository module. Its default
    phase is `verify`, and it requires Maven test dependency resolution.
 3. Maven supplies the test classpath; compiled production/spec classes from the project under test
@@ -365,7 +365,7 @@ remain unsupported.
 ## 6.12 Optional JUnit Platform Engine Runtime Scenario
 
 1. A JUnit Platform launcher has the optional
-   `io.github.jvmspec:javaspec-junit-platform-engine:0.1.0-SNAPSHOT` artifact, compiled spec classes,
+   `io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-SNAPSHOT` artifact, compiled spec classes,
    production classes, and dependencies on its test runtime classpath.
 2. JUnit Platform discovers `io.github.jvmspec.junit.platform.JavaspecTestEngine` through
    `META-INF/services/org.junit.platform.engine.TestEngine`; the engine id is `javaspec`.

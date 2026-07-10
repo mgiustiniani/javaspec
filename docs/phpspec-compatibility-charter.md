@@ -1,10 +1,10 @@
 # PHPSpec compatibility charter
 
-This charter defines the product direction for javaspec features that aim to make the tool competitive with JUnit while preserving PHPSpec-style specification design.
+This charter defines the product direction for javaspec as a PHPSpec-first framework for Java. PHPSpec semantics are the product core, not an optional compatibility layer. The verifiable release matrix is maintained in [`docs/phpspec-compatibility-matrix.md`](phpspec-compatibility-matrix.md).
 
 ## Positioning
 
-javaspec is a spec-first object-behavior tool for Java. It is intended for precise behavior slices close to code: domain objects, value objects, collaborators, edge cases, and design feedback loops where Cucumber/Gherkin adds ceremony instead of clarity.
+javaspec is a Java implementation of a spec-first, subject-centric, behavior-driven experience inspired by PHPSpec. It is intended for precise behavior slices close to code: domain objects, value objects, collaborators, edge cases, and design feedback loops where Cucumber/Gherkin adds ceremony instead of clarity.
 
 javaspec complements, rather than replaces, Cucumber:
 
@@ -84,6 +84,10 @@ public void it_normalizes_known_inputs() {
         });
 }
 ```
+
+## 1.0 semantic core
+
+For 1.0, the PHPSpec-first semantic core is the primary release criterion. CLI, generation, reports, Maven, Gradle, JUnit Platform, doubles, and extension SPI must serve this subject-centric model rather than redefine it. The release can defer non-essential parity only when the compatibility matrix records the difference, the main spec -> RED -> skeleton -> GREEN loop remains coherent, and public documentation does not imply unsupported behavior.
 
 ## Workflow guardrails
 

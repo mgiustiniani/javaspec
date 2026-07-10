@@ -3,10 +3,10 @@
 ## 7.1 Runtime Artifact
 
 javaspec core is packaged as a Maven-built Java artifact with CLI main class
-`io.github.jvmspec.cli.Main`. The current repository build produces `target/javaspec-0.1.0-SNAPSHOT.jar`.
+`io.github.jvmspec.cli.Main`. The current repository build produces `target/javaspec-1.0.0-SNAPSHOT.jar`.
 
 Phase 15 also provides a standalone optional Maven plugin artifact at `javaspec-maven-plugin/`,
-packaging `io.github.jvmspec:javaspec-maven-plugin:0.1.0-SNAPSHOT` as `maven-plugin`. It is intentionally
+packaging `io.github.jvmspec:javaspec-maven-plugin:1.0.0-SNAPSHOT` as `maven-plugin`. It is intentionally
 not registered as a root module so repository-root verification continues to build and audit only
 the core artifact.
 
@@ -16,12 +16,12 @@ outside the core artifact.
 
 Phase 17 provides a standalone optional JUnit Platform engine artifact at
 `javaspec-junit-platform-engine/`, packaging
-`io.github.jvmspec:javaspec-junit-platform-engine:0.1.0-SNAPSHOT` as a Java 8-compatible `jar` with
+`io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-SNAPSHOT` as a Java 8-compatible `jar` with
 engine id `javaspec`. It is intentionally not registered as a root Maven module and remains outside
 the core artifact.
 
 Phase 37 provides a standalone optional bytecode doubles adapter at `javaspec-bytecode-doubles/`,
-packaging `io.github.jvmspec:javaspec-bytecode-doubles:0.1.0-SNAPSHOT`. It is intentionally outside the
+packaging `io.github.jvmspec:javaspec-bytecode-doubles:1.0.0-SNAPSHOT`. It is intentionally outside the
 root Maven reactor and carries ByteBuddy 1.14.18 only in the adapter artifact.
 
 Phase 19 adds deployment-time verification assets: executable `scripts/verify-all.sh` for aggregate
@@ -188,7 +188,7 @@ gradle -p javaspec-gradle-plugin clean test build
 
 Phase 20 verification passed `LICENSE` identity against `origin/main` blob
 `b990d5492f3ef404ffc145890b83e51914351bb5`, script syntax/executable validation, version alignment
-at `0.1.0-SNAPSHOT`, whitespace checks including `git diff --check` and `git diff --cached --check`,
+at `1.0.0-SNAPSHOT`, whitespace checks including `git diff --check` and `git diff --cached --check`,
 effective POM generation, Maven MIT license/maintainer metadata checks, Gradle generated POM
 metadata checks, root `mvn -q verify` with 386 tests and no failures/errors/skips, root runtime
 dependency audit with only `io.github.jvmspec:javaspec`, root/Maven plugin/JUnit engine
@@ -269,7 +269,7 @@ appropriate JDK/source level.
 The core runtime dependency audit must continue to show only the project artifact in runtime scope:
 
 ```text
-io.github.jvmspec:javaspec:jar:0.1.0-SNAPSHOT
+io.github.jvmspec:javaspec:jar:1.0.0-SNAPSHOT
 ```
 
 Phase 14's programmatic invocation API and JUnit XML-compatible writer remain inside the core
@@ -286,7 +286,7 @@ API and plugin annotations are `provided`, JUnit is only a plugin test dependenc
 runtime tree contains the plugin plus compile-scope core `io.github.jvmspec:javaspec` only. The Phase 16
 Gradle plugin also remains outside the core runtime as a standalone optional artifact: JUnit/TestKit
 are only plugin test dependencies, and the verified Gradle runtimeClasspath contains only core
-`io.github.jvmspec:javaspec:0.1.0-SNAPSHOT`. The Phase 17 JUnit Platform engine remains outside the core
+`io.github.jvmspec:javaspec:1.0.0-SNAPSHOT`. The Phase 17 JUnit Platform engine remains outside the core
 runtime as a standalone optional artifact: its runtime dependencies are core
 `io.github.jvmspec:javaspec`, `org.junit.platform:junit-platform-engine`, `opentest4j`,
 `junit-platform-commons`, and `apiguardian-api`, with no runtime `junit-jupiter`,

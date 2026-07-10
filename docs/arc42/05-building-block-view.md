@@ -105,7 +105,7 @@ Current runtime building blocks:
     execution, `SpecRunner`, and `RunResult`. Default invocation remains classpath-based.
 - **Optional Maven plugin adapter** (`javaspec-maven-plugin/`)
   - Responsibility: Standalone optional Maven plugin artifact
-    `io.github.jvmspec:javaspec-maven-plugin:0.1.0-SNAPSHOT`, intentionally not a root module; provides
+    `io.github.jvmspec:javaspec-maven-plugin:1.0.0-SNAPSHOT`, intentionally not a root module; provides
     goal prefix `javaspec` and `javaspec:run` as a Maven adapter over `JavaspecLauncher` using Maven
     test dependency resolution and test classpath by default, with Maven logging, filters, extension
     activation, formatter selection, explicit opt-in compilation settings, top-level plus
@@ -127,7 +127,7 @@ Current runtime building blocks:
     diagnostics including Gradle classpath element counts when execution availability issues exist.
 - **Optional JUnit Platform engine adapter** (`javaspec-junit-platform-engine/`)
   - Responsibility: Standalone optional JUnit Platform `TestEngine` artifact
-    `io.github.jvmspec:javaspec-junit-platform-engine:0.1.0-SNAPSHOT`, intentionally not a root Maven
+    `io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-SNAPSHOT`, intentionally not a root Maven
     module and outside the core artifact; provides engine id `javaspec`, ServiceLoader registration,
     JUnit Platform selector/configuration-parameter filtering over canonical discovery results,
     stable unique-id shape with MethodSource behavior, descriptor reporting aligned to stable ids,
@@ -215,9 +215,9 @@ failures fail the build with clear diagnostics, and projects under test do not n
 
 Phase 16 adds the optional Gradle plugin as a standalone adapter artifact rather than a root Maven
 module or core module. `build.gradle` uses `java-gradle-plugin`, group `io.github.jvmspec`, version
-`0.1.0-SNAPSHOT`, Java source/target `1.8`, plugin id `io.github.jvmspec`, implementation class
+`1.0.0-SNAPSHOT`, Java source/target `1.8`, plugin id `io.github.jvmspec`, implementation class
 `io.github.jvmspec.gradle.JavaspecPlugin`, Maven-local core dependency
-`io.github.jvmspec:javaspec:0.1.0-SNAPSHOT`, and plugin-local TestKit/JUnit test dependencies.
+`io.github.jvmspec:javaspec:1.0.0-SNAPSHOT`, and plugin-local TestKit/JUnit test dependencies.
 `JavaspecPlugin` registers extension `javaspec` and task `javaspecRun` in group `verification`; when
 Gradle Java plugin source sets are present, the task defaults to the `test` source set runtime
 classpath and depends on `testClasses`. `JavaspecRunTask` supports `skip`, `failOnFailure`,
@@ -231,7 +231,7 @@ test do not need JUnit.
 
 Phase 17 adds the optional JUnit Platform engine as a standalone adapter artifact rather than a root
 Maven module or core module. The artifact is
-`io.github.jvmspec:javaspec-junit-platform-engine:0.1.0-SNAPSHOT`, packaging `jar`, Java source/target
+`io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-SNAPSHOT`, packaging `jar`, Java source/target
 `1.8`, and uses Java 8-compatible JUnit Platform `1.10.2` rather than JUnit Platform 6/JUnit 6.
 `JavaspecTestEngine` is registered through `META-INF/services/org.junit.platform.engine.TestEngine`
 with engine id `javaspec`. Discovery uses canonical `SpecDiscovery` / `SpecDiscoveryRequest`,

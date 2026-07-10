@@ -35,7 +35,7 @@ All notable changes to this project will be documented in this file.
   argument captors, ordered verification, and return-then-throw stubbing.
 - Added public `Doubles.controlFromHandler(...)` adapter hook so optional adapters avoid direct
   package-private implementation access across isolated Maven/Gradle classloaders.
-- Added release notes for the current development line in `docs/release-notes-0.1.1-SNAPSHOT.md`.
+- Added release notes for the current development line in `docs/release-notes-1.0.0.md`.
 - Finalized documentation for the Phases 30-37 known-limitations resolution program, including
   bytecode doubles usage and example verification notes.
 - Added Phases 30-37 resolution updates:
@@ -99,7 +99,7 @@ All notable changes to this project will be documented in this file.
   - config keys, Maven/Gradle/JUnit adapter behavior, report schemas, dependency resolution,
     incremental caches, and release/source-level management remain unchanged.
 
-## 0.1.0-SNAPSHOT
+## 1.0.0-SNAPSHOT
 
 - Implemented the Java 8-compatible, zero-runtime-dependency javaspec core with CLI describe/run
   workflows, configuration, discovery, generation support, matchers, interface doubles, run
