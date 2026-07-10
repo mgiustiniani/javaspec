@@ -108,6 +108,7 @@ example_bytecode_doubles_pom="${repo_root}/examples/bytecode-doubles-basic/pom.x
 example_bytecode_agent_pom="${repo_root}/examples/bytecode-agent-basic/pom.xml"
 example_prophecy_pom="${repo_root}/examples/prophecy-basic/pom.xml"
 example_gradle_build="${repo_root}/examples/gradle-basic/build.gradle"
+launcher="${repo_root}/bin/javaspec"
 
 root_version="$(extract_maven_project_version "$root_pom")"
 
@@ -118,6 +119,7 @@ fi
 
 printf 'Version alignment baseline: %s\n' "$root_version"
 record_result 'root pom.xml project version' "$root_version" "$root_version"
+record_result 'bin/javaspec launcher version' "$("$launcher" --launcher-version 2>/dev/null || true)" "$root_version"
 record_result 'javaspec-maven-plugin/pom.xml project version' "$(extract_maven_project_version "$maven_plugin_pom")" "$root_version"
 record_result 'javaspec-junit-platform-engine/pom.xml project version' "$(extract_maven_project_version "$junit_engine_pom")" "$root_version"
 record_result 'javaspec-bytecode-doubles/pom.xml project version' "$(extract_maven_project_version "$bytecode_doubles_pom")" "$root_version"

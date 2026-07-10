@@ -7,9 +7,29 @@ set -euo pipefail
 bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 repo_root="$(cd "${bin_dir}/.." && pwd -P)"
 
-# Locate the jar: prefer Maven local repo (installed snapshot), fall back to
-# the build output in the repository target directory.
-version="0.1.0-SNAPSHOT"
+# Resolve the project version from the root POM so the launcher cannot drift
+# from the artifact produced by the current checkout.
+version="$(awk '
+  /^[[:space:]]*<version>[[:space:]]*[^<]+[[:space:]]*<\/version>[[:space:]]*$/ {
+    line = $0
+    sub(/^[[:space:]]*<version>[[:space:]]*/, "", line)
+    sub(/[[:space:]]*<\/version>[[:space:]]*$/, "", line)
+    print line
+    exit
+  }
+' "${repo_root}/pom.xml")"
+
+if [ -z "${version}" ]; then
+  printf 'javaspec: project version not found in %s\n' "${repo_root}/pom.xml" >&2
+  exit 1
+fi
+
+if [ "${1:-}" = "--launcher-version" ]; then
+  printf '%s\n' "${version}"
+  exit 0
+fi
+
+# Locate the jar: prefer the local Maven repository, then build output.
 local_repo="${HOME}/.m2/repository/io/github/jvmspec/javaspec/${version}/javaspec-${version}.jar"
 target_jar="${repo_root}/target/javaspec-${version}.jar"
 
