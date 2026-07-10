@@ -243,8 +243,9 @@ Rules:
 
 **Status:** In progress — slice 1 implements the zero-dependency core API for `row(...)`,
 `examples(...)`, `Example1`, and `Example2`, runs data rows inside the current example, and includes
-failing row context in console output, JSON failure messages, and JUnit XML failure messages. First-class
-row child results and JUnit Platform descriptors remain as later Phase 47 work.
+failing row context in console output, JSON failure messages, and JUnit XML failure messages. Slice 2
+records first-class example-data row results on the containing example and serializes them to JSON
+reports. JUnit XML row representation and JUnit Platform descriptors remain as later Phase 47 work.
 
 ### Phase 48 — Collaborator injection for `let` and examples
 

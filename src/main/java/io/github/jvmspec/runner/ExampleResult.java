@@ -1,8 +1,12 @@
 package io.github.jvmspec.runner;
 
+import io.github.jvmspec.api.ExampleDataRowResult;
 import io.github.jvmspec.discovery.DiscoveredSpec;
 import io.github.jvmspec.discovery.SpecExample;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -20,6 +24,7 @@ public final class ExampleResult {
     private final ExampleStatus status;
     private final String detail;
     private final FailureDetail failureDetail;
+    private final List<ExampleDataRowResult> exampleDataRows;
 
     private ExampleResult(
             String specQualifiedName,
@@ -30,7 +35,8 @@ public final class ExampleResult {
             int sourceLine,
             ExampleStatus status,
             String detail,
-            FailureDetail failureDetail
+            FailureDetail failureDetail,
+            List<ExampleDataRowResult> exampleDataRows
     ) {
         this.specQualifiedName = specQualifiedName;
         this.methodName = methodName;
@@ -41,6 +47,7 @@ public final class ExampleResult {
         this.status = status;
         this.detail = detail;
         this.failureDetail = failureDetail;
+        this.exampleDataRows = immutableRows(exampleDataRows);
     }
 
     public static ExampleResult passed(DiscoveredSpec spec, SpecExample example) {
@@ -142,7 +149,23 @@ public final class ExampleResult {
                 sourceLine,
                 validatedStatus,
                 safeDetail(detail),
-                failureDetail
+                failureDetail,
+                Collections.<ExampleDataRowResult>emptyList()
+        );
+    }
+
+    public ExampleResult withExampleDataRows(List<ExampleDataRowResult> rows) {
+        return new ExampleResult(
+                specQualifiedName,
+                methodName,
+                displayName,
+                sourceOrderIndex,
+                sourceFilePath,
+                sourceLine,
+                status,
+                detail,
+                failureDetail,
+                rows
         );
     }
 
@@ -294,6 +317,18 @@ public final class ExampleResult {
         return ExampleStatus.PENDING.equals(status);
     }
 
+    public List<ExampleDataRowResult> exampleDataRows() {
+        return exampleDataRows;
+    }
+
+    public List<ExampleDataRowResult> getExampleDataRows() {
+        return exampleDataRows;
+    }
+
+    public boolean hasExampleDataRows() {
+        return !exampleDataRows.isEmpty();
+    }
+
     public boolean isSkippedOrPending() {
         return isSkipped() || isPending();
     }
@@ -345,7 +380,8 @@ public final class ExampleResult {
                 && displayName.equals(that.displayName)
                 && status.equals(that.status)
                 && detail.equals(that.detail)
-                && equalNullable(failureDetail, that.failureDetail);
+                && equalNullable(failureDetail, that.failureDetail)
+                && exampleDataRows.equals(that.exampleDataRows);
     }
 
     @Override
@@ -357,6 +393,7 @@ public final class ExampleResult {
         result = 31 * result + status.hashCode();
         result = 31 * result + detail.hashCode();
         result = 31 * result + (failureDetail == null ? 0 : failureDetail.hashCode());
+        result = 31 * result + exampleDataRows.hashCode();
         return result;
     }
 
@@ -372,7 +409,15 @@ public final class ExampleResult {
                 ", status=" + status +
                 ", detail='" + detail + '\'' +
                 ", failureDetail=" + failureDetail +
+                ", exampleDataRows=" + exampleDataRows +
                 '}';
+    }
+
+    private static List<ExampleDataRowResult> immutableRows(List<ExampleDataRowResult> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return Collections.unmodifiableList(new ArrayList<ExampleDataRowResult>(rows));
     }
 
     private static boolean equalNullable(Object left, Object right) {

@@ -41,8 +41,9 @@ moving dependency-heavy behavior into optional artifacts.
   smoke coverage for the canonical subject-centric `let` / `subject()` /
   `match(...).shouldReturn(...)` authoring style.
 - Phase 47 begins PHPSpec-style example data with zero-dependency core APIs: `row(...)`,
-  `examples(...)`, `Example1`, and `Example2`. Rows execute inside the containing behavior example
-  and failing rows include row number/value context.
+  `examples(...)`, `Example1`, and `Example2`. Rows execute inside the containing behavior example,
+  failing rows include row number/value context, and JSON reports include first-class
+  `exampleDataRows` entries for row index, description, status, and detail.
 
 ## Optional subclass adapter `javaspec-bytecode-doubles`
 

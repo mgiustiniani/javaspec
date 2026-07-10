@@ -121,8 +121,16 @@ public class MainPhase47ExampleDataCliTest {
         assertEquals("", result.err);
         assertTrue(jsonReport.isFile());
         assertTrue(junitReport.isFile());
-        assertContains(readFile(jsonReport), "Example data row 2 [ Bob , Robert] failed");
-        assertContains(readFile(jsonReport), "Expected equality(Robert) but got Bob");
+        String json = readFile(jsonReport);
+        assertContains(json, "\"exampleDataRows\": [");
+        assertContains(json, "\"index\": 1");
+        assertContains(json, "\"description\": \"[Alice, Alice]\"");
+        assertContains(json, "\"status\": \"PASSED\"");
+        assertContains(json, "\"index\": 2");
+        assertContains(json, "\"description\": \"[ Bob , Robert]\"");
+        assertContains(json, "\"status\": \"FAILED\"");
+        assertContains(json, "Example data row 2 [ Bob , Robert] failed");
+        assertContains(json, "Expected equality(Robert) but got Bob");
         assertContains(readFile(junitReport), "Example data row 2 [ Bob , Robert] failed");
         assertContains(readFile(junitReport), "Expected equality(Robert) but got Bob");
     }

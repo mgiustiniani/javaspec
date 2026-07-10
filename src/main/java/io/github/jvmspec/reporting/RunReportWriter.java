@@ -1,5 +1,6 @@
 package io.github.jvmspec.reporting;
 
+import io.github.jvmspec.api.ExampleDataRowResult;
 import io.github.jvmspec.runner.ExampleResult;
 import io.github.jvmspec.runner.FailureDetail;
 import io.github.jvmspec.runner.RunResult;
@@ -219,8 +220,38 @@ public final class RunReportWriter {
         builder.append(",\n");
         builder.append("          \"failure\": ");
         appendFailure(builder, example.failureDetail());
+        builder.append(",\n");
+        builder.append("          \"exampleDataRows\": ");
+        appendExampleDataRows(builder, example.exampleDataRows());
         builder.append("\n");
         builder.append("        }");
+    }
+
+    private static void appendExampleDataRows(StringBuilder builder, List<ExampleDataRowResult> rows) {
+        if (rows.isEmpty()) {
+            builder.append("[]");
+            return;
+        }
+        builder.append("[\n");
+        for (int i = 0; i < rows.size(); i++) {
+            if (i > 0) {
+                builder.append(",\n");
+            }
+            ExampleDataRowResult row = rows.get(i);
+            builder.append("            {\n");
+            builder.append("              \"index\": ").append(row.index()).append(",\n");
+            builder.append("              \"description\": ");
+            appendJsonString(builder, row.description());
+            builder.append(",\n");
+            builder.append("              \"status\": ");
+            appendJsonString(builder, row.status());
+            builder.append(",\n");
+            builder.append("              \"detail\": ");
+            appendJsonString(builder, row.detail());
+            builder.append("\n");
+            builder.append("            }");
+        }
+        builder.append("\n          ]");
     }
 
     private static void appendSourceLocation(StringBuilder builder, ExampleResult example) {

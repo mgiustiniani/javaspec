@@ -1,5 +1,6 @@
 package io.github.jvmspec.runner;
 
+import io.github.jvmspec.api.ExampleDataRowRecorder;
 import io.github.jvmspec.api.ObjectBehavior;
 import io.github.jvmspec.api.Pending;
 import io.github.jvmspec.api.PendingExampleException;
@@ -172,6 +173,7 @@ public final class SpecRunner {
         Throwable letGoFailure = null;
         ExampleSignal runtimeSignal = null;
 
+        ExampleDataRowRecorder.start();
         try {
             if (letMethod != null) {
                 letFailure = invoke(letMethod, instance);
@@ -191,37 +193,41 @@ public final class SpecRunner {
             Throwable primary = letGoFailure;
             if (runtimeSignal != null) {
                 primary = suppress(primary, runtimeSignal.throwable());
-                return ExampleResult.broken(spec, example,
-                        "letGo() failed after " + runtimeSignal.label() + " example", primary);
+                return withExampleDataRows(ExampleResult.broken(spec, example,
+                        "letGo() failed after " + runtimeSignal.label() + " example", primary));
             }
             if (letFailure != null) {
                 primary = suppress(primary, letFailure);
-                return ExampleResult.broken(spec, example, "letGo() failed after let() failure", primary);
+                return withExampleDataRows(ExampleResult.broken(spec, example, "letGo() failed after let() failure", primary));
             }
             if (exampleFailure != null) {
                 primary = suppress(primary, exampleFailure);
-                return ExampleResult.broken(spec, example, "letGo() failed after example execution", primary);
+                return withExampleDataRows(ExampleResult.broken(spec, example, "letGo() failed after example execution", primary));
             }
-            return ExampleResult.broken(spec, example, "letGo() failed", primary);
+            return withExampleDataRows(ExampleResult.broken(spec, example, "letGo() failed", primary));
         }
 
         if (runtimeSignal != null) {
-            return resultForSignal(spec, example, runtimeSignal);
+            return withExampleDataRows(resultForSignal(spec, example, runtimeSignal));
         }
         if (letFailure != null) {
-            return ExampleResult.broken(spec, example, "let() failed", letFailure);
+            return withExampleDataRows(ExampleResult.broken(spec, example, "let() failed", letFailure));
         }
         if (exampleFailure != null) {
             if (exampleFailure instanceof AssertionError) {
-                return ExampleResult.failed(spec, example, "Assertion failed", exampleFailure);
+                return withExampleDataRows(ExampleResult.failed(spec, example, "Assertion failed", exampleFailure));
             }
-            return ExampleResult.broken(spec, example, "Example method threw an unexpected throwable", exampleFailure);
+            return withExampleDataRows(ExampleResult.broken(spec, example, "Example method threw an unexpected throwable", exampleFailure));
         }
         // Auto-check predictions if enabled on the spec instance
         if (instance instanceof ObjectBehavior) {
             ((ObjectBehavior<?>) instance).checkPredictionsIfEnabled();
         }
-        return ExampleResult.passed(spec, example);
+        return withExampleDataRows(ExampleResult.passed(spec, example));
+    }
+
+    private static ExampleResult withExampleDataRows(ExampleResult result) {
+        return result.withExampleDataRows(ExampleDataRowRecorder.finish());
     }
 
     private static String exampleMethodNotFoundReason(SpecExample example) {

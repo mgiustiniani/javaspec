@@ -17,9 +17,12 @@ public final class Examples1<A> {
             ExampleRow1<A> row = rows[i];
             try {
                 example.run(row.first());
+                ExampleDataRowRecorder.record(ExampleDataRowResult.passed(i + 1, row.describe()));
             } catch (AssertionError failure) {
+                ExampleDataRowRecorder.record(ExampleDataRowResult.failed(i + 1, row.describe(), failure));
                 throw ExampleRows.assertionFailure(i + 1, row.describe(), failure);
             } catch (Throwable failure) {
+                ExampleDataRowRecorder.record(ExampleDataRowResult.broken(i + 1, row.describe(), failure));
                 throw ExampleRows.unexpectedFailure(i + 1, row.describe(), failure);
             }
         }

@@ -16,8 +16,9 @@ Verification summary:
   for failing-row context.
 
 Current reporting behavior: failing row context is included in pretty/progress output, JSON failure
-messages, and JUnit XML failure messages. Remaining Phase 47 work: first-class row child results and
-JUnit Platform child descriptors/selectors.
+messages, and JUnit XML failure messages. JSON reports also include first-class `exampleDataRows`
+entries with row index, description, status, and detail on the containing example. Remaining Phase 47
+work: JUnit XML row representation and JUnit Platform child descriptors/selectors.
 
 ## Phase 46 PHPSpec compatibility charter verification update
 
