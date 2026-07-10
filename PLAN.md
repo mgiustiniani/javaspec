@@ -169,9 +169,9 @@ repository intentionally keeps standalone adapters/examples out of a root Maven 
   `Object` placeholders can refine to
   the only compatible production overload, while real `Object` and `String` overloads are preserved
   instead of being collapsed prematurely. Regression coverage includes discovery/model tests for
-  unknown-vs-real-Object handling, production-signature overload tests, support-generation duplicate
-  guards, and a CLI `run --generate --compile` case that reaches a meaningful domain RED instead of
-  duplicate-method compilation errors.
+  unknown-vs-real-Object handling, ambiguous unknown overload refinement, production-signature
+  overload tests, support-generation duplicate guards, and a CLI `run --generate --compile` case
+  that reaches a meaningful domain RED instead of duplicate-method compilation errors.
 
 - **Record component evolution from constructor-driven specs (Completed):** when a spec uses
   `beConstructedWith(...)` and then asserts a record component accessor such as `value()`, javaspec

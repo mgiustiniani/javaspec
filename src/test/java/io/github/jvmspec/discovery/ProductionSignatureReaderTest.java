@@ -154,6 +154,45 @@ public class ProductionSignatureReaderTest {
     }
 
     @Test
+    public void keepsUnknownMethodArgumentWhenProductionOverloadMatchIsAmbiguous() throws Exception {
+        File sourceRoot = writeProductionSource("com/example/Key.java",
+                "package com.example;\n\n" +
+                "public class Key {\n" +
+                "    public boolean isCanonicalText(String value) { return true; }\n" +
+                "    public boolean isCanonicalText(Integer value) { return false; }\n" +
+                "}\n");
+        MethodDescriptor unknownNullCall = MethodDescriptor.of(
+                "isCanonicalText", "boolean", Arrays.asList("Object"), Arrays.asList("arg0"))
+                .withUnknownParameterTypes(Arrays.asList(Boolean.TRUE));
+        DescribedType described = describedKey(
+                Collections.<ConstructorDescriptor>emptyList(),
+                Arrays.asList(unknownNullCall));
+
+        DescribedType refined = ProductionSignatureReader.refine(described, sourceRoot);
+
+        assertEquals(Arrays.asList(unknownNullCall), refined.methods());
+    }
+
+    @Test
+    public void keepsUnknownConstructorArgumentWhenProductionOverloadMatchIsAmbiguous() throws Exception {
+        File sourceRoot = writeProductionSource("com/example/Key.java",
+                "package com.example;\n\n" +
+                "public class Key {\n" +
+                "    public Key(String value) { }\n" +
+                "    public Key(Integer value) { }\n" +
+                "}\n");
+        ConstructorDescriptor unknownConstructor = ConstructorDescriptor.of(
+                Arrays.asList("Object"), Arrays.asList("arg0"), "");
+        DescribedType described = describedKey(
+                Arrays.asList(unknownConstructor),
+                Collections.<MethodDescriptor>emptyList());
+
+        DescribedType refined = ProductionSignatureReader.refine(described, sourceRoot);
+
+        assertEquals(Arrays.asList(unknownConstructor), refined.constructors());
+    }
+
+    @Test
     public void preservesRealObjectAndStringProductionOverloads() throws Exception {
         File sourceRoot = writeProductionSource("com/example/Key.java",
                 "package com.example;\n\n" +

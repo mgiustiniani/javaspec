@@ -25,7 +25,8 @@ moving dependency-heavy behavior into optional artifacts.
   strings.
 - Discovery now infers more static argument types before generation, including casted nulls,
   Java 10+ simple `var` initializers, constructed value objects, and likely value-object static
-  factory calls such as `CertificateProfileId.of("abc")`.
+  factory calls such as `CertificateProfileId.of("abc")`; production-source refinement now avoids
+  arbitrary signature changes when an unknown argument matches multiple overloads equally.
 - Java 8 verification now adds the JDK `tools.jar` compiler tree API when needed and the AST-based
   discovery/refinement path falls back safely when those optional compiler classes are unavailable
   at runtime.

@@ -128,6 +128,7 @@ public final class ProductionSignatureReader {
     private static ProductionMethod bestMethodMatch(MethodDescriptor descriptor, List<ProductionMethod> productionMethods) {
         ProductionMethod best = null;
         int bestScore = -1;
+        boolean ambiguousBest = false;
         for (int i = 0; i < productionMethods.size(); i++) {
             ProductionMethod production = productionMethods.get(i);
             if (!production.name.equals(descriptor.methodName())
@@ -138,9 +139,13 @@ public final class ProductionSignatureReader {
             if (score > bestScore) {
                 best = production;
                 bestScore = score;
+                ambiguousBest = false;
+            } else if (score == bestScore && score >= 0 && best != null
+                    && !best.parameterTypes.equals(production.parameterTypes)) {
+                ambiguousBest = true;
             }
         }
-        return best;
+        return ambiguousBest ? null : best;
     }
 
     private static ConstructorDescriptor refineConstructor(
@@ -161,15 +166,20 @@ public final class ProductionSignatureReader {
     ) {
         ProductionMethod best = null;
         int bestScore = -1;
+        boolean ambiguousBest = false;
         for (int i = 0; i < productionConstructors.size(); i++) {
             ProductionMethod production = productionConstructors.get(i);
             int score = parameterCompatibilityScore(descriptor.parameterTypes(), production.parameterTypes);
             if (score > bestScore) {
                 best = production;
                 bestScore = score;
+                ambiguousBest = false;
+            } else if (score == bestScore && score >= 0 && best != null
+                    && !best.parameterTypes.equals(production.parameterTypes)) {
+                ambiguousBest = true;
             }
         }
-        return best;
+        return ambiguousBest ? null : best;
     }
 
     /**
