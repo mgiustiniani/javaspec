@@ -164,9 +164,9 @@ repository intentionally keeps standalone adapters/examples out of a root Maven 
   de-duplicates `DescribedType.methods()` by static-ness, method name, and normalized parameter
   types, and keeps support-generation de-duplication as a defensive backstop. A deeper follow-up
   separates unknown argument placeholders from real `Object` parameters inside `MethodDescriptor`,
-  infers simple `var` local initializer types plus class literals and constructed/static-factory
-  value-object argument types in the AST scanner, then uses production-source-guided overload
-  resolution: unknown `Object` placeholders can refine to
+  infers simple `var` local initializer types plus class literals, array creation expressions, and
+  constructed/static-factory value-object argument types in the AST scanner, then uses
+  production-source-guided overload resolution: unknown `Object` placeholders can refine to
   the only compatible production overload, while real `Object` and `String` overloads are preserved
   instead of being collapsed prematurely. Regression coverage includes discovery/model tests for
   unknown-vs-real-Object handling, ambiguous unknown overload refinement, production-signature

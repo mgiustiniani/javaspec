@@ -469,6 +469,76 @@ public class SpecDiscoveryTest {
     }
 
     @Test
+    public void arrayCreationArgumentsContributeStaticTypesForProxyCalls() throws Exception {
+        File specRoot = temporaryFolder.newFolder("array-creation-root");
+        writeFile(
+                specRoot,
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator + "ArrayMatcherSpec.java",
+                "package spec.com.example;\n" +
+                "public class ArrayMatcherSpec extends ArrayMatcherSpecSupport {\n" +
+                "    public void it_accepts_array_values() {\n" +
+                "        accepts(new String[] {\"a\"}).shouldReturn(true);\n" +
+                "        accepts(new int[] {1}).shouldReturn(false);\n" +
+                "    }\n" +
+                "}\n"
+        );
+
+        List<DiscoveredSpec> specs = SpecDiscovery.discover(specRoot);
+
+        assertEquals(1, specs.size());
+        assertEquals(Arrays.asList(
+                MethodDescriptor.of("accepts", "boolean", Arrays.asList("String[]"), Arrays.asList("arg0")),
+                MethodDescriptor.of("accepts", "boolean", Arrays.asList("int[]"), Arrays.asList("arg0"))
+        ), specs.get(0).describedType().methods());
+    }
+
+    @Test
+    public void arrayCreationResolvesDescribedPackageComponentTypes() throws Exception {
+        File specRoot = temporaryFolder.newFolder("typed-array-root");
+        writeFile(
+                specRoot,
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator + "ArrayMatcherSpec.java",
+                "package spec.com.example;\n" +
+                "public class ArrayMatcherSpec extends ArrayMatcherSpecSupport {\n" +
+                "    public void it_accepts_domain_array_values() {\n" +
+                "        accepts(new CertificateProfileId[] {}).shouldReturn(true);\n" +
+                "    }\n" +
+                "}\n"
+        );
+
+        List<DiscoveredSpec> specs = SpecDiscovery.discover(specRoot);
+
+        assertEquals(1, specs.size());
+        assertEquals(Arrays.asList(
+                MethodDescriptor.of("accepts", "boolean", Arrays.asList("com.example.CertificateProfileId[]"), Arrays.asList("arg0"))
+        ), specs.get(0).describedType().methods());
+    }
+
+    @Test
+    public void varArrayCreationInitializerContributesStaticTypeForProxyCalls() throws Exception {
+        assumeTrue(supportsJavaSpecificationVersion(10));
+        File specRoot = temporaryFolder.newFolder("var-array-root");
+        writeFile(
+                specRoot,
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator + "ArrayMatcherSpec.java",
+                "package spec.com.example;\n" +
+                "public class ArrayMatcherSpec extends ArrayMatcherSpecSupport {\n" +
+                "    public void it_accepts_var_array_values() {\n" +
+                "        var values = new String[] {\"a\"};\n" +
+                "        accepts(values).shouldReturn(true);\n" +
+                "    }\n" +
+                "}\n"
+        );
+
+        List<DiscoveredSpec> specs = SpecDiscovery.discover(specRoot);
+
+        assertEquals(1, specs.size());
+        assertEquals(Arrays.asList(
+                MethodDescriptor.of("accepts", "boolean", Arrays.asList("String[]"), Arrays.asList("arg0"))
+        ), specs.get(0).describedType().methods());
+    }
+
+    @Test
     public void constructedValueObjectArgumentContributesStaticTypeForProxyCalls() throws Exception {
         File specRoot = temporaryFolder.newFolder("constructed-value-root");
         writeFile(

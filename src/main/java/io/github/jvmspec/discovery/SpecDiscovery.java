@@ -766,6 +766,10 @@ public final class SpecDiscovery {
         if (isClassLiteral(value)) {
             return InferredType.known("Class");
         }
+        String arrayCreationType = arrayCreationType(value);
+        if (arrayCreationType != null) {
+            return InferredType.known(resolveTypeName(arrayCreationType, imports, describedPackageName));
+        }
         String constructedType = constructedType(value);
         if (constructedType != null) {
             return InferredType.known(resolveTypeName(constructedType, imports, describedPackageName));
@@ -794,6 +798,46 @@ public final class SpecDiscovery {
             return InferredType.known(resolveTypeName(qualifiedConstantType, imports, describedPackageName));
         }
         return InferredType.unknownObject();
+    }
+
+    private static String arrayCreationType(String value) {
+        String trimmed = value.trim();
+        if (!trimmed.startsWith("new ")) {
+            return null;
+        }
+        int firstBracket = trimmed.indexOf('[', 4);
+        if (firstBracket < 0) {
+            return null;
+        }
+        int constructorOpen = trimmed.indexOf('(', 4);
+        if (constructorOpen >= 0 && constructorOpen < firstBracket) {
+            return null;
+        }
+        String componentType = trimmed.substring(4, firstBracket).trim();
+        if (!isLikelyTypeName(componentType)) {
+            return null;
+        }
+        int dimensions = 0;
+        int index = firstBracket;
+        while (index < trimmed.length() && trimmed.charAt(index) == '[') {
+            int close = trimmed.indexOf(']', index + 1);
+            if (close < 0) {
+                return null;
+            }
+            dimensions++;
+            index = close + 1;
+            while (index < trimmed.length() && Character.isWhitespace(trimmed.charAt(index))) {
+                index++;
+            }
+        }
+        if (dimensions == 0) {
+            return null;
+        }
+        StringBuilder typeName = new StringBuilder(componentType);
+        for (int i = 0; i < dimensions; i++) {
+            typeName.append("[]");
+        }
+        return typeName.toString();
     }
 
     private static String constructedType(String value) {
@@ -1205,7 +1249,10 @@ public final class SpecDiscovery {
 
     static String resolveTypeName(String typeName, Map<String, String> imports, String describedPackageName) {
         String normalized = typeName.trim();
-        if (isPrimitiveOrVoid(normalized) || normalized.indexOf('<') >= 0 || normalized.endsWith("[]")) {
+        if (normalized.endsWith("[]")) {
+            return resolveArrayTypeName(normalized, imports, describedPackageName);
+        }
+        if (isPrimitiveOrVoid(normalized) || normalized.indexOf('<') >= 0) {
             return normalized;
         }
         if (normalized.indexOf('.') >= 0) {
@@ -1222,6 +1269,19 @@ public final class SpecDiscovery {
             return normalized;
         }
         return describedPackageName + "." + normalized;
+    }
+
+    private static String resolveArrayTypeName(String typeName, Map<String, String> imports, String describedPackageName) {
+        String component = typeName;
+        StringBuilder suffix = new StringBuilder();
+        while (component.endsWith("[]")) {
+            component = component.substring(0, component.length() - 2).trim();
+            suffix.append("[]");
+        }
+        if (component.indexOf('<') >= 0) {
+            return typeName;
+        }
+        return resolveTypeName(component, imports, describedPackageName) + suffix.toString();
     }
 
     private static boolean isPrimitiveOrVoid(String typeName) {
