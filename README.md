@@ -4,7 +4,7 @@
 
 ![javaspec demo](docs/assets/demo.gif)
 
-javaspec is a spec-first BDD tool for Java, inspired by phpspec. You describe the behavior you want, run the specification, and let javaspec guide the next small production-code step.
+javaspec is a spec-first BDD tool for Java, inspired by PHPSpec. You write subject-centric `it_*` examples with `let`, `beConstructedWith`, `subject()`, and `should*` expectations, run the specification, and let javaspec guide the next small production-code step.
 
 The core is Java 8-compatible and has no third-party runtime dependencies. It can be used directly from the CLI, embedded through a no-`System.exit` launcher, or adopted through optional Maven, Gradle, and JUnit Platform adapters.
 
@@ -25,13 +25,13 @@ The Gradle plugin id is `io.github.jvmspec`.
 
 ## Highlights
 
-- Spec-first BDD workflow inspired by phpspec.
+- Spec-first disciplined TDD/BDD workflow inspired by PHPSpec.
 - Java 8-compatible core.
 - Zero-runtime-dependency core artifact.
 - CLI, Maven plugin, Gradle plugin, and JUnit Platform adapter.
 - Generation and update support for specs, support classes, production skeletons, constructors, and methods.
 - JSON and JUnit XML-compatible reports.
-- Generated typed proxy methods for phpspec-style `method().shouldReturn(expected)` syntax.
+- Recommended PHPSpec-like authoring with `ObjectBehavior<T>`, `it_*` examples, `let`, `beConstructedWith`, `subject()`, and generated typed proxy methods such as `method().shouldReturn(expected)`.
 - Interface doubles in core; optional ByteBuddy-based concrete-class doubles adapter.
 
 ## Quick Start
@@ -67,7 +67,6 @@ javaspec describe com.example.PriceCalculator
 package spec.com.example;
 
 import com.example.PriceCalculator;
-import com.example.PriceCalculatorSpecSupport;
 
 public class PriceCalculatorSpec extends PriceCalculatorSpecSupport {
     public void it_calculates_the_total_price() {
@@ -76,7 +75,7 @@ public class PriceCalculatorSpec extends PriceCalculatorSpecSupport {
 }
 ```
 
-The `subject().method()` style is the standard way to invoke the subject under test; generated support classes provide sugar on top so you can call `method()` directly. The explicit form `match(subject().total(10.0, 2.5)).shouldReturn(12.5)` is also supported.
+The recommended concrete-spec style is PHPSpec-like: write one behavior method, call the generated typed proxy (`total(...).shouldReturn(...)`), and let the generated `*SpecSupport` class stay in the background. The explicit form `match(subject().total(10.0, 2.5)).shouldReturn(12.5)` is also supported when a proxy has not been generated yet or when an explicit subject call is clearer.
 
 **Step 3 — Run specs:** the generation prompt fires because the production class is missing. `--generate` accepts automatically; `--compile` recompiles before execution; `--formatter pretty` shows descriptive output.
 
@@ -144,29 +143,23 @@ Use javaspec when you want to:
 
 ## Writing a first spec
 
-A javaspec spec is a Java class whose public no-argument methods are examples. Generated specs usually extend `ObjectBehavior<T>`.
+A javaspec spec is a Java class whose public no-argument methods are examples. `javaspec describe` creates a concrete `*Spec` plus a generated `*SpecSupport`; the support class extends `ObjectBehavior<T>`, while the concrete spec stays focused on behavior.
 
 ```java
-public class CalculatorSpec extends ObjectBehavior<Calculator> {
-    public CalculatorSpec() {
-        super(Calculator.class);
-    }
-
+public class CalculatorSpec extends CalculatorSpecSupport {
     public void it_adds_two_numbers() {
         add(2, 3).shouldReturn(5);
     }
 }
 ```
 
-The concise form works because `javaspec describe` generates a support class with typed
-proxy methods for each subject method — each returns `Matchable<T>` and can be chained
-directly. The explicit form `match(subject().add(2, 3)).shouldReturn(5)` is equivalent
-and useful when calling methods not yet reflected in the support class.
+That concise form is the recommended PHPSpec-like style. The generated support class provides typed proxy methods for each subject method — each returns `Matchable<T>` and can be chained directly. The explicit form `match(subject().add(2, 3)).shouldReturn(5)` is equivalent and useful when calling methods not yet reflected in the support class.
 
 Common authoring concepts:
 
 - `subject()` lazily creates the described object.
-- `match(value).shouldReturn(expected)` and related matchers express expectations.
+- Generated typed proxies (`add(2, 3).shouldReturn(5)`) are the preferred subject-call syntax.
+- `match(value).shouldReturn(expected)` and related matchers express expectations when you need the explicit form.
 - `beConstructedWith(...)` selects constructor arguments before `subject()` is used.
 - `beConstructedThrough("factoryName", ...)` selects a static factory method.
 - `@Skip`, `@Pending`, `skip(...)`, and `pending(...)` mark examples intentionally not executed.
@@ -363,16 +356,15 @@ int exitCode = result.exitCode();
 
 ## Matchers and expectations
 
-Use proxy methods (phpspec style) or `match(value)` for fluent expectations:
+Prefer generated typed proxy methods for PHPSpec-like fluent expectations:
 
 ```java
 add(2, 3).shouldReturn(5);
 name().shouldStartWith("calc");
 items().shouldHaveCount(3);
-shouldBeAnInstanceOf(Calculator.class);
 ```
 
-The explicit form is available too, and useful when a proxy method is not yet generated:
+The explicit `match(subject().method(...))` form is available too, and useful when a proxy method is not yet generated:
 
 ```java
 match(subject().add(2, 3)).shouldReturn(5);
@@ -380,6 +372,8 @@ match(subject().name()).shouldStartWith("calc");
 match(subject().items()).shouldHaveCount(3);
 match(subject()).shouldBeAnInstanceOf(Calculator.class);
 ```
+
+`ObjectBehavior` also has direct convenience assertions such as `shouldReturn(actual, expected)`. Treat those as ad-hoc helpers; they are not the recommended style for ordinary subject behavior examples.
 
 Available expectation families include:
 
@@ -398,13 +392,13 @@ Configure construction before calling `subject()`:
 public void it_uses_constructor_arguments() {
     beConstructedWith("USD", 2);
 
-    match(subject().currency()).shouldReturn("USD");
+    currency().shouldReturn("USD");
 }
 
 public void it_uses_a_factory() {
     beConstructedThrough("from", "42");
 
-    match(subject().value()).shouldReturn(42);
+    value().shouldReturn(42);
 }
 ```
 

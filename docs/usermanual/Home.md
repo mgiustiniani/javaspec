@@ -1,23 +1,21 @@
 # javaspec User Manual
 
-Wiki home for the current javaspec MVP.
+User manual for current javaspec development.
 
-javaspec is a Java 8-compatible, zero-runtime-dependency specification tool inspired by PHPSpec.
+javaspec is a Java 8-compatible, zero-runtime-dependency specification tool inspired by PHPSpec. The recommended authoring style is subject-centric and PHPSpec-like: one `it_*` / `its_*` behavior method, optional `let()` / `letGo()`, `beConstructedWith(...)` or `beConstructedThrough(...)` before first subject access, and fluent `should*` expectations.
 
-Two spec styles are supported:
+Preferred spec syntax:
 
-1. **Typed proxy style (primary):** Generated support classes expose typed wrapper methods so
-   specs read fluently: `method().shouldReturn(expected)`. This is the idiomatic PHPSpec-like
-   style shown in the demo GIF.
-2. **Explicit style:** `match(subject().method(...)).shouldReturn(expected)` works without a
-   support class and is useful when a proxy method is not yet generated or when writing
-   ad-hoc examples.
+1. **Generated typed proxy style (recommended):** Generated support classes expose typed wrapper methods so concrete specs read fluently: `method().shouldReturn(expected)`. This is the primary PHPSpec-like style for ordinary subject behavior.
+2. **Explicit subject matcher style:** `match(subject().method(...)).shouldReturn(expected)` is equally supported and useful when a proxy method has not been generated yet or when an explicit subject call is clearer.
+3. **Direct `ObjectBehavior` convenience assertions:** helpers such as `shouldReturn(actual, expected)` are available for ad-hoc checks and compatibility, but should not be presented as the main style in examples.
 
 Implemented capabilities include:
 
 - PHPSpec-style specification/support generation, production type discovery and generation,
-  constructor and static factory construction generation, typed proxy matcher support, direct
-  `ObjectBehavior` convenience assertions, and source-preserving method/declaration/element
+  constructor and static factory construction generation, recommended typed proxy matcher support,
+  explicit `match(subject()...)` expectations, direct `ObjectBehavior` convenience assertions for
+  ad-hoc checks, and source-preserving method/declaration/element
   generation.
 - Java LTS profile metadata and conservative target-profile enforcement before generation/update
   writes.
@@ -38,12 +36,15 @@ Implemented capabilities include:
 
 Verification status:
 
-- Phase 12 compatibility/quality verification is complete through the Distrobox Java 8, 11, 17, 21,
-  and 25 matrix.
-- Phase 19 local aggregate verification, Phase 20 local release-readiness verification, Phase 21
-  local adoption-assets verification, and Phase 22 local skipped/pending verification passed.
-- Remote GitHub Actions success for HEAD `5088e96` on `develop` is user-/maintainer-confirmed after
-  Phase 20/21/22 were pushed.
+- The canonical local aggregate check is `./scripts/verify-all.sh`; it verifies the zero-dependency
+  core, standalone Maven/Gradle/JUnit Platform adapters, runtime dependency audits, and standalone
+  examples.
+- Recent PHPSpec-compatibility work covers CLI, Maven, Gradle, and JUnit Platform smoke paths,
+  PHPSpec-style example data, row-aware JSON/JUnit XML/JUnit Platform reporting, and parser/generator
+  hardening for records, overloads, unknown `null`, `var`, class literals, arrays, and common
+  value-object argument expressions.
+- Remote CI status should be confirmed from GitHub Actions for the commit being released; older
+  phase-specific commit references in historical notes are not release evidence for current HEAD.
 
 ## Current status
 
@@ -155,26 +156,7 @@ javaspec='java -jar target/javaspec-0.1.0-SNAPSHOT.jar'
 
 ## Release and CI verification
 
-Phase 19 adds a non-disruptive aggregate verification path. Phase 20 adds release-readiness
-scaffolding. Phase 21 adds standalone examples and report schema/golden documentation. Phase 22 adds
-explicit skipped/pending example semantics and pending-aware report/schema goldens. Phase 23 adds
-classpath/execution availability diagnostics without integrated compilation. Phase 24 adds
-configuration-level report destinations without report schema or writer changes. Phase 25 adds
-ServiceLoader external formatter/extension discovery without new runtime dependencies, report
-schema/content changes, publishing changes, or integrated compilation. Phase 26 adds target-profile
-enforcement before generation/update writes without integrated compilation, report schema changes,
-new dependencies, or optional adapter architecture changes. Phase 27 adds bootstrap hook execution
-before examples, and Phase 33 adds ServiceLoader-discovered hooks afterward, without script engines,
-package scanning, dependency resolution, new runtime dependencies, or optional adapter architecture
-changes. Phase 28 strengthens interface doubles without concrete/static/final/constructor/bytecode
-mocking in the core. Phase 29 adds opt-in CLI source/spec compilation. Phases 30-36 resolve bounded
-Iterable matcher checks, sealed-interface updates, config-driven extension activation/formatter
-controls, ServiceLoader bootstrap hook discovery, programmatic/Maven/Gradle opt-in compilation,
-additive report metadata, and deeper profile enforcement. Phase 37 adds standalone optional bytecode
-concrete-class doubles outside the root reactor while preserving the zero-runtime-dependency core.
-The repository was not converted to Maven multi-module: root `mvn verify` continues to verify and
-audit only the zero-runtime-dependency core artifact, while the optional Maven plugin, Gradle
-plugin, JUnit Platform engine, and examples remain standalone artifacts.
+Use `scripts/verify-all.sh` as the local aggregate verification path. It covers the zero-runtime-dependency core, version alignment, standalone Maven/Gradle/JUnit Platform adapters, runtime dependency audits, and standalone examples. The repository is intentionally not a Maven multi-module build: root `mvn verify` continues to verify and audit only the core artifact, while optional adapters and examples remain standalone artifacts.
 
 Run the version-alignment check from the repository root:
 
@@ -251,17 +233,12 @@ Java 21 `full-verification` job with Maven cache and Gradle 8.8 setup that runs
 `scripts/verify-all.sh` with `JAVASPEC_GRADLE_BIN=gradle`. The workflow performs no publishing and
 uses no secrets.
 
-Remote CI status must be stated by phase: Phase 19 remote GitHub Actions success was
-user-/maintainer-confirmed for HEAD `4d30e63` on `develop`. After Phase 20/21/22 were pushed, remote
-GitHub Actions success for HEAD `5088e96` on `develop` was also user-/maintainer-confirmed. No run
-IDs, URLs, durations, or logs were independently queried from this environment. The workflow scope
-remains the configured Java 8/11/17/21/25 core matrix and Java 21 full-verification job through
-`scripts/verify-all.sh`, which includes standalone examples by default unless explicitly skipped.
+Remote CI status should be checked against the current branch/commit in GitHub Actions. This manual does not treat older phase-specific commit confirmations as current release evidence. The workflow scope remains the configured Java 8/11/17/21/25 core matrix and Java 21 full-verification job through `scripts/verify-all.sh`, which includes standalone examples by default unless explicitly skipped.
 
 ## Standalone examples and report schema
 
-Phase 21 adds standalone consumer examples. They are not root Maven modules and are not part of
-repository-root `mvn verify` by themselves.
+Standalone consumer examples are not root Maven modules and are not part of repository-root
+`mvn verify` by themselves.
 
 - **`examples/maven-basic/`**
   - Demonstrates: `javaspec-maven-plugin` in a consuming Maven project
@@ -451,7 +428,7 @@ Aliases and defaults:
 execution, example execution, formatting, classpath selection, profile enforcement, and report
 writing belong to `run`. After discovery/profile enforcement/generation/update completes without
 declined prompts, `run` performs optional CLI compilation when requested, executes configured
-bootstrap hooks, and then invokes the MVP reflection runner for discovered examples whose compiled
+bootstrap hooks, and then invokes the reflection runner for discovered examples whose compiled
 hook/spec classes are available on the effective, selected explicit, or compile-output-first
 classloader. `describe` rejects command-line `--source-dir`/`--source-root` and all run-only
 controls (`--classpath`, `--classpath-file`, `--compile`, `--compile-output`, `--generate`,
@@ -626,7 +603,7 @@ A missing or unreadable config file exits with I/O error (`70`) and prints the c
   formatter lookup. A formatter value fails with a diagnostic if no provider with that name is
   discovered.
 - Package-prefix naming is implemented for describe/run discovery, generation, bootstrap context,
-  MVP reflection execution, JSON report contents, and JUnit XML-compatible report test case class
+  reflection execution, JSON report contents, and JUnit XML-compatible report test case class
   names; Phase 18 adds stable ids and source file/line metadata where available.
 - The runner lifecycle is intentionally small: optional current-JDK compilation where that entry
   point supports it, then explicit and discovered bootstrap hooks before examples, then a fresh spec
@@ -730,7 +707,7 @@ $javaspec run --config javaspec.conf --suite domain --example 0
 Class filters match described qualified names, described simple names, spec qualified names, or spec
 simple names exactly. Example filters match public `void` example methods named `it_*` or `its_*` by
 method name, display name (underscores replaced by spaces), or source-order index. Filters affect
-discovery/generation selection and MVP reflection execution because the runner uses the same
+discovery/generation selection and reflection execution because the runner uses the same
 `DiscoveredSpec`/`SpecExample` metadata.
 
 ## Run controls
@@ -1331,7 +1308,7 @@ on the JUnit Platform test runtime classpath to contain compiled spec classes, p
 and dependencies; it does not compile source/spec files itself, and Phase 29/34 compilation support
 does not change the engine.
 
-## Example execution MVP
+## Example execution
 
 `javaspec run` has two stages:
 
@@ -1464,6 +1441,8 @@ public class CalculatorSpec extends CalculatorSpecSupport {
 }
 ```
 
+The generated smoke example is intentionally small. In normal work, replace or extend it with behavior-focused PHPSpec-like examples using typed proxies, for example `add(2, 3).shouldReturn(5)`, or the explicit form `match(subject().add(2, 3)).shouldReturn(5)` until the proxy exists.
+
 Generated support class:
 
 ```java
@@ -1583,9 +1562,10 @@ interfaces change how the concepts are expressed.
   subject access.
 - **`beConstructedThrough(...)` / named constructors**: Static factory construction with
   string-literal Java method names for generation.
-- **`should*` / `shouldNot*` expectations**: `Matchable<T>` methods such as `shouldReturn`,
-  `shouldNotReturn`, `shouldContain`, `shouldHaveCount`, and direct `ObjectBehavior` convenience
-  assertions.
+- **`should*` / `shouldNot*` expectations**: prefer `Matchable<T>` methods through generated typed
+  proxies such as `getTitle().shouldReturn("Wizard")`, or through explicit wrappers such as
+  `match(subject().getTitle()).shouldReturn("Wizard")`. Direct `ObjectBehavior` convenience
+  assertions exist for ad-hoc checks but are not the main documentation style.
 - **PHPSpec generated method suggestions**: `javaspec run` owns production generation/update after
   confirmation, `--generate`, or `--dry-run` planning.
 - **Source/spec compilation**: CLI `javaspec run --compile`, programmatic `withCompilation(...)`,
@@ -1611,12 +1591,13 @@ Practical migration guidance:
 1. Start with `describe`, but expect the generated Java spec to import a production type that may
    not exist yet. The Java project may be temporarily red until `run --generate` or manual
    production code creation catches up.
-2. Keep examples as public `void it_*`/`its_*` methods. The MVP runner ignores unrelated methods and
+2. Keep examples as public `void it_*`/`its_*` methods. The reflection runner ignores unrelated methods and
    can execute only compiled spec classes on the effective classloader, explicit classpath, or CLI
    compile-output-first classloader.
 3. Prefer generated typed proxy methods for PHPSpec-like syntax, for example
-   `getRating().shouldReturn(5)`. Use `match(subject().getRating()).shouldReturn(5)` when an
-   explicit wrapper is clearer.
+   `getRating().shouldReturn(5)`. Use `match(subject().getRating()).shouldReturn(5)` when the
+   proxy has not been generated yet or when an explicit subject call is clearer. Avoid making direct
+   convenience assertions like `shouldReturn(actual, expected)` the default style in new docs/specs.
 4. Configure construction before touching the subject. The last construction rule before first
    subject access wins; changes after instantiation are errors.
 5. Use string-literal Java identifiers for factory construction markers when you want generation,
@@ -2057,8 +2038,9 @@ getBookClass().shouldImplement(Readable.class);
 
 ### Direct `ObjectBehavior` convenience assertions
 
-`ObjectBehavior` also exposes direct assertion methods for ad-hoc checks. These methods delegate
-through `match(actual)`, so they share behavior with typed proxy and explicit wrapper assertions:
+`ObjectBehavior` also exposes direct assertion methods for ad-hoc checks. They delegate through
+`match(actual)`, so behavior is the same, but they are secondary to the PHPSpec-like typed-proxy and
+explicit `match(subject()...)` styles:
 
 ```java
 shouldReturn(subject().getRating(), 5);
@@ -2073,8 +2055,9 @@ shouldNotStartWith(subject().getTitle(), "Draft");
 ```
 
 The direct convenience set covers equality/negation aliases, type/instance/implementation checks,
-containment, count/empty checks, map key/value checks, and string negations. Positive string helpers
-are available through typed proxy or explicit `match(actual)` usage.
+containment, count/empty checks, map key/value checks, and string negations. Prefer typed proxy or
+explicit `match(actual)` usage in examples unless the direct helper makes an ad-hoc assertion much
+clearer.
 
 ### Custom matchers
 
@@ -2104,7 +2087,7 @@ The doubles API under `io.github.jvmspec.doubles` provides zero-runtime-dependen
 Doubles are implemented with Java 8 JDK dynamic proxies, so the core runtime can double ordinary
 interfaces without bytecode libraries.
 
-Phase 28 strengthens the Phase 8 interface-double MVP with argument matchers, argument-constrained
+Phase 28 strengthens the interface-double API with argument matchers, argument-constrained
 stub precedence, throwing stubs, and answer callbacks. Core doubles remain interface-only and
 zero-runtime-dependency; Phase 37 adds optional non-final concrete-class doubles through a
 standalone bytecode adapter.
@@ -2808,50 +2791,25 @@ Current verification after Phase 22:
   `scripts/verify-examples.sh`, and `scripts/verify-all.sh`; Java 8 obsolete source/target warnings
   in Gradle were non-blocking.
 - No tester files were modified and no publish/deploy/signing commands were run.
-- Phase 20, Phase 21, and Phase 22 are now covered by user-/maintainer-confirmed remote GitHub
-  Actions success for HEAD `5088e96` on `develop` after push. Phase 19 remote GitHub Actions success
-  remains user-/maintainer-confirmed for HEAD `4d30e63` on `develop`; no GitHub run IDs, URLs,
-  durations, or logs were independently queried from this environment.
-- Phase 18 tests asserted stable ids/source metadata in discovery, runner results, JSON reports,
-  JUnit XML reports, CLI reports, Maven plugin reports, and Gradle plugin reports.
-- Phase 12 remains the current cross-JDK evidence: Distrobox `1.8.2.5` with Podman `5.8.2` ran Maven
-  `3.9.16` Temurin containers for Java 8, 11, 17, 21, and 25; every container executed `mvn clean`
-  and `mvn verify` and passed with 364 tests, 0 failures, 0 errors, and 0 skipped.
-- Matrix runtimes: Java `1.8.0_492`, `11.0.31`, `17.0.19`, `21.0.11 LTS`, and `25.0.3 LTS`.
-- The Java 25 runtime reflection probe and Java 25 runtime dependency audit passed.
-- Verification blockers: none for Phase 22 explicit skipped/pending verification. Publication
-  is published on Maven Central under `io.github.jvmspec`. The Gradle plugin is published on the
-  Gradle Plugin Portal with plugin id `io.github.jvmspec`.
+- Current release evidence should come from `./scripts/verify-all.sh`, targeted tests for changed
+  areas, and GitHub Actions for the commit being released. Historical phase confirmations remain in
+  `docs/test-report.md` but are not a substitute for current verification.
+- Stable ids/source metadata, JSON reports, JUnit XML-compatible reports, CLI reports, Maven plugin
+  reports, Gradle plugin reports, and the optional JUnit Platform adapter are covered by regression
+  tests.
+- Cross-JDK and adapter verification should be read from the latest CI/local verification output.
+- Artifacts are published on Maven Central under `io.github.jvmspec`. The Gradle plugin is published
+  on the Gradle Plugin Portal with plugin id `io.github.jvmspec`.
 
 See [`../test-report.md`](../test-report.md) for the consolidated test and quality report.
 
 ## Future backlog
 
-The original numbered roadmap is complete through Phase 18. Phase 19 adds post-roadmap release/CI
-hardening without Maven multi-module conversion, Phase 20 adds release-readiness scaffolding without
-public publishing, Phase 21 adds standalone adoption examples plus report schema/golden
-documentation, Phase 22 adds explicit skipped/pending semantics, Phase 23 adds classpath/execution
-availability diagnostics, Phase 24 adds configuration-level report destinations, Phase 25 adds
-ServiceLoader external formatter/extension discovery, Phase 26 adds target-profile enforcement,
-Phase 27 adds bootstrap hook execution, Phase 28 strengthens interface doubles, Phase 29 adds opt-in
-CLI source/spec compilation, Phases 30-36 resolve deferred known limitations, and Phase 37 adds
-optional bytecode concrete-class doubles outside the core runtime. Future feature work should be
-tracked as new roadmap/backlog items and should distinguish implemented Phase 18 stable
-identifier/source-location/report polish, Phase 19 aggregate verification/CI workflow setup, Phase
-20 release-readiness scaffolding, Phase 21 adoption assets, Phase 22 explicit skipped/pending
-semantics, Phase 23 diagnostics, Phase 24 report-destination configuration, Phase 25 ServiceLoader
-formatter/extension discovery, Phase 26 profile enforcement, Phase 27 bootstrap hook execution,
-Phase 28 stronger interface doubles, Phase 29 CLI compilation, Phases 30-36 known-limitations
-resolution and Phase 37 bytecode doubles — all implemented
+The active roadmap is tracked in `PLAN.md`. Recent completed work keeps the project PHPSpec-first while adding JUnit-level usefulness: optional build-tool/JUnit Platform adapters, explicit skip/pending semantics, richer doubles, opt-in compilation, report metadata, PHPSpec-style example data, row-aware reporting, record evolution, and parser/generator signature hardening.
 
-Potential backlog items include compiler-integrated compatibility checks, plugin lookup beyond
-ServiceLoader, script/package-scanning bootstrap activation, richer failure-location diagnostics,
-automatic classpath repair, richer dependency resolution beyond the local-POM resolver, actual
-publishing/signing automation after signing/portal/final-approval decisions, and any future
-multi-module conversion decision. No-JUnit CLI/programmatic/Maven/Gradle paths remain first-class;
-the JUnit Platform engine remains an optional adapter.
+Potential backlog items include deeper compiler-backed semantic attribution, diagnostics for ambiguous overload/null cases, plugin lookup beyond ServiceLoader, script/package-scanning bootstrap activation, richer failure-location diagnostics, automatic classpath repair, richer dependency resolution beyond the local-POM resolver, publishing/signing automation after signing/portal/final-approval decisions, and any future multi-module conversion decision. No-JUnit CLI/programmatic/Maven/Gradle paths remain first-class; the JUnit Platform engine remains an optional adapter.
 
-## Current MVP limitations
+## Current limitations
 
 - Default CLI runs, programmatic invocation, optional Maven/Gradle plugin adapters, and the optional
   JUnit Platform engine remain classpath-based unless compilation is explicitly enabled. Source-only
