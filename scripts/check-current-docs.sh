@@ -73,6 +73,7 @@ required_current_docs=(
   docs/cucumber-boundary.md
   docs/troubleshooting.md
   docs/compatibility-policy-1.0.md
+  docs/release-1.0-rc-evidence.md
 )
 for required_doc in "${required_current_docs[@]}"; do
   if [ -f "$required_doc" ]; then
@@ -106,6 +107,7 @@ current_paths=(
   docs/cucumber-boundary.md
   docs/troubleshooting.md
   docs/compatibility-policy-1.0.md
+  docs/release-1.0-rc-evidence.md
   docs/usermanual
   docs/arc42
   docs/bytecode-doubles.md

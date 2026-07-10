@@ -27,24 +27,27 @@ Evidence:
 
 | Gate | Last verified commit | Result | Notes |
 |---|---|---|---|
-| `git diff --check` | `a71297f1bb234b5faa70eca22abe3a5a3b3d6675` | PASS | Audit baseline |
-| `scripts/check-version-alignment.sh` | working 1.0 audit slice | PASS | `1.0.0-SNAPSHOT` aligned after normalization |
-| `scripts/check-current-docs.sh` | working 1.0 audit slice | PASS | Added in first 1.0 audit slice |
-| `mvn -q verify` | `a71297f1bb234b5faa70eca22abe3a5a3b3d6675` | PASS | Core only |
-| `scripts/verify-all.sh` | `a71297f1bb234b5faa70eca22abe3a5a3b3d6675` | PASS | Includes Gradle |
+| `git diff --check` | `7256969` | PASS | See `docs/release-1.0-rc-evidence.md` |
+| `scripts/check-version-alignment.sh` | `7256969` | PASS | `1.0.0-SNAPSHOT` aligned |
+| `scripts/check-current-docs.sh` | `7256969` | PASS | Contract docs present and current-doc guard green |
+| `scripts/check-api-surface.sh` | `7256969` | PASS | API/SPI classification guard green |
+| `mvn -q verify` | `7256969` | PASS | Core only, default Java 25 JVM |
+| `JAVA_HOME=/usr/lib/jvm/java-21-openjdk ... mvn -q verify` | `7256969` | PASS | Core on local Java 21 runtime |
+| `scripts/verify-all.sh` | `7256969` | PASS | Includes standalone adapters and examples |
+| `scripts/verify-release-dry-run.sh` | `7256969` | PASS | Packages all artifacts and runs consumer examples |
 
 ## Core gates
 
 - [ ] Java 8 runtime compatibility verified.
 - [ ] Java 11 verified.
 - [ ] Java 17 verified.
-- [ ] Java 21 verified.
-- [ ] Java 25 verified.
-- [ ] Root runtime dependency tree has no third-party runtime dependencies.
-- [ ] No direct linkage to post-Java-8 APIs in core.
-- [ ] CLI contract tests green.
-- [ ] JSON schema/golden fixtures green.
-- [ ] JUnit XML golden fixtures green.
+- [x] Java 21 verified locally (`JAVA_HOME=/usr/lib/jvm/java-21-openjdk ... mvn -q verify`).
+- [x] Java 25 verified locally (`mvn -q verify`, `scripts/verify-all.sh`, `scripts/verify-release-dry-run.sh`).
+- [x] Root runtime dependency tree has no third-party runtime dependencies.
+- [ ] No direct linkage to post-Java-8 APIs in core (classfile major 52 verified locally; full API linkage remains CI/JDK8 evidence task).
+- [x] CLI contract tests green.
+- [x] JSON schema/golden fixtures green.
+- [x] JUnit XML golden fixtures green.
 
 ## API/SPI gates
 
