@@ -77,7 +77,9 @@ moving dependency-heavy behavior into optional artifacts.
   `MethodProphecy.should(...)` supports custom prediction callbacks receiving a `PredictionContext`
   with matching calls, all calls, method name, argument pattern, and call count. Prediction and
   verification failure messages include recorded/matching call context, including ordered-verification
-  failures and same-method calls with different arguments.
+  failures and same-method calls with different arguments. The generated-wrapper token overload audit
+  now covers primitives, arrays, varargs, bounded generics, bridge/synthetic methods, duplicate
+  overloads, and mixed exact/token call compilation.
 - Phase 50 matcher parity includes Java-adapted approximate numeric expectations, iterator-backed
   collection/count/emptiness expectations, and generated object-state expectations such as
   `shouldBeActive()` and `shouldHaveTitle(...)` in generated `*SpecSupport` helpers.

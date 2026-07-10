@@ -2184,7 +2184,10 @@ mailer.send(any(String.class)).should(context -> {
 The callback receives a `PredictionContext` with matching calls, all calls, the method name, and the
 argument pattern. For domain-specific argument semantics, implement `ArgumentToken` and pass it via
 `Argument.token(...)` / `Argument.custom(...)`; generated typed wrappers accept these tokens through
-their argument-token overloads.
+their argument-token overloads. The 1.0 generated-wrapper edge-case contract is in
+`docs/prophecy-contract-1.0.md`: primitives match through boxed runtime values, arrays match as whole
+arguments, varargs are generated as array parameters, generics use erased signatures, and bridge or
+synthetic methods are skipped before token overload generation.
 
 ### Collaborator parameters in `let`, examples, and `letGo`
 

@@ -59,16 +59,22 @@ Callback contract:
 - Callback failures are assertion failures in prediction checking.
 - Failure diagnostics include recorded and matching call context where available.
 
-## Overloads, generics, primitives, varargs, and defaults
+## Overloads, generics, primitives, arrays, varargs, and defaults
 
 Java adaptation rules:
 
 - Generated wrappers preserve overloads where Java can call them unambiguously.
 - Same-name token overloads are added for matcher ergonomics, avoiding duplicate all-`Object` and zero-arg duplicates.
-- Primitive arguments use boxed token/default handling at the wrapper boundary.
-- Generic signatures are generated from erased Java reflection/source signatures where necessary.
+- Same-name/same-arity production overloads receive one shared token overload; callers use typed exact overloads for literals and the `Object` token overload for argument tokens.
+- Primitive exact arguments remain primitive in generated exact overloads; argument-token overloads accept token objects and runtime matching observes boxed primitive proxy values.
+- Array exact arguments remain array-typed in generated exact overloads; token overloads match the whole array argument. Exact array matching uses the doubles equality semantics for arrays.
+- Java varargs are generated at the wrapper boundary as their reflected array parameter, for example `String...` becomes `String[]`. Token overloads match the whole varargs array, not each spread element.
+- Generic signatures are generated from erased Java reflection/source signatures where necessary; bounded type variables use their erasure (for example `T extends Number` becomes `Number`).
+- Bridge and synthetic methods are excluded before wrapper and token overload generation so compiler-generated generic bridges cannot collide with token overloads.
 - Static/private/Object methods are not prophecy interaction methods.
 - Default interface methods can be called by the underlying proxy when not explicitly stubbed/predicted.
+
+Regression coverage freezes primitives, arrays, varargs, bounded generics, same-arity overload deduplication, all-`Object` signatures, mixed exact/token call compilation, and bridge/synthetic exclusion in `ProphecySkeletonGeneratorTest`.
 
 ## Diagnostics
 

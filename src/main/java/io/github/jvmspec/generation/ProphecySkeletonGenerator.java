@@ -122,6 +122,9 @@ public final class ProphecySkeletonGenerator {
         if (Modifier.isPrivate(modifiers)) {
             return true;
         }
+        if (method.isBridge() || method.isSynthetic()) {
+            return true;
+        }
         // Skip methods from Object (toString, equals, hashCode, etc.)
         // Also skip methods declared in superclasses that are not Object
         Class<?> declaringClass = method.getDeclaringClass();

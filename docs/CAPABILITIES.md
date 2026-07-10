@@ -88,7 +88,7 @@ Areas needing classification before API freeze:
 | P0-REL-002 | P0 | Release workflow may not publish/verify every real artifact. | DONE: `scripts/verify-release-dry-run.sh`, `RELEASING.md`, and bytecode-agent release metadata/artifacts verify the declared artifact set and consumer examples. |
 | P0-DOC-001 | P0 | Documentation can contradict current capabilities/version. | DONE: `scripts/check-current-docs.sh` and `scripts/check-version-alignment.sh` gate current docs/version/package consistency. |
 | P1-ROW-001 | P1 | Example-data row selector semantics are subtle and could be misrepresented. | DONE: `docs/example-data-contract-1.0.md` documents inline execution vs descriptor/event filtering, with JUnit Platform regression coverage. |
-| P1-PROP-001 | P1 | Generated Prophecy token overloads need edge-case audit. | Add regression matrix and document limits. |
+| P1-PROP-001 | P1 | Generated Prophecy token overloads need edge-case audit. | DONE: `ProphecySkeletonGeneratorTest` covers primitive, array, varargs, bounded generic, bridge/synthetic, duplicate, and mixed exact/token call cases; `docs/prophecy-contract-1.0.md` documents limits. |
 | P1-MATCH-001 | P1 | Inline/configured custom matcher scope is not finalized. | Implement or explicitly defer/narrow scope before RC without contradicting the PHPSpec-first promise. |
 | P1-EXT-001 | P1 | Event/extension v2 scope could affect API freeze. | DONE: `docs/extension-spi-1.0.md` freezes existing SPI semantics and defers typed event model v2. |
 | P2-PERF-001 | P2 | No large-suite performance baseline yet. | Add reproducible benchmark before final 1.0 if feasible; otherwise document post-1.0 plan. |
