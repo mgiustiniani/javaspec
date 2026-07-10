@@ -52,6 +52,8 @@ Remaining RC/final cut-time evidence:
 
 - Java 8, Java 11, and Java 17 matrix evidence where those runtimes are available in CI/release
   infrastructure.
-- No-SNAPSHOT dependency check after replacing `1.0.0-SNAPSHOT` with `1.0.0-RC1` / `1.0.0`.
+- `scripts/check-release-preflight.sh` on the actual version-cut commit. A disposable-copy simulation
+  with all aligned build files set to `1.0.0-RC1` and `JAVASPEC_RELEASE_TAG=v1.0.0-RC1` passed; the
+  current snapshot branch correctly fails the same gate.
 - Tag/version/workflow alignment at tag time.
 - Publication-generated signatures and Central/Gradle Plugin Portal staging evidence.

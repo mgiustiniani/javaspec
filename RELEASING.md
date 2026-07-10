@@ -21,6 +21,7 @@ on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. The active relea
 4. Run local verification from the repository root:
    - `scripts/verify-all.sh`
    - `scripts/verify-release-dry-run.sh`
+   - At RC/final tag time, `JAVASPEC_RELEASE_TAG=v<version> scripts/check-release-preflight.sh`.
    - `mvn verify` includes Animal Sniffer Java 8 API linkage verification for core.
    - The release dry-run packages core, Maven plugin, JUnit Platform engine, bytecode doubles, bytecode agent, and Gradle plugin artifacts; verifies source/javadoc jars; verifies the bytecode-agent manifest; generates/verifies SHA-256 checksums; and runs standalone consumer examples.
 5. Confirm GitHub Actions is green for the release commit.
@@ -41,8 +42,10 @@ on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. The active relea
 8. For Gradle Plugin Portal publication:
    - Confirm plugin id, display metadata, tags, website, and VCS URL.
    - Reconfirm MIT license and maintainer metadata are acceptable for the publication target.
-   - Configure Gradle Plugin Portal publishing configuration and credentials.
-9. Tag and create the release only after local verification and CI are green.
+   - Configure Gradle Plugin Portal publishing credentials (`GRADLE_PUBLISH_KEY` and `GRADLE_PUBLISH_SECRET`).
+9. Tag and create the release only after local verification and CI are green. The release workflow runs
+   the release preflight, release dry-run, Maven Central publication for all Maven artifacts, and
+   Gradle Plugin Portal publication.
 10. After the release:
     - Bump all aligned versions to the next snapshot.
     - Run `scripts/check-version-alignment.sh`.

@@ -12,25 +12,48 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
-          java-version: '11'
+          java-version: '21'
           distribution: 'temurin'
+          cache: maven
           server-id: central
           server-username: SONATYPE_TOKEN_USER
           server-password: SONATYPE_TOKEN_PASS
           settings-path: ${{ github.workspace }}/.github/maven-settings.xml
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.8'
+
+      - name: Release preflight
+        env:
+          JAVASPEC_GRADLE_BIN: gradle
+        run: |
+          scripts/check-version-alignment.sh
+          scripts/check-current-docs.sh
+          scripts/check-api-surface.sh
+          scripts/check-release-preflight.sh
+          scripts/verify-release-dry-run.sh
 
       - name: Import GPG key
         run: |
           echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 -d | gpg --batch --import
-          echo "allow-loopback-pinentry" >> ~/.gpg-agent.conf
-          gpg-agent restart
+          echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
+          gpgconf --kill gpg-agent
 
-      - name: Publish to Maven Central
+      - name: Publish Maven artifacts to Maven Central
         run: |
-          mvn -q deploy -pl . -P release -DperformRelease=true
-          mvn -q deploy -f javaspec-maven-plugin/pom.xml -P release -DperformRelease=true
-          mvn -q deploy -f javaspec-junit-platform-engine/pom.xml -P release -DperformRelease=true
-          mvn -q deploy -f javaspec-bytecode-doubles/pom.xml -P release -DperformRelease=true
+          mvn -q deploy -pl . -P release,release-artifacts -DperformRelease=true
+          mvn -q deploy -f javaspec-maven-plugin/pom.xml -P release,release-artifacts -DperformRelease=true
+          mvn -q deploy -f javaspec-junit-platform-engine/pom.xml -P release,release-artifacts -DperformRelease=true
+          mvn -q deploy -f javaspec-bytecode-doubles/pom.xml -P release,release-artifacts -DperformRelease=true
+          mvn -q deploy -f javaspec-bytecode-agent/pom.xml -P release,release-artifacts -DperformRelease=true
         env:
           SONATYPE_TOKEN_USER: ${{ secrets.SONATYPE_TOKEN_USER }}
           SONATYPE_TOKEN_PASS: ${{ secrets.SONATYPE_TOKEN_PASS }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Publish Gradle plugin to Gradle Plugin Portal
+        working-directory: javaspec-gradle-plugin
+        run: gradle publishPlugins
+        env:
+          GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
+          GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}

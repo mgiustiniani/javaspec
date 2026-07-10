@@ -36,6 +36,7 @@ Evidence:
 | `scripts/verify-all.sh` | `7256969` | PASS | Includes standalone adapters and examples |
 | `scripts/verify-release-dry-run.sh` | `7256969` | PASS | Packages all artifacts, verifies checksums, and runs consumer examples |
 | `scripts/check-core-java8-bytecode.sh` | local RC hardening slice | PASS | Core classfiles max major 52 |
+| `scripts/check-release-preflight.sh` | release/tag-time gate | PENDING | Expected to pass only after `1.0.0-RC1` / `1.0.0` version cut and matching tag |
 
 ## Core gates
 
@@ -103,7 +104,7 @@ Evidence:
 ## Release engineering gates
 
 - [x] Version alignment green.
-- [ ] No `SNAPSHOT` dependencies in release build (final-release-only check; current line is `1.0.0-SNAPSHOT`).
+- [ ] No `SNAPSHOT` dependencies in release build (guarded by `scripts/check-release-preflight.sh`; expected to pass after RC/final version cut).
 - [x] Source JARs present.
 - [x] Javadoc JARs present.
 - [x] POM metadata complete: SCM, license, developers, issues.
@@ -112,9 +113,9 @@ Evidence:
 - [x] Bytecode agent manifest has required `Premain-Class` and `Agent-Class`.
 - [x] Checksums generated/verified locally by release dry-run; publication workflow checksums still recorded at RC/final publication time.
 - [x] Signing configured/documented.
-- [x] Release workflow publishes or stages every declared artifact or fails clearly.
+- [x] Release workflow publishes or stages every declared artifact or fails clearly (Maven Central artifacts include core, Maven plugin, JUnit Platform engine, bytecode doubles, and bytecode agent; Gradle Plugin Portal publication uses `publishPlugins`).
 - [x] Release dry-run script green.
-- [ ] Tag/version/workflow alignment verified at RC/final tag time.
+- [ ] Tag/version/workflow alignment verified at RC/final tag time (`scripts/check-release-preflight.sh` requires tag `v<version>`).
 - [x] Post-release checklist documented.
 
 ## Documentation gates
