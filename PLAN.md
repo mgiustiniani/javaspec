@@ -220,7 +220,7 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
 - Macro-area: B — Safe behavior-driven generation
 - Priority: P0
 - Disposition: REQUIRED_BEFORE_RC
-- Status: TODO
+- Status: COMPLETED
 - Motivation: generation mutates user sources and is the riskiest 1.0 surface.
 - Dependencies: M0, M3.
 - Acceptance criteria:
@@ -230,9 +230,14 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
   - Record updates use record components as semantic source for existing records and do not choose canonical constructors by largest arity.
   - Type identity does not collapse unknown, real Object, raw, parameterized, wildcard, type variable, array, varargs, primitive, boxed, and fully qualified types incorrectly.
   - Adversarial parser/source fixtures are added for comments, strings, nested types, records, sealed types, CRLF, Unicode, no-final-newline, and modern Java syntax.
+- Evidence:
+  - `docs/generation-contract-1.0.md` records structured generation outcomes, dry-run/mutation rules, pending stub semantics, and atomic-write policy.
+  - `AtomicFileWriter` routes generated/source writes through same-directory temporary files and atomic move where supported.
+  - `MainPhase29CompileCliTest.runCompileWithPendingGeneratedStubCannotAccidentallyGreen` prevents generated default accidental GREEN.
 - Verification:
   - Generation test matrix
   - `run --generate --compile` CLI regressions
+  - `AtomicFileWriterTest`
   - `scripts/verify-all.sh`
 - Completion commit: pending.
 

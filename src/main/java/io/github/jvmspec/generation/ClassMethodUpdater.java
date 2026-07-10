@@ -97,7 +97,7 @@ public final class ClassMethodUpdater {
         String existingSource = new String(Files.readAllBytes(classFile.toPath()), StandardCharsets.UTF_8);
         String updatedSource = updateSource(existingSource, describedType);
         if (!existingSource.equals(updatedSource)) {
-            Files.write(classFile.toPath(), updatedSource.getBytes(StandardCharsets.UTF_8));
+            AtomicFileWriter.writeUtf8(classFile, updatedSource);
         }
         return updatedSource;
     }

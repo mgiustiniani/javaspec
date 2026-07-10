@@ -2,12 +2,8 @@ package io.github.jvmspec.generation;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.Objects;
 
 /**
@@ -30,13 +26,7 @@ public final class SpecFileGenerator {
             Files.createDirectories(parent.toPath());
         }
 
-        Path targetPath = targetFile.toPath();
-        OutputStream output = Files.newOutputStream(targetPath, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
-        try {
-            output.write(plan.sourceContent().getBytes(StandardCharsets.UTF_8));
-        } finally {
-            output.close();
-        }
+        AtomicFileWriter.writeUtf8(targetFile, plan.sourceContent());
 
         return targetFile;
     }

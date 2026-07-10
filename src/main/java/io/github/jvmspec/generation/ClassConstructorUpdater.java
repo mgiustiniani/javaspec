@@ -85,7 +85,7 @@ public final class ClassConstructorUpdater {
         String existingSource = new String(Files.readAllBytes(classFile.toPath()), StandardCharsets.UTF_8);
         String updatedSource = updateSource(existingSource, describedType, policy);
         if (!existingSource.equals(updatedSource)) {
-            Files.write(classFile.toPath(), updatedSource.getBytes(StandardCharsets.UTF_8));
+            AtomicFileWriter.writeUtf8(classFile, updatedSource);
         }
         return updatedSource;
     }
@@ -111,7 +111,7 @@ public final class ClassConstructorUpdater {
         if (existingSource.equals(updatedSource)) {
             return false;
         }
-        Files.write(classFile.toPath(), updatedSource.getBytes(StandardCharsets.UTF_8));
+        AtomicFileWriter.writeUtf8(classFile, updatedSource);
         return true;
     }
 

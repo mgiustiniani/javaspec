@@ -74,14 +74,14 @@ Evidence:
 
 ## Generation gates
 
-- [ ] Every mutating path has structured plan/result semantics.
-- [ ] Dry-run parity for every mutating path included in 1.0.
-- [ ] Atomic writes audited/implemented where possible.
-- [ ] No silent refusal path.
-- [ ] Record updates use semantic record components for existing records.
-- [ ] Constructor and type identity edge cases covered.
-- [ ] Adversarial parser fixtures covered.
-- [ ] `run --generate --compile` regressions green for records, sealed types, interfaces, annotations, collaborators.
+- [x] Every mutating path has structured plan/result semantics documented in `docs/generation-contract-1.0.md`.
+- [x] Dry-run parity for every mutating path included in 1.0.
+- [x] Atomic writes audited/implemented where possible.
+- [x] No silent refusal path.
+- [x] Record updates use semantic record components for existing records.
+- [x] Constructor and type identity edge cases covered.
+- [x] Adversarial parser fixtures covered.
+- [x] `run --generate --compile` regressions green for records, sealed types, interfaces, annotations, collaborators.
 
 ## Adapter gates
 

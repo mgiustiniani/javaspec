@@ -5,11 +5,8 @@ import io.github.jvmspec.model.MethodDescriptor;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -49,13 +46,7 @@ public final class SpecSupportFileGenerator {
 
         String renderedContent = plan.sourceContent();
         if (!targetFile.exists()) {
-            Path targetPath = targetFile.toPath();
-            OutputStream output = Files.newOutputStream(targetPath, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
-            try {
-                output.write(renderedContent.getBytes(StandardCharsets.UTF_8));
-            } finally {
-                output.close();
-            }
+            AtomicFileWriter.writeUtf8(targetFile, renderedContent);
             return new SupportWriteResult(targetFile, true);
         }
 
@@ -63,7 +54,7 @@ public final class SpecSupportFileGenerator {
         if (existingSource.equals(renderedContent)) {
             return new SupportWriteResult(targetFile, false);
         }
-        Files.write(targetFile.toPath(), renderedContent.getBytes(StandardCharsets.UTF_8));
+        AtomicFileWriter.writeUtf8(targetFile, renderedContent);
         return new SupportWriteResult(targetFile, true);
     }
 

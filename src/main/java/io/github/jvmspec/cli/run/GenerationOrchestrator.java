@@ -5,6 +5,7 @@ import io.github.jvmspec.discovery.ProductionSignatureReader;
 import io.github.jvmspec.discovery.SpecNamingConvention;
 import io.github.jvmspec.discovery.TypeCheckResult;
 import io.github.jvmspec.discovery.TypeExistenceChecker;
+import io.github.jvmspec.generation.AtomicFileWriter;
 import io.github.jvmspec.generation.ClassConstructorUpdater;
 import io.github.jvmspec.generation.ClassMethodUpdater;
 import io.github.jvmspec.generation.ConstructorPolicy;
@@ -214,7 +215,7 @@ public final class GenerationOrchestrator {
                                         missingWithoutGeneration = true;
                                         continue;
                                     }
-                                    Files.write(sourceFile.toPath(), methodUpdatedSource.getBytes(StandardCharsets.UTF_8));
+                                    AtomicFileWriter.writeUtf8(sourceFile, methodUpdatedSource);
                                     out.println("Updated methods in " + sourceFile.getPath());
                                 }
                                 updatedSource = methodUpdatedSource;
@@ -228,7 +229,7 @@ public final class GenerationOrchestrator {
                                     out.println("Would update constructors in " + sourceFile.getPath()
                                             + " (policy: " + policyOptionName(constructorPolicy) + ")");
                                 } else {
-                                    Files.write(sourceFile.toPath(), constructorUpdatedSource.getBytes(StandardCharsets.UTF_8));
+                                    AtomicFileWriter.writeUtf8(sourceFile, constructorUpdatedSource);
                                     out.println("Updated constructors in " + sourceFile.getPath()
                                             + " (policy: " + policyOptionName(constructorPolicy) + ")");
                                 }
@@ -285,7 +286,7 @@ public final class GenerationOrchestrator {
                                     missingWithoutGeneration = true;
                                     continue;
                                 }
-                                Files.write(sourceFile.toPath(), updatedSource.getBytes(StandardCharsets.UTF_8));
+                                AtomicFileWriter.writeUtf8(sourceFile, updatedSource);
                                 out.println("Updated methods in " + sourceFile.getPath());
                             }
                         }
@@ -826,9 +827,7 @@ public final class GenerationOrchestrator {
                     if (dryRun) {
                         out.println("Would add prophecy helpers to support: " + supportFile.getPath());
                     } else {
-                        java.nio.file.Files.write(
-                                supportFile.toPath(),
-                                updated.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                        AtomicFileWriter.writeUtf8(supportFile, updated);
                         out.println("Updated prophecy helpers in support: " + supportFile.getPath());
                     }
                 }

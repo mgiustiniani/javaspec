@@ -2,8 +2,6 @@ package io.github.jvmspec.generation;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 
 /**
  * Writes generated Prophecy wrapper source files.
@@ -26,7 +24,7 @@ public final class ProphecyFileGenerator {
         if (parentDir != null && !parentDir.exists()) {
             parentDir.mkdirs();
         }
-        Files.write(targetFile.toPath(), plan.sourceCode().getBytes(StandardCharsets.UTF_8));
+        AtomicFileWriter.writeUtf8(targetFile, plan.sourceCode());
         return targetFile;
     }
 }
