@@ -103,7 +103,7 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
 - Macro-area: C — Stable diagnostics, APIs and reports
 - Priority: P0
 - Disposition: REQUIRED_BEFORE_RC
-- Status: TODO
+- Status: COMPLETED
 - Motivation: 1.0 requires an explicit contract for public API, public SPI, internal implementation, and pre-1.0 deprecated surfaces.
 - Dependencies: M0, M1.
 - Acceptance criteria:
@@ -111,8 +111,12 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
   - SemVer, deprecation, support-window, and breaking-change policies are documented.
   - API compatibility tooling is added as a build/test tool only and does not create a core runtime dependency.
   - A 1.0 API baseline generation procedure is documented for API freeze.
+- Evidence:
+  - `docs/api-surface-1.0.md` classifies shipped packages and external contracts as `PUBLIC_API`, `PUBLIC_SPI`, `ADAPTER_API`, `GENERATED_API`, or `INTERNAL`.
+  - `scripts/check-api-surface.sh` fails when a shipped Java package is not classified.
+  - `scripts/verify-all.sh` runs the API surface classification check.
 - Verification:
-  - API tooling check command, once introduced
+  - `scripts/check-api-surface.sh`
   - `mvn -q verify`
   - `scripts/verify-all.sh`
 - Completion commit: pending.

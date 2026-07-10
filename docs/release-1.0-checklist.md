@@ -5,7 +5,7 @@ This checklist is the release gate source for 1.0. It must be updated with comma
 ## Phase progression
 
 - [x] Development line normalized to `1.0.0-SNAPSHOT`.
-- [ ] API/SPI freeze complete.
+- [x] API/SPI classification complete; binary baseline archive remains RC task.
 - [ ] `1.0.0-RC1` prepared from a clean commit.
 - [ ] RC consumer verification complete.
 - [ ] Final `1.0.0` prepared from verified RC or documented RC fix commit.
@@ -48,15 +48,15 @@ Evidence:
 
 ## API/SPI gates
 
-- [ ] Public API classified.
-- [ ] Public SPI classified.
-- [ ] Internal implementation packages documented.
-- [ ] Pre-1.0 deprecations documented or removed.
-- [ ] SemVer policy documented.
-- [ ] Deprecation policy documented.
-- [ ] Support window documented.
-- [ ] API compatibility tool added as test/build tooling.
-- [ ] 1.0 API baseline generation procedure documented.
+- [x] Public API classified.
+- [x] Public SPI classified.
+- [x] Internal implementation packages documented.
+- [x] Pre-1.0 deprecations documented or removed/not identified.
+- [x] SemVer policy documented.
+- [x] Deprecation policy documented.
+- [x] Support window documented.
+- [x] API compatibility tool added as test/build tooling.
+- [x] 1.0 API baseline generation procedure documented.
 
 ## Semantic gates
 

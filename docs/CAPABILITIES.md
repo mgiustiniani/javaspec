@@ -84,7 +84,7 @@ Areas needing classification before API freeze:
 | ID | Priority | Risk | Required action |
 |---|---|---|---|
 | P0-REL-001 | P0 | Version line and release-note naming needed normalization for 1.0 preparation. | DONE in first 1.0 audit slice: normalized to `1.0.0-SNAPSHOT`, created `docs/release-notes-1.0.0.md`, and added automated current-doc check. |
-| P0-API-001 | P0 | Public API/SPI not classified; accidental implementation classes may become 1.0 contract. | Classify packages/classes and add compatibility tooling. |
+| P0-API-001 | P0 | Public API/SPI classification was missing. | DONE: `docs/api-surface-1.0.md` classifies packages/contracts and `scripts/check-api-surface.sh` gates unclassified packages. |
 | P0-GEN-001 | P0 | Generation mutates user sources without a uniform structured plan/result model and atomic-write guarantee audit. | Introduce/freeze generation result semantics and fail-closed behavior. |
 | P0-REL-002 | P0 | Release workflow may not publish/verify every real artifact. | Add release dry-run/staging verification and update workflows/docs. |
 | P0-DOC-001 | P0 | Documentation can contradict current capabilities/version. | Add automated current-doc/version/package checks. |
