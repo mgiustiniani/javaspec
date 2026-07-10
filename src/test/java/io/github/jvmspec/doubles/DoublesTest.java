@@ -180,6 +180,59 @@ public class DoublesTest {
     }
 
     @Test
+    public void prophecyParityArgumentMatchersSupportIdentityMembershipAndCallbacks() {
+        MatcherService service = Doubles.create(MatcherService.class);
+        DoubleControl control = Doubles.control(service);
+
+        String sameToken = new String("token");
+        String[] candidate = new String[] {"a", "b"};
+        control.when("typedReference", Doubles.same(sameToken)).thenReturn("same");
+        control.when("typedAlias", Doubles.in("allowed", candidate)).thenReturn("in");
+        candidate[0] = "changed";
+        control.when("typedPrimitiveToken", Doubles.notIn("blocked", null)).thenReturn("not-in");
+        control.when("onlyNotNull", Doubles.matching(new java.util.function.Predicate<Object>() {
+            @Override
+            public boolean test(Object actual) {
+                return actual instanceof String && ((String) actual).startsWith("phpspec");
+            }
+        }, "startsWith(phpspec)")).thenReturn("callback");
+
+        assertEquals("same", service.typedReference(sameToken));
+        assertNull(service.typedReference(new String("token")));
+        assertEquals("in", service.typedAlias("allowed"));
+        assertEquals("in", service.typedAlias(new String[] {"a", "b"}));
+        assertNull(service.typedAlias(new String[] {"changed", "b"}));
+        assertEquals("not-in", service.typedPrimitiveToken("anything"));
+        assertNull(service.typedPrimitiveToken("blocked"));
+        assertNull(service.typedPrimitiveToken(null));
+        assertEquals("callback", service.onlyNotNull("phpspec-style"));
+        assertNull(service.onlyNotNull("junit-style"));
+
+        control.verifyCalled("typedReference", Doubles.identicalTo(sameToken));
+        control.verifyCalled("typedAlias", Doubles.in((Object) new String[] {"a", "b"}));
+        control.verifyCalled("typedPrimitiveToken", Doubles.notIn("blocked", null));
+        control.verifyCalled("onlyNotNull", Doubles.matching(new java.util.function.Predicate<Object>() {
+            @Override
+            public boolean test(Object actual) {
+                return "phpspec-style".equals(actual);
+            }
+        }, "custom callback"));
+
+        assertAssertionMessage(new ThrowingCall() {
+            @Override
+            public void run() {
+                control.verifyCalled("missing", Doubles.same(sameToken), Doubles.in("a", "b"),
+                        Doubles.matching(new java.util.function.Predicate<Object>() {
+                            @Override
+                            public boolean test(Object actual) {
+                                return false;
+                            }
+                        }, "callback-token"));
+            }
+        }, "same(token)", "in(a, b)", "callback-token");
+    }
+
+    @Test
     public void argumentConstrainedStubsTakePriorityAndNewestMatchingConstrainedStubWins() {
         MatcherService service = Doubles.create(MatcherService.class);
         DoubleControl control = Doubles.control(service);

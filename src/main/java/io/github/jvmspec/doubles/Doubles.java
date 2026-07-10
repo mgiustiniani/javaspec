@@ -2,6 +2,7 @@ package io.github.jvmspec.doubles;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
+import java.util.function.Predicate;
 
 /**
  * Factory and lookup methods for zero-dependency interface doubles.
@@ -173,6 +174,48 @@ public final class Doubles {
      */
     public static ArgumentMatcher equalTo(Object expected) {
         return ArgumentMatchers.equalTo(expected);
+    }
+
+    /**
+     * Matches the exact same object reference using {@code ==} semantics.
+     */
+    public static ArgumentMatcher same(Object expected) {
+        return ArgumentMatchers.same(expected);
+    }
+
+    /**
+     * Alias for {@link #same(Object)}.
+     */
+    public static ArgumentMatcher identicalTo(Object expected) {
+        return ArgumentMatchers.identicalTo(expected);
+    }
+
+    /**
+     * Matches when the actual value equals one of the supplied candidates.
+     */
+    public static ArgumentMatcher in(Object... candidates) {
+        return ArgumentMatchers.in(candidates);
+    }
+
+    /**
+     * Matches when the actual value does not equal any supplied candidate.
+     */
+    public static ArgumentMatcher notIn(Object... candidates) {
+        return ArgumentMatchers.notIn(candidates);
+    }
+
+    /**
+     * Matches through a custom predicate.
+     */
+    public static ArgumentMatcher matching(Predicate<Object> predicate) {
+        return ArgumentMatchers.matching(predicate);
+    }
+
+    /**
+     * Matches through a custom predicate with a diagnostic description.
+     */
+    public static ArgumentMatcher matching(Predicate<Object> predicate, String description) {
+        return ArgumentMatchers.matching(predicate, description);
     }
 
     /**

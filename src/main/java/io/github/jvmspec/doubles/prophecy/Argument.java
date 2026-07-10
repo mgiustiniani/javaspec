@@ -3,6 +3,8 @@ package io.github.jvmspec.doubles.prophecy;
 import io.github.jvmspec.doubles.ArgumentMatcher;
 import io.github.jvmspec.doubles.ArgumentMatchers;
 
+import java.util.function.Predicate;
+
 /**
  * Fluent argument-matching DSL inspired by Prophecy's {@code Argument} utility.
  * <p>
@@ -81,6 +83,48 @@ public final class Argument {
      */
     public static ArgumentMatcher containingString(String expectedSubstring) {
         return new ContainsStringMatcher(expectedSubstring);
+    }
+
+    /**
+     * Matches the exact same object reference using {@code ==} semantics.
+     */
+    public static ArgumentMatcher same(Object expected) {
+        return ArgumentMatchers.same(expected);
+    }
+
+    /**
+     * Alias for {@link #same(Object)}.
+     */
+    public static ArgumentMatcher identicalTo(Object expected) {
+        return ArgumentMatchers.identicalTo(expected);
+    }
+
+    /**
+     * Matches when the actual value equals one of the supplied candidates.
+     */
+    public static ArgumentMatcher in(Object... candidates) {
+        return ArgumentMatchers.in(candidates);
+    }
+
+    /**
+     * Matches when the actual value does not equal any supplied candidates.
+     */
+    public static ArgumentMatcher notIn(Object... candidates) {
+        return ArgumentMatchers.notIn(candidates);
+    }
+
+    /**
+     * Matches through a custom predicate.
+     */
+    public static ArgumentMatcher matching(Predicate<Object> predicate) {
+        return ArgumentMatchers.matching(predicate);
+    }
+
+    /**
+     * Matches through a custom predicate with a diagnostic description.
+     */
+    public static ArgumentMatcher matching(Predicate<Object> predicate, String description) {
+        return ArgumentMatchers.matching(predicate, description);
     }
 
     private static final class ContainsStringMatcher implements ArgumentMatcher {

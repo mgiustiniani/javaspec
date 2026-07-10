@@ -647,7 +647,7 @@ The core prophecy types live in `io.github.jvmspec.doubles.prophecy`:
 | `Promise<R>` | A promised return value or side-effect (`willReturn`, `willThrow`, `will`) |
 | `Prediction` | A verification that a method was called, not called, or called N times |
 | `PredictionRegistry` | Collects predictions and checks them all at once |
-| `Argument` / `Arg` | Static matcher DSL (`any()`, `eq()`, `containingString()`, `isNull()`, `notNull()`) |
+| `Argument` / `Arg` | Static matcher DSL (`any()`, `eq()`, `same()`, `in()`, `notIn()`, `matching()`, `containingString()`, `isNull()`, `notNull()`) |
 
 Use `ObjectBehavior.prophesize(Class<T>)` when the typed wrapper/helper has not been generated yet:
 
@@ -701,6 +701,9 @@ import static io.github.jvmspec.doubles.prophecy.Argument.*;
 | `isNull()` | Matches only null |
 | `notNull()` | Matches any non-null argument |
 | `containingString(String)` | Matches strings containing a substring |
+| `same(Object)` / `identicalTo(Object)` | Matches the same object reference |
+| `in(Object...)` / `notIn(Object...)` | Matches membership using array-aware equality |
+| `matching(Predicate<Object>, String)` | Matches with a custom callback and diagnostic description |
 
 ### Auto-check predictions
 

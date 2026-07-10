@@ -303,7 +303,8 @@ parameterized example methods so source metadata reaches the runner.
 
 Deliverables:
 - Complete argument-token coverage: exact/identity, type, callback, any, cetera, containing string,
-  in/not-in, and custom token interfaces.
+  in/not-in, and custom token interfaces. **In progress:** `same` / `identicalTo`, `in` / `notIn`,
+  and `matching(Predicate, description)` are now available through core doubles and prophecy aliases.
 - Add custom prediction callbacks equivalent to Prophecy `should(callback)`.
 - Harden automatic prediction checking after examples and before `letGo` result finalization.
 - Improve failure messages for unmet predictions, unexpected calls, ordered calls, and argument-token

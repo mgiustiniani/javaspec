@@ -2206,17 +2206,22 @@ APIs. Use the factories on `ArgumentMatchers` or the same convenience aliases on
 - **`isNull()`**: Only `null`.
 - **`notNull()`**: Any non-null argument.
 - **`eq(expected)` / `equalTo(expected)`**: javaspec array-aware equality with the expected value.
+- **`same(expected)` / `identicalTo(expected)`**: exact object identity with `==` semantics.
+- **`in(...)` / `notIn(...)`**: membership against one or more candidates using array-aware equality.
+- **`matching(predicate, description)`**: custom callback token with an actionable diagnostic description.
 
 ```java
 import static io.github.jvmspec.doubles.Doubles.any;
 import static io.github.jvmspec.doubles.Doubles.anyArgument;
 import static io.github.jvmspec.doubles.Doubles.eq;
 import static io.github.jvmspec.doubles.Doubles.notNull;
+import static io.github.jvmspec.doubles.Doubles.matching;
 
 notifierDouble.when("send", eq("alerts"), any(String[].class)).thenReturn(Boolean.TRUE);
 notifierDouble.verifyCalled("send", eq("alerts"), any(String[].class));
 
 notifierDouble.verify("send", notNull(), anyArgument()).calledOnce();
+notifierDouble.verifyCalled("send", matching(value -> value instanceof String, "string topic"), anyArgument());
 ```
 
 Ordinary values in the same APIs remain exact expected values. Exact matching still supports `null`
