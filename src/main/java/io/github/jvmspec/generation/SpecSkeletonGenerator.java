@@ -1,6 +1,7 @@
 package io.github.jvmspec.generation;
 
 import io.github.jvmspec.discovery.SpecNamingConvention;
+import io.github.jvmspec.model.ConstructorDescriptor;
 import io.github.jvmspec.model.DescribedClass;
 import io.github.jvmspec.model.DescribedType;
 import io.github.jvmspec.model.JavaTypeKind;
@@ -153,6 +154,7 @@ public final class SpecSkeletonGenerator {
                 .append(describedType.simpleName()).append("> {\n");
         builder.append("    public ").append(namingConvention.supportSimpleName(describedType.describedClass())).append("() {\n");
         builder.append("        super(").append(describedType.simpleName()).append(".class);\n");
+        appendDefaultRecordConstruction(builder, describedType);
         builder.append("    }\n");
         if (hasInstanceSubjectMethods(describedType)) {
             builder.append("\n");
@@ -162,6 +164,55 @@ public final class SpecSkeletonGenerator {
         }
         builder.append("}\n");
         return builder.toString();
+    }
+
+    private static void appendDefaultRecordConstruction(StringBuilder builder, DescribedType describedType) {
+        if (!JavaTypeKind.RECORD.equals(describedType.kind()) || !describedType.hasConstructors()) {
+            return;
+        }
+        ConstructorDescriptor constructor = canonicalConstructor(describedType.constructors());
+        if (!constructor.hasParameters()) {
+            return;
+        }
+        builder.append("        beConstructedWith(");
+        List<String> parameterTypes = constructor.parameterTypes();
+        for (int i = 0; i < parameterTypes.size(); i++) {
+            if (i > 0) {
+                builder.append(", ");
+            }
+            builder.append(defaultValueFor(parameterTypes.get(i)));
+        }
+        builder.append(");\n");
+    }
+
+    private static ConstructorDescriptor canonicalConstructor(List<ConstructorDescriptor> constructors) {
+        ConstructorDescriptor selected = constructors.get(0);
+        for (int i = 1; i < constructors.size(); i++) {
+            ConstructorDescriptor candidate = constructors.get(i);
+            if (candidate.parameterTypes().size() > selected.parameterTypes().size()) {
+                selected = candidate;
+            }
+        }
+        return selected;
+    }
+
+    private static String defaultValueFor(String typeName) {
+        String normalized = typeName.trim();
+        if ("boolean".equals(normalized)) return "false";
+        if ("byte".equals(normalized)) return "(byte) 0";
+        if ("short".equals(normalized)) return "(short) 0";
+        if ("int".equals(normalized)) return "0";
+        if ("long".equals(normalized)) return "0L";
+        if ("float".equals(normalized)) return "0.0f";
+        if ("double".equals(normalized)) return "0.0d";
+        if ("char".equals(normalized)) return "'\\0'";
+        if (normalized.startsWith("java.lang.")) {
+            normalized = normalized.substring("java.lang.".length());
+        }
+        if (normalized.endsWith("...")) {
+            normalized = normalized.substring(0, normalized.length() - 3) + "[]";
+        }
+        return "(" + normalized + ") null";
     }
 
     private static void appendImports(StringBuilder builder, DescribedType describedType) {

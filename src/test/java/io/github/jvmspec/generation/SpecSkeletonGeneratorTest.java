@@ -1,5 +1,6 @@
 package io.github.jvmspec.generation;
 
+import io.github.jvmspec.model.ConstructorDescriptor;
 import io.github.jvmspec.model.DescribedClass;
 import io.github.jvmspec.model.DescribedType;
 import io.github.jvmspec.model.JavaTypeKind;
@@ -56,6 +57,49 @@ public class SpecSkeletonGeneratorTest {
                 "        super(Calculator.class);\n" +
                 "    }\n" +
                 "}\n", source);
+    }
+
+    @Test
+    public void rendersRecordSupportWithDefaultConstructionForCanonicalConstructor() {
+        DescribedType describedType = DescribedType.of(
+                "com.example.CertificateProfileId",
+                JavaTypeKind.RECORD,
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Arrays.asList(
+                        ConstructorDescriptor.empty(),
+                        ConstructorDescriptor.of(
+                                Arrays.asList("String", "int", "long", "double", "boolean", "char"),
+                                Arrays.asList("value", "version", "counter", "weight", "active", "marker"),
+                                "")),
+                Collections.<MethodDescriptor>emptyList()
+        );
+
+        String source = SpecSkeletonGenerator.renderSupport(describedType);
+
+        assertTrue(source.contains("super(CertificateProfileId.class);\n" +
+                "        beConstructedWith((String) null, 0, 0L, 0.0d, false, '\\0');"));
+    }
+
+    @Test
+    public void rendersRecordSupportWithPrecisePrimitiveDefaults() {
+        DescribedType describedType = DescribedType.of(
+                "com.example.PrimitiveRecord",
+                JavaTypeKind.RECORD,
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Arrays.asList(ConstructorDescriptor.of(
+                        Arrays.asList("byte", "short", "float", "java.lang.String", "java.time.Instant"),
+                        Arrays.asList("byteValue", "shortValue", "floatValue", "name", "createdAt"),
+                        "")),
+                Collections.<MethodDescriptor>emptyList()
+        );
+
+        String source = SpecSkeletonGenerator.renderSupport(describedType);
+
+        assertTrue(source.contains("beConstructedWith((byte) 0, (short) 0, 0.0f, (String) null, (java.time.Instant) null);"));
     }
 
     @Test

@@ -150,7 +150,7 @@ public final class GenerationOrchestrator {
                 return GenerationOrchestratorResult.ioError(EXIT_IO_ERROR);
             }
 
-            if ((generate || dryRun) && (describedType.hasMethods() || describedType.hasEnumConstants())) {
+            if ((generate || dryRun) && needsSupportUpdate(describedType)) {
                 SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(describedType, specRoot, generatedSourcesRoot, namingConvention);
                 try {
                     if (dryRun) {
@@ -197,6 +197,51 @@ public final class GenerationOrchestrator {
                     }
                 }
                 String dryRunSource = null;
+                if (JavaTypeKind.RECORD.equals(describedType.kind()) && checkResult.sourceFilePresent()) {
+                    File sourceFile = checkResult.sourceFile();
+                    try {
+                        String existingSource = new String(Files.readAllBytes(sourceFile.toPath()), StandardCharsets.UTF_8);
+                        String updatedSource = existingSource;
+                        if (describedType.hasMethods()) {
+                            String methodUpdatedSource = ClassMethodUpdater.updateSource(updatedSource, describedType);
+                            if (!updatedSource.equals(methodUpdatedSource)) {
+                                if (dryRun) {
+                                    dryRunPendingChanges = true;
+                                    out.println("Would update methods in " + sourceFile.getPath());
+                                } else {
+                                    boolean accepted = generate || askToUpdateMethods(input, out, sourceFile, describedType);
+                                    if (!accepted) {
+                                        missingWithoutGeneration = true;
+                                        continue;
+                                    }
+                                    Files.write(sourceFile.toPath(), methodUpdatedSource.getBytes(StandardCharsets.UTF_8));
+                                    out.println("Updated methods in " + sourceFile.getPath());
+                                }
+                                updatedSource = methodUpdatedSource;
+                            }
+                        }
+                        if (describedType.hasConstructors()) {
+                            String constructorUpdatedSource = ClassConstructorUpdater.updateSource(updatedSource, describedType, constructorPolicy);
+                            if (!updatedSource.equals(constructorUpdatedSource)) {
+                                if (dryRun) {
+                                    dryRunPendingChanges = true;
+                                    out.println("Would update constructors in " + sourceFile.getPath()
+                                            + " (policy: " + policyOptionName(constructorPolicy) + ")");
+                                } else {
+                                    Files.write(sourceFile.toPath(), constructorUpdatedSource.getBytes(StandardCharsets.UTF_8));
+                                    out.println("Updated constructors in " + sourceFile.getPath()
+                                            + " (policy: " + policyOptionName(constructorPolicy) + ")");
+                                }
+                                updatedSource = constructorUpdatedSource;
+                            }
+                        }
+                    } catch (IOException ex) {
+                        err.println("I/O error while updating record source: " + messageOf(ex));
+                        err.println("Target path: " + sourceFile.getPath());
+                        return GenerationOrchestratorResult.ioError(EXIT_IO_ERROR);
+                    }
+                    continue;
+                }
                 if (describedType.hasConstructors() && checkResult.sourceFilePresent()) {
                     File sourceFile = checkResult.sourceFile();
                     try {
@@ -332,6 +377,12 @@ public final class GenerationOrchestrator {
      * Ensures that related types (extended, implemented, permitted) have
      * corresponding spec files.
      */
+    private static boolean needsSupportUpdate(DescribedType describedType) {
+        return describedType.hasMethods()
+                || describedType.hasEnumConstants()
+                || (JavaTypeKind.RECORD.equals(describedType.kind()) && describedType.hasConstructors());
+    }
+
     private static RelatedSpecCheckResult ensureRelatedSpecs(
             DescribedType owner,
             List<DiscoveredSpec> specs,

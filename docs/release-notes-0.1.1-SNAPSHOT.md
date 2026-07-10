@@ -28,7 +28,9 @@ moving dependency-heavy behavior into optional artifacts.
   at runtime.
 - Generation robustness hardening adds `docs/test-matrix-generation.md`, treats record component
   accessors as existing methods during record updates, evolves record headers from
-  constructor-driven specs such as `beConstructedWith(...)` plus `value()`, preserves compact
+  constructor-driven specs such as `beConstructedWith(...)` plus `value()`, refines existing source
+  kind before updates so records are not evolved as classes, emits generated support default
+  `beConstructedWith(...)` calls for evolved records with canonical constructors, preserves compact
   constructors while adding record methods/components, checks multiline sealed-class `permits`
   updates with Java 17 compilation, verifies `run --generate --compile --release 17` for generated
   record/sealed skeletons, and expands parser coverage for generic method type parameters and

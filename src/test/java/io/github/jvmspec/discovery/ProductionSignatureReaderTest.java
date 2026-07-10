@@ -17,6 +17,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assume.assumeTrue;
 
 /**
  * When the production class already exists, its real signatures are the truth: discovery
@@ -112,6 +113,42 @@ public class ProductionSignatureReaderTest {
                 refined.constructors().get(0).parameterTypes());
         assertEquals(Arrays.asList("algorithm", "label"),
                 refined.constructors().get(0).parameterNames());
+    }
+
+    @Test
+    public void refinesKindFromExistingRecordSource() throws Exception {
+        assumeTrue(supportsJavaSpecificationVersion(17));
+        File sourceRoot = writeProductionSource("com/example/Key.java",
+                "package com.example;\n\n" +
+                "public record Key(String value) {\n" +
+                "}\n");
+        DescribedType described = describedKey(
+                Arrays.asList(ConstructorDescriptor.of(
+                        Arrays.asList("String"), Arrays.asList("value"), "")),
+                Collections.<MethodDescriptor>emptyList());
+
+        DescribedType refined = ProductionSignatureReader.refine(described, sourceRoot);
+
+        assertEquals(JavaTypeKind.RECORD, refined.kind());
+    }
+
+    private static boolean supportsJavaSpecificationVersion(int minimumVersion) {
+        String version = System.getProperty("java.specification.version");
+        if (version == null) {
+            return false;
+        }
+        if (version.startsWith("1.")) {
+            version = version.substring(2);
+        }
+        int dot = version.indexOf('.');
+        if (dot >= 0) {
+            version = version.substring(0, dot);
+        }
+        try {
+            return Integer.parseInt(version) >= minimumVersion;
+        } catch (NumberFormatException ex) {
+            return false;
+        }
     }
 
     @Test

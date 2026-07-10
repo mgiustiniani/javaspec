@@ -280,6 +280,10 @@ public final class DescribedType {
         return of(describedClass, kind, extendedTypeNames, implementedTypeNames, permittedTypeNames, constructors, methods, enumConstants);
     }
 
+    public DescribedType withKind(JavaTypeKind kind) {
+        return of(describedClass, kind, extendedTypeNames, implementedTypeNames, permittedTypeNames, constructors, methods, enumConstants);
+    }
+
     public DescribedType withEnumConstants(List<EnumConstantInfo> enumConstants) {
         return of(describedClass, kind, extendedTypeNames, implementedTypeNames, permittedTypeNames, constructors, methods, enumConstants);
     }

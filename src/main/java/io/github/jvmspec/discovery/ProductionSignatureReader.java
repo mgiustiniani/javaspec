@@ -8,6 +8,7 @@ import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import io.github.jvmspec.model.ConstructorDescriptor;
 import io.github.jvmspec.model.DescribedType;
+import io.github.jvmspec.model.JavaTypeKind;
 import io.github.jvmspec.model.MethodDescriptor;
 
 import javax.lang.model.element.Modifier;
@@ -82,7 +83,27 @@ public final class ProductionSignatureReader {
         for (int i = 0; i < describedType.constructors().size(); i++) {
             refinedConstructors.add(refineConstructor(describedType.constructors().get(i), productionConstructors));
         }
-        return describedType.withConstructors(refinedConstructors).withMethods(refinedMethods);
+        return describedType
+                .withKind(sourceKindOf(classTree, describedType.kind()))
+                .withConstructors(refinedConstructors)
+                .withMethods(refinedMethods);
+    }
+
+    private static JavaTypeKind sourceKindOf(ClassTree classTree, JavaTypeKind fallback) {
+        String kindName = classTree.getKind().name();
+        if ("RECORD".equals(kindName)) {
+            return JavaTypeKind.RECORD;
+        }
+        if (Tree.Kind.ENUM.name().equals(kindName)) {
+            return JavaTypeKind.ENUM;
+        }
+        if (Tree.Kind.INTERFACE.name().equals(kindName)) {
+            return JavaTypeKind.INTERFACE;
+        }
+        if (Tree.Kind.ANNOTATION_TYPE.name().equals(kindName)) {
+            return JavaTypeKind.ANNOTATION;
+        }
+        return fallback;
     }
 
     private static MethodDescriptor refineMethod(MethodDescriptor descriptor, List<ProductionMethod> productionMethods) {
