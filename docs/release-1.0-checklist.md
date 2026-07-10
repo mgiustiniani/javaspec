@@ -85,32 +85,32 @@ Evidence:
 
 ## Adapter gates
 
-- [ ] Maven plugin verification green.
-- [ ] Gradle plugin verification green.
-- [ ] JUnit Platform engine verification green.
-- [ ] Bytecode doubles verification green.
-- [ ] Bytecode agent verification green.
-- [ ] External Maven consumer smoke green from staged artifacts.
-- [ ] External Gradle consumer smoke green from staged artifacts.
-- [ ] External JUnit Platform consumer smoke green from staged artifacts.
-- [ ] Bytecode adapter consumer smokes green from staged artifacts.
+- [x] Maven plugin verification green.
+- [x] Gradle plugin verification green.
+- [x] JUnit Platform engine verification green.
+- [x] Bytecode doubles verification green.
+- [x] Bytecode agent verification green.
+- [x] External Maven consumer smoke green from staged artifacts/local release dry-run.
+- [x] External Gradle consumer smoke green from staged artifacts/local release dry-run.
+- [x] External JUnit Platform consumer smoke green from staged artifacts/local release dry-run.
+- [x] Bytecode adapter consumer smokes green from staged artifacts/local release dry-run.
 
 ## Release engineering gates
 
-- [ ] Version alignment green.
-- [ ] No `SNAPSHOT` dependencies in release build.
-- [ ] Source JARs present.
-- [ ] Javadoc JARs present.
-- [ ] POM metadata complete: SCM, license, developers, issues.
-- [ ] Maven plugin descriptor valid.
-- [ ] Gradle plugin marker publication path documented/tested.
-- [ ] Bytecode agent manifest has required `Premain-Class` and `Agent-Class`.
-- [ ] Checksums generated/verified.
-- [ ] Signing configured/documented.
-- [ ] Release workflow publishes or stages every declared artifact or fails clearly.
-- [ ] Release dry-run script green.
-- [ ] Tag/version/workflow alignment verified.
-- [ ] Post-release checklist documented.
+- [x] Version alignment green.
+- [ ] No `SNAPSHOT` dependencies in release build (final-release-only check; current line is `1.0.0-SNAPSHOT`).
+- [x] Source JARs present.
+- [x] Javadoc JARs present.
+- [x] POM metadata complete: SCM, license, developers, issues.
+- [x] Maven plugin descriptor valid.
+- [x] Gradle plugin marker publication path documented/tested.
+- [x] Bytecode agent manifest has required `Premain-Class` and `Agent-Class`.
+- [ ] Checksums generated/verified by publication workflow.
+- [x] Signing configured/documented.
+- [x] Release workflow publishes or stages every declared artifact or fails clearly.
+- [x] Release dry-run script green.
+- [ ] Tag/version/workflow alignment verified at RC/final tag time.
+- [x] Post-release checklist documented.
 
 ## Documentation gates
 

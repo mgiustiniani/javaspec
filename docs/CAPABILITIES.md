@@ -42,16 +42,15 @@ This document records capabilities verified while preparing the 1.0 roadmap. It 
 
 ## Partially verified or contract-pending capabilities
 
-- Public API/SPI classification is not frozen for 1.0.
-- JSON schema is versioned (`schemaVersion: 1`) but 1.0 evolution policy and compatibility contract need freeze.
-- JUnit Platform row selectors currently filter descriptors/events while row execution remains inline in the owning example; this is intentional but must be documented as the 1.0 contract or changed before RC.
-- `ExampleDataRowRecorder` is public under `api`; its 1.0 public/internal status and ThreadLocal/sequential execution limits require a decision.
-- Generated typed Prophecy `Object` token overloads require an explicit edge-case audit for overload ambiguity, primitive/boxing, arrays, varargs, generics, bridge/synthetic methods, and mixed token/exact calls.
-- Approximate numeric, iterator, and generated object-state matchers are implemented; inline/configured matcher scope still requires a 1.0 decision.
-- Event/extension model v2 is not implemented; existing extension/formatter/parser/resolver/bootstrap surfaces require classification.
-- Generation result semantics are not yet a uniform structured plan/result model across every mutating path.
-- Atomic file-write guarantees and adversarial parser fixture coverage need audit/hardening.
-- Release workflow coverage for all modules/artifacts is incomplete until audited.
+- API/SPI classification is frozen in `docs/api-surface-1.0.md`; `scripts/check-api-surface.sh` guards unclassified shipped Java packages.
+- JSON schema is versioned (`schemaVersion: 1`) and documented in `docs/result-contract-1.0.md`.
+- JUnit Platform row selectors filter descriptors/events while row execution remains inline in the owning example; this is documented as the 1.0 contract.
+- Example data APIs, Prophecy/collaborator APIs, generation semantics, and report contracts have 1.0 contract documents.
+- Generated typed Prophecy wrappers remain the canonical collaborator API; reflective `method("...")` is a bootstrap/fallback path.
+- Approximate numeric, iterator, and generated object-state matchers are implemented as Java-adapted PHPSpec semantics.
+- Event/extension model v2 is deferred; existing extension/formatter/parser/resolver/bootstrap surfaces are classified for 1.0.
+- Mutating generation paths use atomic source-file writes, and pending generated stubs produce a synthetic `BROKEN` result to prevent accidental GREEN.
+- Release dry-run coverage verifies all declared modules/artifacts and external consumer examples.
 
 ## Public contracts already visible
 
@@ -76,8 +75,8 @@ Areas needing classification before API freeze:
 - Current areas still contain some historical pre-migration package references; historical documents may keep them only with migration context.
 - README and manual need a 1.0 pass after version strategy is applied.
 - Release notes now use `docs/release-notes-1.0.0.md`; content still needs final RC evidence.
-- Release engineering docs need all real artifacts and Gradle Plugin Portal marker details.
-- Generation safety guide, API/SPI classification, compatibility policy, and migration guide are not yet 1.0-ready.
+- Release engineering docs now cover the real artifact set and Gradle Plugin Portal marker path; final RC/final tag evidence is still recorded at release time.
+- Migration/troubleshooting polish remains a documentation task, but P0 API/SPI, result, Prophecy, generation, and release contracts are present.
 
 ## Risk register
 
@@ -86,8 +85,8 @@ Areas needing classification before API freeze:
 | P0-REL-001 | P0 | Version line and release-note naming needed normalization for 1.0 preparation. | DONE in first 1.0 audit slice: normalized to `1.0.0-SNAPSHOT`, created `docs/release-notes-1.0.0.md`, and added automated current-doc check. |
 | P0-API-001 | P0 | Public API/SPI classification was missing. | DONE: `docs/api-surface-1.0.md` classifies packages/contracts and `scripts/check-api-surface.sh` gates unclassified packages. |
 | P0-GEN-001 | P0 | Generation needed frozen structured outcomes and atomic-write audit. | DONE: `docs/generation-contract-1.0.md`, `AtomicFileWriter`, and pending-stub synthetic BROKEN result. |
-| P0-REL-002 | P0 | Release workflow may not publish/verify every real artifact. | Add release dry-run/staging verification and update workflows/docs. |
-| P0-DOC-001 | P0 | Documentation can contradict current capabilities/version. | Add automated current-doc/version/package checks. |
+| P0-REL-002 | P0 | Release workflow may not publish/verify every real artifact. | DONE: `scripts/verify-release-dry-run.sh`, `RELEASING.md`, and bytecode-agent release metadata/artifacts verify the declared artifact set and consumer examples. |
+| P0-DOC-001 | P0 | Documentation can contradict current capabilities/version. | DONE: `scripts/check-current-docs.sh` and `scripts/check-version-alignment.sh` gate current docs/version/package consistency. |
 | P1-ROW-001 | P1 | Example-data row selector semantics are subtle and could be misrepresented. | Document and test inline row execution vs descriptor/event filtering. |
 | P1-PROP-001 | P1 | Generated Prophecy token overloads need edge-case audit. | Add regression matrix and document limits. |
 | P1-MATCH-001 | P1 | Inline/configured custom matcher scope is not finalized. | Implement or explicitly defer/narrow scope before RC without contradicting the PHPSpec-first promise. |
@@ -96,11 +95,4 @@ Areas needing classification before API freeze:
 
 ## Decisions required before API freeze
 
-1. Which modules are stable 1.0 artifacts and which are preview/optional.
-2. Whether to keep example-data row execution inline for 1.0.
-3. Public vs internal status of example-data recorder and generation/model classes.
-4. Scope of Phase 50 matchers in 1.0.
-5. Scope of event model v2 in 1.0.
-6. API compatibility tool and baseline location.
-7. JSON schema evolution policy.
-8. Release dry-run artifact set and publication workflow responsibilities.
+The P0 decisions for API/SPI classification, example-data row execution, PHPSpec matcher scope, event model v2 deferral, JSON schema evolution, generation safety, and release dry-run artifact responsibilities are recorded in the 1.0 contract documents. Remaining decisions are P1/P2 polish unless release-candidate evidence exposes a contradiction.

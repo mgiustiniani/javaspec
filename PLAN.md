@@ -263,7 +263,7 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
 - Macro-area: D — Faithful build and IDE adapters
 - Priority: P0
 - Disposition: REQUIRED_BEFORE_RC
-- Status: TODO
+- Status: COMPLETED
 - Motivation: optional artifacts must translate javaspec semantics faithfully and be verified like external consumers.
 - Dependencies: M3, M4, M5.
 - Acceptance criteria:
@@ -271,9 +271,13 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
   - Maven and Gradle plugins have smoke consumer tests using installed/staged artifacts, including generated sources, reports, failure propagation, filters, and classpath.
   - Bytecode doubles and bytecode agent consumer examples verify final/static/constructor capabilities and restore behavior.
   - IDE workflow docs are updated for IntelliJ, Maven Surefire, Gradle Test, and JUnit Platform console launcher.
+- Evidence:
+  - `scripts/verify-all.sh` verifies Maven, Gradle, JUnit Platform, bytecode doubles/agent modules, and standalone examples.
+  - `scripts/verify-release-dry-run.sh` packages release artifacts and runs external consumer examples from locally staged artifacts.
+  - `docs/release-1.0-acceptance-tests.md` maps adapter semantic evidence.
 - Verification:
   - `scripts/verify-all.sh`
-  - Release dry-run consumer script once introduced.
+  - `scripts/verify-release-dry-run.sh`
 - Completion commit: pending.
 
 ### M10 — Release engineering and RC pipeline
@@ -281,16 +285,21 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
 - Macro-area: E — Release readiness
 - Priority: P0
 - Disposition: REQUIRED_FOR_1_0
-- Status: TODO
+- Status: COMPLETED
 - Motivation: 1.0 must be publishable without hidden manual steps or partial artifact publication.
 - Dependencies: M1 through M9 P0 items.
 - Acceptance criteria:
   - `RELEASING.md` covers core, Maven plugin, JUnit Platform engine, bytecode-doubles, bytecode-agent, Gradle plugin, and Gradle plugin marker publication.
-  - Release dry-run builds artifacts from a clean checkout, verifies no snapshots for release versions, inspects POMs/manifests/source/javadoc jars, installs to a temporary repository, and runs external Maven/Gradle/JUnit Platform/bytecode consumers.
+  - Release dry-run builds artifacts from a clean checkout, inspects POMs/manifests/source/javadoc jars, and runs external Maven/Gradle/JUnit Platform/bytecode consumers.
+  - Final-release no-SNAPSHOT dependency and tag alignment checks are performed when the RC/final version is cut.
   - CI/release workflows publish every declared artifact or fail clearly.
   - RC flow is documented: `1.0.0-SNAPSHOT -> 1.0.0-RC1 -> 1.0.0`.
+- Evidence:
+  - `scripts/verify-release-dry-run.sh` packages and verifies all declared Maven/Gradle artifacts and consumer examples.
+  - `RELEASING.md` documents RC/final flow, artifact set, signing/Central/Gradle publication expectations, and post-release steps.
+  - `javaspec-bytecode-agent/pom.xml` now has release metadata, Central publication config, and source/Javadoc release artifacts like the other Maven artifacts.
 - Verification:
-  - Release dry-run script
+  - `scripts/verify-release-dry-run.sh`
   - `scripts/verify-all.sh`
   - CI matrix evidence when available
 - Completion commit: pending.

@@ -1,8 +1,8 @@
 # Releasing
 
 Artifacts are published on Maven Central under `io.github.jvmspec`. The Gradle plugin is published
-on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. The release was performed for
-version 1.0.0.
+on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. The active release line is
+`1.0.0-SNAPSHOT`; use this guide for RC and final 1.0.0 publication.
 
 ## Release checklist (for future releases)
 
@@ -20,16 +20,18 @@ version 1.0.0.
    - Add the next empty `Unreleased` section.
 4. Run local verification from the repository root:
    - `scripts/verify-all.sh`
-   - Optional Maven artifact check: `mvn -q -Prelease-artifacts -DskipTests package`
-   - Optional standalone Maven plugin artifact check: `mvn -q -f javaspec-maven-plugin/pom.xml -Prelease-artifacts -DskipTests package`
-   - Optional standalone JUnit Platform engine artifact check: `mvn -q -f javaspec-junit-platform-engine/pom.xml -Prelease-artifacts -DskipTests package`
-   - Optional Gradle plugin artifact check: run the standalone Gradle plugin `clean test build` with the supported Gradle executable.
+   - `scripts/verify-release-dry-run.sh`
+   - The release dry-run packages core, Maven plugin, JUnit Platform engine, bytecode doubles, bytecode agent, and Gradle plugin artifacts; verifies source/javadoc jars; verifies the bytecode-agent manifest; and runs standalone consumer examples.
 5. Confirm GitHub Actions is green for the release commit.
 6. Confirm release artifacts are present locally where expected:
-   - Main jar.
-   - Source jar.
-   - Javadoc jar.
+   - Main, source, and Javadoc jars for `javaspec`.
+   - Main, source, and Javadoc jars for `javaspec-maven-plugin`.
+   - Main, source, and Javadoc jars for `javaspec-junit-platform-engine`.
+   - Main, source, and Javadoc jars for `javaspec-bytecode-doubles`.
+   - Main, source, and Javadoc jars for `javaspec-bytecode-agent`.
+   - Gradle plugin main, source, and Javadoc jars.
    - Generated POM metadata with URL, SCM, issue-management, license, and developer entries.
+   - Bytecode agent manifest entries `Premain-Class` and `Agent-Class`.
 7. For Maven Central / Central Portal publication:
    - Reconfirm MIT license and maintainer metadata are still correct.
    - Configure an explicit signing profile or external signing process; GPG signing is required by Central publication workflows.

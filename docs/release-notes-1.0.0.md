@@ -73,6 +73,13 @@ moving dependency-heavy behavior into optional artifacts.
   with matching calls, all calls, method name, argument pattern, and call count. Prediction and
   verification failure messages include recorded/matching call context, including ordered-verification
   failures and same-method calls with different arguments.
+- Phase 50 matcher parity includes Java-adapted approximate numeric expectations, iterator-backed
+  collection/count/emptiness expectations, and generated object-state expectations such as
+  `shouldBeActive()` and `shouldHaveTitle(...)` in generated `*SpecSupport` helpers.
+- Generated stubs are fail-closed: compiled runs that still contain `// javaspec:stub` markers add a
+  synthetic `BROKEN` result so generated skeletons cannot accidentally produce final GREEN.
+- Mutating generation paths use atomic source-file writes and the generation contract is frozen in
+  `docs/generation-contract-1.0.md`.
 
 ## Optional subclass adapter `javaspec-bytecode-doubles`
 
@@ -99,3 +106,6 @@ moving dependency-heavy behavior into optional artifacts.
 - `scripts/verify-all.sh` remains the full aggregate check. This repository intentionally does not
   vendor a Gradle Wrapper in this development line; set `JAVASPEC_GRADLE_BIN` to a local Gradle
   executable or `JAVASPEC_SKIP_GRADLE=1` when verifying without Gradle.
+- `scripts/verify-release-dry-run.sh` packages and verifies core, Maven plugin, JUnit Platform
+  engine, bytecode doubles, bytecode agent, and Gradle plugin artifacts, including source/Javadoc
+  jars, bytecode-agent manifest entries, and external consumer examples.

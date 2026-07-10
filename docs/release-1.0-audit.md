@@ -46,22 +46,21 @@ See [`docs/CAPABILITIES.md`](CAPABILITIES.md) for the capability matrix. The imp
 - Generation/update support for classes, interfaces, records, sealed types, annotations, constructors, methods, support classes, and Prophecy wrappers.
 - Record hardening including existing record evolution and explicit prefix construction compatibility.
 
-## Capabilities partial or not frozen for 1.0
+## Capabilities frozen or explicitly bounded for 1.0
 
-- API/SPI/public/internal classification.
-- Uniform generation plan/result semantics and atomic write audit.
-- Release workflow coverage for every actual artifact and Gradle plugin marker.
-- JUnit Platform selector/source/row contract audit.
-- External consumer verification from staged artifacts.
-- Phase 50 matcher parity scope.
-- Event/extension model v2 scope.
-- JSON schema evolution and compatibility policy.
-- Example-data row execution semantics as a documented 1.0 contract.
-- Prophecy generated wrapper token overload edge-case audit.
+- API/SPI/public/internal classification is recorded in `docs/api-surface-1.0.md` and checked by `scripts/check-api-surface.sh`.
+- Generation contract, pending generated-stub semantics, and atomic write guarantees are recorded in `docs/generation-contract-1.0.md`.
+- Release dry-run coverage verifies every declared Maven/Gradle artifact and the external consumer examples through `scripts/verify-release-dry-run.sh`.
+- JUnit Platform selector/source/row contract and adapter status mappings are recorded in `docs/result-contract-1.0.md` and `docs/release-1.0-acceptance-tests.md`.
+- Phase 50 matcher scope is frozen for 1.0 as approximate numeric, iterator, and generated object-state Java-adapted semantics.
+- Event/extension model v2 is deferred; existing extension surfaces are classified for 1.0.
+- JSON schema evolution and compatibility policy are recorded in `docs/result-contract-1.0.md`.
+- Example-data row execution semantics are frozen as inline execution with row descriptor/event/report projection.
+- Prophecy generated wrappers, typed token overloads, and custom predictions are frozen in `docs/prophecy-contract-1.0.md`.
 
 ## Public contracts observed
 
-Public-facing contracts exist in these areas and must be classified before API freeze:
+Public-facing contracts are classified for 1.0 in `docs/api-surface-1.0.md`:
 
 - Core authoring API: `io.github.jvmspec.api`.
 - Doubles and Prophecy API: `io.github.jvmspec.doubles`, `io.github.jvmspec.doubles.prophecy`.
@@ -81,27 +80,27 @@ Public-facing contracts exist in these areas and must be classified before API f
 - Historical docs retain previous `0.1.0` release references; current docs are now guarded by an automated check.
 - Some non-archived docs still mention historical pre-migration package names.
 - Release notes file is now named `docs/release-notes-1.0.0.md`; it still requires final RC evidence.
-- `RELEASING.md` is incomplete for the current artifact set and Gradle Plugin Portal concerns.
-- API/SPI classification, generation safety guide, release dry-run evidence, and migration guide are missing or incomplete.
+- `RELEASING.md` covers the current artifact set, Gradle Plugin Portal path, RC flow, signing, and post-release steps.
+- API/SPI classification, generation safety guide, result contract, Prophecy contract, and release dry-run evidence are present; migration/troubleshooting polish remains documentation work.
 
 ## Release gaps
 
 - Version line has been normalized to `1.0.0-SNAPSHOT` after the initial audit.
-- No release dry-run script verifies all artifacts as external consumers from a temporary repository.
-- Release workflow must be audited for all actual modules.
-- Gradle plugin marker publication path is not documented as a reproducible gate.
-- API compatibility baseline/tooling has not been introduced.
-- No formal 1.0 RC process has been encoded in docs/scripts.
+- `scripts/verify-release-dry-run.sh` verifies all declared artifacts and consumer examples.
+- Release workflow responsibilities are documented for the actual Maven modules and Gradle plugin marker.
+- Gradle plugin marker publication path is documented as a release gate in `RELEASING.md`.
+- API classification tooling is introduced via `scripts/check-api-surface.sh`.
+- Formal 1.0 RC process is encoded in `RELEASING.md`; no-SNAPSHOT dependency and tag alignment checks happen when RC/final versions are cut.
 
 ## Risk classification
 
 ### P0
 
-- P0-REL-001: version/release-note inconsistency blocks a credible 1.0 line.
-- P0-DOC-001: active docs can contradict real capabilities and package names.
-- P0-API-001: API/SPI not classified before 1.0 freeze.
-- P0-GEN-001: generation lacks a uniform fail-closed structured plan/result contract across every mutating path.
-- P0-REL-002: release workflow/dry-run does not yet prove all artifacts publish and work as external consumers.
+- P0-REL-001: DONE — version/release-note line normalized for 1.0.
+- P0-DOC-001: DONE — current docs/version/package checks are automated.
+- P0-API-001: DONE — API/SPI classification is documented and checked.
+- P0-GEN-001: DONE — generation safety, atomic writes, and pending-stub fail-closed behavior are documented/tested.
+- P0-REL-002: DONE — release dry-run verifies all artifacts and consumer examples.
 
 ### P1
 
@@ -133,15 +132,8 @@ Public-facing contracts exist in these areas and must be classified before API f
 
 ## Decisions required before API freeze
 
-1. Stable vs preview status for each optional artifact.
-2. Public/internal status of generation/model classes and example-data recorder.
-3. Row selector semantics: inline descriptor/event filtering vs isolated row execution.
-4. Phase 50 matcher scope for 1.0.
-5. Event model v2 inclusion vs deferral.
-6. API compatibility tooling and baseline storage.
-7. JSON schema evolution strategy.
-8. Release dry-run artifact matrix and external consumer coverage.
+The P0 API-freeze decisions have been made and recorded in the contract documents: optional artifact status, generation/model/internal classification, example-data row execution, Phase 50 matcher scope, event model v2 deferral, API classification tooling, JSON schema evolution, and release dry-run artifact coverage.
 
-## Next P0 selected
+## P0 status
 
-P0-REL-001 and P0-DOC-001 were selected first because they block every subsequent 1.0 evidence trail. This slice created a single active roadmap, archived the historical plan, normalized the development version line, and added an automated current-doc check. Next P0: API/SPI classification and compatibility baseline.
+The P0 release-readiness slices are complete for RC preparation. Remaining release-candidate checks are evidence gates tied to the actual RC/final version cut: no-SNAPSHOT dependency checks, tag/version/workflow alignment, checksums, and publication signing execution.
