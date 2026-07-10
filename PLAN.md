@@ -234,10 +234,16 @@ public void it_normalizes_known_inputs() {
 ```
 
 Rules:
-- The public method remains the behavior example; data rows are reported as child invocations.
+- The public method remains the behavior example; initial support runs rows inline inside that
+  example.
 - Do not add `@ParameterizedTest`, `@ValueSource`, or Jupiter dependencies to core.
-- Reports and the JUnit Platform adapter expose each row with stable IDs and readable names.
+- Later reporting work exposes rows as child invocations with stable IDs and readable names in JSON,
+  JUnit XML, and the JUnit Platform adapter.
 - Failed rows show row values in diagnostics.
+
+**Status:** In progress — slice 1 implements the zero-dependency core API for `row(...)`,
+`examples(...)`, `Example1`, and `Example2`, runs data rows inside the current example, and reports
+failing row context. Row-level reports and JUnit Platform descriptors remain as later Phase 47 work.
 
 ### Phase 48 — Collaborator injection for `let` and examples
 

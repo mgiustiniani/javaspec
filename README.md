@@ -410,6 +410,27 @@ public void it_uses_a_factory() {
 
 Generation can preserve, comment, or delete constructor-related skeleton code according to the selected constructor policy.
 
+## PHPSpec-style example data
+
+Use example data when one behavior needs a few concrete examples but a Cucumber `Scenario Outline` or
+JUnit parameterized test would add ceremony. The public `it_*` method remains the behavior example;
+rows execute inside that example and failing rows include row context in the assertion message.
+
+```java
+public void it_normalizes_known_inputs() {
+    examples(row("  Alice  ", "Alice"), row("Bob", "Bob"))
+        .verify(new Example2<String, String>() {
+            @Override
+            public void run(String input, String expected) {
+                match(subject().normalize(input)).shouldReturn(expected);
+            }
+        });
+}
+```
+
+`Example1` and `Example2` callbacks are available in core and keep the API Java 8-compatible without
+Jupiter dependencies.
+
 ## Doubles
 
 ### Interface doubles in core

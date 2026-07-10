@@ -1,5 +1,21 @@
 # Test and Quality Report
 
+## Phase 47 example-data API verification update
+
+Date: 2026-07-09
+
+This update records the first Phase 47 slice: PHPSpec-style example data without Jupiter
+parameterized-test syntax. Core now exposes `row(...)`, `examples(...)`, `Example1`, and `Example2`
+so one behavior example can execute a small set of concrete rows. Failing rows include row number and
+row value context in the assertion message.
+
+Verification summary:
+
+- `mvn -q -Dtest=ObjectBehaviorTest,MainPhase47ExampleDataCliTest test` passed.
+
+Remaining Phase 47 work: row-level report/formatter representation and JUnit Platform child
+descriptors/selectors.
+
 ## Phase 46 PHPSpec compatibility charter verification update
 
 Date: 2026-07-09

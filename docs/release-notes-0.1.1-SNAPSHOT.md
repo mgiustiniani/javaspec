@@ -40,6 +40,9 @@ moving dependency-heavy behavior into optional artifacts.
   `docs/test-matrix-generation.md`, and CLI, Maven plugin, Gradle plugin, and JUnit Platform adapter
   smoke coverage for the canonical subject-centric `let` / `subject()` /
   `match(...).shouldReturn(...)` authoring style.
+- Phase 47 begins PHPSpec-style example data with zero-dependency core APIs: `row(...)`,
+  `examples(...)`, `Example1`, and `Example2`. Rows execute inside the containing behavior example
+  and failing rows include row number/value context.
 
 ## Optional subclass adapter `javaspec-bytecode-doubles`
 

@@ -204,6 +204,43 @@ public class ObjectBehaviorTest {
     }
 
     @Test
+    public void exampleDataRunsOneColumnRowsInsideCurrentExample() {
+        ExampleDataBehavior behavior = new ExampleDataBehavior();
+        final List<String> seen = new ArrayList<String>();
+
+        behavior.verifyOneColumnRows(seen);
+
+        assertEquals(Arrays.asList("Ada", "Bob"), seen);
+    }
+
+    @Test
+    public void exampleDataRunsTwoColumnRowsInsideCurrentExample() {
+        ExampleDataBehavior behavior = new ExampleDataBehavior();
+        final List<String> seen = new ArrayList<String>();
+
+        behavior.verifyTwoColumnRows(seen);
+
+        assertEquals(Arrays.asList("Ada Lovelace", "Grace Hopper"), seen);
+    }
+
+    @Test
+    public void exampleDataAssertionFailuresIncludeRowContext() {
+        ExampleDataBehavior behavior = new ExampleDataBehavior();
+
+        AssertionError error = (AssertionError) expect(AssertionError.class, new ThrowingCall() {
+            @Override
+            public void run() {
+                behavior.failOnSecondRow();
+            }
+        });
+
+        assertTrue(error.getMessage().contains("Example data row 2"));
+        assertTrue(error.getMessage().contains("[Bob, wrong]"));
+        assertTrue(error.getMessage().contains("Expected equality(expected) but got wrong"));
+        assertTrue(error.getCause() instanceof AssertionError);
+    }
+
+    @Test
     public void skipSignalsThrowPublicApiExceptionWithDefaultMessageAndNoReason() {
         SkipSignalBehavior behavior = new SkipSignalBehavior();
 
@@ -474,6 +511,35 @@ public class ObjectBehaviorTest {
                 return Arrays.asList(values).iterator();
             }
         };
+    }
+
+    private static final class ExampleDataBehavior extends ObjectBehavior<Object> {
+        private void verifyOneColumnRows(final List<String> seen) {
+            examples(row("Ada"), row("Bob")).verify(new Example1<String>() {
+                @Override
+                public void run(String name) {
+                    seen.add(name);
+                }
+            });
+        }
+
+        private void verifyTwoColumnRows(final List<String> seen) {
+            examples(row("Ada", "Lovelace"), row("Grace", "Hopper")).verify(new Example2<String, String>() {
+                @Override
+                public void run(String first, String last) {
+                    seen.add(first + " " + last);
+                }
+            });
+        }
+
+        private void failOnSecondRow() {
+            examples(row("Ada", "expected"), row("Bob", "wrong")).verify(new Example2<String, String>() {
+                @Override
+                public void run(String name, String actual) {
+                    match(actual).shouldReturn("expected");
+                }
+            });
+        }
     }
 
     private static final class ExpectedConvenienceMethod {

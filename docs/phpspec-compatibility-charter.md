@@ -71,7 +71,19 @@ Do not turn object behavior into feature-file ceremony. A useful rule of thumb:
 - If a non-technical stakeholder must read or approve the behavior, consider Cucumber.
 - If the behavior is a small object rule, invariant, collaborator contract, or edge case, prefer javaspec.
 
-Low-value `Scenario Outline` usage may be translated into PHPSpec-style example data, but the public method remains an `it_*` / `its_*` behavior example.
+Low-value `Scenario Outline` usage may be translated into PHPSpec-style example data, but the public method remains an `it_*` / `its_*` behavior example:
+
+```java
+public void it_normalizes_known_inputs() {
+    examples(row("  Alice  ", "Alice"), row("Bob", "Bob"))
+        .verify(new Example2<String, String>() {
+            @Override
+            public void run(String input, String expected) {
+                match(subject().normalize(input)).shouldReturn(expected);
+            }
+        });
+}
+```
 
 ## Workflow guardrails
 

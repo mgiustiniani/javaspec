@@ -109,6 +109,38 @@ public class ObjectBehavior<T> {
         return new Matchable<R>(value, matcherRegistry);
     }
 
+    // --- PHPSpec-style example data ---
+
+    /**
+     * Creates a one-column example-data row for a single behavior example.
+     */
+    protected static <A> ExampleRow1<A> row(A first) {
+        return new ExampleRow1<A>(first);
+    }
+
+    /**
+     * Creates a two-column example-data row for a single behavior example.
+     */
+    protected static <A, B> ExampleRow2<A, B> row(A first, B second) {
+        return new ExampleRow2<A, B>(first, second);
+    }
+
+    /**
+     * Creates a one-column PHPSpec-style example-data set.
+     */
+    @SafeVarargs
+    protected static <A> Examples1<A> examples(ExampleRow1<A>... rows) {
+        return new Examples1<A>(rows);
+    }
+
+    /**
+     * Creates a two-column PHPSpec-style example-data set.
+     */
+    @SafeVarargs
+    protected static <A, B> Examples2<A, B> examples(ExampleRow2<A, B>... rows) {
+        return new Examples2<A, B>(rows);
+    }
+
     // --- Interface doubles ---
 
     /**

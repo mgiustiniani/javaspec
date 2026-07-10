@@ -1732,6 +1732,34 @@ public void it_rejects_invalid_constructor_arguments() {
 }
 ```
 
+## PHPSpec-style example data
+
+Example data keeps a small set of concrete cases inside one behavior example. It is intended for
+places where JUnit parameterized tests or Cucumber `Scenario Outline` tables would add more ceremony
+than design feedback.
+
+```java
+public class NameNormalizerSpec extends ObjectBehavior<NameNormalizer> {
+    public NameNormalizerSpec() {
+        super(NameNormalizer.class);
+    }
+
+    public void it_normalizes_known_inputs() {
+        examples(row("  Alice  ", "Alice"), row("Bob", "Bob"))
+            .verify(new Example2<String, String>() {
+                @Override
+                public void run(String input, String expected) {
+                    match(subject().normalize(input)).shouldReturn(expected);
+                }
+            });
+    }
+}
+```
+
+`Example1` and `Example2` callbacks are available in core for Java 8-compatible one- and two-column
+rows. Rows currently execute inside the containing `it_*` example. If a row fails, the assertion
+message includes the row number and values, for example `Example data row 2 [ Bob , Robert] failed`.
+
 ## Typed proxy matcher syntax
 
 Generated support classes can expose subject-specific typed proxy methods. This allows PHPSpec-like

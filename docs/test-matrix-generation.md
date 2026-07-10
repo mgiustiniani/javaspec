@@ -21,7 +21,7 @@ language forms or generator behavior are added.
 
 | PHPSpec area | Current coverage | Parity target |
 |---|---|---|
-| Examples | `it_*` / `its_*` discovery, filters, stable IDs, skip/pending states | PHPSpec-style example data rows without Jupiter parameterized syntax |
+| Examples | `it_*` / `its_*` discovery, filters, stable IDs, skip/pending states, inline `examples(row(...)).verify(...)` data rows | Row-level report/formatter representation without Jupiter parameterized syntax |
 | Lifecycle | Fresh spec instance per example, `let()`, `letGo()`, construction helpers | Parameterized `let(...)` / examples for collaborator injection |
 | Subject construction | `subject()`, `beConstructedWith`, named/static factory construction | Clearer diagnostics and snippet coverage for ambiguous constructors/factories |
 | Matchers | Core `should*` / `shouldNot*` equality, type, count, string, collection/map helpers | Approximate, iteration, dynamic object-state, inline and configured custom matchers |
@@ -56,3 +56,5 @@ language forms or generator behavior are added.
   parameter bounds and annotated varargs parameters.
 - CLI `run --generate --compile --release 17` is covered for generated record and sealed-class
   skeletons, including execution of the resulting specs and class-file major-version checks.
+- Phase 47 example-data slice adds inline `row(...)` / `examples(...)` coverage for Java 8-compatible
+  one- and two-column data rows with failing-row diagnostics.
