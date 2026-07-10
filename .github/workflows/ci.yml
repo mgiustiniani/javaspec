@@ -38,11 +38,12 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.8'
-      - name: Verify release contract guards
-        run: |
-          bash scripts/check-version-alignment.sh
-          bash scripts/check-current-docs.sh
-          bash scripts/check-api-surface.sh
+      - name: Verify version alignment
+        run: bash scripts/check-version-alignment.sh
+      - name: Verify current documentation
+        run: bash scripts/check-current-docs.sh
+      - name: Verify API surface classification
+        run: bash scripts/check-api-surface.sh
       - name: Verify all adapters
         env:
           JAVASPEC_GRADLE_BIN: gradle
