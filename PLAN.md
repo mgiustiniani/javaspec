@@ -213,6 +213,7 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
   - Approximate numeric: `MatchableTest`, `ObjectBehaviorTest`.
   - Iterator semantics: `MatchableBoundedIterableTest`, `MatchableTest` iterator cases.
   - Generated object-state: `SpecSkeletonGeneratorTest`, `SpecDiscoveryTest`.
+  - Custom matcher 1.0 scope: `docs/matcher-contract-1.0.md`, `MatcherRegistryTest`, `MatchableTest.shouldMatchUsesCustomMatcher`.
 - Completion commit: pending.
 
 ### M7 — Safe generation P0 hardening

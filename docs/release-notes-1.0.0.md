@@ -82,7 +82,10 @@ moving dependency-heavy behavior into optional artifacts.
   overloads, and mixed exact/token call compilation.
 - Phase 50 matcher parity includes Java-adapted approximate numeric expectations, iterator-backed
   collection/count/emptiness expectations, and generated object-state expectations such as
-  `shouldBeActive()` and `shouldHaveTitle(...)` in generated `*SpecSupport` helpers.
+  `shouldBeActive()` and `shouldHaveTitle(...)` in generated `*SpecSupport` helpers. The 1.0 custom
+  matcher scope is frozen in `docs/matcher-contract-1.0.md`: programmatic registry/`shouldMatch(...)`
+  support is stable, while configuration-file and inline dynamic custom matcher conveniences are
+  deferred.
 - Generated stubs are fail-closed: compiled runs that still contain `// javaspec:stub` markers add a
   synthetic `BROKEN` result so generated skeletons cannot accidentally produce final GREEN.
 - Mutating generation paths use atomic source-file writes and the generation contract is frozen in

@@ -118,7 +118,7 @@ Evidence:
 - [ ] User manual matches README and capabilities.
 - [ ] CLI reference current.
 - [ ] Configuration reference current.
-- [ ] Matcher reference current.
+- [x] Matcher reference current.
 - [ ] Prophecy/doubles reference current.
 - [ ] Generation safety guide present.
 - [ ] Maven guide current.

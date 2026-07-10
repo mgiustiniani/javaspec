@@ -15,7 +15,7 @@ Compatibility policy:
 | Package | Classification | 1.0 contract |
 |---|---|---|
 | `io.github.jvmspec.api` | `PUBLIC_API` | PHPSpec-first authoring API: `ObjectBehavior`, lifecycle helpers, construction helpers, skip/pending signals, direct expectation conveniences, example data rows, and generated-support base hooks. Example data semantics are frozen in `docs/example-data-contract-1.0.md`. |
-| `io.github.jvmspec.matcher` | `PUBLIC_API` | `Matchable`, built-in matcher result/registry types, and custom matcher registration used by specs. |
+| `io.github.jvmspec.matcher` | `PUBLIC_API` | `Matchable`, built-in matcher result/registry types, and custom matcher registration used by specs; see `docs/matcher-contract-1.0.md`. |
 | `io.github.jvmspec.doubles` | `PUBLIC_API` / `PUBLIC_SPI` | User-facing interface double API is public API. `ConcreteDoubleProvider` is public SPI for optional concrete-double adapters. |
 | `io.github.jvmspec.doubles.prophecy` | `PUBLIC_API` | Prophecy-style collaborator API: `ObjectProphecy`, generated-wrapper target types, argument tokens, promises, predictions, callbacks, and prediction context. |
 | `io.github.jvmspec.runner` | `PUBLIC_API` | Programmatic result model and runner entrypoint: `SpecRunner`, `RunResult`, `SpecResult`, `ExampleResult`, `ExampleStatus`, `FailureDetail`. |

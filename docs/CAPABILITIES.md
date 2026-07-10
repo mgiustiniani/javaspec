@@ -47,7 +47,7 @@ This document records capabilities verified while preparing the 1.0 roadmap. It 
 - JUnit Platform row selectors filter descriptors/events while row execution remains inline in the owning example; this is documented in `docs/example-data-contract-1.0.md` as the 1.0 contract.
 - Example data APIs, Prophecy/collaborator APIs, generation semantics, extension SPI, and report contracts have 1.0 contract documents.
 - Generated typed Prophecy wrappers remain the canonical collaborator API; reflective `method("...")` is a bootstrap/fallback path.
-- Approximate numeric, iterator, and generated object-state matchers are implemented as Java-adapted PHPSpec semantics.
+- Approximate numeric, iterator, and generated object-state matchers are implemented as Java-adapted PHPSpec semantics; custom matcher 1.0 scope is frozen in `docs/matcher-contract-1.0.md`.
 - Event/extension model v2 is deferred; existing extension/formatter/parser/resolver/bootstrap surfaces are classified for 1.0.
 - Mutating generation paths use atomic source-file writes, and pending generated stubs produce a synthetic `BROKEN` result to prevent accidental GREEN.
 - Release dry-run coverage verifies all declared modules/artifacts and external consumer examples.
@@ -89,10 +89,10 @@ Areas needing classification before API freeze:
 | P0-DOC-001 | P0 | Documentation can contradict current capabilities/version. | DONE: `scripts/check-current-docs.sh` and `scripts/check-version-alignment.sh` gate current docs/version/package consistency. |
 | P1-ROW-001 | P1 | Example-data row selector semantics are subtle and could be misrepresented. | DONE: `docs/example-data-contract-1.0.md` documents inline execution vs descriptor/event filtering, with JUnit Platform regression coverage. |
 | P1-PROP-001 | P1 | Generated Prophecy token overloads need edge-case audit. | DONE: `ProphecySkeletonGeneratorTest` covers primitive, array, varargs, bounded generic, bridge/synthetic, duplicate, and mixed exact/token call cases; `docs/prophecy-contract-1.0.md` documents limits. |
-| P1-MATCH-001 | P1 | Inline/configured custom matcher scope is not finalized. | Implement or explicitly defer/narrow scope before RC without contradicting the PHPSpec-first promise. |
+| P1-MATCH-001 | P1 | Inline/configured custom matcher scope is not finalized. | DONE: `docs/matcher-contract-1.0.md` freezes programmatic `MatcherRegistry`/`shouldMatch(...)` support and defers config/inline dynamic custom matcher conveniences. |
 | P1-EXT-001 | P1 | Event/extension v2 scope could affect API freeze. | DONE: `docs/extension-spi-1.0.md` freezes existing SPI semantics and defers typed event model v2. |
 | P2-PERF-001 | P2 | No large-suite performance baseline yet. | Add reproducible benchmark before final 1.0 if feasible; otherwise document post-1.0 plan. |
 
 ## Decisions required before API freeze
 
-The P0 decisions for API/SPI classification, example-data row execution, PHPSpec matcher scope, event model v2 deferral, JSON schema evolution, generation safety, and release dry-run artifact responsibilities are recorded in the 1.0 contract documents. Remaining decisions are P1/P2 polish unless release-candidate evidence exposes a contradiction.
+The P0/P1 decisions for API/SPI classification, example-data row execution, PHPSpec matcher scope, custom matcher scope, event model v2 deferral, JSON schema evolution, generation safety, and release dry-run artifact responsibilities are recorded in the 1.0 contract documents. Remaining decisions are P2 polish or RC evidence gates unless release-candidate evidence exposes a contradiction.

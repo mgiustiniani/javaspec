@@ -386,6 +386,11 @@ Available expectation families include:
 - exception expectations through `shouldThrow(...).during...` support methods;
 - structural markers used by generation, such as `shouldBeAnInterface()` and `shouldImplement(...)`.
 
+Custom matcher 1.0 scope is programmatic: register `Matcher`/`CustomMatcher` instances in the
+`MatcherRegistry` and call `match(actual).shouldMatch("name", args...)`. Configuration-file matcher
+registration and generated typed custom matcher methods are deferred; see
+`docs/matcher-contract-1.0.md`.
+
 ## Construction
 
 Configure construction before calling `subject()`:

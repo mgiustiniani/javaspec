@@ -52,7 +52,7 @@ See [`docs/CAPABILITIES.md`](CAPABILITIES.md) for the capability matrix. The imp
 - Generation contract, pending generated-stub semantics, and atomic write guarantees are recorded in `docs/generation-contract-1.0.md`.
 - Release dry-run coverage verifies every declared Maven/Gradle artifact and the external consumer examples through `scripts/verify-release-dry-run.sh`.
 - JUnit Platform selector/source/row contract and adapter status mappings are recorded in `docs/result-contract-1.0.md` and `docs/release-1.0-acceptance-tests.md`.
-- Phase 50 matcher scope is frozen for 1.0 as approximate numeric, iterator, and generated object-state Java-adapted semantics.
+- Phase 50 matcher scope is frozen for 1.0 as approximate numeric, iterator, and generated object-state Java-adapted semantics; custom matcher scope is frozen in `docs/matcher-contract-1.0.md`.
 - Event/extension model v2 is deferred; existing extension surfaces are classified for 1.0.
 - JSON schema evolution and compatibility policy are recorded in `docs/result-contract-1.0.md`.
 - Example-data row execution semantics are frozen in `docs/example-data-contract-1.0.md` as inline execution with row descriptor/event/report projection.
@@ -106,7 +106,7 @@ Public-facing contracts are classified for 1.0 in `docs/api-surface-1.0.md`:
 
 - P1-ROW-001: DONE — example-data row execution/selector/report semantics are frozen in `docs/example-data-contract-1.0.md`.
 - P1-PROP-001: DONE — generated Prophecy token overload edge cases are documented in `docs/prophecy-contract-1.0.md` and covered by `ProphecySkeletonGeneratorTest`.
-- P1-MATCH-001: Phase 50 matcher parity requires implementation or explicit deferral.
+- P1-MATCH-001: DONE — Phase 50 built-ins are implemented and custom matcher config/inline conveniences are explicitly deferred in `docs/matcher-contract-1.0.md`.
 - P1-EXT-001: DONE — existing SPI semantics are frozen in `docs/extension-spi-1.0.md`; typed event model v2 is deferred.
 - P1-JUNIT-001: JUnit Platform IDE/source/selector parity needs contract audit.
 
@@ -124,7 +124,7 @@ Public-facing contracts are classified for 1.0 in `docs/api-surface-1.0.md`:
 | Phase 47 example data | REQUIRED_BEFORE_RC | Implemented; 1.0 contract documented in `docs/example-data-contract-1.0.md`. |
 | Phase 48 collaborator injection | REQUIRED_BEFORE_RC | Implemented; contract docs and edge cases still audited in M5. |
 | Phase 49 Prophecy parity | REQUIRED_BEFORE_RC | Implemented; generated wrapper overload audit remains. |
-| Phase 50 matcher parity | REQUIRED_BEFORE_RC scope decision | Implement or defer explicit parts. |
+| Phase 50 matcher parity | REQUIRED_BEFORE_RC scope decision | Implemented Java-adapted P0 matchers; config/inline custom matcher conveniences deferred with documented limit. |
 | Phase 51 event model v2 | DEFERRED_WITH_DOCUMENTED_LIMIT unless API audit upgrades it | Existing SPI classification still required. |
 | Phase 52 JUnit Platform v2 | REQUIRED_BEFORE_RC for contract/selector/source audit | Full IDE parity improvements may be split. |
 | Phase 53 generation/snippets parity | REQUIRED_BEFORE_RC for safe generation P0; P2 for broader snippets | Generation safety is P0. |
@@ -132,7 +132,7 @@ Public-facing contracts are classified for 1.0 in `docs/api-surface-1.0.md`:
 
 ## Decisions required before API freeze
 
-The P0 API-freeze decisions have been made and recorded in the contract documents: optional artifact status, generation/model/internal classification, example-data row execution, Phase 50 matcher scope, event model v2 deferral, API classification tooling, JSON schema evolution, and release dry-run artifact coverage.
+The P0/P1 API-freeze decisions have been made and recorded in the contract documents: optional artifact status, generation/model/internal classification, example-data row execution, Phase 50 matcher scope, custom matcher scope, event model v2 deferral, API classification tooling, JSON schema evolution, and release dry-run artifact coverage.
 
 ## P0 status
 

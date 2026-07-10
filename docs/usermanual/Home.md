@@ -2104,8 +2104,12 @@ clearer.
 
 ### Custom matchers
 
-Custom matchers can be registered in the matcher registry and may evaluate null subjects; javaspec
-passes the actual subject value, including `null`, to the matcher predicate.
+Custom matchers can be registered programmatically in the matcher registry and may evaluate null
+subjects; javaspec passes the actual subject value, including `null`, to the matcher predicate. The
+stable 1.0 scope is documented in `docs/matcher-contract-1.0.md`: programmatic
+`MatcherRegistry`/`CustomMatcher`/`shouldMatch(...)` is supported, while configuration-file matcher
+registration, PHP-style inline matcher arrays, and generated typed custom matcher methods are
+deferred.
 
 ```java
 matcherRegistry().register("beAbsent", new io.github.jvmspec.matcher.CustomMatcher<Object>(
