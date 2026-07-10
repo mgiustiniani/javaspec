@@ -51,6 +51,48 @@ public final class ExampleDataRowResult {
         return "PASSED".equals(status);
     }
 
+    public boolean isFailed() {
+        return "FAILED".equals(status);
+    }
+
+    public boolean isBroken() {
+        return "BROKEN".equals(status);
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+        if (!(other instanceof ExampleDataRowResult)) {
+            return false;
+        }
+        ExampleDataRowResult that = (ExampleDataRowResult) other;
+        return index == that.index
+                && description.equals(that.description)
+                && status.equals(that.status)
+                && detail.equals(that.detail);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = index;
+        result = 31 * result + description.hashCode();
+        result = 31 * result + status.hashCode();
+        result = 31 * result + detail.hashCode();
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "ExampleDataRowResult{" +
+                "index=" + index +
+                ", description='" + description + '\'' +
+                ", status='" + status + '\'' +
+                ", detail='" + detail + '\'' +
+                '}';
+    }
+
     private static String detailOf(Throwable failure) {
         if (failure == null) {
             return "";

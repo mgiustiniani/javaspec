@@ -42,8 +42,9 @@ moving dependency-heavy behavior into optional artifacts.
   `match(...).shouldReturn(...)` authoring style.
 - Phase 47 begins PHPSpec-style example data with zero-dependency core APIs: `row(...)`,
   `examples(...)`, `Example1`, and `Example2`. Rows execute inside the containing behavior example,
-  failing rows include row number/value context, and JSON reports include first-class
-  `exampleDataRows` entries for row index, description, status, and detail.
+  failing rows include row number/value context, JSON reports include first-class
+  `exampleDataRows` entries for row index, description, status, and detail, and JUnit XML reports
+  expose rows as testcase entries for CI-visible row diagnostics.
 
 ## Optional subclass adapter `javaspec-bytecode-doubles`
 

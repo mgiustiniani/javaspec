@@ -1,5 +1,6 @@
 package io.github.jvmspec.reporting;
 
+import io.github.jvmspec.api.ExampleDataRowResult;
 import io.github.jvmspec.runner.ExampleResult;
 import io.github.jvmspec.runner.FailureDetail;
 import io.github.jvmspec.runner.RunResult;
@@ -62,10 +63,10 @@ public final class JUnitXmlReportWriter {
 
     private static void appendRunResult(StringBuilder builder, RunResult runResult, ReportMetadata metadata) {
         builder.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-        builder.append("<testsuite name=\"javaspec\" tests=\"").append(runResult.totalCount())
-                .append("\" failures=\"").append(runResult.failedCount())
-                .append("\" errors=\"").append(runResult.brokenCount())
-                .append("\" skipped=\"").append(runResult.skippedOrPendingCount())
+        builder.append("<testsuite name=\"javaspec\" tests=\"").append(xmlTestCount(runResult))
+                .append("\" failures=\"").append(xmlFailureCount(runResult))
+                .append("\" errors=\"").append(xmlErrorCount(runResult))
+                .append("\" skipped=\"").append(xmlSkippedCount(runResult))
                 .append("\" timestamp=\"");
         appendXmlAttribute(builder, metadata.timestamp());
         builder.append("\" hostname=\"");
@@ -76,9 +77,107 @@ public final class JUnitXmlReportWriter {
         appendProperties(builder, metadata.properties());
         List<ExampleResult> examples = runResult.exampleResults();
         for (int i = 0; i < examples.size(); i++) {
-            appendTestCase(builder, examples.get(i));
+            appendTestCases(builder, examples.get(i));
         }
         builder.append("</testsuite>\n");
+    }
+
+    private static int xmlTestCount(RunResult runResult) {
+        int count = 0;
+        List<ExampleResult> examples = runResult.exampleResults();
+        for (int i = 0; i < examples.size(); i++) {
+            ExampleResult example = examples.get(i);
+            if (example.hasExampleDataRows()) {
+                count += example.exampleDataRows().size();
+                if (needsParentTestCaseForNonRowFailure(example)) {
+                    count++;
+                }
+            } else {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static int xmlFailureCount(RunResult runResult) {
+        int count = 0;
+        List<ExampleResult> examples = runResult.exampleResults();
+        for (int i = 0; i < examples.size(); i++) {
+            ExampleResult example = examples.get(i);
+            if (example.hasExampleDataRows()) {
+                count += rowFailureCount(example);
+                if (needsParentTestCaseForNonRowFailure(example) && example.isFailed()) {
+                    count++;
+                }
+            } else if (example.isFailed()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static int xmlErrorCount(RunResult runResult) {
+        int count = 0;
+        List<ExampleResult> examples = runResult.exampleResults();
+        for (int i = 0; i < examples.size(); i++) {
+            ExampleResult example = examples.get(i);
+            if (example.hasExampleDataRows()) {
+                count += rowErrorCount(example);
+                if (needsParentTestCaseForNonRowFailure(example) && example.isBroken()) {
+                    count++;
+                }
+            } else if (example.isBroken()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static int xmlSkippedCount(RunResult runResult) {
+        int count = 0;
+        List<ExampleResult> examples = runResult.exampleResults();
+        for (int i = 0; i < examples.size(); i++) {
+            if (examples.get(i).isSkippedOrPending()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static int rowFailureCount(ExampleResult example) {
+        int count = 0;
+        List<ExampleDataRowResult> rows = example.exampleDataRows();
+        for (int i = 0; i < rows.size(); i++) {
+            if (rows.get(i).isFailed()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static int rowErrorCount(ExampleResult example) {
+        int count = 0;
+        List<ExampleDataRowResult> rows = example.exampleDataRows();
+        for (int i = 0; i < rows.size(); i++) {
+            if (rows.get(i).isBroken()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static boolean needsParentTestCaseForNonRowFailure(ExampleResult example) {
+        return example.isFailure() && !hasFailingRow(example);
+    }
+
+    private static boolean hasFailingRow(ExampleResult example) {
+        List<ExampleDataRowResult> rows = example.exampleDataRows();
+        for (int i = 0; i < rows.size(); i++) {
+            if (!rows.get(i).isPassed()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void appendProperties(StringBuilder builder, Map<String, String> properties) {
@@ -95,6 +194,64 @@ public final class JUnitXmlReportWriter {
             builder.append("\"/>\n");
         }
         builder.append("  </properties>\n");
+    }
+
+    private static void appendTestCases(StringBuilder builder, ExampleResult example) {
+        if (!example.hasExampleDataRows()) {
+            appendTestCase(builder, example);
+            return;
+        }
+        List<ExampleDataRowResult> rows = example.exampleDataRows();
+        for (int i = 0; i < rows.size(); i++) {
+            appendRowTestCase(builder, example, rows.get(i));
+        }
+        if (needsParentTestCaseForNonRowFailure(example)) {
+            appendTestCase(builder, example);
+        }
+    }
+
+    private static void appendRowTestCase(StringBuilder builder, ExampleResult example, ExampleDataRowResult row) {
+        builder.append("  <testcase classname=\"");
+        appendXmlAttribute(builder, example.specQualifiedName());
+        builder.append("\" name=\"");
+        appendXmlAttribute(builder, example.methodName() + "[row " + row.index() + "] " + row.description());
+        builder.append("\" time=\"0\"");
+        if (example.hasSourceFile()) {
+            builder.append(" file=\"");
+            appendXmlAttribute(builder, example.sourceFilePath());
+            builder.append("\"");
+        }
+        if (example.hasSourceLine()) {
+            builder.append(" line=\"").append(example.sourceLine()).append("\"");
+        }
+
+        if (row.isPassed()) {
+            builder.append("/>\n");
+            return;
+        }
+
+        builder.append(">\n");
+        if (row.isFailed()) {
+            appendRowFailureOrError(builder, "failure", row);
+        } else if (row.isBroken()) {
+            appendRowFailureOrError(builder, "error", row);
+        }
+        builder.append("  </testcase>\n");
+    }
+
+    private static void appendRowFailureOrError(StringBuilder builder, String elementName, ExampleDataRowResult row) {
+        String message = "Example data row " + row.index() + " " + row.description() + " " + row.status().toLowerCase();
+        builder.append("    <").append(elementName).append(" type=\"");
+        appendXmlAttribute(builder, row.status());
+        builder.append("\" message=\"");
+        appendXmlAttribute(builder, message);
+        builder.append("\">");
+        appendXmlText(builder, message);
+        if (row.detail().length() > 0) {
+            builder.append('\n');
+            appendXmlText(builder, row.detail());
+        }
+        builder.append("</").append(elementName).append(">\n");
     }
 
     private static void appendTestCase(StringBuilder builder, ExampleResult example) {

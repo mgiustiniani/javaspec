@@ -131,8 +131,12 @@ public class MainPhase47ExampleDataCliTest {
         assertContains(json, "\"status\": \"FAILED\"");
         assertContains(json, "Example data row 2 [ Bob , Robert] failed");
         assertContains(json, "Expected equality(Robert) but got Bob");
-        assertContains(readFile(junitReport), "Example data row 2 [ Bob , Robert] failed");
-        assertContains(readFile(junitReport), "Expected equality(Robert) but got Bob");
+        String junitXml = readFile(junitReport);
+        assertContains(junitXml, "<testsuite name=\"javaspec\" tests=\"2\" failures=\"1\" errors=\"0\" skipped=\"0\"");
+        assertContains(junitXml, "name=\"it_reports_the_failing_row[row 1] [Alice, Alice]\"");
+        assertContains(junitXml, "name=\"it_reports_the_failing_row[row 2] [ Bob , Robert]\"");
+        assertContains(junitXml, "message=\"Example data row 2 [ Bob , Robert] failed\"");
+        assertContains(junitXml, "Expected equality(Robert) but got Bob");
     }
 
     private static void requireJdkCompiler() {
