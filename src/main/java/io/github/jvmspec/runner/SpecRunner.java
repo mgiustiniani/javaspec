@@ -8,13 +8,21 @@ import io.github.jvmspec.api.Skip;
 import io.github.jvmspec.api.SkipExampleException;
 import io.github.jvmspec.discovery.DiscoveredSpec;
 import io.github.jvmspec.discovery.SpecExample;
+import io.github.jvmspec.doubles.Doubles;
+import io.github.jvmspec.doubles.InterfaceDouble;
+import io.github.jvmspec.doubles.prophecy.BaseObjectProphecy;
+import io.github.jvmspec.doubles.prophecy.PredictionRegistry;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -132,7 +140,7 @@ public final class SpecRunner {
                                              boolean autoCheckPredictions) {
         Method exampleMethod;
         try {
-            exampleMethod = publicNoArgMethod(specClass, example.methodName());
+            exampleMethod = publicVoidMethod(specClass, example.methodName());
         } catch (NoSuchMethodException ex) {
             return ExampleResult.skipped(spec, example, exampleMethodNotFoundReason(example));
         } catch (Throwable ex) {
@@ -152,8 +160,8 @@ public final class SpecRunner {
         Method letMethod;
         Method letGoMethod;
         try {
-            letMethod = optionalPublicNoArgMethod(specClass, LET_METHOD);
-            letGoMethod = optionalPublicNoArgMethod(specClass, LET_GO_METHOD);
+            letMethod = optionalPublicVoidMethod(specClass, LET_METHOD);
+            letGoMethod = optionalPublicVoidMethod(specClass, LET_GO_METHOD);
         } catch (Throwable ex) {
             return ExampleResult.broken(spec, example, "Could not inspect lifecycle methods", unwrap(ex));
         }
@@ -173,19 +181,20 @@ public final class SpecRunner {
         Throwable letGoFailure = null;
         ExampleSignal runtimeSignal = null;
 
+        InvocationContext invocationContext = new InvocationContext(instance);
         ExampleDataRowRecorder.start();
         try {
             if (letMethod != null) {
-                letFailure = invoke(letMethod, instance);
+                letFailure = invoke(letMethod, instance, invocationContext);
                 runtimeSignal = signalFor(letFailure);
             }
             if (letFailure == null && runtimeSignal == null) {
-                exampleFailure = invoke(exampleMethod, instance);
+                exampleFailure = invoke(exampleMethod, instance, invocationContext);
                 runtimeSignal = signalFor(exampleFailure);
             }
         } finally {
             if (letGoMethod != null) {
-                letGoFailure = invoke(letGoMethod, instance);
+                letGoFailure = invoke(letGoMethod, instance, invocationContext);
             }
         }
 
@@ -219,9 +228,16 @@ public final class SpecRunner {
             }
             return withExampleDataRows(ExampleResult.broken(spec, example, "Example method threw an unexpected throwable", exampleFailure));
         }
-        // Auto-check predictions if enabled on the spec instance
+        // Auto-check predictions if enabled on the spec instance.
         if (instance instanceof ObjectBehavior) {
-            ((ObjectBehavior<?>) instance).checkPredictionsIfEnabled();
+            try {
+                ((ObjectBehavior<?>) instance).checkPredictionsIfEnabled();
+            } catch (AssertionError ex) {
+                return withExampleDataRows(ExampleResult.failed(spec, example, "Assertion failed", ex));
+            } catch (Throwable ex) {
+                return withExampleDataRows(ExampleResult.broken(spec, example,
+                        "Automatic prediction checking threw an unexpected throwable", ex));
+            }
         }
         return withExampleDataRows(ExampleResult.passed(spec, example));
     }
@@ -231,10 +247,10 @@ public final class SpecRunner {
     }
 
     private static String exampleMethodNotFoundReason(SpecExample example) {
-        return "Example method not found or not public no-arg: " + example.methodName()
+        return "Example method not found or not public void: " + example.methodName()
                 + ". The discovered specification source may not match the compiled specification class available "
                 + "to the runner. Recompile test/spec sources so the compiled class contains a public "
-                + "no-argument example method.";
+                + "void example method.";
     }
 
     private static ExampleSignal annotationSignalFor(Method exampleMethod) {
@@ -313,28 +329,43 @@ public final class SpecRunner {
         }
     }
 
-    private static Method optionalPublicNoArgMethod(Class<?> specClass, String methodName) throws NoSuchMethodException {
+    private static Method optionalPublicVoidMethod(Class<?> specClass, String methodName) throws NoSuchMethodException {
         try {
-            return publicNoArgMethod(specClass, methodName);
+            return publicVoidMethod(specClass, methodName);
         } catch (NoSuchMethodException ex) {
             return null;
         }
     }
 
-    private static Method publicNoArgMethod(Class<?> specClass, String methodName) throws NoSuchMethodException {
-        Method method = specClass.getMethod(methodName);
-        if (!Modifier.isPublic(method.getModifiers())) {
+    private static Method publicVoidMethod(Class<?> specClass, String methodName) throws NoSuchMethodException {
+        Method selected = null;
+        Method[] methods = specClass.getMethods();
+        for (int i = 0; i < methods.length; i++) {
+            Method method = methods[i];
+            if (!methodName.equals(method.getName())) {
+                continue;
+            }
+            if (!Modifier.isPublic(method.getModifiers()) || !Void.TYPE.equals(method.getReturnType())) {
+                continue;
+            }
+            if (selected != null) {
+                throw new IllegalArgumentException("Ambiguous public void method overloads for " + methodName
+                        + ". javaspec supports a single example/lifecycle method with that name.");
+            }
+            selected = method;
+        }
+        if (selected == null) {
             throw new NoSuchMethodException(methodName);
         }
-        if (!method.isAccessible()) {
-            method.setAccessible(true);
+        if (!selected.isAccessible()) {
+            selected.setAccessible(true);
         }
-        return method;
+        return selected;
     }
 
-    private static Throwable invoke(Method method, Object instance) {
+    private static Throwable invoke(Method method, Object instance, InvocationContext invocationContext) {
         try {
-            method.invoke(instance);
+            method.invoke(instance, invocationContext.argumentsFor(method));
             return null;
         } catch (InvocationTargetException ex) {
             return invocationCause(ex);
@@ -371,6 +402,130 @@ public final class SpecRunner {
             return throwable.getClass().getName();
         }
         return throwable.getClass().getName() + ": " + message;
+    }
+
+    private static final class InvocationContext {
+        private final Object specInstance;
+        private final Map<Class<?>, Object> resolvedParameters = new LinkedHashMap<Class<?>, Object>();
+
+        private InvocationContext(Object specInstance) {
+            this.specInstance = specInstance;
+        }
+
+        Object[] argumentsFor(Method method) {
+            Class<?>[] parameterTypes = method.getParameterTypes();
+            Object[] arguments = new Object[parameterTypes.length];
+            for (int i = 0; i < parameterTypes.length; i++) {
+                arguments[i] = argumentFor(parameterTypes[i]);
+            }
+            return arguments;
+        }
+
+        private Object argumentFor(Class<?> parameterType) {
+            Object existing = resolvedParameters.get(parameterType);
+            if (existing != null) {
+                return existing;
+            }
+            Object created = createArgument(parameterType);
+            resolvedParameters.put(parameterType, created);
+            return created;
+        }
+
+        private Object createArgument(Class<?> parameterType) {
+            if (BaseObjectProphecy.class.isAssignableFrom(parameterType)) {
+                return createProphecyWrapper(parameterType);
+            }
+            if (parameterType.isInterface()) {
+                return Doubles.interfaceDouble(parameterType).instance();
+            }
+            throw new IllegalArgumentException("Unsupported parameter type for javaspec injection: "
+                    + parameterType.getName()
+                    + ". Supported parameters are generated *Prophecy wrappers and ordinary interfaces.");
+        }
+
+        private Object createProphecyWrapper(Class<?> wrapperType) {
+            if (!(specInstance instanceof ObjectBehavior)) {
+                throw new IllegalArgumentException("Cannot inject prophecy wrapper " + wrapperType.getName()
+                        + " because the spec does not extend ObjectBehavior.");
+            }
+            Class<?> prophesizedType = prophesizedTypeOf(wrapperType);
+            if (prophesizedType == null) {
+                throw new IllegalArgumentException("Cannot determine the prophesized type for " + wrapperType.getName()
+                        + ". Generated *Prophecy wrappers must extend ObjectProphecy<T> with a concrete type.");
+            }
+            InterfaceDouble<?> handle = prophesizedType.isInterface()
+                    ? Doubles.interfaceDouble(prophesizedType)
+                    : Doubles.concreteDouble(prophesizedType);
+            PredictionRegistry registry = prophecyRegistryOf((ObjectBehavior<?>) specInstance);
+            try {
+                Constructor<?> constructor = wrapperType.getConstructor(InterfaceDouble.class, PredictionRegistry.class);
+                return constructor.newInstance(handle, registry);
+            } catch (InvocationTargetException ex) {
+                throw new IllegalArgumentException("Could not instantiate prophecy wrapper " + wrapperType.getName()
+                        + ": " + throwableSummary(invocationCause(ex)), invocationCause(ex));
+            } catch (Throwable ex) {
+                throw new IllegalArgumentException("Could not instantiate prophecy wrapper " + wrapperType.getName()
+                        + ". Expected a public constructor (InterfaceDouble, PredictionRegistry).", ex);
+            }
+        }
+
+        private static Class<?> prophesizedTypeOf(Class<?> wrapperType) {
+            Class<?> current = wrapperType;
+            while (current != null && !Object.class.equals(current)) {
+                Type genericSuperclass = current.getGenericSuperclass();
+                Class<?> extracted = prophesizedTypeFrom(genericSuperclass);
+                if (extracted != null) {
+                    return extracted;
+                }
+                current = current.getSuperclass();
+            }
+            return null;
+        }
+
+        private static Class<?> prophesizedTypeFrom(Type type) {
+            if (!(type instanceof ParameterizedType)) {
+                return null;
+            }
+            ParameterizedType parameterized = (ParameterizedType) type;
+            Type rawType = parameterized.getRawType();
+            if (!(rawType instanceof Class)) {
+                return null;
+            }
+            Class<?> rawClass = (Class<?>) rawType;
+            if (!BaseObjectProphecy.class.isAssignableFrom(rawClass)) {
+                return null;
+            }
+            Type argument = parameterized.getActualTypeArguments()[0];
+            if (argument instanceof Class) {
+                return (Class<?>) argument;
+            }
+            if (argument instanceof ParameterizedType) {
+                Type rawArgument = ((ParameterizedType) argument).getRawType();
+                if (rawArgument instanceof Class) {
+                    return (Class<?>) rawArgument;
+                }
+            }
+            return null;
+        }
+
+        private static PredictionRegistry prophecyRegistryOf(ObjectBehavior<?> behavior) {
+            try {
+                Method registryMethod = ObjectBehavior.class.getDeclaredMethod("prophecyRegistry");
+                if (!registryMethod.isAccessible()) {
+                    registryMethod.setAccessible(true);
+                }
+                return (PredictionRegistry) registryMethod.invoke(behavior);
+            } catch (InvocationTargetException ex) {
+                Throwable cause = invocationCause(ex);
+                if (cause instanceof RuntimeException) {
+                    throw (RuntimeException) cause;
+                }
+                throw new IllegalArgumentException("Could not access the spec prophecy registry: "
+                        + throwableSummary(cause), cause);
+            } catch (Throwable ex) {
+                throw new IllegalArgumentException("Could not access the spec prophecy registry.", ex);
+            }
+        }
     }
 
     private static final class ExampleSignal {

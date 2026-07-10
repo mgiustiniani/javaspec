@@ -43,6 +43,26 @@ public class SpecDiscoveryTest {
     }
 
     @Test
+    public void discoversParameterizedExampleMethodsForCollaboratorInjection() throws Exception {
+        File specRoot = temporaryFolder.newFolder("parameterized-example-root");
+        writeFile(
+                specRoot,
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator + "UserServiceSpec.java",
+                "package spec.com.example;\n" +
+                "public class UserServiceSpec extends UserServiceSpecSupport {\n" +
+                "    public void it_sends_a_welcome_email(MailerProphecy mailer) {\n" +
+                "    }\n" +
+                "}\n"
+        );
+
+        List<DiscoveredSpec> specs = SpecDiscovery.discover(specRoot);
+
+        assertEquals(1, specs.size());
+        assertEquals(1, specs.get(0).exampleMetadata().size());
+        assertEquals("it_sends_a_welcome_email", specs.get(0).exampleMetadata().get(0).methodName());
+    }
+
+    @Test
     public void discoversClassLikeTypeMarkersFromSpecSource() throws Exception {
         File specRoot = temporaryFolder.newFolder("class-type-spec-root");
         writeFile(

@@ -178,7 +178,7 @@ public class SpecDiscoveryNamingTest {
     // ── Example metadata ────────────────────────────────────────────
 
     @Test
-    public void exampleMetadataExtractsOnlyPublicNoArgVoidItMethods() throws Exception {
+    public void exampleMetadataExtractsPublicVoidItMethodsIncludingSupportedParameterSyntax() throws Exception {
         File specRoot = temporaryFolder.newFolder("example-metadata-root");
         writeFile(specRoot, "spec" + File.separator + "com" + File.separator + "example" + File.separator + "BookSpec.java",
                 "package spec.com.example;\n\n" +
@@ -205,12 +205,13 @@ public class SpecDiscoveryNamingTest {
 
         assertEquals(1, specs.size());
         List<SpecExample> examples = specs.get(0).examples();
-        // it_checks_title (no-arg), it_has_rating (no-arg), its_initialized (no-arg)
-        // it_checks_author has param -> excluded; let/letGo excluded; private excluded
-        assertEquals(3, examples.size());
+        // it_checks_title (no-arg), it_has_rating (no-arg), it_checks_author (parameterized), its_initialized (no-arg)
+        // let/letGo excluded; private excluded
+        assertEquals(4, examples.size());
         assertEquals("it_checks_title", examples.get(0).methodName());
         assertEquals("it has rating", examples.get(1).displayName());
-        assertEquals("its_initialized", examples.get(2).methodName());
+        assertEquals("it_checks_author", examples.get(2).methodName());
+        assertEquals("its_initialized", examples.get(3).methodName());
     }
 
     @Test

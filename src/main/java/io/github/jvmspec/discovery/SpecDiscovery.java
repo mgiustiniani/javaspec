@@ -1016,7 +1016,7 @@ public final class SpecDiscovery {
         while (methodMatcher.find()) {
             String methodName = methodMatcher.group(1);
             String paramsGroup = methodMatcher.group(2).trim();
-            if (paramsGroup.length() == 0 && SpecExample.isExampleMethodName(methodName)) {
+            if (SpecExample.isExampleMethodName(methodName)) {
                 examples.add(SpecExample.of(methodName, orderIndex, lineNumberAt(source, methodMatcher.start())));
                 orderIndex++;
             }

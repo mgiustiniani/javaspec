@@ -53,6 +53,11 @@ moving dependency-heavy behavior into optional artifacts.
   `exampleDataRows` entries for row index, description, status, and detail, JUnit XML reports
   expose rows as testcase entries for CI-visible row diagnostics, and the optional JUnit Platform
   adapter publishes dynamic row descriptors during execution with row unique-id event filtering.
+- Phase 48 starts PHPSpec-style collaborator injection: public `it_*` / `its_*`, `let()`, and
+  `letGo()` methods may declare supported collaborator parameters. Ordinary interface parameters are
+  injected as interface doubles, generated typed `*Prophecy` wrapper parameters are backed by the
+  spec's shared prediction registry, and the same collaborator instance is reused across
+  `let`/example/`letGo` for one example run.
 
 ## Optional subclass adapter `javaspec-bytecode-doubles`
 

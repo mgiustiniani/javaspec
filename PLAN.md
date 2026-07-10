@@ -285,6 +285,15 @@ Deliverables:
 
 Non-goal: general-purpose dependency injection or Spring-style context management in core.
 
+**Status:** In progress — slice 1 lets the reflection runner invoke public `void` `it_*` / `its_*`,
+`let()`, and `letGo()` methods with supported collaborator parameters. Supported parameters are
+ordinary interfaces (injected as zero-dependency interface doubles) and generated typed
+`*Prophecy` wrappers (instantiated with the spec's shared prediction registry). Parameters are
+cached per example run so `let`, the example, and `letGo` receive the same collaborator object for
+the same parameter type. Unsupported parameter types and ambiguous overloads produce BROKEN
+execution diagnostics rather than being treated as missing no-arg examples. Discovery now includes
+parameterized example methods so source metadata reaches the runner.
+
 ### Phase 49 — Prophecy parity completion
 
 **Goal:** make interaction testing feel like Prophecy, not Mockito.

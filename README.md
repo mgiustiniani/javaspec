@@ -620,6 +620,20 @@ specs can hide it with `var`.
 Predictions are checked by calling `checkPredictions()` at the end of an example, or automatically
 when `--auto-check-predictions` is enabled.
 
+You can also receive supported collaborators as PHPSpec-style parameters on `let`, examples, and
+`letGo`. For one example run, the same typed prophecy is reused across lifecycle and example methods:
+
+```java
+public void let(MailerProphecy mailer) {
+    mailer.send("user@example.com").willReturn(true).shouldBeCalled();
+    setMailer(mailer.reveal());
+}
+
+public void it_sends_a_welcome_email(MailerProphecy mailer) {
+    sendWelcomeEmail("user@example.com");
+}
+```
+
 ### Reflective API (bootstrap/fallback)
 
 The core prophecy types live in `io.github.jvmspec.doubles.prophecy`:

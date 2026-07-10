@@ -15,7 +15,7 @@ import java.util.Objects;
 public final class RunDiagnostics {
     private static final List<String> EMPTY_LINES = Collections.unmodifiableList(new ArrayList<String>());
 
-    private static final String MISSING_EXAMPLE_METHOD_PREFIX = "Example method not found or not public no-arg:";
+    private static final String MISSING_EXAMPLE_METHOD_PREFIX = "Example method not found or not public void:";
     private static final String MISSING_EXAMPLE_METHOD_HINT =
             "The discovered specification source may not match the compiled specification class";
 

@@ -49,10 +49,10 @@ public class RunDiagnosticsTest {
                         + "required dependencies to the javaspec classpath.",
                 "Example " + MissingMethodSpec.class.getName() + "#it_is_missing_from_compiled_class is not executable "
                         + "(source: src/test/java/spec/diagnostics/MissingMethodSpec.java:23): "
-                        + "Example method not found or not public no-arg: it_is_missing_from_compiled_class. "
+                        + "Example method not found or not public void: it_is_missing_from_compiled_class. "
                         + "The discovered specification source may not match the compiled specification class available "
                         + "to the runner. Recompile test/spec sources so the compiled class contains a public "
-                        + "no-argument example method."
+                        + "void example method."
         ), RunDiagnostics.executionAvailabilityLines(result));
     }
 

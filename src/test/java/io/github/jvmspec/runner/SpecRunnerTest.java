@@ -7,7 +7,11 @@ import io.github.jvmspec.api.Skip;
 import io.github.jvmspec.api.SkipExampleException;
 import io.github.jvmspec.discovery.DiscoveredSpec;
 import io.github.jvmspec.discovery.SpecExample;
+import io.github.jvmspec.doubles.Doubles;
 import io.github.jvmspec.doubles.InterfaceDouble;
+import io.github.jvmspec.doubles.prophecy.MethodProphecy;
+import io.github.jvmspec.doubles.prophecy.ObjectProphecy;
+import io.github.jvmspec.doubles.prophecy.PredictionRegistry;
 import io.github.jvmspec.invocation.JavaspecExitCode;
 import io.github.jvmspec.model.DescribedType;
 import org.junit.Test;
@@ -320,18 +324,17 @@ public class SpecRunnerTest {
         );
         DiscoveredSpec missingMethodSpec = spec(MissingMethodSpec.class, "it_is_missing");
         DiscoveredSpec nonPublicMethodSpec = spec(NonPublicMethodSpec.class, "it_is_not_public");
-        DiscoveredSpec noArgMismatchSpec = spec(NoArgMismatchSpec.class, "it_requires_argument");
 
         RunResult result = SpecRunner.run(
-                Arrays.asList(nonLoadableSpec, missingMethodSpec, nonPublicMethodSpec, noArgMismatchSpec),
+                Arrays.asList(nonLoadableSpec, missingMethodSpec, nonPublicMethodSpec),
                 SpecRunnerTest.class.getClassLoader()
         );
 
-        assertEquals(4, result.totalCount());
+        assertEquals(3, result.totalCount());
         assertEquals(0, result.passedCount());
         assertEquals(0, result.failedCount());
         assertEquals(0, result.brokenCount());
-        assertEquals(4, result.skippedCount());
+        assertEquals(3, result.skippedCount());
         assertTrue(result.isSuccessful());
         assertFalse(result.hasFailures());
 
@@ -345,7 +348,57 @@ public class SpecRunnerTest {
 
         assertReflectedMethodSkip(result.specResults().get(1), "it_is_missing");
         assertReflectedMethodSkip(result.specResults().get(2), "it_is_not_public");
-        assertReflectedMethodSkip(result.specResults().get(3), "it_requires_argument");
+    }
+
+    @Test
+    public void unsupportedInjectedParameterTypesBecomeBrokenWithActionableDiagnostic() {
+        RunResult result = run(NoArgMismatchSpec.class, "it_requires_argument");
+
+        assertEquals(1, result.totalCount());
+        assertEquals(0, result.passedCount());
+        assertEquals(1, result.brokenCount());
+        ExampleResult broken = result.exampleResults().get(0);
+        assertEquals(ExampleStatus.BROKEN, broken.status());
+        assertEquals("Example method threw an unexpected throwable", broken.detail());
+        assertNotNull(broken.failureDetail());
+        assertTrue(broken.failureDetail().message().contains("Unsupported parameter type for javaspec injection"));
+        assertTrue(broken.failureDetail().message().contains(String.class.getName()));
+        assertTrue(broken.failureDetail().message().contains("generated *Prophecy wrappers and ordinary interfaces"));
+    }
+
+    @Test
+    public void injectsTypedProphecyWrapperIntoExampleMethods() {
+        InjectedProphecyExampleSpec.reset();
+
+        RunResult result = run(InjectedProphecyExampleSpec.class, "it_sends_a_welcome_email");
+
+        assertEquals(1, result.totalCount());
+        assertEquals(1, result.passedCount());
+        assertEquals(0, result.failedCount());
+        assertEquals(0, result.brokenCount());
+        assertTrue(InjectedProphecyExampleSpec.sent);
+    }
+
+    @Test
+    public void sharesInjectedProphecyWrappersAcrossLetExampleAndLetGo() {
+        InjectedProphecyLifecycleSpec.reset();
+
+        RunResult result = run(InjectedProphecyLifecycleSpec.class, "it_uses_the_lifecycle_collaborator");
+
+        assertEquals(1, result.totalCount());
+        assertEquals(1, result.passedCount());
+        assertEquals(Arrays.asList("let", "example:true", "letGo:true"), InjectedProphecyLifecycleSpec.events);
+    }
+
+    @Test
+    public void injectsInterfaceDoublesIntoExampleMethods() {
+        InjectedInterfaceExampleSpec.reset();
+
+        RunResult result = run(InjectedInterfaceExampleSpec.class, "it_receives_an_interface_double");
+
+        assertEquals(1, result.totalCount());
+        assertEquals(1, result.passedCount());
+        assertTrue(InjectedInterfaceExampleSpec.doubleReceived);
     }
 
     @Test
@@ -405,10 +458,10 @@ public class SpecRunnerTest {
         assertTrue(specResult.isExecutable());
         ExampleResult example = specResult.exampleResults().get(0);
         assertEquals(ExampleStatus.SKIPPED, example.status());
-        assertTrue(example.detail().contains("Example method not found or not public no-arg: " + methodName));
+        assertTrue(example.detail().contains("Example method not found or not public void: " + methodName));
         assertTrue(example.detail().contains("discovered specification source may not match the compiled specification class"));
         assertTrue(example.detail().contains("Recompile test/spec sources"));
-        assertTrue(example.detail().contains("public no-argument example method"));
+        assertTrue(example.detail().contains("public void example method"));
         assertFalse(example.hasFailureDetail());
     }
 
@@ -651,6 +704,99 @@ public class SpecRunnerTest {
 
         public void letGo() {
             throw new IllegalStateException("teardown after pending");
+        }
+    }
+
+    public interface Mailer {
+        boolean send(String email);
+    }
+
+    public static final class MailerProphecy extends ObjectProphecy<Mailer> {
+        public MailerProphecy(InterfaceDouble<Mailer> doubleHandle, PredictionRegistry registry) {
+            super(doubleHandle, registry);
+        }
+
+        public MethodProphecy<Boolean> send(String email) {
+            return method("send", email);
+        }
+    }
+
+    public static final class MailSubject {
+        private Mailer mailer;
+
+        public void setMailer(Mailer mailer) {
+            this.mailer = mailer;
+        }
+
+        public void sendWelcomeEmail(String email) {
+            if (mailer == null) {
+                throw new IllegalStateException("mailer missing");
+            }
+            mailer.send(email);
+        }
+    }
+
+    public static final class InjectedProphecyExampleSpec extends ObjectBehavior<MailSubject> {
+        static boolean sent;
+
+        public InjectedProphecyExampleSpec() {
+            super(MailSubject.class);
+        }
+
+        static void reset() {
+            sent = false;
+        }
+
+        public void it_sends_a_welcome_email(MailerProphecy mailer) {
+            mailer.send("user@example.com").willReturn(Boolean.TRUE).shouldBeCalled();
+            subject().setMailer(mailer.reveal());
+            subject().sendWelcomeEmail("user@example.com");
+            sent = true;
+        }
+    }
+
+    public static final class InjectedProphecyLifecycleSpec extends ObjectBehavior<MailSubject> {
+        static List<String> events = new ArrayList<String>();
+        private MailerProphecy prepared;
+
+        public InjectedProphecyLifecycleSpec() {
+            super(MailSubject.class);
+        }
+
+        static void reset() {
+            events = new ArrayList<String>();
+        }
+
+        public void let(MailerProphecy mailer) {
+            events.add("let");
+            prepared = mailer;
+            mailer.send("lifecycle@example.com").willReturn(Boolean.TRUE).shouldBeCalled();
+            subject().setMailer(mailer.reveal());
+        }
+
+        public void it_uses_the_lifecycle_collaborator(MailerProphecy mailer) {
+            events.add("example:" + (prepared == mailer));
+            subject().sendWelcomeEmail("lifecycle@example.com");
+        }
+
+        public void letGo(MailerProphecy mailer) {
+            events.add("letGo:" + (prepared == mailer));
+        }
+    }
+
+    public static final class InjectedInterfaceExampleSpec extends ObjectBehavior<MailSubject> {
+        static boolean doubleReceived;
+
+        public InjectedInterfaceExampleSpec() {
+            super(MailSubject.class);
+        }
+
+        static void reset() {
+            doubleReceived = false;
+        }
+
+        public void it_receives_an_interface_double(Mailer mailer) {
+            doubleReceived = Doubles.isDouble(mailer);
         }
     }
 

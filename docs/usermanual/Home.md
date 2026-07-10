@@ -2132,6 +2132,28 @@ usage, generate the missing wrapper under `target/generated-sources/javaspec`, a
 Predictions are checked by `checkPredictions()` or automatically when `--auto-check-predictions` is
 enabled.
 
+### Collaborator parameters in `let`, examples, and `letGo`
+
+PHPSpec-style collaborator injection is available for supported parameter types on public `void`
+`let()`, `it_*` / `its_*`, and `letGo()` methods. Generated typed `*Prophecy` wrappers are the
+recommended form:
+
+```java
+public void let(MailerProphecy mailer) {
+    mailer.send("user@example.com").willReturn(true).shouldBeCalled();
+    setMailer(mailer.reveal());
+}
+
+public void it_sends_a_welcome_email(MailerProphecy mailer) {
+    sendWelcomeEmail("user@example.com");
+}
+```
+
+For one example run, javaspec reuses the same collaborator object for the same parameter type across
+`let`, the example, and `letGo`. Ordinary interface parameters are injected as zero-dependency
+interface doubles. Unsupported parameter types fail the example as BROKEN with an actionable
+diagnostic; this feature is not a general-purpose dependency-injection container.
+
 ## Interface doubles
 
 The doubles API under `io.github.jvmspec.doubles` provides zero-runtime-dependency collaborator doubles.
