@@ -323,7 +323,10 @@ public final class ClassMethodUpdater {
         String recordSimpleName = JavaTypeKind.RECORD.equals(describedType.kind())
                 ? describedType.simpleName()
                 : null;
-        return missingMethodsInScope(source, eligibleMethods(describedType), recordSimpleName);
+        String sourceWithPlannedComponents = recordSimpleName == null
+                ? source
+                : RecordComponentPlanner.updateRecordHeader(source, describedType);
+        return missingMethodsInScope(sourceWithPlannedComponents, eligibleMethods(describedType), recordSimpleName);
     }
 
     private static List<MethodDescriptor> missingMethodsInScope(String scopeSource, List<MethodDescriptor> methods) {

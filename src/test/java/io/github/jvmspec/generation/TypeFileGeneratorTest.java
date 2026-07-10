@@ -60,7 +60,7 @@ public class TypeFileGeneratorTest {
     }
 
     @Test
-    public void writeOrUpdateUpdatesRecordHeaderAndAddsAccessorStub() throws Exception {
+    public void writeOrUpdateUpdatesRecordHeaderWithoutDuplicatingImplicitAccessor() throws Exception {
         File sourceRoot = temporaryFolder.newFolder("record-source-root");
         DescribedType type = DescribedType.of(
                 "com.example.CertificateProfileId",
@@ -83,8 +83,7 @@ public class TypeFileGeneratorTest {
 
         String updated = readFile(plan.targetFile());
         assertTrue(updated.contains("public record CertificateProfileId(String value)"));
-        assertTrue(updated.contains("public String value() {"));
-        assertTrue(updated.contains("return null;"));
+        assertFalse(updated.contains("public String value() {"));
         assertFalse(updated.contains("public record CertificateProfileId()"));
     }
 

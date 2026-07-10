@@ -111,16 +111,88 @@ public class GenerationOrchestratorRecordTest {
                 updated.contains("public String algorithm() {\n" +
                         "        return \"SHA-256\";\n" +
                         "    }"));
-        assertTrue("missing accessor must remain an explicit javaspec stub for assertion-level RED",
-                updated.contains("public String value() {\n" +
-                        "        // javaspec:stub\n" +
-                        "        return null;\n" +
-                        "    }"));
+        assertFalse("the planned value component must supply its implicit accessor",
+                updated.contains("public String value()"));
         assertTrue("generated support must default record construction for already-described examples",
                 support.contains("super(CertificateProfileId.class);\n" +
                         "        beConstructedWith((String) null);"));
         compileAndRunNoArgExample(sourceFile, supportFile, specFile,
                 "it_uses_existing_no_arg_example_after_record_evolution");
+    }
+
+    @Test
+    public void plannedRecordComponentSuppliesRequestedAccessorWithoutDuplicateStub() throws Exception {
+        assumeTrue(supportsJavaSpecificationVersion(17));
+        File sourceRoot = temporaryFolder.newFolder("planned-accessor-source-root");
+        File specRoot = temporaryFolder.newFolder("planned-accessor-spec-root");
+        File generatedSourcesRoot = temporaryFolder.newFolder("planned-accessor-generated-sources-root");
+        File sourceFile = writeSource(sourceRoot, "com/example/CertificateProfileId.java",
+                "package com.example;\n\n" +
+                "public record CertificateProfileId(\n" +
+                "        String eventId,\n" +
+                "        String profileId,\n" +
+                "        long sequence,\n" +
+                "        String eventType,\n" +
+                "        String actor) {\n" +
+                "}\n");
+        File specFile = writeSource(specRoot, "spec/com/example/CertificateProfileIdSpec.java",
+                "package spec.com.example;\n\n" +
+                "import java.time.Instant;\n\n" +
+                "public class CertificateProfileIdSpec extends CertificateProfileIdSpecSupport {\n" +
+                "    public void it_exposes_when_the_event_occurred() {\n" +
+                "        Instant occurredAt = Instant.parse(\"2026-07-10T12:00:00Z\");\n" +
+                "        beConstructedWith(\"event-id\", \"profile-id\", 7L, \"created\", \"actor\", occurredAt);\n" +
+                "        occurredAt().shouldReturn(occurredAt);\n" +
+                "    }\n" +
+                "}\n");
+        DescribedType inferredClassDescription = DescribedType.of(
+                "com.example.CertificateProfileId",
+                JavaTypeKind.CLASS,
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Arrays.asList(ConstructorDescriptor.of(
+                        Arrays.asList("String", "String", "long", "String", "String", "java.time.Instant"),
+                        Arrays.asList("arg0", "arg1", "arg2", "arg3", "arg4", "occurredAt"),
+                        "")),
+                Arrays.asList(
+                        MethodDescriptor.of("occurredAt", "Object"),
+                        MethodDescriptor.of("summary", "String"))
+        );
+
+        GenerationOrchestratorResult result = GenerationOrchestrator.execute(
+                Arrays.asList(DiscoveredSpec.of(
+                        specFile,
+                        "spec.com.example.CertificateProfileIdSpec",
+                        inferredClassDescription)),
+                specRoot,
+                sourceRoot,
+                new BufferedReader(new StringReader("")),
+                new PrintStream(new ByteArrayOutputStream(), true, "UTF-8"),
+                new PrintStream(new ByteArrayOutputStream(), true, "UTF-8"),
+                true,
+                false,
+                SpecNamingConvention.defaults(),
+                Thread.currentThread().getContextClassLoader(),
+                ConstructorPolicy.COMMENT,
+                generatedSourcesRoot
+        );
+
+        File supportFile = new File(generatedSourcesRoot,
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator + "CertificateProfileIdSpecSupport.java");
+        String updated = readFile(sourceFile);
+        assertEquals(0, result.exitCode());
+        assertTrue(result.shouldProceed());
+        assertTrue(updated.contains("String actor, java.time.Instant occurredAt)"));
+        assertFalse("a planned record component must supply its implicit accessor",
+                updated.contains("public Object occurredAt()"));
+        assertTrue("a genuine missing record method must remain an explicit javaspec stub",
+                updated.contains("public String summary() {\n" +
+                        "        // javaspec:stub\n" +
+                        "        return null;\n" +
+                        "    }"));
+        compileAndRunNoArgExample(sourceFile, supportFile, specFile,
+                "it_exposes_when_the_event_occurred");
     }
 
     @Test
