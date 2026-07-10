@@ -2113,7 +2113,9 @@ public class UserServiceSpec extends UserServiceSpecSupport {
 
 On Java 10+, `var mailer = prophesizeMailer();` keeps the same typed method syntax while hiding the
 wrapper type. This mirrors PHPSpec/Prophecy's intent: describe the collaborator promise and
-prediction close to the behavior example, without stringly method names in the spec body.
+prediction close to the behavior example, without stringly method names in the spec body. Generated
+typed wrappers include argument-token overloads, so calls such as `mailer.send(any(String.class))`
+keep wrapper syntax instead of requiring reflective `method("send", ...)` fallback.
 
 Use the reflective form only as a bootstrap/fallback before the wrapper has been generated:
 

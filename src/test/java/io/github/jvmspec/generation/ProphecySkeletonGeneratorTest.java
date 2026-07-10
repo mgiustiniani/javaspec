@@ -14,6 +14,15 @@ public class ProphecySkeletonGeneratorTest {
         void flush();
     }
 
+    public interface ObjectOnlyCollaborator {
+        void receive(Object value);
+    }
+
+    public interface OverloadedCollaborator {
+        boolean convert(String value);
+        int convert(Integer value);
+    }
+
     @Test
     public void rendersInterfaceWrapperExtendingObjectProphecy() {
         String source = ProphecySkeletonGenerator.render(Mailer.class, "spec.com.example");
@@ -25,6 +34,35 @@ public class ProphecySkeletonGeneratorTest {
         assertTrue(source.contains("public final class MailerProphecy extends ObjectProphecy<"));
         assertTrue(source.contains("public MethodProphecy<Boolean> send("));
         assertTrue(source.contains("public MethodProphecy<Void> flush("));
+    }
+
+    @Test
+    public void rendersArgumentTokenOverloadsForTypedWrapperMethods() {
+        String source = ProphecySkeletonGenerator.render(Mailer.class, "spec.com.example");
+
+        assertTrue("exact typed overload must remain for literal/exact arguments",
+                source.contains("public MethodProphecy<Boolean> send(java.lang.String arg0, java.lang.String arg1)"));
+        assertTrue("Object overload lets generated wrappers accept Argument.any()/matching()/in() tokens",
+                source.contains("public MethodProphecy<Object> send(Object arg0, Object arg1)"));
+        assertFalse("zero-argument methods do not need token overloads",
+                source.contains("public MethodProphecy<Object> flush(Object"));
+    }
+
+    @Test
+    public void skipsArgumentTokenOverloadWhenExactObjectSignatureAlreadyAcceptsTokens() {
+        String source = ProphecySkeletonGenerator.render(ObjectOnlyCollaborator.class, "spec.com.example");
+
+        assertEquals(1, countOccurrences(source, "receive(java.lang.Object arg0)"));
+        assertFalse(source.contains("public MethodProphecy<Object> receive(Object arg0)"));
+    }
+
+    @Test
+    public void rendersOnlyOneArgumentTokenOverloadForSameArityOverloads() {
+        String source = ProphecySkeletonGenerator.render(OverloadedCollaborator.class, "spec.com.example");
+
+        assertTrue(source.contains("public MethodProphecy<Boolean> convert(java.lang.String arg0)"));
+        assertTrue(source.contains("public MethodProphecy<Integer> convert(java.lang.Integer arg0)"));
+        assertEquals(1, countOccurrences(source, "public MethodProphecy<Object> convert(Object arg0)"));
     }
 
     @Test
@@ -113,5 +151,15 @@ public class ProphecySkeletonGeneratorTest {
     @Test(expected = IllegalArgumentException.class)
     public void annotationTypeIsRejected() {
         ProphecySkeletonGenerator.render(SuppressWarnings.class, "");
+    }
+
+    private static int countOccurrences(String text, String fragment) {
+        int count = 0;
+        int index = 0;
+        while ((index = text.indexOf(fragment, index)) >= 0) {
+            count++;
+            index += fragment.length();
+        }
+        return count;
     }
 }

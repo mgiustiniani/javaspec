@@ -96,6 +96,15 @@ public final class ProphecySkeletonGenerator {
             }
             appendMethod(builder, method, simpleName);
         }
+        List<String> matcherOverloads = new ArrayList<String>();
+        for (Method method : uniqueMethods) {
+            String overloadKey = matcherOverloadKey(method);
+            if (overloadKey == null || matcherOverloads.contains(overloadKey)) {
+                continue;
+            }
+            matcherOverloads.add(overloadKey);
+            appendMatcherOverload(builder, method, simpleName);
+        }
 
         builder.append("}\n");
         return builder.toString();
@@ -164,6 +173,51 @@ public final class ProphecySkeletonGenerator {
         }
         builder.append(");\n");
         builder.append("    }\n");
+    }
+
+    private static void appendMatcherOverload(StringBuilder builder, Method method, String interfaceSimpleName) {
+        String methodName = method.getName();
+        Class<?>[] paramTypes = method.getParameterTypes();
+
+        builder.append("\n");
+        builder.append("    /**\n");
+        builder.append("     * Prophesizes a call to {@code ").append(interfaceSimpleName)
+                .append("#").append(methodName).append("(...)} using argument tokens.\n");
+        builder.append("     *\n");
+        builder.append("     * @return a method prophecy for chaining stubs and predictions\n");
+        builder.append("     */\n");
+        builder.append("    public MethodProphecy<Object> ").append(methodName).append("(");
+        for (int i = 0; i < paramTypes.length; i++) {
+            if (i > 0) {
+                builder.append(", ");
+            }
+            builder.append("Object arg").append(i);
+        }
+        builder.append(") {\n");
+        builder.append("        return method(\"").append(methodName).append("\"");
+        for (int i = 0; i < paramTypes.length; i++) {
+            builder.append(", arg").append(i);
+        }
+        builder.append(");\n");
+        builder.append("    }\n");
+    }
+
+    private static String matcherOverloadKey(Method method) {
+        Class<?>[] paramTypes = method.getParameterTypes();
+        if (paramTypes.length == 0) {
+            return null;
+        }
+        boolean allObject = true;
+        for (int i = 0; i < paramTypes.length; i++) {
+            if (!Object.class.equals(paramTypes[i])) {
+                allObject = false;
+                break;
+            }
+        }
+        if (allObject) {
+            return null;
+        }
+        return method.getName() + "/" + paramTypes.length;
     }
 
     private static String[] parameterNames(Method method) {

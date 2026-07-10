@@ -683,7 +683,9 @@ javaspec run --generate --compile --formatter pretty
 ```
 
 A common workflow is to write `prophesize(Mailer.class)` first, run generation once, then switch the
-spec to the recommended typed helper (`MailerProphecy mailer = prophesizeMailer();`).
+spec to the recommended typed helper (`MailerProphecy mailer = prophesizeMailer();`). Generated typed
+wrappers include argument-token overloads, so calls such as `mailer.send(any(String.class))` keep the
+PHPSpec-like wrapper syntax instead of requiring reflective `method("send", ...)` fallback.
 
 ### Argument matchers
 

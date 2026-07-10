@@ -64,7 +64,9 @@ moving dependency-heavy behavior into optional artifacts.
   and ambiguous overloads report BROKEN diagnostics.
 - Phase 49 has begun expanding Prophecy parity with identity (`same` / `identicalTo`), membership
   (`in` / `notIn`), and custom callback (`matching`) argument tokens, available through core
-  `Doubles` / `ArgumentMatchers` and prophecy `Argument` / `Arg` aliases. `MethodProphecy.should(...)`
+  `Doubles` / `ArgumentMatchers` and prophecy `Argument` / `Arg` aliases. Generated typed
+  `*Prophecy` wrappers include same-name `Object` argument-token overloads, so matcher-token calls
+  compile without falling back to reflective `method("...")` syntax. `MethodProphecy.should(...)`
   now supports custom prediction callbacks receiving a `PredictionContext` with matching calls,
   all calls, method name, and argument pattern. Prediction and verification failure messages include
   recorded/matching call context, including ordered-verification failures and same-method calls with
