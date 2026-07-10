@@ -21,11 +21,11 @@ Compatibility policy:
 | `io.github.jvmspec.runner` | `PUBLIC_API` | Programmatic result model and runner entrypoint: `SpecRunner`, `RunResult`, `SpecResult`, `ExampleResult`, `ExampleStatus`, `FailureDetail`. |
 | `io.github.jvmspec.invocation` | `PUBLIC_API` | Programmatic launcher and exit-code mapping for embedding javaspec. |
 | `io.github.jvmspec.reporting` | `PUBLIC_API` | JSON and JUnit XML report writers plus report metadata; schemas evolve additively within schemaVersion 1. |
-| `io.github.jvmspec.bootstrap` | `PUBLIC_SPI` | Bootstrap hook SPI and context for project setup before execution. |
-| `io.github.jvmspec.extension` | `PUBLIC_SPI` | ServiceLoader extension SPI and extension activation context. |
-| `io.github.jvmspec.formatter` | `PUBLIC_SPI` | Formatter SPI and built-in formatter registry. |
-| `io.github.jvmspec.resolver` | `PUBLIC_SPI` | Dependency resolver SPI for optional build-tool integration. |
-| `io.github.jvmspec.generation.parser` | `PUBLIC_SPI` | Source parser SPI used by generation; parser implementations shipped in core are not guaranteed as extension points unless named here. |
+| `io.github.jvmspec.bootstrap` | `PUBLIC_SPI` | Bootstrap hook SPI and context for project setup before execution; see `docs/extension-spi-1.0.md`. |
+| `io.github.jvmspec.extension` | `PUBLIC_SPI` | ServiceLoader/configured extension SPI and extension activation context; see `docs/extension-spi-1.0.md`. |
+| `io.github.jvmspec.formatter` | `PUBLIC_SPI` | Formatter SPI and built-in formatter registry; see `docs/extension-spi-1.0.md`. |
+| `io.github.jvmspec.resolver` | `PUBLIC_SPI` | Dependency resolver SPI for optional build-tool integration; see `docs/extension-spi-1.0.md`. |
+| `io.github.jvmspec.generation.parser` | `PUBLIC_SPI` | Source parser SPI used by generation; parser implementations shipped in core are not guaranteed as extension points unless named here. See `docs/extension-spi-1.0.md`. |
 | `io.github.jvmspec.discovery` | `PUBLIC_API` | Discovery model and naming convention used by adapters. Internal parsing heuristics remain implementation details. |
 | `io.github.jvmspec.model` | `PUBLIC_API` | Immutable descriptors for described production types, methods, constructors, and Java type kinds. |
 | `io.github.jvmspec.naming` | `PUBLIC_API` | Backward-compatible public naming facade. |

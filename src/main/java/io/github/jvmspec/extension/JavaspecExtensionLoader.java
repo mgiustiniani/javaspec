@@ -24,10 +24,17 @@ public final class JavaspecExtensionLoader {
 
     public static RunFormatterRegistry loadRunFormatterRegistry(ClassLoader classLoader) {
         ClassLoader effectiveClassLoader = effectiveClassLoader(classLoader);
-        RunFormatterRegistry registry = RunFormatterRegistry.builtIn();
-        loadRunFormatterProviders(registry, effectiveClassLoader);
-        loadExtensionProviders(registry, effectiveClassLoader);
-        return registry;
+        Thread currentThread = Thread.currentThread();
+        ClassLoader originalContextClassLoader = currentThread.getContextClassLoader();
+        currentThread.setContextClassLoader(effectiveClassLoader);
+        try {
+            RunFormatterRegistry registry = RunFormatterRegistry.builtIn();
+            loadRunFormatterProviders(registry, effectiveClassLoader);
+            loadExtensionProviders(registry, effectiveClassLoader);
+            return registry;
+        } finally {
+            currentThread.setContextClassLoader(originalContextClassLoader);
+        }
     }
 
     /**
@@ -38,7 +45,9 @@ public final class JavaspecExtensionLoader {
      * preserved). All configured classes are loaded from the effective classloader (the supplied
      * classloader, or the default classloader when {@code null} is supplied), which is the same
      * classloader used for ServiceLoader discovery, so the configured extensions act on the same
-     * registry instance later used for formatter selection.</p>
+     * registry instance later used for formatter selection. During discovery and activation the
+     * thread context classloader is temporarily set to the effective classloader and restored in a
+     * {@code finally} block.</p>
      *
      * @param classLoader                 classloader for discovery and configured extension
      *                                    loading; {@code null} selects the default classloader
@@ -54,11 +63,18 @@ public final class JavaspecExtensionLoader {
             List<String> configuredExtensionClassNames
     ) {
         ClassLoader effectiveClassLoader = effectiveClassLoader(classLoader);
-        RunFormatterRegistry registry = loadRunFormatterRegistry(effectiveClassLoader);
-        if (configuredExtensionClassNames != null && !configuredExtensionClassNames.isEmpty()) {
-            JavaspecExtensionActivator.activate(configuredExtensionClassNames, effectiveClassLoader, registry);
+        Thread currentThread = Thread.currentThread();
+        ClassLoader originalContextClassLoader = currentThread.getContextClassLoader();
+        currentThread.setContextClassLoader(effectiveClassLoader);
+        try {
+            RunFormatterRegistry registry = loadRunFormatterRegistry(effectiveClassLoader);
+            if (configuredExtensionClassNames != null && !configuredExtensionClassNames.isEmpty()) {
+                JavaspecExtensionActivator.activate(configuredExtensionClassNames, effectiveClassLoader, registry);
+            }
+            return registry;
+        } finally {
+            currentThread.setContextClassLoader(originalContextClassLoader);
         }
-        return registry;
     }
 
     public static RunFormatterRegistry loadRunFormatters() {

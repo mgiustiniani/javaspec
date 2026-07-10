@@ -107,7 +107,7 @@ Public-facing contracts are classified for 1.0 in `docs/api-surface-1.0.md`:
 - P1-ROW-001: example-data row selection semantics need a 1.0 contract.
 - P1-PROP-001: generated Prophecy token overload edge cases need audit.
 - P1-MATCH-001: Phase 50 matcher parity requires implementation or explicit deferral.
-- P1-EXT-001: event/extension v2 scope must be decided before API freeze.
+- P1-EXT-001: DONE — existing SPI semantics are frozen in `docs/extension-spi-1.0.md`; typed event model v2 is deferred.
 - P1-JUNIT-001: JUnit Platform IDE/source/selector parity needs contract audit.
 
 ### P2

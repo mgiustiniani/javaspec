@@ -90,7 +90,7 @@ Areas needing classification before API freeze:
 | P1-ROW-001 | P1 | Example-data row selector semantics are subtle and could be misrepresented. | Document and test inline row execution vs descriptor/event filtering. |
 | P1-PROP-001 | P1 | Generated Prophecy token overloads need edge-case audit. | Add regression matrix and document limits. |
 | P1-MATCH-001 | P1 | Inline/configured custom matcher scope is not finalized. | Implement or explicitly defer/narrow scope before RC without contradicting the PHPSpec-first promise. |
-| P1-EXT-001 | P1 | Event/extension v2 scope could affect API freeze. | Decide 1.0 scope and classify existing extension APIs. |
+| P1-EXT-001 | P1 | Event/extension v2 scope could affect API freeze. | DONE: `docs/extension-spi-1.0.md` freezes existing SPI semantics and defers typed event model v2. |
 | P2-PERF-001 | P2 | No large-suite performance baseline yet. | Add reproducible benchmark before final 1.0 if feasible; otherwise document post-1.0 plan. |
 
 ## Decisions required before API freeze

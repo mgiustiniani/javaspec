@@ -124,6 +124,33 @@ public class JavaspecExtensionLoaderTest {
     }
 
     @Test
+    public void serviceLoaderDiscoverySetsAndRestoresContextClassLoader() throws Exception {
+        File serviceRoot = serviceRoot();
+        writeService(serviceRoot, JavaspecExtension.class, ContextClassLoaderServiceExtension.class);
+        URLClassLoader serviceClassLoader = new URLClassLoader(
+                new URL[] {serviceRoot.toURI().toURL()},
+                JavaspecExtensionLoaderTest.class.getClassLoader()
+        );
+        ClassLoader originalClassLoader = new ClassLoader(JavaspecExtensionLoaderTest.class.getClassLoader()) {
+        };
+        Thread thread = Thread.currentThread();
+        ClassLoader previousClassLoader = thread.getContextClassLoader();
+        ContextClassLoaderServiceExtension.reset(serviceClassLoader);
+        thread.setContextClassLoader(originalClassLoader);
+        try {
+            RunFormatterRegistry registry = JavaspecExtensionLoader.loadRunFormatterRegistry(serviceClassLoader);
+
+            assertEquals(Arrays.asList("progress", "pretty", "json", "tccl-service"), registry.formatterNames());
+            assertEquals(Arrays.asList("service:true"), ContextClassLoaderServiceExtension.events());
+            assertSame(originalClassLoader, thread.getContextClassLoader());
+        } finally {
+            thread.setContextClassLoader(previousClassLoader);
+            serviceClassLoader.close();
+            ContextClassLoaderServiceExtension.reset(null);
+        }
+    }
+
+    @Test
     public void blankFormatterNameProducesExtensionLoadingExceptionWithProviderDetail() throws Exception {
         File serviceRoot = serviceRoot();
         writeService(serviceRoot, RunFormatter.class, BlankNameRunFormatter.class);
@@ -231,6 +258,31 @@ public class JavaspecExtensionLoaderTest {
         public void configure(ExtensionContext context) {
             ConfiguredExtensionState.record("second");
             registerOrderFormatter(context);
+        }
+    }
+
+    public static final class ContextClassLoaderServiceExtension implements JavaspecExtension {
+        private static ClassLoader expectedClassLoader;
+        private static final List<String> EVENTS = new ArrayList<String>();
+
+        public void configure(ExtensionContext context) {
+            synchronized (ContextClassLoaderServiceExtension.class) {
+                EVENTS.add("service:" + (Thread.currentThread().getContextClassLoader() == expectedClassLoader));
+            }
+            context.runFormatters().register("tccl-service", new RunFormatter() {
+                public void format(RunResult runResult, PrintStream out) {
+                    out.println("tccl service");
+                }
+            });
+        }
+
+        static synchronized void reset(ClassLoader expected) {
+            expectedClassLoader = expected;
+            EVENTS.clear();
+        }
+
+        static synchronized List<String> events() {
+            return new ArrayList<String>(EVENTS);
         }
     }
 

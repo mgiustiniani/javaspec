@@ -831,7 +831,7 @@ javaspec adapter settings opt into javaspec compilation.
 - Non-final concrete-class doubles require the optional ByteBuddy subclass adapter; final-class, static-method, and construction-aware doubles require the optional bytecode agent adapter.
 - Compilation is opt-in; it supports local-POM dependency resolution, incremental cache hits, and `--release <N>`, but does not fork `javac`.
 - Target profiles (`java8`, `java11`, `java17`, `java21`, `java25`) are enforced conservatively before generation/update writes where metadata is resolvable.
-- Extension, formatter, and bootstrap discovery are classpath/ServiceLoader based; package scanning, plugin lookup, script engines, and automatic classpath repair are out of scope.
+- Extension, formatter, bootstrap, parser, and dependency-resolver SPI semantics are frozen in `docs/extension-spi-1.0.md`; package scanning, plugin lookup, script engines, typed event model v2, and automatic classpath repair are out of scope.
 
 ## Development and verification
 
@@ -846,6 +846,12 @@ For aggregate local verification of core, standalone adapters, and examples:
 
 ```sh
 scripts/verify-all.sh
+```
+
+For release dry-run verification of packaged artifacts and consumer examples:
+
+```sh
+scripts/verify-release-dry-run.sh
 ```
 
 For examples only:

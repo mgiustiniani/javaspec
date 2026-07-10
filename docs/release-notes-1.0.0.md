@@ -20,7 +20,9 @@ moving dependency-heavy behavior into optional artifacts.
   captors, ordered verification, and return-then-throw stubbing.
 - CLI compilation gained local-POM dependency resolution (`--resolve-pom`), `--release <N>`, and
   incremental cache hits for unchanged inputs.
-- Extension discovery includes `list-extensions` and classpath repair hints.
+- Extension discovery includes `list-extensions` and classpath repair hints. The 1.0 extension SPI
+  contract is frozen in `docs/extension-spi-1.0.md`; typed event model v2 is deferred, and extension
+  activation temporarily sets/restores the effective run thread context classloader.
 - Parser/updater generation is backed by a parser SPI and ignores signatures inside comments and
   strings.
 - Discovery now infers more static argument types before generation, including casted nulls,

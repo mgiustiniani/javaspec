@@ -833,11 +833,12 @@ pending examples.
 
 Built-in and external output is rendered through the public zero-dependency
 `io.github.jvmspec.formatter.RunFormatter` contract and deterministic `RunFormatterRegistry`. Built-in
-names are `progress` and `pretty`. Phase 25 adds JDK `ServiceLoader` discovery through
+names are `progress`, `pretty`, and `json`. JDK `ServiceLoader` discovery runs through
 `io.github.jvmspec.extension.JavaspecExtensionLoader.loadRunFormatterRegistry()` and
 `loadRunFormatterRegistry(ClassLoader)`; compatibility aliases such as `loadRunFormatters(...)` may
 also exist. The registry contains built-ins first, then providers discovered from the effective
-classloader.
+classloader. The stable 1.0 SPI boundaries, ordering, classloader, cleanup, and deferred event-model
+scope are documented in `docs/extension-spi-1.0.md`.
 
 Supported service types are:
 
@@ -898,9 +899,12 @@ public final class MarkdownExtension implements JavaspecExtension {
 ```
 
 If the same extension implementation is listed under both extension service types, javaspec
-configures it once per registry load. Invalid service declarations, unloadable providers, invalid
-formatter names, and extension configuration failures raise `ExtensionLoadingException` with
-service/provider diagnostics.
+configures it once per registry load. Configured extension class names run after ServiceLoader
+providers in declaration order and preserve duplicates. During discovery and configured activation,
+javaspec temporarily sets the thread context classloader to the effective run classloader and restores
+it after success or failure. Invalid service declarations, unloadable providers, invalid formatter
+names, and extension configuration failures raise `ExtensionLoadingException` with service/provider
+diagnostics.
 
 CLI behavior:
 

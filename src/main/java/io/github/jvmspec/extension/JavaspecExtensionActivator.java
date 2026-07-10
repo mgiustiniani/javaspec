@@ -27,7 +27,9 @@ import io.github.jvmspec.extension.ExtensionCatalog;
  *   <li><b>Ordering:</b> entries are activated strictly in list order; duplicate entries are
  *   preserved and configured once per occurrence, consistent with bootstrap hook semantics.</li>
  *   <li><b>Classloader:</b> every class is loaded from the supplied classloader, which must be
- *   the same classloader used to build the target registry (the effective run classloader).</li>
+ *   the same classloader used to build the target registry (the effective run classloader). The
+ *   thread context classloader is temporarily set to that classloader for activation and restored
+ *   after success or failure.</li>
  *   <li><b>Failure:</b> a class that cannot be found, does not implement
  *   {@link JavaspecExtension} (or its {@link Extension} alias), lacks a public no-argument
  *   constructor, fails to instantiate, or throws from {@code configure(ExtensionContext)}
@@ -76,9 +78,16 @@ public final class JavaspecExtensionActivator {
         Objects.requireNonNull(extensionClassNames, "extensionClassNames must not be null");
         Objects.requireNonNull(classLoader, "classLoader must not be null");
         Objects.requireNonNull(context, "context must not be null");
-        for (int i = 0; i < extensionClassNames.size(); i++) {
-            String extensionClassName = extensionClassNameAt(extensionClassNames, i);
-            activateExtension(extensionClassName, classLoader, context);
+        Thread currentThread = Thread.currentThread();
+        ClassLoader originalContextClassLoader = currentThread.getContextClassLoader();
+        currentThread.setContextClassLoader(classLoader);
+        try {
+            for (int i = 0; i < extensionClassNames.size(); i++) {
+                String extensionClassName = extensionClassNameAt(extensionClassNames, i);
+                activateExtension(extensionClassName, classLoader, context);
+            }
+        } finally {
+            currentThread.setContextClassLoader(originalContextClassLoader);
         }
     }
 

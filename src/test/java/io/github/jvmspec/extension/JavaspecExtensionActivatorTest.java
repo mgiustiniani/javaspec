@@ -25,6 +25,7 @@ import javax.tools.ToolProvider;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -74,6 +75,39 @@ public class JavaspecExtensionActivatorTest {
 
         assertEquals(Arrays.asList("first", "second", "first", "alias"), RecordingExtensionState.events());
         assertTrue(registry.contains("alias-recording"));
+    }
+
+    @Test
+    public void setsAndRestoresContextClassLoaderDuringConfiguredActivationAndFailure() throws Exception {
+        URLClassLoader activationClassLoader = new URLClassLoader(
+                new URL[] {temporaryFolder.newFolder("activation-context-root").toURI().toURL()},
+                JavaspecExtensionActivatorTest.class.getClassLoader()
+        );
+        ClassLoader originalClassLoader = new ClassLoader(JavaspecExtensionActivatorTest.class.getClassLoader()) {
+        };
+        Thread thread = Thread.currentThread();
+        ClassLoader previousClassLoader = thread.getContextClassLoader();
+        ContextClassLoaderRecordingExtension.reset(activationClassLoader);
+        thread.setContextClassLoader(originalClassLoader);
+        try {
+            JavaspecExtensionActivator.activate(
+                    Arrays.asList(
+                            ContextClassLoaderRecordingExtension.class.getName(),
+                            ContextClassLoaderFailingExtension.class.getName()
+                    ),
+                    activationClassLoader,
+                    RunFormatterRegistry.builtIn()
+            );
+            fail("Expected configured extension failure");
+        } catch (ExtensionLoadingException expected) {
+            assertTrue(expected.getMessage(), expected.getMessage().contains(ContextClassLoaderFailingExtension.class.getName()));
+            assertEquals(Arrays.asList("recording:true", "failing:true"), ContextClassLoaderRecordingExtension.events());
+            assertSame(originalClassLoader, thread.getContextClassLoader());
+        } finally {
+            thread.setContextClassLoader(previousClassLoader);
+            activationClassLoader.close();
+            ContextClassLoaderRecordingExtension.reset(null);
+        }
     }
 
     @Test
@@ -251,6 +285,35 @@ public class JavaspecExtensionActivatorTest {
     public static final class FailingConfiguredExtension implements JavaspecExtension {
         public void configure(ExtensionContext context) {
             throw new IllegalStateException("phase 32 configure failure");
+        }
+    }
+
+    public static final class ContextClassLoaderRecordingExtension implements JavaspecExtension {
+        private static ClassLoader expectedClassLoader;
+        private static final List<String> EVENTS = new ArrayList<String>();
+
+        public void configure(ExtensionContext context) {
+            record("recording");
+        }
+
+        static synchronized void reset(ClassLoader expected) {
+            expectedClassLoader = expected;
+            EVENTS.clear();
+        }
+
+        static synchronized void record(String prefix) {
+            EVENTS.add(prefix + ":" + (Thread.currentThread().getContextClassLoader() == expectedClassLoader));
+        }
+
+        static synchronized List<String> events() {
+            return new ArrayList<String>(EVENTS);
+        }
+    }
+
+    public static final class ContextClassLoaderFailingExtension implements JavaspecExtension {
+        public void configure(ExtensionContext context) {
+            ContextClassLoaderRecordingExtension.record("failing");
+            throw new IllegalStateException("context classloader failure");
         }
     }
 

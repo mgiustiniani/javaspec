@@ -245,14 +245,18 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
 
 - Macro-area: C — Stable diagnostics, APIs and reports
 - Priority: P1
-- Disposition: REQUIRED_BEFORE_RC for API decision; full v2 may be DEFERRED_WITH_DOCUMENTED_LIMIT.
-- Status: TODO
-- Motivation: event/extension changes after 1.0 are expensive, but current extension surfaces may be sufficient if clearly scoped.
+- Disposition: REQUIRED_BEFORE_RC for API decision; full v2 is DEFERRED_WITH_DOCUMENTED_LIMIT.
+- Status: COMPLETED
+- Motivation: event/extension changes after 1.0 are expensive, but current extension surfaces are sufficient when clearly scoped.
 - Dependencies: M2.
 - Acceptance criteria:
   - Decide whether typed suite/spec/example/row/generation/report events are in 1.0 or deferred.
   - Existing formatter, parser, dependency resolver, bootstrap hook, and extension APIs are classified and documented.
   - Listener ordering, classloader, failure semantics, and cleanup behavior are documented for any 1.0 event API.
+- Evidence:
+  - `docs/extension-spi-1.0.md` freezes existing extension, formatter, bootstrap, parser, and resolver SPI semantics.
+  - Typed event model v2 is explicitly deferred from 1.0.
+  - Extension activation now temporarily sets the thread context classloader to the effective run classloader and restores it after success or failure.
 - Verification:
   - Extension tests and ServiceLoader tests
   - `scripts/verify-all.sh`
