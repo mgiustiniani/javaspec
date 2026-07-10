@@ -16,6 +16,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 public class SpecDiscoveryTest {
     @Rule
@@ -421,6 +422,30 @@ public class SpecDiscoveryTest {
     }
 
     @Test
+    public void varLocalInitializerContributesStaticTypeForProxyCalls() throws Exception {
+        assumeTrue(supportsJavaSpecificationVersion(10));
+        File specRoot = temporaryFolder.newFolder("var-local-root");
+        writeFile(
+                specRoot,
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator + "CanonicalTextSpec.java",
+                "package spec.com.example;\n" +
+                "public class CanonicalTextSpec extends CanonicalTextSpecSupport {\n" +
+                "    public void it_classifies_var_text() {\n" +
+                "        var validId = \"abc\";\n" +
+                "        isCanonicalText(validId).shouldReturn(true);\n" +
+                "    }\n" +
+                "}\n"
+        );
+
+        List<DiscoveredSpec> specs = SpecDiscovery.discover(specRoot);
+
+        assertEquals(1, specs.size());
+        assertEquals(Arrays.asList(
+                MethodDescriptor.of("isCanonicalText", "boolean", Arrays.asList("String"), Arrays.asList("arg0"))
+        ), specs.get(0).describedType().methods());
+    }
+
+    @Test
     public void uncastNullArgumentIsTrackedAsUnknownObjectPlaceholder() throws Exception {
         File specRoot = temporaryFolder.newFolder("unknown-null-root");
         writeFile(
@@ -513,6 +538,25 @@ public class SpecDiscoveryTest {
                 MethodDescriptor.voidMethod("reset", Arrays.<String>asList(), Arrays.<String>asList()),
                 MethodDescriptor.voidMethod("configure", Arrays.asList("String"), Arrays.asList("arg0"))
         ), specs.get(0).describedType().methods());
+    }
+
+    private static boolean supportsJavaSpecificationVersion(int minimumVersion) {
+        String version = System.getProperty("java.specification.version");
+        if (version == null) {
+            return false;
+        }
+        if (version.startsWith("1.")) {
+            version = version.substring(2);
+        }
+        int dot = version.indexOf('.');
+        if (dot >= 0) {
+            version = version.substring(0, dot);
+        }
+        try {
+            return Integer.parseInt(version) >= minimumVersion;
+        } catch (NumberFormatException ex) {
+            return false;
+        }
     }
 
     private static File writeFile(File root, String relativePath) throws Exception {

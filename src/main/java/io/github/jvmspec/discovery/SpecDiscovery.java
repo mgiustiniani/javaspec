@@ -475,7 +475,13 @@ public final class SpecDiscovery {
             SpecCallScanner.SpecMethodParams params = entry.getValue();
             List<String> types = new ArrayList<String>();
             for (int i = 0; i < params.typeTexts.size(); i++) {
-                types.add(resolveTypeName(params.typeTexts.get(i), imports, describedPackageName));
+                String typeText = params.typeTexts.get(i);
+                String initializerText = i < params.initializerTexts.size() ? params.initializerTexts.get(i) : null;
+                if ("var".equals(typeText) && initializerText != null) {
+                    types.add(inferLiteralType(initializerText, imports, describedPackageName).typeName);
+                } else {
+                    types.add(resolveTypeName(typeText, imports, describedPackageName));
+                }
             }
             methods.put(entry.getKey(), new MethodParameterInfo(types, params.names));
         }

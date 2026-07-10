@@ -94,18 +94,21 @@ final class SpecCallScanner {
     static final class SpecMethodParams {
         final List<String> typeTexts;
         final List<String> names;
+        final List<String> initializerTexts;
 
-        SpecMethodParams(List<String> typeTexts, List<String> names) {
+        SpecMethodParams(List<String> typeTexts, List<String> names, List<String> initializerTexts) {
             this.typeTexts = typeTexts;
             this.names = names;
+            this.initializerTexts = initializerTexts;
         }
 
-        void addIfAbsent(String typeText, String name) {
+        void addIfAbsent(String typeText, String name, String initializerText) {
             if (names.contains(name)) {
                 return;
             }
             typeTexts.add(typeText);
             names.add(name);
+            initializerTexts.add(initializerText);
         }
     }
 
@@ -177,13 +180,15 @@ final class SpecCallScanner {
             if (isPublicVoid(methodTree)) {
                 List<String> typeTexts = new ArrayList<String>();
                 List<String> names = new ArrayList<String>();
+                List<String> initializerTexts = new ArrayList<String>();
                 List<? extends VariableTree> parameters = methodTree.getParameters();
                 for (int i = 0; i < parameters.size(); i++) {
                     VariableTree parameter = parameters.get(i);
                     typeTexts.add(parameter.getType().toString());
                     names.add(parameter.getName().toString());
+                    initializerTexts.add(null);
                 }
-                result.specMethods.put(currentMethod, new SpecMethodParams(typeTexts, names));
+                result.specMethods.put(currentMethod, new SpecMethodParams(typeTexts, names, initializerTexts));
             }
             try {
                 return super.visitMethod(methodTree, unused);
@@ -194,10 +199,18 @@ final class SpecCallScanner {
 
         @Override
         public Void visitVariable(VariableTree variableTree, Void unused) {
-            if (currentMethod != null && variableTree.getType() != null) {
+            if (currentMethod != null) {
                 SpecMethodParams params = result.specMethods.get(currentMethod);
                 if (params != null) {
-                    params.addIfAbsent(variableTree.getType().toString(), variableTree.getName().toString());
+                    ExpressionTree initializer = variableTree.getInitializer();
+                    Tree type = variableTree.getType();
+                    if (type != null || initializer != null) {
+                        params.addIfAbsent(
+                                type == null ? "var" : type.toString(),
+                                variableTree.getName().toString(),
+                                initializer == null ? null : initializer.toString()
+                        );
+                    }
                 }
             }
             return super.visitVariable(variableTree, unused);
