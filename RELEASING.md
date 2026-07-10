@@ -41,9 +41,16 @@ on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. The active relea
    - Configure an explicit signing profile or external signing process; GPG signing is required by Central publication workflows.
    - Configure Central Portal publication steps.
 8. For Gradle Plugin Portal publication:
-   - Confirm plugin id, display metadata, tags, website, and VCS URL.
+   - Sign in or create an account at <https://plugins.gradle.org/user/login>.
+   - Open the **API Keys** tab in the Plugin Portal profile and create/copy the key and secret.
+   - In GitHub, open **Settings → Secrets and variables → Actions** for this repository and create
+     repository secrets `GRADLE_PUBLISH_KEY` and `GRADLE_PUBLISH_SECRET` with those values.
+   - Confirm plugin id `io.github.jvmspec`, display metadata, tags, website, and VCS URL.
    - Reconfirm MIT license and maintainer metadata are acceptable for the publication target.
-   - Configure Gradle Plugin Portal publishing credentials (`GRADLE_PUBLISH_KEY` and `GRADLE_PUBLISH_SECRET`).
+   - First publication may require Plugin Portal review; verify the published version at
+     <https://plugins.gradle.org/plugin/io.github.jvmspec> before declaring the Gradle release complete.
+   - The tag workflow checks that both Gradle secrets and all Maven/GPG secrets are non-empty before
+     any publication step, preventing a known missing credential from causing a partial release.
 9. Tag and create the release only after local verification and CI are green. The release workflow runs
    the release preflight, release dry-run, Maven Central publication for all Maven artifacts, and
    Gradle Plugin Portal publication.

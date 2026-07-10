@@ -84,4 +84,6 @@ Evidence:
 Remaining RC/final cut-time evidence:
 
 - Tag/version/workflow alignment at actual tag time.
+- Confirmation that `GRADLE_PUBLISH_KEY` and `GRADLE_PUBLISH_SECRET` are configured as GitHub
+  repository secrets.
 - Publication-generated signatures and Central/Gradle Plugin Portal staging evidence.

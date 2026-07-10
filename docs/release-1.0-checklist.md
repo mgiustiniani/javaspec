@@ -115,6 +115,8 @@ Evidence:
 - [x] Bytecode agent manifest has required `Premain-Class` and `Agent-Class`.
 - [x] Checksums generated/verified locally by release dry-run; publication workflow checksums still recorded at RC/final publication time.
 - [x] Signing configured/documented.
+- [ ] Gradle Plugin Portal API key/secret confirmed as GitHub repository secrets before tagging.
+- [x] Release workflow validates all Maven/GPG/Gradle secret presence before publishing.
 - [x] Release workflow publishes or stages every declared artifact or fails clearly (Maven Central artifacts include core, Maven plugin, JUnit Platform engine, bytecode doubles, and bytecode agent; Gradle Plugin Portal publication uses `publishPlugins`).
 - [x] Release dry-run script green.
 - [ ] Tag/version/workflow alignment verified at RC/final tag time (`scripts/check-release-preflight.sh` requires tag `v<version>`).
