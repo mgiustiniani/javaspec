@@ -183,6 +183,62 @@ repository intentionally keeps standalone adapters/examples out of a root Maven 
   described accessors. Regression coverage now includes new record components, generated accessor
   stubs, existing records, and compact-constructor preservation.
 
+- **Urgent — explicit record construction arity compatibility (Planned):** when an existing record
+  gains a trailing component, older examples with explicit `beConstructedWith(...)` calls at the
+  previous arity currently become BROKEN with `No matching constructor found` unless authors update
+  every construction call before RED. This was observed in Magrathea PKI while evolving
+  `CertificateProfileLifecycleEventEnvelope` from three to four record components. The desired
+  behavior is a narrow, visible compatibility path for records only: exact-arity constructor calls
+  still win; otherwise, if explicit arguments are a strict prefix of the evolved canonical record
+  constructor, javaspec should append generated defaults for newly added trailing record components
+  through the construction resolver, with generated support aligned for new specs. The fix must not
+  apply to normal classes, must not reorder arguments, must not fill
+  missing middle components, must not bypass exact auxiliary record constructors, and must allow
+  compact-constructor validation failures to surface as meaningful domain feedback. Add regressions
+  for legacy explicit prefix calls remaining non-BROKEN after record arity growth, explicit values
+  being preserved, full-arity calls unchanged, non-record constructors unaffected, non-prefix calls
+  failing clearly, exact auxiliary record constructors winning, compact-constructor failures still
+  surfacing, and an optional formatter notice explaining any generated padding.
+
+  **Global solution plan:** implement this as a construction-resolution capability rather than as
+  ad-hoc generated source rewriting. Generated support can emit better defaults/notices, but explicit
+  user-authored `beConstructedWith(...)` calls all flow through `SubjectLifecycle`, so the durable
+  fix belongs at runtime construction selection with generation and diagnostics layered around it.
+
+  1. **Introduce a small construction resolver in `SubjectLifecycle`:** keep the current exact
+     constructor match as the first pass. If no exact match exists, and only when `subjectType` is a
+     record, inspect `subjectType.getRecordComponents()` reflectively (without direct Java 16 API
+     linkage) and identify the canonical constructor by component types. This preserves Java 8 core
+     compatibility while allowing Java 16+ record behavior when present.
+  2. **Allow only trailing canonical padding:** accept an explicit argument list only when every
+     provided argument matches the canonical record constructor parameter at the same index and the
+     provided arity is a strict prefix of the canonical arity. Append generated Java default values
+     for the remaining trailing component types. Do not fill gaps, reorder parameters, or infer
+     middle components.
+  3. **Preserve exact/auxiliary constructor precedence:** declared constructors are still scanned
+     for an exact match before canonical-prefix padding. This means an exact auxiliary record
+     constructor, if present, wins and no padding is applied.
+  4. **Keep classes and factories unchanged:** the fallback is record-constructor-only. Normal class
+     constructors, `beConstructedThrough(...)`, and named factory construction retain current exact
+     matching semantics.
+  5. **Surface domain failures unchanged:** once padded arguments invoke the canonical constructor,
+     any compact-constructor or canonical-constructor validation exception must propagate exactly as
+     today via `InvocationTargetException` unwrapping. The compatibility path only avoids
+     infrastructure BROKENs caused by arity growth; it must not hide invalid domain state.
+  6. **Make compatibility visible:** add an internal flag/detail on the selected construction path so
+     CLI/pretty diagnostics can optionally report that record defaults were appended, including the
+     component names/types that were defaulted. Keep progress output quiet unless verbose/notices are
+     already enabled.
+  7. **Align generation, not rely on it:** update generated support so newly generated record
+     construction defaults still use full canonical arity for fresh specs. Existing explicit prefix
+     calls remain valid because of the resolver, not because all user specs were rewritten.
+  8. **Regression matrix:** add `SubjectLifecycle` unit tests for exact match precedence, prefix
+     padding, full-arity no-op, non-record no fallback, missing middle/non-prefix rejection, null vs
+     primitive trailing defaults, auxiliary exact constructor precedence, compact-constructor failure
+     propagation, and clear no-match diagnostics. Add one CLI `run --generate --compile` regression
+     proving an evolved record reaches a meaningful assertion RED instead of `No matching constructor
+     found`.
+
 ## PHPSpec-First JUnit-Parity Roadmap — Proposed Phases 46-54
 
 This roadmap defines how javaspec should become competitive with JUnit as a Java testing platform
