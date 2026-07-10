@@ -490,7 +490,7 @@ public final class DescribedType {
     private static void addMethod(List<MethodDescriptor> methods, MethodDescriptor candidate) {
         for (int i = 0; i < methods.size(); i++) {
             MethodDescriptor existing = methods.get(i);
-            if (!existing.hasCompatibleSignature(candidate)) {
+            if (!existing.hasEquivalentSignature(candidate)) {
                 continue;
             }
             if (shouldReplace(existing, candidate)) {
@@ -502,28 +502,10 @@ public final class DescribedType {
     }
 
     private static boolean shouldReplace(MethodDescriptor existing, MethodDescriptor candidate) {
-        if (hasLessSpecificParameterTypes(existing, candidate)) {
-            return true;
-        }
         if ("Object".equals(existing.returnType()) && !"Object".equals(candidate.returnType())) {
             return true;
         }
         return existing.isVoid() && !candidate.isVoid();
     }
 
-    private static boolean hasLessSpecificParameterTypes(MethodDescriptor existing, MethodDescriptor candidate) {
-        List<String> existingTypes = existing.parameterTypes();
-        List<String> candidateTypes = candidate.parameterTypes();
-        if (existingTypes.size() != candidateTypes.size()) {
-            return false;
-        }
-        for (int i = 0; i < existingTypes.size(); i++) {
-            String existingType = MethodDescriptor.normalizedTypeName(existingTypes.get(i));
-            String candidateType = MethodDescriptor.normalizedTypeName(candidateTypes.get(i));
-            if ("Object".equals(existingType) && !"Object".equals(candidateType)) {
-                return true;
-            }
-        }
-        return false;
-    }
 }

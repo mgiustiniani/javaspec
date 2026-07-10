@@ -116,6 +116,46 @@ public class ProductionSignatureReaderTest {
     }
 
     @Test
+    public void refinesUnknownMethodArgumentsToBestProductionOverload() throws Exception {
+        File sourceRoot = writeProductionSource("com/example/Key.java",
+                "package com.example;\n\n" +
+                "public class Key {\n" +
+                "    public boolean isCanonicalText(String value) { return true; }\n" +
+                "}\n");
+        DescribedType described = describedKey(
+                Collections.<ConstructorDescriptor>emptyList(),
+                Arrays.asList(MethodDescriptor.of(
+                        "isCanonicalText", "boolean", Arrays.asList("Object"), Arrays.asList("arg0"))));
+
+        DescribedType refined = ProductionSignatureReader.refine(described, sourceRoot);
+
+        assertEquals(Arrays.asList(MethodDescriptor.of(
+                "isCanonicalText", "boolean", Arrays.asList("String"), Arrays.asList("value"))), refined.methods());
+    }
+
+    @Test
+    public void preservesRealObjectAndStringProductionOverloads() throws Exception {
+        File sourceRoot = writeProductionSource("com/example/Key.java",
+                "package com.example;\n\n" +
+                "public class Key {\n" +
+                "    public boolean isCanonicalText(Object value) { return false; }\n" +
+                "    public boolean isCanonicalText(String value) { return true; }\n" +
+                "}\n");
+        DescribedType described = describedKey(
+                Collections.<ConstructorDescriptor>emptyList(),
+                Arrays.asList(
+                        MethodDescriptor.of("isCanonicalText", "boolean", Arrays.asList("Object"), Arrays.asList("arg0")),
+                        MethodDescriptor.of("isCanonicalText", "boolean", Arrays.asList("String"), Arrays.asList("arg0"))));
+
+        DescribedType refined = ProductionSignatureReader.refine(described, sourceRoot);
+
+        assertEquals(Arrays.asList(
+                MethodDescriptor.of("isCanonicalText", "boolean", Arrays.asList("Object"), Arrays.asList("value")),
+                MethodDescriptor.of("isCanonicalText", "boolean", Arrays.asList("String"), Arrays.asList("value"))
+        ), refined.methods());
+    }
+
+    @Test
     public void refinesKindFromExistingRecordSource() throws Exception {
         assumeTrue(supportsJavaSpecificationVersion(17));
         File sourceRoot = writeProductionSource("com/example/Key.java",

@@ -143,7 +143,7 @@ public final class MethodDescriptor {
         return builder.toString();
     }
 
-    public boolean hasCompatibleSignature(MethodDescriptor other) {
+    public boolean hasEquivalentSignature(MethodDescriptor other) {
         Objects.requireNonNull(other, "other must not be null");
         if (staticMethod != other.staticMethod
                 || !methodName.equals(other.methodName)
@@ -151,11 +151,19 @@ public final class MethodDescriptor {
             return false;
         }
         for (int i = 0; i < parameterTypes.size(); i++) {
-            if (!compatibleParameterType(parameterTypes.get(i), other.parameterTypes.get(i))) {
+            if (!normalizedTypeName(parameterTypes.get(i)).equals(normalizedTypeName(other.parameterTypes.get(i)))) {
                 return false;
             }
         }
         return true;
+    }
+
+    /**
+     * @deprecated use {@link #hasEquivalentSignature(MethodDescriptor)} for model de-duplication.
+     */
+    @Deprecated
+    public boolean hasCompatibleSignature(MethodDescriptor other) {
+        return hasEquivalentSignature(other);
     }
 
     public static String normalizedTypeName(String typeName) {
@@ -168,14 +176,6 @@ public final class MethodDescriptor {
             normalized = normalized.substring("java.lang.".length());
         }
         return normalized;
-    }
-
-    private static boolean compatibleParameterType(String left, String right) {
-        String normalizedLeft = normalizedTypeName(left);
-        String normalizedRight = normalizedTypeName(right);
-        return normalizedLeft.equals(normalizedRight)
-                || "Object".equals(normalizedLeft)
-                || "Object".equals(normalizedRight);
     }
 
     public boolean hasDefaultReturnValue() {

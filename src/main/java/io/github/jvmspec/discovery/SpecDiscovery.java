@@ -548,7 +548,7 @@ public final class SpecDiscovery {
         String matchingKey = null;
         MethodDescriptor existing = null;
         for (Map.Entry<String, MethodDescriptor> entry : methods.entrySet()) {
-            if (entry.getValue().hasCompatibleSignature(candidate)) {
+            if (entry.getValue().hasEquivalentSignature(candidate)) {
                 matchingKey = entry.getKey();
                 existing = entry.getValue();
                 break;
@@ -568,30 +568,12 @@ public final class SpecDiscovery {
         if (existing.isStatic() != candidate.isStatic()) {
             return false;
         }
-        if (hasLessSpecificParameterTypes(existing, candidate)) {
-            return true;
-        }
         if ("Object".equals(existing.returnType()) && !"Object".equals(candidate.returnType())) {
             return true;
         }
         return existing.isVoid() && !candidate.isVoid();
     }
 
-    private static boolean hasLessSpecificParameterTypes(MethodDescriptor existing, MethodDescriptor candidate) {
-        List<String> existingTypes = existing.parameterTypes();
-        List<String> candidateTypes = candidate.parameterTypes();
-        if (existingTypes.size() != candidateTypes.size()) {
-            return false;
-        }
-        for (int i = 0; i < existingTypes.size(); i++) {
-            String existingType = MethodDescriptor.normalizedTypeName(existingTypes.get(i));
-            String candidateType = MethodDescriptor.normalizedTypeName(candidateTypes.get(i));
-            if ("Object".equals(existingType) && !"Object".equals(candidateType)) {
-                return true;
-            }
-        }
-        return false;
-    }
 
     private static String inferReturnType(
             String matcherName,

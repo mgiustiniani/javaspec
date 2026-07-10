@@ -107,64 +107,100 @@ public final class ProductionSignatureReader {
     }
 
     private static MethodDescriptor refineMethod(MethodDescriptor descriptor, List<ProductionMethod> productionMethods) {
-        for (int i = 0; i < productionMethods.size(); i++) {
-            ProductionMethod production = productionMethods.get(i);
-            if (!production.name.equals(descriptor.methodName())
-                    || production.isStatic != descriptor.isStatic()
-                    || !parametersCompatible(descriptor.parameterTypes(), production.parameterTypes)) {
-                continue;
-            }
-            if ("void".equals(production.returnType)) {
-                return MethodDescriptor.voidMethod(
-                        production.name, production.parameterTypes, production.parameterNames);
-            }
-            if (production.isStatic) {
-                return MethodDescriptor.staticMethod(
-                        production.name, production.returnType,
-                        production.parameterTypes, production.parameterNames);
-            }
-            return MethodDescriptor.of(
+        ProductionMethod production = bestMethodMatch(descriptor, productionMethods);
+        if (production == null) {
+            return descriptor;
+        }
+        if ("void".equals(production.returnType)) {
+            return MethodDescriptor.voidMethod(
+                    production.name, production.parameterTypes, production.parameterNames);
+        }
+        if (production.isStatic) {
+            return MethodDescriptor.staticMethod(
                     production.name, production.returnType,
                     production.parameterTypes, production.parameterNames);
         }
-        return descriptor;
+        return MethodDescriptor.of(
+                production.name, production.returnType,
+                production.parameterTypes, production.parameterNames);
+    }
+
+    private static ProductionMethod bestMethodMatch(MethodDescriptor descriptor, List<ProductionMethod> productionMethods) {
+        ProductionMethod best = null;
+        int bestScore = -1;
+        for (int i = 0; i < productionMethods.size(); i++) {
+            ProductionMethod production = productionMethods.get(i);
+            if (!production.name.equals(descriptor.methodName())
+                    || production.isStatic != descriptor.isStatic()) {
+                continue;
+            }
+            int score = parameterCompatibilityScore(descriptor.parameterTypes(), production.parameterTypes);
+            if (score > bestScore) {
+                best = production;
+                bestScore = score;
+            }
+        }
+        return best;
     }
 
     private static ConstructorDescriptor refineConstructor(
             ConstructorDescriptor descriptor,
             List<ProductionMethod> productionConstructors
     ) {
+        ProductionMethod production = bestConstructorMatch(descriptor, productionConstructors);
+        if (production == null) {
+            return descriptor;
+        }
+        return ConstructorDescriptor.of(
+                production.parameterTypes, production.parameterNames, descriptor.bodyContent());
+    }
+
+    private static ProductionMethod bestConstructorMatch(
+            ConstructorDescriptor descriptor,
+            List<ProductionMethod> productionConstructors
+    ) {
+        ProductionMethod best = null;
+        int bestScore = -1;
         for (int i = 0; i < productionConstructors.size(); i++) {
             ProductionMethod production = productionConstructors.get(i);
-            if (parametersCompatible(descriptor.parameterTypes(), production.parameterTypes)) {
-                return ConstructorDescriptor.of(
-                        production.parameterTypes, production.parameterNames, descriptor.bodyContent());
+            int score = parameterCompatibilityScore(descriptor.parameterTypes(), production.parameterTypes);
+            if (score > bestScore) {
+                best = production;
+                bestScore = score;
             }
         }
-        return descriptor;
+        return best;
     }
 
     /**
-     * Inferred parameters are compatible with production parameters when arity matches and each
-     * inferred type either equals the production type (fully or by simple name) or is the
-     * unknown placeholder {@code Object}. Conflicting concrete types mean the spec asks for a
-     * different overload, which must stay as inferred so generation can create it.
+     * Returns -1 when signatures are incompatible. Higher scores are better matches. Exact
+     * normalized type matches beat simple-name matches, and both beat the {@code Object}
+     * placeholder fallback. This preserves real {@code Object} overloads while still allowing
+     * unknown spec expressions to resolve to the only compatible production overload.
      */
-    private static boolean parametersCompatible(List<String> inferredTypes, List<String> productionTypes) {
+    private static int parameterCompatibilityScore(List<String> inferredTypes, List<String> productionTypes) {
         if (inferredTypes.size() != productionTypes.size()) {
-            return false;
+            return -1;
         }
+        int score = 0;
         for (int i = 0; i < inferredTypes.size(); i++) {
-            String inferred = inferredTypes.get(i);
-            String production = productionTypes.get(i);
-            if ("Object".equals(inferred) || inferred.equals(production)) {
+            String inferred = MethodDescriptor.normalizedTypeName(inferredTypes.get(i));
+            String production = MethodDescriptor.normalizedTypeName(productionTypes.get(i));
+            if (inferred.equals(production)) {
+                score += 4;
                 continue;
             }
-            if (!simpleName(inferred).equals(simpleName(production))) {
-                return false;
+            if (simpleName(inferred).equals(simpleName(production))) {
+                score += 3;
+                continue;
             }
+            if ("Object".equals(inferred)) {
+                score += 1;
+                continue;
+            }
+            return -1;
         }
-        return true;
+        return score;
     }
 
     private static String simpleName(String typeName) {

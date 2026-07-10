@@ -112,7 +112,7 @@ public class SpecSkeletonGeneratorTest {
                 Collections.<String>emptyList(),
                 Collections.<ConstructorDescriptor>emptyList(),
                 Arrays.asList(
-                        MethodDescriptor.of("isCanonicalText", "boolean", Arrays.asList("Object"), Arrays.asList("arg0")),
+                        MethodDescriptor.of("isCanonicalText", "Object", Arrays.asList("String"), Arrays.asList("arg0")),
                         MethodDescriptor.of("isCanonicalText", "boolean", Arrays.asList("java.lang.String"), Arrays.asList("arg0"))
                 )
         );

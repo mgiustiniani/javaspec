@@ -421,6 +421,30 @@ public class SpecDiscoveryTest {
     }
 
     @Test
+    public void repeatedProxyCallsWithObjectAndStringArgumentsPreserveOverloads() throws Exception {
+        File specRoot = temporaryFolder.newFolder("overload-signature-root");
+        writeFile(
+                specRoot,
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator + "CanonicalTextSpec.java",
+                "package spec.com.example;\n" +
+                "public class CanonicalTextSpec extends CanonicalTextSpecSupport {\n" +
+                "    public void it_classifies_object_and_text(Object value) {\n" +
+                "        isCanonicalText(value).shouldReturn(false);\n" +
+                "        isCanonicalText(\"abc\").shouldReturn(true);\n" +
+                "    }\n" +
+                "}\n"
+        );
+
+        List<DiscoveredSpec> specs = SpecDiscovery.discover(specRoot);
+
+        assertEquals(1, specs.size());
+        assertEquals(Arrays.asList(
+                MethodDescriptor.of("isCanonicalText", "boolean", Arrays.asList("Object"), Arrays.asList("arg0")),
+                MethodDescriptor.of("isCanonicalText", "boolean", Arrays.asList("String"), Arrays.asList("arg0"))
+        ), specs.get(0).describedType().methods());
+    }
+
+    @Test
     public void subjectCallNestedInShouldReturnArgumentDoesNotFabricatePhantomMethod() throws Exception {
         File specRoot = temporaryFolder.newFolder("nested-subject-arg-root");
         writeFile(
