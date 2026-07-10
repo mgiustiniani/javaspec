@@ -29,6 +29,9 @@ scripts/verify-release-dry-run.sh
 
 Additional checks:
 
+- Core `mvn -q verify` runs Animal Sniffer against the Java 8 API signature to prevent direct
+  linkage to post-Java-8 APIs, with only `com.sun.source.*` ignored for JDK 8 javac tree API use.
+
 ```sh
 # Core classfiles are Java 8 bytecode-compatible.
 find target/classes -name '*.class' -print0 | xargs -0 javap -verbose

@@ -21,6 +21,7 @@ on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. The active relea
 4. Run local verification from the repository root:
    - `scripts/verify-all.sh`
    - `scripts/verify-release-dry-run.sh`
+   - `mvn verify` includes Animal Sniffer Java 8 API linkage verification for core.
    - The release dry-run packages core, Maven plugin, JUnit Platform engine, bytecode doubles, bytecode agent, and Gradle plugin artifacts; verifies source/javadoc jars; verifies the bytecode-agent manifest; generates/verifies SHA-256 checksums; and runs standalone consumer examples.
 5. Confirm GitHub Actions is green for the release commit.
 6. Confirm release artifacts are present locally where expected:

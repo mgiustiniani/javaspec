@@ -31,7 +31,7 @@ Evidence:
 | `scripts/check-version-alignment.sh` | `7256969` | PASS | `1.0.0-SNAPSHOT` aligned |
 | `scripts/check-current-docs.sh` | `7256969` | PASS | Contract docs present and current-doc guard green |
 | `scripts/check-api-surface.sh` | `7256969` | PASS | API/SPI classification guard green |
-| `mvn -q verify` | `7256969` | PASS | Core only, default Java 25 JVM |
+| `mvn -q verify` | local RC hardening slice | PASS | Core on default Java 25 JVM; includes Java 8 API linkage check |
 | `JAVA_HOME=/usr/lib/jvm/java-21-openjdk ... mvn -q verify` | `7256969` | PASS | Core on local Java 21 runtime |
 | `scripts/verify-all.sh` | `7256969` | PASS | Includes standalone adapters and examples |
 | `scripts/verify-release-dry-run.sh` | `7256969` | PASS | Packages all artifacts, verifies checksums, and runs consumer examples |
@@ -45,6 +45,7 @@ Evidence:
 - [x] Java 21 verified locally (`JAVA_HOME=/usr/lib/jvm/java-21-openjdk ... mvn -q verify`).
 - [x] Java 25 verified locally (`mvn -q verify`, `scripts/verify-all.sh`, `scripts/verify-release-dry-run.sh`).
 - [x] Root runtime dependency tree has no third-party runtime dependencies.
+- [x] No direct linkage to post-Java-8 APIs in core (`mvn -q verify` runs Animal Sniffer against Java 8 API signature; `com.sun.source.*` javac tree API is explicitly allowed for JDK 8 `tools.jar` compatibility).
 - [x] Core classfiles are Java 8 bytecode-compatible (max major 52 checked by `scripts/check-core-java8-bytecode.sh`; full Java 8 runtime smoke remains CI/JDK8 evidence task).
 - [x] CLI contract tests green.
 - [x] JSON schema/golden fixtures green.

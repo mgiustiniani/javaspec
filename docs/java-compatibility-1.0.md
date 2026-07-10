@@ -28,6 +28,11 @@ scripts/verify-all.sh
 scripts/verify-release-dry-run.sh
 ```
 
+The default Maven `verify` gate runs Animal Sniffer against the Java 8 API signature so accidental
+direct linkage to post-Java-8 APIs fails the build. The only explicit signature ignore is
+`com.sun.source.*`, because javaspec's source scanner uses the javac tree API supplied by JDK 8
+`tools.jar` and by the compiler module on newer JDKs.
+
 The release checklist records per-JDK CI evidence when available. Local verification on one JDK does
 not replace the release-candidate Java 8/11/17/21/25 matrix evidence.
 

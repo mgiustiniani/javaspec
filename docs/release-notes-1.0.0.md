@@ -122,6 +122,9 @@ moving dependency-heavy behavior into optional artifacts.
 - `scripts/verify-release-dry-run.sh` packages and verifies core, Maven plugin, JUnit Platform
   engine, bytecode doubles, bytecode agent, and Gradle plugin artifacts, including source/Javadoc
   jars, bytecode-agent manifest entries, SHA-256 checksums, and external consumer examples.
+- Core `mvn verify` runs Animal Sniffer against the Java 8 API signature to prevent accidental
+  direct linkage to post-Java-8 APIs; `com.sun.source.*` is explicitly allowed for JDK 8 javac tree
+  API use.
 - `scripts/check-core-java8-bytecode.sh` verifies core classfiles stay at Java 8-compatible major
   version 52.
 - 1.0 documentation includes compatibility policy, Java compatibility matrix, migration guide,
