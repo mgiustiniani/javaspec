@@ -1,6 +1,7 @@
 package io.github.jvmspec.matcher;
 
 import java.lang.reflect.Array;
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
@@ -180,6 +181,64 @@ public final class Matchable<T> {
         if (contains(value, unexpected)) {
             throw new AssertionError("Expected " + value + " not to contain " + unexpected);
         }
+    }
+
+    /**
+     * Asserts that the wrapped numeric value is within the inclusive tolerance of the expected value.
+     * <p>
+     * Java adaptation: all supported {@link Number} values are compared through their decimal text
+     * representation so primitive, boxed, integral, floating, and {@link BigDecimal} values share one
+     * deterministic contract. {@code NaN}, infinities, nulls, and negative tolerances fail with an
+     * assertion error instead of silently passing.
+     * </p>
+     */
+    public void shouldBeApproximately(Number expected, Number tolerance) {
+        BigDecimal actualValue = decimalNumber("actual", value);
+        BigDecimal expectedValue = decimalNumber("expected", expected);
+        BigDecimal toleranceValue = decimalNumber("tolerance", tolerance);
+        if (toleranceValue.signum() < 0) {
+            throw new AssertionError("Expected tolerance must not be negative: " + tolerance);
+        }
+        BigDecimal difference = actualValue.subtract(expectedValue).abs();
+        if (difference.compareTo(toleranceValue) > 0) {
+            throw new AssertionError(
+                    "Expected " + value + " to be approximately " + expected
+                    + " within " + tolerance + " but difference was " + difference
+            );
+        }
+    }
+
+    /**
+     * Alias for {@link #shouldBeApproximately(Number, Number)} using PHPSpec return terminology.
+     */
+    public void shouldReturnApproximately(Number expected, Number tolerance) {
+        shouldBeApproximately(expected, tolerance);
+    }
+
+    /**
+     * Asserts that the wrapped numeric value is outside the inclusive tolerance of the unexpected value.
+     */
+    public void shouldNotBeApproximately(Number unexpected, Number tolerance) {
+        BigDecimal actualValue = decimalNumber("actual", value);
+        BigDecimal unexpectedValue = decimalNumber("unexpected", unexpected);
+        BigDecimal toleranceValue = decimalNumber("tolerance", tolerance);
+        if (toleranceValue.signum() < 0) {
+            throw new AssertionError("Expected tolerance must not be negative: " + tolerance);
+        }
+        BigDecimal difference = actualValue.subtract(unexpectedValue).abs();
+        if (difference.compareTo(toleranceValue) <= 0) {
+            throw new AssertionError(
+                    "Expected " + value + " not to be approximately " + unexpected
+                    + " within " + tolerance + " but difference was " + difference
+            );
+        }
+    }
+
+    /**
+     * Alias for {@link #shouldNotBeApproximately(Number, Number)} using PHPSpec return terminology.
+     */
+    public void shouldNotReturnApproximately(Number unexpected, Number tolerance) {
+        shouldNotBeApproximately(unexpected, tolerance);
     }
 
     /**
@@ -499,6 +558,31 @@ public final class Matchable<T> {
             count++;
         }
         return count;
+    }
+
+    private static BigDecimal decimalNumber(String role, Object actual) {
+        if (!(actual instanceof Number)) {
+            throw new AssertionError("Expected " + role + " numeric value but got " + typeName(actual));
+        }
+        if (actual instanceof Double) {
+            double number = ((Double) actual).doubleValue();
+            if (Double.isNaN(number) || Double.isInfinite(number)) {
+                throw new AssertionError("Expected " + role + " finite numeric value but got " + actual);
+            }
+        }
+        if (actual instanceof Float) {
+            float number = ((Float) actual).floatValue();
+            if (Float.isNaN(number) || Float.isInfinite(number)) {
+                throw new AssertionError("Expected " + role + " finite numeric value but got " + actual);
+            }
+        }
+        try {
+            return new BigDecimal(actual.toString());
+        } catch (NumberFormatException ex) {
+            AssertionError error = new AssertionError("Expected " + role + " numeric value but got " + actual);
+            error.initCause(ex);
+            throw error;
+        }
     }
 
     private static Map<?, ?> mapOf(Object actual) {

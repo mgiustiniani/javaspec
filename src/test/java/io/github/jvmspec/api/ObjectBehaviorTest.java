@@ -146,6 +146,10 @@ public class ObjectBehaviorTest {
                 expected("shouldNotStartWith", "emerald", "ruby"),
                 expected("shouldNotEndWith", "emerald", "ruby"),
                 expected("shouldNotMatchPattern", "emerald", "ruby"),
+                expected("shouldBeApproximately", Double.valueOf(3.14159d), Double.valueOf(3.14d), Double.valueOf(0.01d)),
+                expected("shouldReturnApproximately", Integer.valueOf(42), Long.valueOf(40L), Integer.valueOf(2)),
+                expected("shouldNotBeApproximately", Double.valueOf(3.5d), Double.valueOf(3.0d), Double.valueOf(0.25d)),
+                expected("shouldNotReturnApproximately", Integer.valueOf(9), Integer.valueOf(12), Integer.valueOf(2)),
                 expected("shouldHaveCount", new String[] {"ruby", "emerald"}, Integer.valueOf(2)),
                 expected("shouldHaveCount", Arrays.asList("ruby", "emerald"), Integer.valueOf(2)),
                 expected("shouldHaveCount", map, Integer.valueOf(2)),
@@ -176,6 +180,10 @@ public class ObjectBehaviorTest {
         invokeConvenience(behavior, "shouldNotStartWith", "emerald", "ruby");
         invokeConvenience(behavior, "shouldNotEndWith", "emerald", "ruby");
         invokeConvenience(behavior, "shouldNotMatchPattern", "emerald", "ruby");
+        invokeConvenience(behavior, "shouldBeApproximately", Double.valueOf(3.14159d), Double.valueOf(3.14d), Double.valueOf(0.01d));
+        invokeConvenience(behavior, "shouldReturnApproximately", Integer.valueOf(42), Long.valueOf(40L), Integer.valueOf(2));
+        invokeConvenience(behavior, "shouldNotBeApproximately", Double.valueOf(3.5d), Double.valueOf(3.0d), Double.valueOf(0.25d));
+        invokeConvenience(behavior, "shouldNotReturnApproximately", Integer.valueOf(9), Integer.valueOf(12), Integer.valueOf(2));
         invokeConvenience(behavior, "shouldHaveCount", new String[] {"ruby", "emerald"}, Integer.valueOf(2));
         invokeConvenience(behavior, "shouldHaveCount", Arrays.asList("ruby", "emerald"), Integer.valueOf(2));
         invokeConvenience(behavior, "shouldHaveCount", map, Integer.valueOf(2));
@@ -207,6 +215,9 @@ public class ObjectBehaviorTest {
                 new Object[] {"ruby", "ruby"}, "not to equal", "ruby");
         assertConvenienceAssertionMessage(behavior, "shouldNotStartWith",
                 new Object[] {"ruby", "ru"}, "not to start with", "ru");
+        assertConvenienceAssertionMessage(behavior, "shouldBeApproximately",
+                new Object[] {Double.valueOf(3.2d), Double.valueOf(3.0d), Double.valueOf(0.1d)},
+                "approximately", "within 0.1", "difference");
         assertConvenienceAssertionMessage(behavior, "shouldHaveCount",
                 new Object[] {Arrays.asList("ruby"), Integer.valueOf(2)}, "count 2", "got 1");
         assertConvenienceAssertionMessage(behavior, "shouldHaveKey",

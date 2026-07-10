@@ -1984,6 +1984,17 @@ The implemented matcher set is dependency-free and includes these groups.
 identity/equality/negated-identity matchers and a default negated-equality matcher for
 `shouldNotEqual` and its aliases.
 
+### Numeric approximation
+
+| Method | Meaning |
+|---|---|
+| `shouldBeApproximately(expected, tolerance)` | requires a numeric value within the inclusive tolerance of `expected` |
+| `shouldReturnApproximately(expected, tolerance)` | return-terminology alias for approximate numeric equality |
+| `shouldNotBeApproximately(unexpected, tolerance)` | requires a numeric value outside the inclusive tolerance |
+| `shouldNotReturnApproximately(unexpected, tolerance)` | return-terminology alias for negated approximate numeric equality |
+
+Java adaptation: primitive, boxed, integral, floating, and `BigDecimal` values are compared through deterministic decimal values. `NaN`, infinities, nulls, non-numeric values, and negative tolerances fail with assertion errors instead of being treated as domain RED successes.
+
 ### Type, implementation, and containment
 
 | Method | Meaning |

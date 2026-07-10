@@ -177,7 +177,7 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
 ### M6 — Matcher parity 1.0 scope
 
 - Macro-area: A — PHPSpec semantic core
-- Compatibility matrix status: approximate, iterator, and dynamic object-state matchers are `PARTIAL_BLOCKING_1_0` until implemented or explicitly narrowed without contradicting public docs
+- Compatibility matrix status: approximate numeric matchers are `JAVA_ADAPTED`; iterator and dynamic object-state matchers remain `PARTIAL_BLOCKING_1_0` until implemented or explicitly narrowed without contradicting public docs
 - Priority: P0
 - Disposition: REQUIRED_BEFORE_RC
 - Status: TODO
@@ -187,14 +187,14 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
 - Motivation: Phase 50 is not implemented. 1.0 must either include approximate/iterator/dynamic/custom matchers or explicitly defer them in the matrix without contradicting public docs.
 - Dependencies: M3.
 - Acceptance criteria:
-  - Approximate numeric matchers are implemented or deferred with documented limit.
+  - Approximate numeric matchers are implemented and documented with Java decimal comparison semantics.
   - Iterable/Iterator matchers are implemented or deferred with documented iterator-consumption semantics.
   - Dynamic object-state expectations are implemented or rejected/deferred with JavaBean resolution rules and ambiguity diagnostics.
   - Inline/configured custom matchers are implemented or deferred.
 - Verification:
   - Matcher tests added for any implemented scope.
   - Documentation updated for any deferred scope.
-  - Contract tests required before RC: approximate numeric primitive/boxed success and failure; iterable/iterator success/failure plus iterator-consumption semantics; dynamic object-state success, ambiguity, missing-method, primitive/boxed/null cases; custom matcher registration or documented deferral.
+  - Contract tests required before RC: iterable/iterator success/failure plus iterator-consumption semantics; dynamic object-state success, ambiguity, missing-method, primitive/boxed/null cases; custom matcher registration or documented deferral.
 - Completion commit: pending.
 
 ### M7 — Safe generation P0 hardening

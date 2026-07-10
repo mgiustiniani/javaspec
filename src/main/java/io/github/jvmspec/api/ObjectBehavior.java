@@ -513,6 +513,34 @@ public class ObjectBehavior<T> {
     }
 
     /**
+     * Asserts that the numeric subject value is within the inclusive tolerance of the expected value.
+     */
+    public void shouldBeApproximately(Object actual, Number expected, Number tolerance) {
+        assertions.shouldBeApproximately(actual, expected, tolerance);
+    }
+
+    /**
+     * Alias for {@link #shouldBeApproximately(Object, Number, Number)} using PHPSpec return terminology.
+     */
+    public void shouldReturnApproximately(Object actual, Number expected, Number tolerance) {
+        assertions.shouldReturnApproximately(actual, expected, tolerance);
+    }
+
+    /**
+     * Asserts that the numeric subject value is outside the inclusive tolerance of the unexpected value.
+     */
+    public void shouldNotBeApproximately(Object actual, Number unexpected, Number tolerance) {
+        assertions.shouldNotBeApproximately(actual, unexpected, tolerance);
+    }
+
+    /**
+     * Alias for {@link #shouldNotBeApproximately(Object, Number, Number)} using PHPSpec return terminology.
+     */
+    public void shouldNotReturnApproximately(Object actual, Number unexpected, Number tolerance) {
+        assertions.shouldNotReturnApproximately(actual, unexpected, tolerance);
+    }
+
+    /**
      * Asserts that strings, collections, maps, arrays, or iterables contain the expected value.
      */
     public void shouldContain(Object actual, Object expected) {

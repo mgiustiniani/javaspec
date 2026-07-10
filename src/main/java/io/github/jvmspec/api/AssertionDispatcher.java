@@ -149,6 +149,36 @@ public class AssertionDispatcher {
         match(actual).shouldImplement(expectedType);
     }
 
+    // --- Numeric assertions ---
+
+    /**
+     * Asserts that the numeric subject value is within the inclusive tolerance of the expected value.
+     */
+    public void shouldBeApproximately(Object actual, Number expected, Number tolerance) {
+        match(actual).shouldBeApproximately(expected, tolerance);
+    }
+
+    /**
+     * Alias for {@link #shouldBeApproximately(Object, Number, Number)} using PHPSpec return terminology.
+     */
+    public void shouldReturnApproximately(Object actual, Number expected, Number tolerance) {
+        match(actual).shouldReturnApproximately(expected, tolerance);
+    }
+
+    /**
+     * Asserts that the numeric subject value is outside the inclusive tolerance of the unexpected value.
+     */
+    public void shouldNotBeApproximately(Object actual, Number unexpected, Number tolerance) {
+        match(actual).shouldNotBeApproximately(unexpected, tolerance);
+    }
+
+    /**
+     * Alias for {@link #shouldNotBeApproximately(Object, Number, Number)} using PHPSpec return terminology.
+     */
+    public void shouldNotReturnApproximately(Object actual, Number unexpected, Number tolerance) {
+        match(actual).shouldNotReturnApproximately(unexpected, tolerance);
+    }
+
     // --- Collection/content assertions ---
 
     /**

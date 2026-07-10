@@ -2,6 +2,7 @@ package io.github.jvmspec.matcher;
 
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
@@ -209,6 +210,63 @@ public class MatchableTest {
         Matchable<String> matchable = new Matchable<String>(null, registry);
 
         matchable.shouldHaveType(String.class);
+    }
+
+    @Test
+    public void approximateNumericMatchersUseInclusiveToleranceAcrossJavaNumberTypes() {
+        new Matchable<Double>(Double.valueOf(3.14159d), registry)
+                .shouldBeApproximately(Double.valueOf(3.14d), Double.valueOf(0.01d));
+        new Matchable<Integer>(Integer.valueOf(42), registry)
+                .shouldReturnApproximately(Long.valueOf(40L), Integer.valueOf(2));
+        new Matchable<BigDecimal>(new BigDecimal("10.005"), registry)
+                .shouldBeApproximately(new BigDecimal("10.00"), new BigDecimal("0.005"));
+        new Matchable<Double>(Double.valueOf(3.5d), registry)
+                .shouldNotBeApproximately(Double.valueOf(3.0d), Double.valueOf(0.25d));
+        new Matchable<Integer>(Integer.valueOf(9), registry)
+                .shouldNotReturnApproximately(Integer.valueOf(12), Integer.valueOf(2));
+    }
+
+    @Test
+    public void approximateNumericMatcherFailuresDescribeExpectedActualAndTolerance() {
+        assertAssertionMessageContains(new Runnable() {
+            @Override
+            public void run() {
+                new Matchable<Double>(Double.valueOf(3.2d), registry)
+                        .shouldBeApproximately(Double.valueOf(3.0d), Double.valueOf(0.1d));
+            }
+        }, "3.2", "approximately", "3.0", "within 0.1", "difference");
+        assertAssertionMessageContains(new Runnable() {
+            @Override
+            public void run() {
+                new Matchable<Double>(Double.valueOf(3.05d), registry)
+                        .shouldNotBeApproximately(Double.valueOf(3.0d), Double.valueOf(0.1d));
+            }
+        }, "not to be approximately", "3.0", "within 0.1");
+    }
+
+    @Test
+    public void approximateNumericMatchersRejectNonNumericNonFiniteAndNegativeTolerance() {
+        assertAssertionMessageContains(new Runnable() {
+            @Override
+            public void run() {
+                new Matchable<String>("3.0", registry)
+                        .shouldBeApproximately(Double.valueOf(3.0d), Double.valueOf(0.1d));
+            }
+        }, "actual numeric value", String.class.getName());
+        assertAssertionMessageContains(new Runnable() {
+            @Override
+            public void run() {
+                new Matchable<Double>(Double.NaN, registry)
+                        .shouldBeApproximately(Double.valueOf(3.0d), Double.valueOf(0.1d));
+            }
+        }, "finite numeric value", "NaN");
+        assertAssertionMessageContains(new Runnable() {
+            @Override
+            public void run() {
+                new Matchable<Double>(Double.valueOf(3.0d), registry)
+                        .shouldBeApproximately(Double.valueOf(3.0d), Double.valueOf(-0.1d));
+            }
+        }, "tolerance", "not be negative");
     }
 
     @Test
