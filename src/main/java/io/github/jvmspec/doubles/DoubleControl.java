@@ -217,14 +217,16 @@ public final class DoubleControl {
         for (int mi = 0; mi < methodNames.length; mi++) {
             if (firstCallIndex[mi] < 0) {
                 throw new AssertionError("Expected method '" + methodNames[mi]
-                        + "' to have been called (verifyInOrder), but it was not called.");
+                        + "' to have been called (verifyInOrder), but it was not called. Recorded calls: "
+                        + describeCalls(history));
             }
         }
         for (int mi = 1; mi < methodNames.length; mi++) {
             if (firstCallIndex[mi] <= firstCallIndex[mi - 1]) {
                 throw new AssertionError("Expected '" + methodNames[mi - 1]
                         + "' to be called before '" + methodNames[mi]
-                        + "' (verifyInOrder), but the recorded order was wrong.");
+                        + "' (verifyInOrder), but the recorded order was wrong. Recorded calls: "
+                        + describeCalls(history));
             }
         }
     }
@@ -309,7 +311,9 @@ public final class DoubleControl {
     void verifyCalled(MethodPattern pattern) {
         int count = count(pattern);
         if (count == 0) {
-            throw new AssertionError("Expected " + pattern.describe() + " to have been called, but it was not called");
+            throw new AssertionError("Expected " + pattern.describe()
+                    + " to have been called, but it was not called. Recorded calls: "
+                    + describeCalls(handler.calls()));
         }
     }
 
@@ -317,7 +321,7 @@ public final class DoubleControl {
         int count = count(pattern);
         if (count != 0) {
             throw new AssertionError("Expected " + pattern.describe() + " not to have been called, but it was called "
-                    + count + " time(s)");
+                    + count + " time(s). Matching calls: " + describeCalls(handler.calls(pattern)));
         }
     }
 
@@ -328,7 +332,27 @@ public final class DoubleControl {
         int actualCount = count(pattern);
         if (actualCount != expectedCount) {
             throw new AssertionError("Expected " + pattern.describe() + " to be called " + expectedCount
-                    + " time(s), but it was called " + actualCount + " time(s)");
+                    + " time(s), but it was called " + actualCount + " time(s). Matching calls: "
+                    + describeCalls(handler.calls(pattern)) + ". Recorded calls: " + describeCalls(handler.calls()));
         }
+    }
+
+    private static String describeCalls(List<Call> calls) {
+        if (calls == null || calls.isEmpty()) {
+            return "[]";
+        }
+        StringBuilder builder = new StringBuilder("[");
+        int limit = Math.min(calls.size(), 5);
+        for (int i = 0; i < limit; i++) {
+            if (i > 0) {
+                builder.append(", ");
+            }
+            builder.append(calls.get(i));
+        }
+        if (calls.size() > limit) {
+            builder.append(", ... ").append(calls.size() - limit).append(" more");
+        }
+        builder.append(']');
+        return builder.toString();
     }
 }

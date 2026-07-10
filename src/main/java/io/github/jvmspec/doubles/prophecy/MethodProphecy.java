@@ -13,7 +13,7 @@ import java.util.function.Function;
  * <p>
  * Provides stub setup ({@code willReturn}, {@code willThrow}, {@code will}) and
  * prediction setup ({@code shouldBeCalled}, {@code shouldNotBeCalled},
- * {@code shouldBeCalledTimes}) for a named method with specific arguments.
+ * {@code shouldBeCalledTimes}, {@code should}) for a named method with specific arguments.
  * </p>
  *
  * @param <R> the return type of the method
@@ -169,6 +169,23 @@ public final class MethodProphecy<R> {
      */
     public MethodProphecy<R> shouldBeCalledTimes(int times) {
         this.prediction = new Prediction(methodName, arguments, PredictionMode.CALLED_TIMES, times);
+        registerPrediction();
+        return this;
+    }
+
+    /**
+     * Sets a custom prediction callback for this method prophecy.
+     * <p>
+     * The callback receives a {@link PredictionContext} containing matching calls, all calls,
+     * the predicted method name, and the predicted argument pattern. Throw {@link AssertionError}
+     * from the callback to fail the prediction with a domain-specific message.
+     * </p>
+     *
+     * @param callback the custom prediction callback
+     * @return this method prophecy (for chaining)
+     */
+    public MethodProphecy<R> should(PredictionCallback callback) {
+        this.prediction = new Prediction(methodName, arguments, callback);
         registerPrediction();
         return this;
     }

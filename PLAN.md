@@ -305,10 +305,13 @@ Deliverables:
 - Complete argument-token coverage: exact/identity, type, callback, any, cetera, containing string,
   in/not-in, and custom token interfaces. **In progress:** `same` / `identicalTo`, `in` / `notIn`,
   and `matching(Predicate, description)` are now available through core doubles and prophecy aliases.
-- Add custom prediction callbacks equivalent to Prophecy `should(callback)`.
+- Add custom prediction callbacks equivalent to Prophecy `should(callback)`. **Done:**
+  `MethodProphecy.should(PredictionCallback)` supplies `PredictionContext` with matching calls,
+  all calls, method name, and argument pattern.
 - Harden automatic prediction checking after examples and before `letGo` result finalization.
 - Improve failure messages for unmet predictions, unexpected calls, ordered calls, and argument-token
-  mismatch explanations.
+  mismatch explanations. **In progress:** call-count, unexpected-call, missing-call, and ordered-call
+  diagnostics now include recorded/matching call context.
 - Keep concrete/final/static/constructor cases in optional bytecode adapters.
 
 ### Phase 50 — Matcher parity and PHPSpec dynamic expectations

@@ -47,7 +47,11 @@ public final class PredictionRegistry {
             for (AssertionError failure : failures) {
                 sb.append("\n  - ").append(failure.getMessage());
             }
-            throw new AssertionError(sb.toString());
+            AssertionError aggregate = new AssertionError(sb.toString());
+            for (AssertionError failure : failures) {
+                aggregate.addSuppressed(failure);
+            }
+            throw aggregate;
         }
     }
 

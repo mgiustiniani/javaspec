@@ -563,21 +563,21 @@ public class DoublesTest {
             public void run() {
                 control.verifyCalled("missing");
             }
-        }, "method 'missing'", "to have been called", "not called");
+        }, "method 'missing'", "to have been called", "not called", "Recorded calls", "greet(Ada)");
 
         assertAssertionMessage(new ThrowingCall() {
             @Override
             public void run() {
                 control.verifyNotCalled("greet");
             }
-        }, "method 'greet'", "not to have been called", "3 time(s)");
+        }, "method 'greet'", "not to have been called", "3 time(s)", "Matching calls", "greet(Grace)");
 
         assertAssertionMessage(new ThrowingCall() {
             @Override
             public void run() {
                 control.verifyCallCount("greet", 1, "Ada");
             }
-        }, "method 'greet' with arguments (Ada)", "1 time(s)", "2 time(s)");
+        }, "method 'greet' with arguments (Ada)", "1 time(s)", "2 time(s)", "Matching calls", "Recorded calls");
     }
 
     @Test
@@ -767,6 +767,8 @@ public class DoublesTest {
         });
         assertTrue(err.getMessage().contains("first"));
         assertTrue(err.getMessage().contains("second"));
+        assertTrue(err.getMessage().contains("Recorded calls"));
+        assertTrue(err.getMessage().contains("second()"));
     }
 
     @Test
@@ -780,6 +782,8 @@ public class DoublesTest {
             }
         });
         assertTrue(err.getMessage().contains("second"));
+        assertTrue(err.getMessage().contains("Recorded calls"));
+        assertTrue(err.getMessage().contains("first()"));
     }
 
     @Test

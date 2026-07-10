@@ -2130,7 +2130,18 @@ usage, generate the missing wrapper under `target/generated-sources/javaspec`, a
 `*SpecSupport` helpers such as `prophesizeMailer()` / `prophecyMailer()`.
 
 Predictions are checked by `checkPredictions()` or automatically when `--auto-check-predictions` is
-enabled.
+enabled. When built-in predictions are not expressive enough, use a custom callback prediction:
+
+```java
+mailer.send(any(String.class)).should(context -> {
+    if (context.callCount() < 2) {
+        throw new AssertionError("expected at least two welcome emails");
+    }
+});
+```
+
+The callback receives a `PredictionContext` with matching calls, all calls, the method name, and the
+argument pattern.
 
 ### Collaborator parameters in `let`, examples, and `letGo`
 

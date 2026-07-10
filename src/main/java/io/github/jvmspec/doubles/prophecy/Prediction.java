@@ -17,16 +17,28 @@ final class Prediction {
     private final Object[] arguments;
     private final PredictionMode mode;
     private final int expectedCount;
+    private final PredictionCallback callback;
 
     Prediction(String methodName, Object[] arguments, PredictionMode mode) {
         this(methodName, arguments, mode, mode == PredictionMode.CALLED ? 1 : 0);
     }
 
     Prediction(String methodName, Object[] arguments, PredictionMode mode, int expectedCount) {
+        this(methodName, arguments, mode, expectedCount, null);
+    }
+
+    Prediction(String methodName, Object[] arguments, PredictionCallback callback) {
+        this(methodName, arguments, PredictionMode.CUSTOM, 0,
+                Objects.requireNonNull(callback, "callback must not be null"));
+    }
+
+    private Prediction(String methodName, Object[] arguments, PredictionMode mode, int expectedCount,
+            PredictionCallback callback) {
         this.methodName = Objects.requireNonNull(methodName, "methodName must not be null");
         this.arguments = arguments.clone();
         this.mode = Objects.requireNonNull(mode, "mode must not be null");
         this.expectedCount = expectedCount;
+        this.callback = callback;
     }
 
     /**
@@ -45,6 +57,9 @@ final class Prediction {
                 break;
             case CALLED_TIMES:
                 control.verifyCallCount(methodName, expectedCount, arguments);
+                break;
+            case CUSTOM:
+                checkCustom(control);
                 break;
         }
     }
@@ -68,5 +83,20 @@ final class Prediction {
      */
     int expectedCount() {
         return expectedCount;
+    }
+
+    private void checkCustom(DoubleControl control) {
+        PredictionContext context = new PredictionContext(control, methodName, arguments,
+                control.calls(methodName, arguments), control.calls());
+        try {
+            callback.check(context);
+        } catch (AssertionError e) {
+            throw e;
+        } catch (Exception e) {
+            AssertionError failure = new AssertionError("Custom prediction for method '" + methodName
+                    + "' failed: " + e.getMessage());
+            failure.initCause(e);
+            throw failure;
+        }
     }
 }

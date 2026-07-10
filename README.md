@@ -705,6 +705,19 @@ import static io.github.jvmspec.doubles.prophecy.Argument.*;
 | `in(Object...)` / `notIn(Object...)` | Matches membership using array-aware equality |
 | `matching(Predicate<Object>, String)` | Matches with a custom callback and diagnostic description |
 
+Custom prediction callbacks are available when built-in predictions are not expressive enough:
+
+```java
+mailer.send(any(String.class)).should(context -> {
+    if (context.callCount() < 2) {
+        throw new AssertionError("expected at least two mail sends");
+    }
+});
+```
+
+The callback receives matching calls, all calls, the method name, and the argument pattern through
+`PredictionContext`.
+
 ### Auto-check predictions
 
 Enable automatic prediction verification after each example via CLI flag:

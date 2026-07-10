@@ -9,5 +9,7 @@ enum PredictionMode {
     /** The method should not have been called. */
     NOT_CALLED,
     /** The method should have been called exactly a specific number of times. */
-    CALLED_TIMES
+    CALLED_TIMES,
+    /** The method is checked by a custom prediction callback. */
+    CUSTOM
 }
