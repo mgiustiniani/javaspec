@@ -65,7 +65,8 @@ moving dependency-heavy behavior into optional artifacts.
   `Doubles` / `ArgumentMatchers` and prophecy `Argument` / `Arg` aliases. `MethodProphecy.should(...)`
   now supports custom prediction callbacks receiving a `PredictionContext` with matching calls,
   all calls, method name, and argument pattern. Prediction and verification failure messages include
-  recorded/matching call context, including ordered-verification failures.
+  recorded/matching call context, including ordered-verification failures and same-method calls with
+  different arguments.
 
 ## Optional subclass adapter `javaspec-bytecode-doubles`
 

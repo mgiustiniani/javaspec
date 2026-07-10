@@ -312,8 +312,9 @@ public final class DoubleControl {
         int count = count(pattern);
         if (count == 0) {
             throw new AssertionError("Expected " + pattern.describe()
-                    + " to have been called, but it was not called. Recorded calls: "
-                    + describeCalls(handler.calls()));
+                    + " to have been called, but it was not called"
+                    + argumentMismatchHint(pattern)
+                    + ". Recorded calls: " + describeCalls(handler.calls()));
         }
     }
 
@@ -335,6 +336,17 @@ public final class DoubleControl {
                     + " time(s), but it was called " + actualCount + " time(s). Matching calls: "
                     + describeCalls(handler.calls(pattern)) + ". Recorded calls: " + describeCalls(handler.calls()));
         }
+    }
+
+    private String argumentMismatchHint(MethodPattern pattern) {
+        if (!pattern.argumentConstrained()) {
+            return "";
+        }
+        List<Call> sameMethodCalls = handler.calls(MethodPattern.anyArguments(pattern.methodName()));
+        if (sameMethodCalls.isEmpty()) {
+            return "";
+        }
+        return "; method was called with different arguments: " + describeCalls(sameMethodCalls);
     }
 
     private static String describeCalls(List<Call> calls) {

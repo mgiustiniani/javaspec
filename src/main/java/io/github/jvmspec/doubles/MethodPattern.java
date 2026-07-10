@@ -21,6 +21,10 @@ final class MethodPattern {
         return arguments != null;
     }
 
+    String methodName() {
+        return methodName;
+    }
+
     boolean matches(String actualMethodName, Object[] actualArguments) {
         if (!methodName.equals(actualMethodName)) {
             return false;

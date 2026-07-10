@@ -310,8 +310,8 @@ Deliverables:
   all calls, method name, and argument pattern.
 - Harden automatic prediction checking after examples and before `letGo` result finalization.
 - Improve failure messages for unmet predictions, unexpected calls, ordered calls, and argument-token
-  mismatch explanations. **In progress:** call-count, unexpected-call, missing-call, and ordered-call
-  diagnostics now include recorded/matching call context.
+  mismatch explanations. **In progress:** call-count, unexpected-call, missing-call, ordered-call,
+  and same-method/different-arguments diagnostics now include recorded/matching call context.
 - Keep concrete/final/static/constructor cases in optional bytecode adapters.
 
 ### Phase 50 — Matcher parity and PHPSpec dynamic expectations

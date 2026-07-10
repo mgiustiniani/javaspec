@@ -568,6 +568,13 @@ public class DoublesTest {
         assertAssertionMessage(new ThrowingCall() {
             @Override
             public void run() {
+                control.verifyCalled("greet", "missing");
+            }
+        }, "method 'greet' with arguments (missing)", "different arguments", "greet(Ada)", "greet(Grace)");
+
+        assertAssertionMessage(new ThrowingCall() {
+            @Override
+            public void run() {
                 control.verifyNotCalled("greet");
             }
         }, "method 'greet'", "not to have been called", "3 time(s)", "Matching calls", "greet(Grace)");
