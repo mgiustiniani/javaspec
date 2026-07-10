@@ -58,7 +58,8 @@ moving dependency-heavy behavior into optional artifacts.
   injected as interface doubles, generated typed `*Prophecy` wrapper parameters are backed by the
   spec's shared prediction registry, and the same collaborator instance is reused across
   `let`/example/`letGo` for one example run. Automatic prediction checking now runs before
-  `letGo` while still guaranteeing teardown execution.
+  `letGo` while still guaranteeing teardown execution; duplicate same-type collaborator parameters
+  and ambiguous overloads report BROKEN diagnostics.
 
 ## Optional subclass adapter `javaspec-bytecode-doubles`
 

@@ -431,11 +431,24 @@ public final class SpecRunner {
 
         Object[] argumentsFor(Method method) {
             Class<?>[] parameterTypes = method.getParameterTypes();
+            validateUnambiguousParameterTypes(method, parameterTypes);
             Object[] arguments = new Object[parameterTypes.length];
             for (int i = 0; i < parameterTypes.length; i++) {
                 arguments[i] = argumentFor(parameterTypes[i]);
             }
             return arguments;
+        }
+
+        private static void validateUnambiguousParameterTypes(Method method, Class<?>[] parameterTypes) {
+            for (int i = 0; i < parameterTypes.length; i++) {
+                for (int j = i + 1; j < parameterTypes.length; j++) {
+                    if (parameterTypes[i].equals(parameterTypes[j])) {
+                        throw new IllegalArgumentException("Ambiguous collaborator parameter type "
+                                + parameterTypes[i].getName() + " on " + method.getName()
+                                + ": the same type appears more than once. Use one parameter per collaborator type.");
+                    }
+                }
+            }
         }
 
         private Object argumentFor(Class<?> parameterType) {

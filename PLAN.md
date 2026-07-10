@@ -292,10 +292,10 @@ ordinary interfaces (injected as zero-dependency interface doubles) and generate
 cached per example run so `let`, the example, and `letGo` receive the same collaborator object for
 the same parameter type. Automatic prediction checking now runs after a successful example body and
 before `letGo`, while still guaranteeing teardown execution; teardown failure after prediction
-failure is reported as BROKEN with the prediction failure suppressed. Unsupported parameter types
-and ambiguous overloads produce BROKEN execution diagnostics rather than being treated as missing
-no-arg examples. Discovery now includes parameterized example methods so source metadata reaches
-the runner.
+failure is reported as BROKEN with the prediction failure suppressed. Unsupported parameter types,
+duplicate same-type collaborator parameters, and ambiguous overloads produce BROKEN execution
+diagnostics rather than being treated as missing no-arg examples. Discovery now includes
+parameterized example methods so source metadata reaches the runner.
 
 ### Phase 49 — Prophecy parity completion
 

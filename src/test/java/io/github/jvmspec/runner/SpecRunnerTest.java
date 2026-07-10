@@ -367,6 +367,33 @@ public class SpecRunnerTest {
     }
 
     @Test
+    public void duplicateInjectedParameterTypesBecomeBrokenWithActionableDiagnostic() {
+        RunResult result = run(DuplicateInjectedParameterSpec.class, "it_has_ambiguous_collaborators");
+
+        assertEquals(1, result.totalCount());
+        assertEquals(1, result.brokenCount());
+        ExampleResult broken = result.exampleResults().get(0);
+        assertEquals(ExampleStatus.BROKEN, broken.status());
+        assertNotNull(broken.failureDetail());
+        assertTrue(broken.failureDetail().message().contains("Ambiguous collaborator parameter type"));
+        assertTrue(broken.failureDetail().message().contains(MailerProphecy.class.getName()));
+        assertTrue(broken.failureDetail().message().contains("appears more than once"));
+    }
+
+    @Test
+    public void overloadedExampleMethodsBecomeBrokenWithActionableDiagnostic() {
+        RunResult result = run(OverloadedExampleSpec.class, "it_is_ambiguous");
+
+        assertEquals(1, result.totalCount());
+        assertEquals(1, result.brokenCount());
+        ExampleResult broken = result.exampleResults().get(0);
+        assertEquals(ExampleStatus.BROKEN, broken.status());
+        assertTrue(broken.detail().contains("Could not inspect example method"));
+        assertNotNull(broken.failureDetail());
+        assertTrue(broken.failureDetail().message().contains("Ambiguous public void method overloads"));
+    }
+
+    @Test
     public void injectsTypedProphecyWrapperIntoExampleMethods() {
         InjectedProphecyExampleSpec.reset();
 
@@ -765,6 +792,24 @@ public class SpecRunnerTest {
                 throw new IllegalStateException("mailer missing");
             }
             mailer.send(email);
+        }
+    }
+
+    public static final class DuplicateInjectedParameterSpec extends ObjectBehavior<MailSubject> {
+        public DuplicateInjectedParameterSpec() {
+            super(MailSubject.class);
+        }
+
+        public void it_has_ambiguous_collaborators(MailerProphecy first, MailerProphecy second) {
+            throw new AssertionError("duplicate collaborators should fail before the example body");
+        }
+    }
+
+    public static final class OverloadedExampleSpec {
+        public void it_is_ambiguous() {
+        }
+
+        public void it_is_ambiguous(Mailer mailer) {
         }
     }
 

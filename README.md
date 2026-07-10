@@ -621,7 +621,9 @@ Predictions are checked by calling `checkPredictions()` at the end of an example
 when `--auto-check-predictions` is enabled.
 
 You can also receive supported collaborators as PHPSpec-style parameters on `let`, examples, and
-`letGo`. For one example run, the same typed prophecy is reused across lifecycle and example methods:
+`letGo`. For one example run, the same typed prophecy is reused across lifecycle and example methods.
+Declare each collaborator type at most once per method; duplicate same-type parameters are reported
+as ambiguous:
 
 ```java
 public void let(MailerProphecy mailer) {
