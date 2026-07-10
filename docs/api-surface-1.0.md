@@ -67,8 +67,12 @@ Before the first 1.0 RC:
 
 1. Run `scripts/check-api-surface.sh` to ensure every shipped Java package is classified here.
 2. Run `scripts/verify-all.sh`.
-3. Archive the exact public API inventory produced by the RC build under `docs/history/api-baseline-1.0.0.md` or an equivalent release artifact.
-4. Compare future release candidates against that baseline. Additive public API changes are allowed before GA only when documented; removals or incompatible signature changes reset the RC.
+3. Run `scripts/generate-api-baseline.sh` after all artifact builds complete. It writes the exact
+   public/protected JVM signature inventory to `docs/history/api-baseline-1.0.0.md`.
+4. Commit that inventory with the RC version cut. Regenerating it without API changes must produce
+   no diff.
+5. Compare future release candidates against that baseline. Additive public API changes are allowed
+   before GA only when documented; removals or incompatible signature changes reset the RC.
 
 ## Intentional limits
 

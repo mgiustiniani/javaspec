@@ -124,6 +124,8 @@ moving dependency-heavy behavior into optional artifacts.
   jars, bytecode-agent manifest entries, SHA-256 checksums, and external consumer examples.
 - `scripts/check-release-preflight.sh` fails RC/final publication unless the release version, tag,
   and absence of `SNAPSHOT` build-file references are aligned.
+- `scripts/generate-api-baseline.sh` creates the deterministic public/protected JVM signature
+  inventory archived with RC1 for later compatibility comparisons.
 - Core `mvn verify` runs Animal Sniffer against the Java 8 API signature to prevent accidental
   direct linkage to post-Java-8 APIs; `com.sun.source.*` is explicitly allowed for JDK 8 javac tree
   API use.
