@@ -43,7 +43,8 @@ final class SpecCallScanner {
     private static final Set<String> MATCHER_NAMES = new HashSet<String>(Arrays.asList(
             "shouldReturn", "shouldNotReturn", "shouldBe", "shouldNotBe", "shouldEqual",
             "shouldNotEqual", "shouldBeLike", "shouldNotBeLike", "shouldBeEqualTo",
-            "shouldNotBeEqualTo", "shouldHaveType", "shouldBeAnInstanceOf",
+            "shouldNotBeEqualTo", "shouldBeApproximately", "shouldReturnApproximately",
+            "shouldNotBeApproximately", "shouldNotReturnApproximately", "shouldHaveType", "shouldBeAnInstanceOf",
             "shouldReturnAnInstanceOf", "shouldImplement", "shouldContain", "shouldNotContain",
             "shouldStartWith", "shouldNotStartWith", "shouldEndWith", "shouldNotEndWith",
             "shouldMatchPattern", "shouldNotMatchPattern", "shouldHaveCount", "shouldBeEmpty",

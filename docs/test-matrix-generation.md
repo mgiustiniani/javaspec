@@ -24,7 +24,7 @@ language forms or generator behavior are added.
 | Examples | `it_*` / `its_*` discovery, filters, stable IDs, skip/pending states, inline `examples(row(...)).verify(...)` data rows | Row-level report/formatter representation without Jupiter parameterized syntax |
 | Lifecycle | Fresh spec instance per example, `let()`, `letGo()`, construction helpers | Parameterized `let(...)` / examples for collaborator injection |
 | Subject construction | `subject()`, `beConstructedWith`, named/static factory construction | Clearer diagnostics and snippet coverage for ambiguous constructors/factories |
-| Matchers | Core `should*` / `shouldNot*` equality, type, count, string, collection/map helpers | Approximate, iteration, dynamic object-state, inline and configured custom matchers |
+| Matchers | Core `should*` / `shouldNot*` equality, type, approximate numeric, count, string, collection/map/iterable/iterator helpers | Dynamic object-state, inline and configured custom matchers |
 | Prophecy | Interface/concrete/final wrappers, promises, predictions, reveal, auto-check support | Full argument-token parity and custom prediction callbacks |
 | Generation | Spec/support/type/method/constructor/static factory generation and dry-run planning | Safer PHPSpec snippets, template overrides, and anti-batching guardrails |
 | Formatters/reports | `progress`, `pretty`, JSON, JUnit XML, ServiceLoader formatters | Optional TAP/TeamCity/HTML/Open Test Reporting adapters |

@@ -166,7 +166,7 @@ public final class Matchable<T> {
     }
 
     /**
-     * Asserts that strings, collections, maps, arrays, or iterables contain the expected value.
+     * Asserts that strings, collections, maps, arrays, iterables, or iterators contain the expected value.
      */
     public void shouldContain(Object expected) {
         if (!contains(value, expected)) {
@@ -175,7 +175,7 @@ public final class Matchable<T> {
     }
 
     /**
-     * Asserts that strings, collections, maps, arrays, or iterables do not contain the unexpected value.
+     * Asserts that strings, collections, maps, arrays, iterables, or iterators do not contain the unexpected value.
      */
     public void shouldNotContain(Object unexpected) {
         if (contains(value, unexpected)) {
@@ -242,11 +242,12 @@ public final class Matchable<T> {
     }
 
     /**
-     * Asserts that arrays, collections, maps, character sequences, or iterables have the expected count.
+     * Asserts that arrays, collections, maps, character sequences, iterables, or iterators have the expected count.
      * <p>
-     * For a generic {@link Iterable} that is not a {@link Collection}, the check is bounded: it
-     * iterates at most {@code expectedCount + 1} elements and fails fast when the bound is exceeded,
-     * so it is safe on infinite iterables.
+     * For a generic {@link Iterable} that is not a {@link Collection}, and for an {@link Iterator},
+     * the check is bounded: it iterates at most {@code expectedCount + 1} elements and fails fast
+     * when the bound is exceeded, so it is safe on infinite sources. Iterator element checks are
+     * intentionally consumptive.
      * </p>
      */
     public void shouldHaveCount(int expectedCount) {
@@ -267,6 +268,20 @@ public final class Matchable<T> {
             }
             return;
         }
+        if (value instanceof Iterator<?>) {
+            int limit = expectedCount < Integer.MAX_VALUE ? expectedCount + 1 : Integer.MAX_VALUE;
+            int boundedCount = boundedCountOf((Iterator<?>) value, limit);
+            if (boundedCount > expectedCount) {
+                throw new AssertionError(
+                        "Expected " + value + " to have count " + expectedCount
+                        + " but it has more than " + expectedCount + " elements"
+                );
+            }
+            if (boundedCount != expectedCount) {
+                throw new AssertionError("Expected " + value + " to have count " + expectedCount + " but got " + boundedCount);
+            }
+            return;
+        }
         int actualCount = countOf(value);
         if (actualCount != expectedCount) {
             throw new AssertionError("Expected " + value + " to have count " + expectedCount + " but got " + actualCount);
@@ -274,11 +289,11 @@ public final class Matchable<T> {
     }
 
     /**
-     * Asserts that arrays, collections, maps, character sequences, or iterables are empty.
+     * Asserts that arrays, collections, maps, character sequences, iterables, or iterators are empty.
      * <p>
-     * For a generic {@link Iterable} that is not a {@link Collection}, emptiness is determined via
-     * {@code iterator().hasNext()} without consuming the iterable, so the check is bounded and safe
-     * on infinite iterables.
+     * For a generic {@link Iterable} that is not a {@link Collection}, and for an {@link Iterator},
+     * emptiness is determined via {@code hasNext()} without consuming an element, so the check is
+     * bounded and safe on infinite sources.
      * </p>
      */
     public void shouldBeEmpty() {
@@ -291,11 +306,11 @@ public final class Matchable<T> {
     }
 
     /**
-     * Asserts that arrays, collections, maps, character sequences, or iterables are not empty.
+     * Asserts that arrays, collections, maps, character sequences, iterables, or iterators are not empty.
      * <p>
-     * For a generic {@link Iterable} that is not a {@link Collection}, emptiness is determined via
-     * {@code iterator().hasNext()} without consuming the iterable, so the check is bounded and safe
-     * on infinite iterables.
+     * For a generic {@link Iterable} that is not a {@link Collection}, and for an {@link Iterator},
+     * emptiness is determined via {@code hasNext()} without consuming an element, so the check is
+     * bounded and safe on infinite sources.
      * </p>
      */
     public void shouldNotBeEmpty() {
@@ -493,6 +508,15 @@ public final class Matchable<T> {
                 }
             }
         }
+        if (actual instanceof Iterator<?>) {
+            Iterator<?> iterator = (Iterator<?>) actual;
+            while (iterator.hasNext()) {
+                Object element = iterator.next();
+                if (element == null ? expected == null : element.equals(expected)) {
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
@@ -520,6 +544,15 @@ public final class Matchable<T> {
             }
             return count;
         }
+        if (actual instanceof Iterator<?>) {
+            int count = 0;
+            Iterator<?> iterator = (Iterator<?>) actual;
+            while (iterator.hasNext()) {
+                iterator.next();
+                count++;
+            }
+            return count;
+        }
         throw new AssertionError("Expected a countable value but got " + typeName(actual));
     }
 
@@ -542,6 +575,9 @@ public final class Matchable<T> {
         if (isGenericIterable(actual)) {
             return !((Iterable<?>) actual).iterator().hasNext();
         }
+        if (actual instanceof Iterator<?>) {
+            return !((Iterator<?>) actual).hasNext();
+        }
         return countOf(actual) == 0;
     }
 
@@ -551,8 +587,15 @@ public final class Matchable<T> {
      * on infinite iterables.
      */
     private static int boundedCountOf(Iterable<?> actual, int limit) {
+        return boundedCountOf(actual.iterator(), limit);
+    }
+
+    /**
+     * Counts the elements of an iterator, consuming at most {@code limit} elements. Iterator-based
+     * matcher checks are intentionally consumptive for operations that need to inspect elements.
+     */
+    private static int boundedCountOf(Iterator<?> iterator, int limit) {
         int count = 0;
-        Iterator<?> iterator = actual.iterator();
         while (count < limit && iterator.hasNext()) {
             iterator.next();
             count++;

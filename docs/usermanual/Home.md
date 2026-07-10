@@ -2003,7 +2003,7 @@ Java adaptation: primitive, boxed, integral, floating, and `BigDecimal` values a
 | `shouldBeAnInstanceOf(Class<?>)` | alias for `shouldHaveType` |
 | `shouldReturnAnInstanceOf(Class<?>)` | return-terminology alias for `shouldHaveType` |
 | `shouldImplement(Class<?>)` | requires the wrapped value, or wrapped `Class<?>`, to implement or extend the expected type |
-| `shouldContain(value)` | checks character sequences, collections, maps, arrays, or iterables for a contained value |
+| `shouldContain(value)` | checks character sequences, collections, maps, arrays, iterables, or iterators for a contained value |
 | `shouldNotContain(value)` | negated containment check |
 
 For maps, `shouldContain(value)` succeeds if the value is present as either a key or a value.
@@ -2012,16 +2012,18 @@ For maps, `shouldContain(value)` succeeds if the value is present as either a ke
 
 | Method | Supported values |
 |---|---|
-| `shouldHaveCount(int)` | arrays, collections, maps, character sequences, and iterables |
-| `shouldBeEmpty()` | arrays, collections, maps, character sequences, and iterables |
-| `shouldNotBeEmpty()` | arrays, collections, maps, character sequences, and iterables |
+| `shouldHaveCount(int)` | arrays, collections, maps, character sequences, iterables, and iterators |
+| `shouldBeEmpty()` | arrays, collections, maps, character sequences, iterables, and iterators |
+| `shouldNotBeEmpty()` | arrays, collections, maps, character sequences, iterables, and iterators |
 | `shouldHaveKey(key)` / `shouldNotHaveKey(key)` | maps |
 | `shouldHaveValue(value)` / `shouldNotHaveValue(value)` | maps |
 
 Generic `Iterable` empty checks use a single `iterator().hasNext()` peek.
 `shouldHaveCount(expected)` iterates at most `expected + 1` elements, so infinite iterables fail
 fast when more elements than expected are observed; one-shot iterables may still be advanced by the
-bounded check.
+bounded check. Raw `Iterator` values use the same bounded count contract; `shouldHaveCount` and
+`shouldContain` consume iterator elements intentionally, while empty/not-empty checks only call
+`hasNext()` and leave the next element available.
 
 ### String helpers
 

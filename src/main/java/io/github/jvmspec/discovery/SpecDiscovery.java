@@ -37,7 +37,7 @@ public final class SpecDiscovery {
     private static final Pattern METHOD_PATTERN = Pattern.compile("public\\s+void\\s+([A-Za-z_$][A-Za-z0-9_$]*)\\s*\\(([^)]*)\\)\\s*(?:throws\\s+[^\\{]+)?\\{", Pattern.DOTALL);
     private static final Pattern PROXY_EXPECTATION_PATTERN = Pattern.compile(
             "\\b([a-z][A-Za-z0-9_$]*)\\s*\\(([^;{}]*)\\)\\s*\\.\\s*"
-                    + "(shouldReturn|shouldNotReturn|shouldBe|shouldNotBe|shouldEqual|shouldNotEqual|shouldBeLike|shouldNotBeLike|shouldBeEqualTo|shouldNotBeEqualTo|shouldHaveType|shouldBeAnInstanceOf|shouldReturnAnInstanceOf|shouldImplement|shouldContain|shouldNotContain|shouldStartWith|shouldNotStartWith|shouldEndWith|shouldNotEndWith|shouldMatchPattern|shouldNotMatchPattern|shouldHaveCount|shouldBeEmpty|shouldNotBeEmpty|shouldHaveKey|shouldNotHaveKey|shouldHaveValue|shouldNotHaveValue)"
+                    + "(shouldReturn|shouldNotReturn|shouldBe|shouldNotBe|shouldEqual|shouldNotEqual|shouldBeLike|shouldNotBeLike|shouldBeEqualTo|shouldNotBeEqualTo|shouldBeApproximately|shouldReturnApproximately|shouldNotBeApproximately|shouldNotReturnApproximately|shouldHaveType|shouldBeAnInstanceOf|shouldReturnAnInstanceOf|shouldImplement|shouldContain|shouldNotContain|shouldStartWith|shouldNotStartWith|shouldEndWith|shouldNotEndWith|shouldMatchPattern|shouldNotMatchPattern|shouldHaveCount|shouldBeEmpty|shouldNotBeEmpty|shouldHaveKey|shouldNotHaveKey|shouldHaveValue|shouldNotHaveValue)"
                     + "\\s*\\(([^;{}]*)\\)",
             Pattern.DOTALL
     );
@@ -54,7 +54,7 @@ public final class SpecDiscovery {
     );
     private static final Pattern MATCH_SUBJECT_PROXY_PATTERN = Pattern.compile(
             "match\\s*\\(\\s*subject\\s*\\(\\s*\\)\\s*\\.\\s*([a-z][A-Za-z0-9_$]*)\\s*\\(([^;{}]*)\\)\\s*\\)\\s*\\.\\s*"
-                    + "(shouldReturn|shouldNotReturn|shouldBe|shouldNotBe|shouldEqual|shouldNotEqual|shouldBeLike|shouldNotBeLike|shouldBeEqualTo|shouldNotBeEqualTo|shouldHaveType|shouldBeAnInstanceOf|shouldReturnAnInstanceOf|shouldImplement|shouldContain|shouldNotContain|shouldStartWith|shouldNotStartWith|shouldEndWith|shouldNotEndWith|shouldMatchPattern|shouldNotMatchPattern|shouldHaveCount|shouldBeEmpty|shouldNotBeEmpty|shouldHaveKey|shouldNotHaveKey|shouldHaveValue|shouldNotHaveValue)"
+                    + "(shouldReturn|shouldNotReturn|shouldBe|shouldNotBe|shouldEqual|shouldNotEqual|shouldBeLike|shouldNotBeLike|shouldBeEqualTo|shouldNotBeEqualTo|shouldBeApproximately|shouldReturnApproximately|shouldNotBeApproximately|shouldNotReturnApproximately|shouldHaveType|shouldBeAnInstanceOf|shouldReturnAnInstanceOf|shouldImplement|shouldContain|shouldNotContain|shouldStartWith|shouldNotStartWith|shouldEndWith|shouldNotEndWith|shouldMatchPattern|shouldNotMatchPattern|shouldHaveCount|shouldBeEmpty|shouldNotBeEmpty|shouldHaveKey|shouldNotHaveKey|shouldHaveValue|shouldNotHaveValue)"
                     + "\\s*\\(([^;{}]*)\\)",
             Pattern.DOTALL
     );
@@ -638,6 +638,12 @@ public final class SpecDiscovery {
                 return "String";
             }
             return "Object";
+        }
+        if ("shouldBeApproximately".equals(matcherName)
+                || "shouldReturnApproximately".equals(matcherName)
+                || "shouldNotBeApproximately".equals(matcherName)
+                || "shouldNotReturnApproximately".equals(matcherName)) {
+            return "Number";
         }
         if ("shouldHaveType".equals(matcherName)
                 || "shouldBeAnInstanceOf".equals(matcherName)

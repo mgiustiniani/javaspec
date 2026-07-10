@@ -295,6 +295,43 @@ public class MatchableTest {
     }
 
     @Test
+    public void countContainAndEmptinessMatchersSupportJavaIteratorsWithExplicitConsumption() {
+        Iterator<String> counted = Arrays.asList("north", "south").iterator();
+        new Matchable<Iterator<String>>(counted, registry).shouldHaveCount(2);
+        assertTrue("shouldHaveCount consumes an iterator", !counted.hasNext());
+
+        Iterator<String> containing = Arrays.asList("ruby", "emerald", "sapphire").iterator();
+        new Matchable<Iterator<String>>(containing, registry).shouldContain("emerald");
+        assertEquals("shouldContain consumes through the matched element", "sapphire", containing.next());
+
+        Iterator<String> empty = Collections.<String>emptyList().iterator();
+        new Matchable<Iterator<String>>(empty, registry).shouldBeEmpty();
+
+        Iterator<String> nonEmpty = Arrays.asList("ruby").iterator();
+        new Matchable<Iterator<String>>(nonEmpty, registry).shouldNotBeEmpty();
+        assertEquals("shouldNotBeEmpty only probes hasNext and leaves the element available", "ruby", nonEmpty.next());
+    }
+
+    @Test
+    public void iteratorCountMatcherIsBoundedAndReportsUsefulFailures() {
+        final CountingIterator subject = new CountingIterator(10);
+        assertAssertionMessageContains(new Runnable() {
+            @Override
+            public void run() {
+                new Matchable<Iterator<Integer>>(subject, registry).shouldHaveCount(3);
+            }
+        }, "count 3", "more than 3 elements");
+        assertEquals("shouldHaveCount(n) consumes at most n + 1 iterator elements", 4, subject.consumed());
+
+        assertAssertionMessageContains(new Runnable() {
+            @Override
+            public void run() {
+                new Matchable<Iterator<String>>(Arrays.asList("ruby").iterator(), registry).shouldHaveCount(2);
+            }
+        }, "count 2", "got 1");
+    }
+
+    @Test
     public void countAndEmptinessFailuresHaveUsefulMessages() {
         assertAssertionMessageContains(new Runnable() {
             @Override
@@ -436,5 +473,33 @@ public class MatchableTest {
                 return Arrays.asList(values).iterator();
             }
         };
+    }
+
+    private static final class CountingIterator implements Iterator<Integer> {
+        private final int total;
+        private int consumed;
+
+        private CountingIterator(int total) {
+            this.total = total;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return consumed < total;
+        }
+
+        @Override
+        public Integer next() {
+            return Integer.valueOf(consumed++);
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException("remove");
+        }
+
+        private int consumed() {
+            return consumed;
+        }
     }
 }

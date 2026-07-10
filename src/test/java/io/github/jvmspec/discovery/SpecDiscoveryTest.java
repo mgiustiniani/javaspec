@@ -214,6 +214,10 @@ public class SpecDiscoveryTest {
                         "        getPrefix().shouldNotStartWith(\"ruby\");\n" +
                         "        getSuffix().shouldNotEndWith(\"ruby\");\n" +
                         "        getPattern().shouldNotMatchPattern(\"ruby.*\");\n" +
+                        "        getApproximateRating().shouldBeApproximately(3.14, 0.01);\n" +
+                        "        getApproximateTotal().shouldReturnApproximately(40L, 2);\n" +
+                        "        getDifferentRating().shouldNotBeApproximately(3.0, 0.25);\n" +
+                        "        getDifferentTotal().shouldNotReturnApproximately(12, 2);\n" +
                         "        getItems().shouldHaveCount(2);\n" +
                         "        getEmptyItems().shouldBeEmpty();\n" +
                         "        getNonEmptyItems().shouldNotBeEmpty();\n" +
@@ -238,6 +242,10 @@ public class SpecDiscoveryTest {
                 MethodDescriptor.of("getPrefix", "String"),
                 MethodDescriptor.of("getSuffix", "String"),
                 MethodDescriptor.of("getPattern", "String"),
+                MethodDescriptor.of("getApproximateRating", "Number"),
+                MethodDescriptor.of("getApproximateTotal", "Number"),
+                MethodDescriptor.of("getDifferentRating", "Number"),
+                MethodDescriptor.of("getDifferentTotal", "Number"),
                 MethodDescriptor.of("getItems", "Object"),
                 MethodDescriptor.of("getEmptyItems", "Object"),
                 MethodDescriptor.of("getNonEmptyItems", "Object"),

@@ -155,6 +155,7 @@ public class ObjectBehaviorTest {
                 expected("shouldHaveCount", map, Integer.valueOf(2)),
                 expected("shouldHaveCount", "ruby", Integer.valueOf(4)),
                 expected("shouldHaveCount", iterable("north", "south"), Integer.valueOf(2)),
+                expected("shouldHaveCount", Arrays.asList("north", "south").iterator(), Integer.valueOf(2)),
                 expected("shouldBeEmpty", new int[0]),
                 expected("shouldBeEmpty", Collections.<String>emptyList()),
                 expected("shouldBeEmpty", Collections.<String, Integer>emptyMap()),
@@ -189,6 +190,7 @@ public class ObjectBehaviorTest {
         invokeConvenience(behavior, "shouldHaveCount", map, Integer.valueOf(2));
         invokeConvenience(behavior, "shouldHaveCount", "ruby", Integer.valueOf(4));
         invokeConvenience(behavior, "shouldHaveCount", iterable("north", "south"), Integer.valueOf(2));
+        invokeConvenience(behavior, "shouldHaveCount", Arrays.asList("north", "south").iterator(), Integer.valueOf(2));
         invokeConvenience(behavior, "shouldBeEmpty", new int[0]);
         invokeConvenience(behavior, "shouldBeEmpty", Collections.<String>emptyList());
         invokeConvenience(behavior, "shouldBeEmpty", Collections.<String, Integer>emptyMap());

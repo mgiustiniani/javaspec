@@ -182,35 +182,35 @@ public class AssertionDispatcher {
     // --- Collection/content assertions ---
 
     /**
-     * Asserts that strings, collections, maps, arrays, or iterables contain the expected value.
+     * Asserts that strings, collections, maps, arrays, iterables, or iterators contain the expected value.
      */
     public void shouldContain(Object actual, Object expected) {
         match(actual).shouldContain(expected);
     }
 
     /**
-     * Asserts that strings, collections, maps, arrays, or iterables do not contain the unexpected value.
+     * Asserts that strings, collections, maps, arrays, iterables, or iterators do not contain the unexpected value.
      */
     public void shouldNotContain(Object actual, Object unexpected) {
         match(actual).shouldNotContain(unexpected);
     }
 
     /**
-     * Asserts that arrays, collections, maps, character sequences, or iterables have the expected count.
+     * Asserts that arrays, collections, maps, character sequences, iterables, or iterators have the expected count.
      */
     public void shouldHaveCount(Object actual, int expectedCount) {
         match(actual).shouldHaveCount(expectedCount);
     }
 
     /**
-     * Asserts that arrays, collections, maps, character sequences, or iterables are empty.
+     * Asserts that arrays, collections, maps, character sequences, iterables, or iterators are empty.
      */
     public void shouldBeEmpty(Object actual) {
         match(actual).shouldBeEmpty();
     }
 
     /**
-     * Asserts that arrays, collections, maps, character sequences, or iterables are not empty.
+     * Asserts that arrays, collections, maps, character sequences, iterables, or iterators are not empty.
      */
     public void shouldNotBeEmpty(Object actual) {
         match(actual).shouldNotBeEmpty();
