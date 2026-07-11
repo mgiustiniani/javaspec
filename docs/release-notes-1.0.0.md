@@ -139,6 +139,8 @@ moving dependency-heavy behavior into optional artifacts.
   [29139032096](https://github.com/mgiustiniani/javaspec/actions/runs/29139032096).
 - Releases follow Git Flow through `release/<version>`, a non-fast-forward merge into production
   branch `main`, an annotated tag on that merge commit, and a merge back into `develop`.
-- Release workflow run 29139156898 passed preflight, artifact/consumer verification, and GPG import,
-  but Maven deployment failed before confirmed publication. `1.0.0-RC1` remains unpublished until
-  all Maven Central and optional Gradle Plugin Portal checks are recorded.
+- Release workflow
+  [run 29146746362](https://github.com/mgiustiniani/javaspec/actions/runs/29146746362) passed all
+  preflight, artifact/consumer, GPG signing, Maven Central, and Gradle submission steps. All five
+  Maven artifacts and their POM, main/source/Javadoc JARs, and signatures were verified directly;
+  first-publication Gradle Plugin Portal visibility remains under external review.

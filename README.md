@@ -8,9 +8,8 @@ javaspec is a spec-first BDD tool for Java, inspired by PHPSpec. You write subje
 
 The core is Java 8-compatible and has no third-party runtime dependencies. It can be used directly from the CLI, embedded through a no-`System.exit` launcher, or adopted through optional Maven, Gradle, and JUnit Platform adapters.
 
-Artifacts use the Maven Central group `io.github.jvmspec`. The dependency below targets the active
-`1.0.0-RC1` release candidate; until its publication is confirmed on Maven Central, build and install
-it from the release branch with `mvn -q -DskipTests install`:
+Artifacts use the Maven Central group `io.github.jvmspec`. The active `1.0.0-RC1` release candidate
+is available from Maven Central:
 
 ```xml
 <dependency>
@@ -837,8 +836,9 @@ javaspec adapter settings opt into javaspec compilation.
 ## Compatibility and boundaries
 
 - The core artifact remains Java 8-compatible and zero-runtime-dependency.
-- Maven artifacts use group `io.github.jvmspec`; stable `0.1.0` is available, while RC/final
-  availability must be verified directly. The Gradle Plugin Portal id is `io.github.jvmspec`.
+- Maven artifacts use group `io.github.jvmspec`; `1.0.0-RC1` is available from Maven Central. The
+  Gradle Plugin Portal id is `io.github.jvmspec`; its first RC1 publication has been submitted and
+  remains subject to Portal visibility/review.
 - The Maven plugin, Gradle plugin, JUnit Platform engine, bytecode doubles adapter, and bytecode agent adapter are standalone optional artifacts outside the root Maven reactor.
 - Repository-root `mvn verify` is intentionally core-only.
 - `scripts/verify-all.sh` verifies the core, optional adapters, and standalone examples together.
