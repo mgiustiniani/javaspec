@@ -69,7 +69,7 @@ jobs:
           status=${PIPESTATUS[0]}
           set -e
           if [ "$status" -ne 0 ]; then
-            tail -n 20 /tmp/javaspec-release-dry-run.log | while IFS= read -r line; do
+            tail -n 20 /tmp/javaspec-release-dry-run.log | tac | while IFS= read -r line; do
               echo "::error title=Release dry-run failure::${line}"
             done
           fi

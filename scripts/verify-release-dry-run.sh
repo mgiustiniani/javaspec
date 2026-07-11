@@ -37,7 +37,11 @@ fail() { printf 'FAIL: %s\n' "$1" >&2; exit 1; }
 artifact_files=()
 
 require_file() {
-  [ -f "$1" ] || fail "missing expected artifact: $1"
+  if [ ! -f "$1" ]; then
+    printf 'Artifact directory contents for diagnostics:\n' >&2
+    find "$(dirname "$1")" -maxdepth 1 -type f -printf '%f\n' 2>/dev/null | sort >&2 || true
+    fail "missing expected artifact: $1"
+  fi
   artifact_files+=("$1")
   pass "artifact exists: $1"
 }
