@@ -41,7 +41,7 @@ gradlePlugin {
         javaspec {
             id = 'io.github.jvmspec'
             displayName = 'javaspec'
-            description = 'PHPSpec-first specification runner for Java.'
+            description = 'Optional Gradle adapter for the javaspec runner.'
             tags.set(['bdd', 'phpspec', 'specification', 'testing'])
             implementationClass = 'io.github.jvmspec.gradle.JavaspecPlugin'
         }
