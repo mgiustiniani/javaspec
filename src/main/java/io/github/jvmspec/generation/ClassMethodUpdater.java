@@ -326,22 +326,29 @@ public final class ClassMethodUpdater {
         String sourceWithPlannedComponents = recordSimpleName == null
                 ? source
                 : RecordComponentPlanner.updateRecordHeader(source, describedType);
-        return missingMethodsInScope(sourceWithPlannedComponents, eligibleMethods(describedType), recordSimpleName);
+        return missingMethodsInScope(
+                sourceWithPlannedComponents,
+                eligibleMethods(describedType),
+                recordSimpleName,
+                describedType.simpleName()
+        );
     }
 
     private static List<MethodDescriptor> missingMethodsInScope(String scopeSource, List<MethodDescriptor> methods) {
-        return missingMethodsInScope(scopeSource, methods, null);
+        return missingMethodsInScope(scopeSource, methods, null, null);
     }
 
     private static List<MethodDescriptor> missingMethodsInScope(
             String scopeSource,
             List<MethodDescriptor> methods,
-            String recordSimpleName
+            String recordSimpleName,
+            String primaryTypeSimpleName
     ) {
-        // Use the comment-stripping parser (SPI) to detect existing methods, eliminating false
-        // positives from method names that appear inside comments or string literals.
-        ParsedSource parsed = JavaSourceParserLoader.select(effectiveParserClassLoader()).parse(scopeSource);
-        Set<String> existingSignatures = existingMethodSignatures(scopeSource);
+        // Restrict signature checks to direct members. Methods inside local, anonymous, nested, or
+        // secondary top-level types must not satisfy a behavior requested from the described type.
+        String directMemberSource = directMemberSource(scopeSource, primaryTypeSimpleName);
+        ParsedSource parsed = JavaSourceParserLoader.select(effectiveParserClassLoader()).parse(directMemberSource);
+        Set<String> existingSignatures = existingMethodSignatures(directMemberSource);
         if (recordSimpleName != null) {
             existingSignatures.addAll(recordComponentAccessorSignatures(scopeSource, recordSimpleName));
         }
@@ -538,6 +545,42 @@ public final class ClassMethodUpdater {
             index += Character.charCount(currentCodePoint);
         }
         return true;
+    }
+
+    private static String directMemberSource(String source, String primaryTypeSimpleName) {
+        String masked = maskNonCode(source);
+        int bodyStart = 0;
+        int bodyEnd = masked.length();
+        if (primaryTypeSimpleName != null) {
+            int openBrace = findPrimaryTypeOpenBrace(masked, primaryTypeSimpleName);
+            if (openBrace < 0) {
+                return masked;
+            }
+            int closeBrace = findMatchingBraceInMasked(masked, openBrace);
+            if (closeBrace < 0) {
+                return masked;
+            }
+            bodyStart = openBrace + 1;
+            bodyEnd = closeBrace;
+        }
+
+        char[] direct = masked.substring(bodyStart, bodyEnd).toCharArray();
+        int depth = 0;
+        for (int i = 0; i < direct.length; i++) {
+            char current = direct[i];
+            if (current == '{') {
+                depth++;
+                direct[i] = ' ';
+            } else if (current == '}') {
+                direct[i] = ' ';
+                if (depth > 0) {
+                    depth--;
+                }
+            } else if (depth > 0) {
+                direct[i] = blankedChar(current);
+            }
+        }
+        return new String(direct);
     }
 
     private static Set<String> existingMethodSignatures(String source) {
@@ -859,74 +902,7 @@ public final class ClassMethodUpdater {
      * tolerate braces and keywords inside non-code text.
      */
     private static String maskNonCode(String source) {
-        char[] chars = source.toCharArray();
-        boolean inString = false;
-        boolean inChar = false;
-        boolean inLineComment = false;
-        boolean inBlockComment = false;
-        boolean escaped = false;
-        for (int i = 0; i < chars.length; i++) {
-            char c = chars[i];
-            char next = i + 1 < chars.length ? chars[i + 1] : '\0';
-
-            if (inLineComment) {
-                if (c == '\n') {
-                    inLineComment = false;
-                } else {
-                    chars[i] = blankedChar(c);
-                }
-                continue;
-            }
-            if (inBlockComment) {
-                if (c == '*' && next == '/') {
-                    inBlockComment = false;
-                    chars[i] = ' ';
-                    chars[i + 1] = ' ';
-                    i++;
-                } else {
-                    chars[i] = blankedChar(c);
-                }
-                continue;
-            }
-            if (escaped) {
-                chars[i] = ' ';
-                escaped = false;
-                continue;
-            }
-            if ((inString || inChar) && c == '\\') {
-                chars[i] = ' ';
-                escaped = true;
-                continue;
-            }
-            if (!inString && !inChar && c == '/' && next == '/') {
-                inLineComment = true;
-                chars[i] = ' ';
-                chars[i + 1] = ' ';
-                i++;
-                continue;
-            }
-            if (!inString && !inChar && c == '/' && next == '*') {
-                inBlockComment = true;
-                chars[i] = ' ';
-                chars[i + 1] = ' ';
-                i++;
-                continue;
-            }
-            if (!inChar && c == '"') {
-                inString = !inString;
-                chars[i] = ' ';
-                continue;
-            }
-            if (!inString && c == '\'') {
-                inChar = !inChar;
-                chars[i] = ' ';
-                continue;
-            }
-            if (inString || inChar) {
-                chars[i] = blankedChar(c);
-            }
-        }
-        return new String(chars);
+        return NonCodeSourceMasker.mask(source);
     }
 
     private static char blankedChar(char c) {
