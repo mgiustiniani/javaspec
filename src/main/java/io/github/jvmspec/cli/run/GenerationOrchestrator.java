@@ -21,6 +21,7 @@ import io.github.jvmspec.generation.ProphecyFileGenerator;
 import io.github.jvmspec.generation.ProphecyGenerationPlan;
 import io.github.jvmspec.generation.ProphecySkeletonGenerator;
 import io.github.jvmspec.generation.SpecSupportFileGenerator;
+import io.github.jvmspec.generation.parser.JavaSourceParserLoader;
 import io.github.jvmspec.model.DescribedType;
 import io.github.jvmspec.model.JavaTypeKind;
 
@@ -149,6 +150,12 @@ public final class GenerationOrchestrator {
             } catch (SecurityException ex) {
                 err.println("I/O error while generating related specification: " + messageOf(ex));
                 return GenerationOrchestratorResult.ioError(EXIT_IO_ERROR);
+            }
+
+            GenerationOrchestratorResult sourceShapeFailure = validateExistingSourceShape(
+                    describedType, sourceRoot, err);
+            if (sourceShapeFailure != null) {
+                return sourceShapeFailure;
             }
 
             if ((generate || dryRun) && needsSupportUpdate(describedType)) {
@@ -834,6 +841,41 @@ public final class GenerationOrchestrator {
             } catch (IOException ex) {
                 err.println("I/O error updating prophecy helpers in support: " + messageOf(ex));
             }
+        }
+    }
+
+    private static GenerationOrchestratorResult validateExistingSourceShape(
+            DescribedType describedType,
+            File sourceRoot,
+            PrintStream err
+    ) {
+        if (!describedType.hasMethods() && !describedType.hasConstructors()) {
+            return null;
+        }
+        File sourceFile = new File(
+                sourceRoot,
+                describedType.qualifiedName().replace('.', File.separatorChar) + ".java"
+        );
+        if (!sourceFile.isFile()) {
+            return null;
+        }
+        try {
+            String source = new String(Files.readAllBytes(sourceFile.toPath()), StandardCharsets.UTF_8);
+            int closingBrace = JavaSourceParserLoader.defaultParser()
+                    .parse(source)
+                    .typeClosingBraceOffset(describedType.simpleName());
+            if (closingBrace >= 0) {
+                return null;
+            }
+            err.println("Unsupported source update: no named class-like declaration for "
+                    + describedType.qualifiedName() + " was found in " + sourceFile.getPath() + ".");
+            err.println("Compact source files and implicit classes are not supported as javaspec subjects; "
+                    + "use a named class, record, interface, enum, or annotation.");
+            return GenerationOrchestratorResult.missingNotGenerated();
+        } catch (IOException ex) {
+            err.println("I/O error while validating source shape: " + messageOf(ex));
+            err.println("Target path: " + sourceFile.getPath());
+            return GenerationOrchestratorResult.ioError(EXIT_IO_ERROR);
         }
     }
 

@@ -2,17 +2,28 @@ package io.github.jvmspec.compatibility.language;
 
 import io.github.jvmspec.discovery.DiscoveredSpec;
 import io.github.jvmspec.discovery.SpecDiscovery;
+import io.github.jvmspec.discovery.SpecNamingConvention;
+import io.github.jvmspec.cli.run.GenerationOrchestrator;
+import io.github.jvmspec.cli.run.GenerationOrchestratorResult;
+import io.github.jvmspec.generation.ClassConstructorUpdater;
 import io.github.jvmspec.generation.ClassMethodUpdater;
+import io.github.jvmspec.generation.ConstructorPolicy;
+import io.github.jvmspec.model.ConstructorDescriptor;
+import io.github.jvmspec.model.DescribedType;
+import io.github.jvmspec.model.MethodDescriptor;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintStream;
+import java.io.StringReader;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
@@ -20,6 +31,8 @@ import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -131,6 +144,18 @@ public class JavaLanguageCoverageManifestTest {
         }
         if ("JAVA21_VIRTUAL_THREADS".equals(entry.scenario())) {
             runJava21VirtualThreadFixture(entry);
+            return;
+        }
+        if ("FLEXIBLE_CONSTRUCTOR".equals(entry.scenario())) {
+            runFlexibleConstructorFixture(entry);
+            return;
+        }
+        if ("COMPACT_SOURCE".equals(entry.scenario())) {
+            runCompactSourceFixture(entry);
+            return;
+        }
+        if ("JAVA25_GATHERERS".equals(entry.scenario())) {
+            runJava25GathererFixture(entry);
             return;
         }
         throw new AssertionError("Unknown covered language fixture scenario: " + entry.scenario());
@@ -251,6 +276,81 @@ public class JavaLanguageCoverageManifestTest {
             Class<?> subjectClass = Class.forName("com.example.Subject", true, loader);
             Object subject = subjectClass.getDeclaredConstructor().newInstance();
             assertEquals("done:true:false", subjectClass.getMethod("runOnVirtualThread").invoke(subject));
+        } finally {
+            loader.close();
+        }
+    }
+
+    private void runFlexibleConstructorFixture(LanguageCoverageEntry entry) throws Exception {
+        UpdatedFixture fixture = updateFixture(entry);
+        File companion = copyFixtureFile(
+                entry, "additional", "com/example/Companion.java", fixture.sourceRoot);
+        String companionHash = sha256(companion);
+        String updated = readUtf8(fixture.sourceFile);
+        DescribedType constructorContract = DescribedType.of("com.example.Subject").withConstructors(
+                Collections.singletonList(ConstructorDescriptor.of(
+                        Collections.singletonList("String"),
+                        Collections.singletonList("value"),
+                        ""
+                ))
+        );
+        String constructorChecked = ClassConstructorUpdater.updateSource(
+                updated, constructorContract, ConstructorPolicy.PRESERVE);
+        assertEquals("Matching flexible constructor must not be rewritten", updated, constructorChecked);
+        assertTrue(updated.indexOf("if (value == null)") < updated.indexOf("String normalized"));
+        assertTrue(updated.indexOf("String normalized") < updated.indexOf("super(normalized)"));
+        compile(fixture.sourceFile, releaseOf(entry.profile()), entry.constructId(), companion);
+        assertEquals("Flexible-constructor base must remain unchanged", companionHash, sha256(companion));
+    }
+
+    private void runCompactSourceFixture(LanguageCoverageEntry entry) throws Exception {
+        File sourceRoot = temporaryFolder.newFolder(entry.constructId() + "-source");
+        File specRoot = temporaryFolder.newFolder(entry.constructId() + "-spec");
+        File generatedRoot = new File(temporaryFolder.getRoot(), entry.constructId() + "-generated");
+        File compactSource = copyFixtureFile(entry, "initial", "CompactProgram.java", sourceRoot);
+        copyFixtureFile(entry, "spec", "spec/CompactProgramSpec.java", specRoot);
+        String initial = readUtf8(compactSource);
+        DescribedType unsupportedTarget = DescribedType.of("CompactProgram").withMethods(
+                Arrays.asList(MethodDescriptor.of("addedBehavior", "String")));
+        assertEquals("Compact source must not be mutated as a class-like subject", initial,
+                ClassMethodUpdater.updateSource(initial, unsupportedTarget));
+
+        List<DiscoveredSpec> specs = SpecDiscovery.discover(specRoot);
+        assertEquals(1, specs.size());
+        ByteArrayOutputStream standardOutput = new ByteArrayOutputStream();
+        ByteArrayOutputStream errorOutput = new ByteArrayOutputStream();
+        GenerationOrchestratorResult result = GenerationOrchestrator.execute(
+                specs,
+                specRoot,
+                sourceRoot,
+                new BufferedReader(new StringReader("")),
+                new PrintStream(standardOutput),
+                new PrintStream(errorOutput),
+                true,
+                false,
+                SpecNamingConvention.defaults(),
+                getClass().getClassLoader(),
+                ConstructorPolicy.PRESERVE,
+                generatedRoot
+        );
+        String diagnostic = new String(errorOutput.toByteArray(), StandardCharsets.UTF_8);
+        assertFalse(result.shouldProceed());
+        assertEquals(1, result.exitCode());
+        assertTrue(diagnostic.contains("no named class-like declaration"));
+        assertTrue(diagnostic.contains("use a named class, record, interface, enum, or annotation"));
+        assertFalse("Fail-closed compact-source refusal must not generate support", generatedRoot.exists());
+        assertEquals(initial, readUtf8(compactSource));
+        compile(compactSource, releaseOf(entry.profile()), entry.constructId());
+    }
+
+    private void runJava25GathererFixture(LanguageCoverageEntry entry) throws Exception {
+        UpdatedFixture fixture = updateFixture(entry);
+        File output = compile(fixture.sourceFile, releaseOf(entry.profile()), entry.constructId());
+        URLClassLoader loader = fixtureClassLoader(output);
+        try {
+            Class<?> subjectClass = Class.forName("com.example.Subject", true, loader);
+            Object subject = subjectClass.getDeclaredConstructor().newInstance();
+            assertEquals("ab", subjectClass.getMethod("folded").invoke(subject));
         } finally {
             loader.close();
         }

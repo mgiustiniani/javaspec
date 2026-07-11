@@ -32,12 +32,12 @@ java21	java21-guarded-when	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/
 java21	java21-record-sealed-exhaustiveness	UPDATED	COVERED	SEALED_MULTI_FILE	java-language-matrix/java21/record-sealed-exhaustiveness	A multi-file exhaustive record/sealed switch remains valid after one subject update.
 java21	java21-sequenced-collections	PROFILE_GATED	COVERED	JAVA21_APIS	java-language-matrix/java21/sequenced-collections	SequencedCollection signatures compile and execute on Java 21+; existing profile tests reject older targets.
 java21	java21-virtual-threads	PRESERVED	COVERED	JAVA21_VIRTUAL_THREADS	java-language-matrix/java21/virtual-threads	A joined virtual-thread behavior executes deterministically and leaves no live worker.
-java25	java25-unnamed-variables-patterns	PRESERVED	PLANNED	PENDING	-	Unnamed variables and patterns in final supported forms.
-java25	java25-flexible-constructor-bodies	UPDATED	PLANNED	PENDING	-	Statements before constructor invocation preserved structurally.
-java25	java25-module-import-declarations	PRESERVED	PLANNED	PENDING	-	Module imports distinguished and preserved.
-java25	java25-compact-source-instance-main	INTENTIONALLY_UNSUPPORTED	PLANNED	PENDING	-	Compact source files ignored as subjects with actionable guidance.
-java25	java25-markdown-doc-comments	PRESERVED	PLANNED	PENDING	-	Markdown documentation comments preserved through updates.
-java25	java25-stream-gatherers	PROFILE_GATED	PLANNED	PENDING	-	Gatherer signature, typed proxy, compile, run, and older-profile refusal.
+java25	java25-unnamed-variables-patterns	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java25/unnamed-variables-patterns	Unnamed catch/loop variables and nested unnamed record patterns survive update and release-25 compilation.
+java25	java25-flexible-constructor-bodies	UPDATED	COVERED	FLEXIBLE_CONSTRUCTOR	java-language-matrix/java25/flexible-constructor	Validation before super invocation survives method and matching-constructor updates with order and hash stability.
+java25	java25-module-import-declarations	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java25/module-import	Module import declarations survive update, release-25 compilation, and idempotence.
+java25	java25-compact-source-instance-main	INTENTIONALLY_UNSUPPORTED	COVERED	COMPACT_SOURCE	java-language-matrix/java25/compact-source	Compact source files compile but are ignored/refused as described class subjects without mutation.
+java25	java25-markdown-doc-comments	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java25/markdown-doc-comments	Markdown documentation comments with fake structure survive update and release-25 compilation.
+java25	java25-stream-gatherers	PROFILE_GATED	COVERED	JAVA25_GATHERERS	java-language-matrix/java25/gatherers	Stream Gatherers compile and execute on Java 25; existing profile tests reject the API below 25.
 all	parser-multiple-top-level-types	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java8/nested-local-anonymous	Only the described top-level type is inspected and updated.
 all	parser-comment-literal-offsets	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java8/comments-literals	Comments, strings, chars, and fake signatures preserve structural offsets.
 all	fidelity-crlf	PRESERVED	PLANNED	PENDING	-	Original CRLF line endings remain unchanged.
