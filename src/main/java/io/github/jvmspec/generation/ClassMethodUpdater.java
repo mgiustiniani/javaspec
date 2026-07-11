@@ -73,7 +73,7 @@ public final class ClassMethodUpdater {
             return existingSource;
         }
 
-        String indent = indentationBefore(existingSource, closingBrace) + "    ";
+        String indent = memberIndentationBefore(existingSource, closingBrace);
         String insertion = renderMissingMethods(missingMethods, describedType, indent);
         if (insertion.length() == 0) {
             return existingSource;
@@ -137,7 +137,7 @@ public final class ClassMethodUpdater {
         List<MethodDescriptor> rootMissing = missingMethodsInScope(
                 rootScopeText(masked, rootOpenBrace, rootClosingBrace, nestedRegions), methods);
         if (!rootMissing.isEmpty()) {
-            String indent = indentationBefore(existingSource, rootClosingBrace) + "    ";
+            String indent = memberIndentationBefore(existingSource, rootClosingBrace);
             String insertion = renderInterfaceDeclarations(rootMissing, describedType, indent);
             result = insertBeforeClosingBraceKeepingIndent(result, rootClosingBrace, insertion);
         }
@@ -151,7 +151,7 @@ public final class ClassMethodUpdater {
             if (nestedMissing.isEmpty()) {
                 continue;
             }
-            String indent = indentationBefore(existingSource, region.closingBrace) + "    ";
+            String indent = memberIndentationBefore(existingSource, region.closingBrace);
             String insertion = "interface".equals(region.keyword)
                     ? renderInterfaceDeclarations(nestedMissing, describedType, indent)
                     : renderMethods(nestedMissing, describedType, indent);
@@ -288,15 +288,17 @@ public final class ClassMethodUpdater {
 
         StringBuilder builder = new StringBuilder();
         builder.append(prefix);
-        if (!prefix.endsWith("\n")) {
-            builder.append("\n");
+        String newline = lineSeparatorOf(source);
+        String normalizedInsertion = normalizeLineSeparators(insertion, newline);
+        if (!endsWithLineBreak(prefix)) {
+            builder.append(newline);
         }
         if (!endsWithBlankLine(builder)) {
-            builder.append("\n");
+            builder.append(newline);
         }
-        builder.append(insertion);
-        if (!insertion.endsWith("\n")) {
-            builder.append("\n");
+        builder.append(normalizedInsertion);
+        if (!endsWithLineBreak(normalizedInsertion)) {
+            builder.append(newline);
         }
         builder.append(closingIndent);
         builder.append(suffix);
@@ -326,22 +328,29 @@ public final class ClassMethodUpdater {
         String sourceWithPlannedComponents = recordSimpleName == null
                 ? source
                 : RecordComponentPlanner.updateRecordHeader(source, describedType);
-        return missingMethodsInScope(sourceWithPlannedComponents, eligibleMethods(describedType), recordSimpleName);
+        return missingMethodsInScope(
+                sourceWithPlannedComponents,
+                eligibleMethods(describedType),
+                recordSimpleName,
+                describedType.simpleName()
+        );
     }
 
     private static List<MethodDescriptor> missingMethodsInScope(String scopeSource, List<MethodDescriptor> methods) {
-        return missingMethodsInScope(scopeSource, methods, null);
+        return missingMethodsInScope(scopeSource, methods, null, null);
     }
 
     private static List<MethodDescriptor> missingMethodsInScope(
             String scopeSource,
             List<MethodDescriptor> methods,
-            String recordSimpleName
+            String recordSimpleName,
+            String primaryTypeSimpleName
     ) {
-        // Use the comment-stripping parser (SPI) to detect existing methods, eliminating false
-        // positives from method names that appear inside comments or string literals.
-        ParsedSource parsed = JavaSourceParserLoader.select(effectiveParserClassLoader()).parse(scopeSource);
-        Set<String> existingSignatures = existingMethodSignatures(scopeSource);
+        // Restrict signature checks to direct members. Methods inside local, anonymous, nested, or
+        // secondary top-level types must not satisfy a behavior requested from the described type.
+        String directMemberSource = directMemberSource(scopeSource, primaryTypeSimpleName);
+        ParsedSource parsed = JavaSourceParserLoader.select(effectiveParserClassLoader()).parse(directMemberSource);
+        Set<String> existingSignatures = existingMethodSignatures(directMemberSource);
         if (recordSimpleName != null) {
             existingSignatures.addAll(recordComponentAccessorSignatures(scopeSource, recordSimpleName));
         }
@@ -538,6 +547,42 @@ public final class ClassMethodUpdater {
             index += Character.charCount(currentCodePoint);
         }
         return true;
+    }
+
+    private static String directMemberSource(String source, String primaryTypeSimpleName) {
+        String masked = maskNonCode(source);
+        int bodyStart = 0;
+        int bodyEnd = masked.length();
+        if (primaryTypeSimpleName != null) {
+            int openBrace = findPrimaryTypeOpenBrace(masked, primaryTypeSimpleName);
+            if (openBrace < 0) {
+                return masked;
+            }
+            int closeBrace = findMatchingBraceInMasked(masked, openBrace);
+            if (closeBrace < 0) {
+                return masked;
+            }
+            bodyStart = openBrace + 1;
+            bodyEnd = closeBrace;
+        }
+
+        char[] direct = masked.substring(bodyStart, bodyEnd).toCharArray();
+        int depth = 0;
+        for (int i = 0; i < direct.length; i++) {
+            char current = direct[i];
+            if (current == '{') {
+                depth++;
+                direct[i] = ' ';
+            } else if (current == '}') {
+                direct[i] = ' ';
+                if (depth > 0) {
+                    depth--;
+                }
+            } else if (depth > 0) {
+                direct[i] = blankedChar(current);
+            }
+        }
+        return new String(direct);
     }
 
     private static Set<String> existingMethodSignatures(String source) {
@@ -816,7 +861,8 @@ public final class ClassMethodUpdater {
         }
         if (lastConstantChar < 0) {
             // Empty enum body: insert a ';' just after the opening brace.
-            return source.substring(0, openBrace + 1) + "\n    ;" + source.substring(openBrace + 1);
+            return source.substring(0, openBrace + 1) + lineSeparatorOf(source) + "    ;"
+                    + source.substring(openBrace + 1);
         }
         return source.substring(0, lastConstantChar + 1) + ";" + source.substring(lastConstantChar + 1);
     }
@@ -859,78 +905,87 @@ public final class ClassMethodUpdater {
      * tolerate braces and keywords inside non-code text.
      */
     private static String maskNonCode(String source) {
-        char[] chars = source.toCharArray();
-        boolean inString = false;
-        boolean inChar = false;
-        boolean inLineComment = false;
-        boolean inBlockComment = false;
-        boolean escaped = false;
-        for (int i = 0; i < chars.length; i++) {
-            char c = chars[i];
-            char next = i + 1 < chars.length ? chars[i + 1] : '\0';
-
-            if (inLineComment) {
-                if (c == '\n') {
-                    inLineComment = false;
-                } else {
-                    chars[i] = blankedChar(c);
-                }
-                continue;
-            }
-            if (inBlockComment) {
-                if (c == '*' && next == '/') {
-                    inBlockComment = false;
-                    chars[i] = ' ';
-                    chars[i + 1] = ' ';
-                    i++;
-                } else {
-                    chars[i] = blankedChar(c);
-                }
-                continue;
-            }
-            if (escaped) {
-                chars[i] = ' ';
-                escaped = false;
-                continue;
-            }
-            if ((inString || inChar) && c == '\\') {
-                chars[i] = ' ';
-                escaped = true;
-                continue;
-            }
-            if (!inString && !inChar && c == '/' && next == '/') {
-                inLineComment = true;
-                chars[i] = ' ';
-                chars[i + 1] = ' ';
-                i++;
-                continue;
-            }
-            if (!inString && !inChar && c == '/' && next == '*') {
-                inBlockComment = true;
-                chars[i] = ' ';
-                chars[i + 1] = ' ';
-                i++;
-                continue;
-            }
-            if (!inChar && c == '"') {
-                inString = !inString;
-                chars[i] = ' ';
-                continue;
-            }
-            if (!inString && c == '\'') {
-                inChar = !inChar;
-                chars[i] = ' ';
-                continue;
-            }
-            if (inString || inChar) {
-                chars[i] = blankedChar(c);
-            }
-        }
-        return new String(chars);
+        return NonCodeSourceMasker.mask(source);
     }
 
     private static char blankedChar(char c) {
         return c == '\n' || c == '\r' ? c : ' ';
+    }
+
+    private static String memberIndentationBefore(String source, int closingBrace) {
+        String closingIndent = indentationBefore(source, closingBrace);
+        int bodyOpen = matchingOpenBrace(source, closingBrace);
+        int lowerBound = bodyOpen < 0 ? 0 : bodyOpen + 1;
+        int lineEnd = closingBrace;
+        while (lineEnd > lowerBound) {
+            int previousBreak = previousLineBreak(source, lineEnd - 1);
+            int lineStart = Math.max(previousBreak + 1, lowerBound);
+            int content = lineStart;
+            while (content < lineEnd && (source.charAt(content) == ' ' || source.charAt(content) == '\t')) {
+                content++;
+            }
+            if (content < lineEnd && source.charAt(content) != '\r' && source.charAt(content) != '\n') {
+                String candidate = source.substring(lineStart, content);
+                if (candidate.length() > closingIndent.length()) {
+                    return candidate;
+                }
+            }
+            if (previousBreak < lowerBound) {
+                break;
+            }
+            lineEnd = previousBreak;
+            if (lineEnd > 0 && source.charAt(lineEnd - 1) == '\r') {
+                lineEnd--;
+            }
+        }
+        return closingIndent + "    ";
+    }
+
+    private static int matchingOpenBrace(String source, int closingBrace) {
+        String masked = maskNonCode(source);
+        int depth = 0;
+        for (int i = closingBrace; i >= 0; i--) {
+            char current = masked.charAt(i);
+            if (current == '}') {
+                depth++;
+            } else if (current == '{') {
+                depth--;
+                if (depth == 0) {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
+
+    private static int previousLineBreak(String source, int from) {
+        for (int i = from; i >= 0; i--) {
+            char current = source.charAt(i);
+            if (current == '\n' || current == '\r') {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static String lineSeparatorOf(String source) {
+        int newline = source.indexOf('\n');
+        if (newline > 0 && source.charAt(newline - 1) == '\r') {
+            return "\r\n";
+        }
+        if (newline >= 0) {
+            return "\n";
+        }
+        return source.indexOf('\r') >= 0 ? "\r" : System.lineSeparator();
+    }
+
+    private static String normalizeLineSeparators(String value, String newline) {
+        String normalized = value.replace("\r\n", "\n").replace('\r', '\n');
+        return "\n".equals(newline) ? normalized : normalized.replace("\n", newline);
+    }
+
+    private static boolean endsWithLineBreak(String value) {
+        return value.endsWith("\n") || value.endsWith("\r");
     }
 
     private static String indentationBefore(String source, int position) {

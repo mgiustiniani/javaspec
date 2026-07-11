@@ -360,69 +360,7 @@ final class RecordComponentPlanner {
     }
 
     private static String maskNonCode(String source) {
-        StringBuilder builder = new StringBuilder(source.length());
-        boolean lineComment = false;
-        boolean blockComment = false;
-        boolean stringLiteral = false;
-        boolean charLiteral = false;
-        boolean escaped = false;
-        for (int i = 0; i < source.length(); i++) {
-            char c = source.charAt(i);
-            char next = i + 1 < source.length() ? source.charAt(i + 1) : '\0';
-            if (lineComment) {
-                if (c == '\n' || c == '\r') {
-                    lineComment = false;
-                    builder.append(c);
-                } else {
-                    builder.append(' ');
-                }
-                continue;
-            }
-            if (blockComment) {
-                if (c == '*' && next == '/') {
-                    builder.append(' ');
-                    builder.append(' ');
-                    i++;
-                    blockComment = false;
-                } else {
-                    builder.append(c == '\n' || c == '\r' ? c : ' ');
-                }
-                continue;
-            }
-            if (stringLiteral || charLiteral) {
-                builder.append(c == '\n' || c == '\r' ? c : ' ');
-                if (escaped) {
-                    escaped = false;
-                } else if (c == '\\') {
-                    escaped = true;
-                } else if (stringLiteral && c == '"') {
-                    stringLiteral = false;
-                } else if (charLiteral && c == '\'') {
-                    charLiteral = false;
-                }
-                continue;
-            }
-            if (c == '/' && next == '/') {
-                builder.append(' ');
-                builder.append(' ');
-                i++;
-                lineComment = true;
-            } else if (c == '/' && next == '*') {
-                builder.append(' ');
-                builder.append(' ');
-                i++;
-                blockComment = true;
-            } else if (c == '"') {
-                builder.append(' ');
-                stringLiteral = true;
-            } else if (c == '\'') {
-                builder.append(' ');
-                charLiteral = true;
-            } else {
-                builder.append(c);
-            }
-        }
-        return builder.toString();
+        return NonCodeSourceMasker.mask(source);
     }
 
     private static boolean sameSourceType(String left, String right) {

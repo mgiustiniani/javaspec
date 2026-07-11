@@ -21,8 +21,10 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
@@ -117,7 +119,7 @@ public class GenerationOrchestratorRecordTest {
                 support.contains("super(CertificateProfileId.class);\n" +
                         "        beConstructedWith((String) null);"));
         compileAndRunNoArgExample(sourceFile, supportFile, specFile,
-                "it_uses_existing_no_arg_example_after_record_evolution");
+                "it_uses_existing_no_arg_example_after_record_evolution", 17);
     }
 
     @Test
@@ -192,7 +194,59 @@ public class GenerationOrchestratorRecordTest {
                         "        return null;\n" +
                         "    }"));
         compileAndRunNoArgExample(sourceFile, supportFile, specFile,
-                "it_exposes_when_the_event_occurred");
+                "it_exposes_when_the_event_occurred", 17);
+    }
+
+    @Test
+    public void matcherOnlyEnumSpecGeneratesSupportFromCleanOutputDirectory() throws Exception {
+        File sourceRoot = temporaryFolder.newFolder("matcher-only-enum-source-root");
+        File specRoot = temporaryFolder.newFolder("matcher-only-enum-spec-root");
+        File generatedSourcesRoot = temporaryFolder.newFolder("matcher-only-enum-generated-root");
+        File sourceFile = writeSource(sourceRoot, "com/example/SubjectPublicKeyProfile.java",
+                "package com.example;\n\n" +
+                "public enum SubjectPublicKeyProfile { EC_P256, RSA_3072 }\n");
+        File specFile = writeSource(specRoot, "spec/com/example/SubjectPublicKeyProfileSpec.java",
+                "package spec.com.example;\n\n" +
+                "public class SubjectPublicKeyProfileSpec extends SubjectPublicKeyProfileSpecSupport {\n" +
+                "    public void it_is_an_enum() {\n" +
+                "        shouldBeAnEnum();\n" +
+                "    }\n" +
+                "}\n");
+        DescribedType matcherOnlyEnum = DescribedType.of(
+                "com.example.SubjectPublicKeyProfile",
+                JavaTypeKind.ENUM,
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<ConstructorDescriptor>emptyList(),
+                Collections.<MethodDescriptor>emptyList()
+        );
+
+        GenerationOrchestratorResult result = GenerationOrchestrator.execute(
+                Arrays.asList(DiscoveredSpec.of(
+                        specFile,
+                        "spec.com.example.SubjectPublicKeyProfileSpec",
+                        matcherOnlyEnum)),
+                specRoot,
+                sourceRoot,
+                new BufferedReader(new StringReader("")),
+                new PrintStream(new ByteArrayOutputStream(), true, "UTF-8"),
+                new PrintStream(new ByteArrayOutputStream(), true, "UTF-8"),
+                true,
+                false,
+                SpecNamingConvention.defaults(),
+                Thread.currentThread().getContextClassLoader(),
+                ConstructorPolicy.COMMENT,
+                generatedSourcesRoot
+        );
+
+        File supportFile = new File(generatedSourcesRoot,
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator
+                        + "SubjectPublicKeyProfileSpecSupport.java");
+        assertEquals(0, result.exitCode());
+        assertTrue(result.shouldProceed());
+        assertTrue("Matcher-only specs still require their generated superclass", supportFile.isFile());
+        compileAndRunNoArgExample(sourceFile, supportFile, specFile, "it_is_an_enum", 8);
     }
 
     @Test
@@ -254,7 +308,7 @@ public class GenerationOrchestratorRecordTest {
                 support.contains("super(CertificateProfileId.class);\n" +
                         "        beConstructedWith((String) null);"));
         compileAndRunNoArgExample(sourceFile, supportFile, specFile,
-                "it_constructs_after_record_evolution");
+                "it_constructs_after_record_evolution", 17);
     }
 
     private static boolean supportsJavaSpecificationVersion(int minimumVersion) {
@@ -280,26 +334,40 @@ public class GenerationOrchestratorRecordTest {
             File sourceFile,
             File supportFile,
             File specFile,
-            String exampleMethodName
+            String exampleMethodName,
+            int release
     ) throws Exception {
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         assertTrue("A JDK compiler is required to verify generated record support", compiler != null);
         File classesDirectory = temporaryFolder.newFolder("compiled-record-support");
         ByteArrayOutputStream compilerOutput = new ByteArrayOutputStream();
+        List<String> arguments = new ArrayList<String>();
+        if (supportsJavaSpecificationVersion(9)) {
+            arguments.add("--release");
+            arguments.add(Integer.toString(release));
+        } else {
+            arguments.add("-source");
+            arguments.add(Integer.toString(release));
+            arguments.add("-target");
+            arguments.add(Integer.toString(release));
+        }
+        arguments.add("-classpath");
+        arguments.add(System.getProperty("java.class.path"));
+        arguments.add("-d");
+        arguments.add(classesDirectory.getAbsolutePath());
+        arguments.add(sourceFile.getAbsolutePath());
+        arguments.add(supportFile.getAbsolutePath());
+        arguments.add(specFile.getAbsolutePath());
         int exitCode = compiler.run(null, compilerOutput, compilerOutput,
-                "--release", "17",
-                "-classpath", System.getProperty("java.class.path"),
-                "-d", classesDirectory.getAbsolutePath(),
-                sourceFile.getAbsolutePath(),
-                supportFile.getAbsolutePath(),
-                specFile.getAbsolutePath());
+                arguments.toArray(new String[arguments.size()]));
         assertEquals(new String(compilerOutput.toByteArray(), StandardCharsets.UTF_8), 0, exitCode);
 
         URLClassLoader classLoader = new URLClassLoader(
                 new URL[]{classesDirectory.toURI().toURL()},
                 Thread.currentThread().getContextClassLoader());
         try {
-            Class<?> specClass = Class.forName("spec.com.example.CertificateProfileIdSpec", true, classLoader);
+            String specSimpleName = specFile.getName().substring(0, specFile.getName().length() - ".java".length());
+            Class<?> specClass = Class.forName("spec.com.example." + specSimpleName, true, classLoader);
             Object spec = specClass.newInstance();
             Method example = specClass.getMethod(exampleMethodName);
             example.invoke(spec);

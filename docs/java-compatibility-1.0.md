@@ -36,6 +36,15 @@ direct linkage to post-Java-8 APIs fails the build. The only explicit signature 
 The release checklist records per-JDK CI evidence when available. Local verification on one JDK does
 not replace the release-candidate Java 8/11/17/21/25 matrix evidence.
 
+Runtime/API evidence and source-language evidence are tracked separately. API symbols and profile
+boundaries remain in `ProfileCatalogTest` and profile-enforcement tests. Final language constructs
+and source-fidelity concerns are inventoried in
+[`java-language-coverage-roadmap.md`](java-language-coverage-roadmap.md) and
+`src/test/resources/java-language-matrix/coverage.tsv`. `JavaLanguageCoverageManifestTest` writes
+the host result to `target/java-language-coverage-report.txt`; development mode reports outstanding
+`PLANNED` fixtures, while `-Djavaspec.languageCoverage.strict=true` rejects any remaining planned
+coverage at the stable gate.
+
 ## Dependency boundary
 
 The root `io.github.jvmspec:javaspec` runtime dependency tree must stay empty. Dependency-heavy

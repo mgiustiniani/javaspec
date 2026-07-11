@@ -21,8 +21,10 @@ import io.github.jvmspec.generation.ProphecyFileGenerator;
 import io.github.jvmspec.generation.ProphecyGenerationPlan;
 import io.github.jvmspec.generation.ProphecySkeletonGenerator;
 import io.github.jvmspec.generation.SpecSupportFileGenerator;
+import io.github.jvmspec.generation.parser.JavaSourceParserLoader;
 import io.github.jvmspec.model.DescribedType;
 import io.github.jvmspec.model.JavaTypeKind;
+import io.github.jvmspec.model.MethodDescriptor;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -32,6 +34,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Orchestrates the generation/update loop over discovered specs: type-existence
@@ -41,6 +44,7 @@ import java.util.List;
  * workflow and enable unit testing.</p>
  */
 public final class GenerationOrchestrator {
+    private static final String UNRESOLVED_FUNCTIONAL_PARAMETER_PREFIX = "__javaspecFunctionalArg";
     private static final int EXIT_OK = 0;
     private static final int EXIT_MISSING_NOT_GENERATED = 1;
     private static final int EXIT_IO_ERROR = 70;
@@ -123,6 +127,11 @@ public final class GenerationOrchestrator {
             // Production truth wins over spec inference: when the production source already
             // exists, adopt its declared signatures before generating support or skeletons.
             DescribedType describedType = ProductionSignatureReader.refine(spec.describedType(), sourceRoot);
+            GenerationOrchestratorResult functionalTargetFailure = validateFunctionalTargets(
+                    describedType, spec, err);
+            if (functionalTargetFailure != null) {
+                return functionalTargetFailure;
+            }
             try {
                 RelatedSpecCheckResult relatedSpecResult = ensureRelatedSpecs(
                         describedType,
@@ -151,18 +160,27 @@ public final class GenerationOrchestrator {
                 return GenerationOrchestratorResult.ioError(EXIT_IO_ERROR);
             }
 
-            if ((generate || dryRun) && needsSupportUpdate(describedType)) {
-                SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(describedType, specRoot, generatedSourcesRoot, namingConvention);
+            GenerationOrchestratorResult sourceShapeFailure = validateExistingSourceShape(
+                    describedType, sourceRoot, err);
+            if (sourceShapeFailure != null) {
+                return sourceShapeFailure;
+            }
+
+            if (generate || dryRun) {
+                SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(
+                        describedType, specRoot, generatedSourcesRoot, namingConvention);
                 try {
-                    if (dryRun) {
-                        if (reportSupportDryRun(supportPlan, out, "specification support")) {
-                            dryRunPendingChanges = true;
-                        }
-                    } else {
-                        SpecSupportFileGenerator.SupportWriteResult supportResult =
-                                SpecSupportFileGenerator.writeOrUpdateResult(supportPlan);
-                        if (supportResult.changed()) {
-                            out.println("Updated specification support: " + supportResult.file().getPath());
+                    if (needsSupportUpdate(describedType) || declaresGeneratedSupport(spec, supportPlan)) {
+                        if (dryRun) {
+                            if (reportSupportDryRun(supportPlan, out, "specification support")) {
+                                dryRunPendingChanges = true;
+                            }
+                        } else {
+                            SpecSupportFileGenerator.SupportWriteResult supportResult =
+                                    SpecSupportFileGenerator.writeOrUpdateResult(supportPlan);
+                            if (supportResult.changed()) {
+                                out.println("Updated specification support: " + supportResult.file().getPath());
+                            }
                         }
                     }
                 } catch (IOException ex) {
@@ -382,6 +400,19 @@ public final class GenerationOrchestrator {
         return describedType.hasMethods()
                 || describedType.hasEnumConstants()
                 || (JavaTypeKind.RECORD.equals(describedType.kind()) && describedType.hasConstructors());
+    }
+
+    private static boolean declaresGeneratedSupport(
+            DiscoveredSpec spec,
+            SpecGenerationPlan supportPlan
+    ) throws IOException {
+        String supportFileName = supportPlan.targetFile().getName();
+        String supportClassName = supportFileName.substring(
+                0, supportFileName.length() - SpecNamingConvention.JAVA_SUFFIX.length());
+        String source = new String(Files.readAllBytes(spec.specFile().toPath()), StandardCharsets.UTF_8);
+        return Pattern.compile("\\bextends\\s+" + Pattern.quote(supportClassName) + "\\b")
+                .matcher(source)
+                .find();
     }
 
     private static RelatedSpecCheckResult ensureRelatedSpecs(
@@ -834,6 +865,65 @@ public final class GenerationOrchestrator {
             } catch (IOException ex) {
                 err.println("I/O error updating prophecy helpers in support: " + messageOf(ex));
             }
+        }
+    }
+
+    private static GenerationOrchestratorResult validateFunctionalTargets(
+            DescribedType describedType,
+            DiscoveredSpec spec,
+            PrintStream err
+    ) {
+        for (int methodIndex = 0; methodIndex < describedType.methods().size(); methodIndex++) {
+            MethodDescriptor method = describedType.methods().get(methodIndex);
+            for (int parameterIndex = 0; parameterIndex < method.parameterNames().size(); parameterIndex++) {
+                String parameterName = method.parameterNames().get(parameterIndex);
+                if (!method.isParameterTypeUnknown(parameterIndex)
+                        || !parameterName.startsWith(UNRESOLVED_FUNCTIONAL_PARAMETER_PREFIX)) {
+                    continue;
+                }
+                err.println("Cannot infer functional-interface target for " + describedType.qualifiedName()
+                        + "#" + method.methodName() + " parameter " + (parameterIndex + 1) + ".");
+                err.println("Spec file: " + spec.specFile().getPath());
+                err.println("Assign the lambda or method reference to an explicitly typed variable, add an explicit "
+                        + "functional-interface cast, or provide one unambiguous production signature.");
+                return GenerationOrchestratorResult.missingNotGenerated();
+            }
+        }
+        return null;
+    }
+
+    private static GenerationOrchestratorResult validateExistingSourceShape(
+            DescribedType describedType,
+            File sourceRoot,
+            PrintStream err
+    ) {
+        if (!describedType.hasMethods() && !describedType.hasConstructors()) {
+            return null;
+        }
+        File sourceFile = new File(
+                sourceRoot,
+                describedType.qualifiedName().replace('.', File.separatorChar) + ".java"
+        );
+        if (!sourceFile.isFile()) {
+            return null;
+        }
+        try {
+            String source = new String(Files.readAllBytes(sourceFile.toPath()), StandardCharsets.UTF_8);
+            int closingBrace = JavaSourceParserLoader.defaultParser()
+                    .parse(source)
+                    .typeClosingBraceOffset(describedType.simpleName());
+            if (closingBrace >= 0) {
+                return null;
+            }
+            err.println("Unsupported source update: no named class-like declaration for "
+                    + describedType.qualifiedName() + " was found in " + sourceFile.getPath() + ".");
+            err.println("Compact source files and implicit classes are not supported as javaspec subjects; "
+                    + "use a named class, record, interface, enum, or annotation.");
+            return GenerationOrchestratorResult.missingNotGenerated();
+        } catch (IOException ex) {
+            err.println("I/O error while validating source shape: " + messageOf(ex));
+            err.println("Target path: " + sourceFile.getPath());
+            return GenerationOrchestratorResult.ioError(EXIT_IO_ERROR);
         }
     }
 

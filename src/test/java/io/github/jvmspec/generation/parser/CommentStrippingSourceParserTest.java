@@ -80,6 +80,41 @@ public class CommentStrippingSourceParserTest {
         assertFalse("escaped quote content must be stripped", stripped.contains("a\\\"b"));
     }
 
+    @Test
+    public void stripsTextBlockContentAndPreservesOffsetsAndLineBreaks() {
+        String source = "class Foo {\n" +
+                "    String template = \"\"\"\n" +
+                "        a single \" quote\n" +
+                "        fake } and public String missing() {\n" +
+                "        // fake comment\n" +
+                "        \"\"\";\n" +
+                "}\n";
+
+        String stripped = CommentStrippingSourceParser.stripCommentsAndLiterals(source);
+
+        assertEquals(source.length(), stripped.length());
+        assertEquals(lineCount(source), lineCount(stripped));
+        assertFalse(stripped.contains("fake }"));
+        assertFalse(stripped.contains("missing()"));
+        assertTrue(stripped.contains("class Foo"));
+        assertEquals(source.lastIndexOf('}'), parser.parse(source).typeClosingBraceOffset("Foo"));
+    }
+
+    @Test
+    public void escapedQuoteCannotStartTextBlockClosingDelimiter() {
+        String escapedTripleQuote = "\\" + "\"\"\"";
+        String source = "class Foo {\n" +
+                "    String template = \"\"\"\n" +
+                "        " + escapedTripleQuote + " fake } still text\n" +
+                "        \"\"\";\n" +
+                "}\n";
+
+        String stripped = CommentStrippingSourceParser.stripCommentsAndLiterals(source);
+
+        assertFalse(stripped.contains("fake }"));
+        assertEquals(source.lastIndexOf('}'), parser.parse(source).typeClosingBraceOffset("Foo"));
+    }
+
     // -------------------------------------------------------------------------
     // ParsedSource.hasMethod() — positive cases
 
