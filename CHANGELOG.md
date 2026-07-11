@@ -12,6 +12,8 @@ All notable changes to this project will be documented in this file.
 - Added Java 25 preservation evidence for unnamed patterns, flexible constructors, module imports,
   Markdown documentation comments, and Stream Gatherers; compact source files now fail closed as
   javaspec subjects before writes and recommend a normal named subject type.
+- Closed cross-cutting source-fidelity coverage for CRLF, missing final newlines, UTF-8 BOM, Unicode,
+  local indentation, dry-run parity, atomic failure cleanup, idempotence, and diagnostics.
 
 ## 1.0.0-RC1 — 2026-07-10
 

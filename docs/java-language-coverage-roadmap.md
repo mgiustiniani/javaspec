@@ -195,15 +195,18 @@ PHPSpec-inspired subject model.
 
 | Element | Proposed solution |
 |---|---|
-| CRLF | Preserve original line-ending style; assert no whole-file normalization. |
-| No final newline | Preserve its presence/absence unless the exact insertion requires one; test both paths. |
-| UTF-8 BOM | Detect and preserve BOM; never include it in package/type token matching. |
-| Unicode identifiers | Cover literal identifiers and Unicode escapes in comments, strings, identifiers, and package/type names where legal. |
-| Formatting/indentation | Infer only local indentation for inserted mechanical members; do not reformat unrelated code. |
-| Dry-run parity | Compare planned operations with actual operations for every fixture. |
-| Atomicity | Inject write failure and verify original source remains intact. |
-| Idempotence | Require a byte-empty second plan and unchanged file hash. |
-| Diagnostics | Name profile, construct, file, and refusal reason; never report a source-preservation failure as a behavior assertion failure. |
+| CRLF | `COVERED` — generated insertion adopts CRLF uniformly and the second pass is hash-stable. |
+| No final newline | `COVERED` — update/compile/idempotence preserve the absence of a trailing newline. |
+| UTF-8 BOM | `COVERED` — BOM bytes survive update/idempotence; javac compilation is intentionally not claimed because javac rejects a leading BOM. |
+| Unicode identifiers | `COVERED` — UTF-8 identifiers and values survive update and release-8 compilation. |
+| Formatting/indentation | `COVERED` — direct-member indentation is inferred locally; tab-indented source receives a tab-indented mechanical member without unrelated reformatting. |
+| Dry-run parity | `COVERED` — every covered update fixture compares its no-write planned source with the applied source. |
+| Atomicity | `COVERED` — an injected move failure retains original bytes and deletes the same-directory temporary file. |
+| Idempotence | `COVERED` — every covered update fixture requires an unchanged second-pass hash. |
+| Diagnostics | `COVERED` — compact-source refusal names type/file/reason before writes; profile and other failure diagnostics retain focused contract tests. |
+
+Status: IMPLEMENTED — every cross-cutting fidelity row is `COVERED`. The strict manifest now has
+one remaining planned item: fail-closed SAM target inference for lambda arguments in specs.
 
 ## JLC-8 — Classic PHPSpec dogfooding gate
 

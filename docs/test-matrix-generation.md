@@ -72,6 +72,9 @@ and stable exit criteria are defined in [`docs/java-language-coverage-roadmap.md
   Markdown documentation comments, and Stream Gatherers. Compact source files compile as project
   files but are refused fail-closed as javaspec subjects before any support/source write, with a
   diagnostic recommending a named subject type.
+- JLC-7 covers uniform CRLF insertion, missing final newline, byte-preserved UTF-8 BOM, Unicode
+  identifiers, inferred tab indentation, dry-run/apply parity, injected atomic-move failure cleanup,
+  second-pass hash idempotence, and actionable source refusal diagnostics.
 - Record component accessors are treated as existing no-arg methods during source-preserving record
   updates, so `record UserId(String value)` does not receive a generated `value()` stub.
 - Constructor-driven record specs can evolve record headers: `beConstructedWith(...)` plus a

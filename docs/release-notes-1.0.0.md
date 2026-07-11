@@ -30,7 +30,9 @@ moving dependency-heavy behavior into optional artifacts.
   emits deterministic `COVERED`/`PLANNED` evidence, and provides a strict stable-release gate while
   preserving the classic PHPSpec-inspired subject-centric workflow. Java 25 compact source files
   remain valid project files but are refused fail-closed as described subjects before generation
-  writes, with guidance to use a named class-like subject.
+  writes, with guidance to use a named class-like subject. Source updates also retain CRLF style,
+  missing final newlines, UTF-8 BOM, Unicode content, and local member indentation; injected atomic
+  move failures preserve original bytes and clean temporary files.
 - Discovery now infers more static argument types before generation, including casted nulls,
   class literals, array creation expressions, Java 10+ simple `var` initializers, constructed value
   objects, and likely value-object static factory calls such as `CertificateProfileId.of("abc")`;
