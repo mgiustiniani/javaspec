@@ -17,6 +17,8 @@ All notable changes to this project will be documented in this file.
 - Added fail-closed spec-lambda target inference: explicit casts and typed locals/parameters produce
   deterministic standard or custom SAM signatures, one unique production signature refines inline
   lambdas, and missing or overloaded-ambiguous targets refuse before source/support writes.
+- Fixed clean-output regeneration for matcher-only specifications that extend generated support but
+  infer no subject methods, constructors, or enum constants.
 
 ## 1.0.0-RC1 — 2026-07-10
 

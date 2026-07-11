@@ -196,6 +196,58 @@ public class GenerationOrchestratorRecordTest {
     }
 
     @Test
+    public void matcherOnlyEnumSpecGeneratesSupportFromCleanOutputDirectory() throws Exception {
+        File sourceRoot = temporaryFolder.newFolder("matcher-only-enum-source-root");
+        File specRoot = temporaryFolder.newFolder("matcher-only-enum-spec-root");
+        File generatedSourcesRoot = temporaryFolder.newFolder("matcher-only-enum-generated-root");
+        File sourceFile = writeSource(sourceRoot, "com/example/SubjectPublicKeyProfile.java",
+                "package com.example;\n\n" +
+                "public enum SubjectPublicKeyProfile { EC_P256, RSA_3072 }\n");
+        File specFile = writeSource(specRoot, "spec/com/example/SubjectPublicKeyProfileSpec.java",
+                "package spec.com.example;\n\n" +
+                "public class SubjectPublicKeyProfileSpec extends SubjectPublicKeyProfileSpecSupport {\n" +
+                "    public void it_is_an_enum() {\n" +
+                "        shouldBeAnEnum();\n" +
+                "    }\n" +
+                "}\n");
+        DescribedType matcherOnlyEnum = DescribedType.of(
+                "com.example.SubjectPublicKeyProfile",
+                JavaTypeKind.ENUM,
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<ConstructorDescriptor>emptyList(),
+                Collections.<MethodDescriptor>emptyList()
+        );
+
+        GenerationOrchestratorResult result = GenerationOrchestrator.execute(
+                Arrays.asList(DiscoveredSpec.of(
+                        specFile,
+                        "spec.com.example.SubjectPublicKeyProfileSpec",
+                        matcherOnlyEnum)),
+                specRoot,
+                sourceRoot,
+                new BufferedReader(new StringReader("")),
+                new PrintStream(new ByteArrayOutputStream(), true, "UTF-8"),
+                new PrintStream(new ByteArrayOutputStream(), true, "UTF-8"),
+                true,
+                false,
+                SpecNamingConvention.defaults(),
+                Thread.currentThread().getContextClassLoader(),
+                ConstructorPolicy.COMMENT,
+                generatedSourcesRoot
+        );
+
+        File supportFile = new File(generatedSourcesRoot,
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator
+                        + "SubjectPublicKeyProfileSpecSupport.java");
+        assertEquals(0, result.exitCode());
+        assertTrue(result.shouldProceed());
+        assertTrue("Matcher-only specs still require their generated superclass", supportFile.isFile());
+        compileAndRunNoArgExample(sourceFile, supportFile, specFile, "it_is_an_enum");
+    }
+
+    @Test
     public void constructorOnlyRecordEvolutionStillUpdatesGeneratedSupport() throws Exception {
         assumeTrue(supportsJavaSpecificationVersion(17));
         File sourceRoot = temporaryFolder.newFolder("constructor-only-source-root");
@@ -299,7 +351,8 @@ public class GenerationOrchestratorRecordTest {
                 new URL[]{classesDirectory.toURI().toURL()},
                 Thread.currentThread().getContextClassLoader());
         try {
-            Class<?> specClass = Class.forName("spec.com.example.CertificateProfileIdSpec", true, classLoader);
+            String specSimpleName = specFile.getName().substring(0, specFile.getName().length() - ".java".length());
+            Class<?> specClass = Class.forName("spec.com.example." + specSimpleName, true, classLoader);
             Object spec = specClass.newInstance();
             Method example = specClass.getMethod(exampleMethodName);
             example.invoke(spec);

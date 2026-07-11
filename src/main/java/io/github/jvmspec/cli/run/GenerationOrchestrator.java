@@ -34,6 +34,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Orchestrates the generation/update loop over discovered specs: type-existence
@@ -165,18 +166,21 @@ public final class GenerationOrchestrator {
                 return sourceShapeFailure;
             }
 
-            if ((generate || dryRun) && needsSupportUpdate(describedType)) {
-                SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(describedType, specRoot, generatedSourcesRoot, namingConvention);
+            if (generate || dryRun) {
+                SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(
+                        describedType, specRoot, generatedSourcesRoot, namingConvention);
                 try {
-                    if (dryRun) {
-                        if (reportSupportDryRun(supportPlan, out, "specification support")) {
-                            dryRunPendingChanges = true;
-                        }
-                    } else {
-                        SpecSupportFileGenerator.SupportWriteResult supportResult =
-                                SpecSupportFileGenerator.writeOrUpdateResult(supportPlan);
-                        if (supportResult.changed()) {
-                            out.println("Updated specification support: " + supportResult.file().getPath());
+                    if (needsSupportUpdate(describedType) || declaresGeneratedSupport(spec, supportPlan)) {
+                        if (dryRun) {
+                            if (reportSupportDryRun(supportPlan, out, "specification support")) {
+                                dryRunPendingChanges = true;
+                            }
+                        } else {
+                            SpecSupportFileGenerator.SupportWriteResult supportResult =
+                                    SpecSupportFileGenerator.writeOrUpdateResult(supportPlan);
+                            if (supportResult.changed()) {
+                                out.println("Updated specification support: " + supportResult.file().getPath());
+                            }
                         }
                     }
                 } catch (IOException ex) {
@@ -396,6 +400,19 @@ public final class GenerationOrchestrator {
         return describedType.hasMethods()
                 || describedType.hasEnumConstants()
                 || (JavaTypeKind.RECORD.equals(describedType.kind()) && describedType.hasConstructors());
+    }
+
+    private static boolean declaresGeneratedSupport(
+            DiscoveredSpec spec,
+            SpecGenerationPlan supportPlan
+    ) throws IOException {
+        String supportFileName = supportPlan.targetFile().getName();
+        String supportClassName = supportFileName.substring(
+                0, supportFileName.length() - SpecNamingConvention.JAVA_SUFFIX.length());
+        String source = new String(Files.readAllBytes(spec.specFile().toPath()), StandardCharsets.UTF_8);
+        return Pattern.compile("\\bextends\\s+" + Pattern.quote(supportClassName) + "\\b")
+                .matcher(source)
+                .find();
     }
 
     private static RelatedSpecCheckResult ensureRelatedSpecs(
