@@ -1,0 +1,51 @@
+profile	construct	disposition	evidence	scenario	fixture	description
+java8	java8-class	UPDATED	COVERED	UPDATE_METHOD	java-language-matrix/java8/class-basic	Ordinary class discovery, dry-run, update, release-8 compilation, and idempotence.
+java8	java8-final-class	UPDATED	COVERED	UPDATE_METHOD	java-language-matrix/java8/final-class	Final class discovery, source-preserving update, release-8 compilation, and idempotence.
+java8	java8-interface	UPDATED	COVERED	UPDATE_METHOD	java-language-matrix/java8/interface	Interface declaration update, release-8 compilation, and idempotence.
+java8	java8-enum	UPDATED	COVERED	UPDATE_METHOD	java-language-matrix/java8/enum	Enum terminator insertion, method update, release-8 compilation, and idempotence.
+java8	java8-annotation	UPDATED	COVERED	UPDATE_METHOD	java-language-matrix/java8/annotation	Annotation element update, release-8 compilation, and idempotence.
+java8	java8-lambda	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java8/lambda-block	Expression and block lambda preservation.
+java8	java8-spec-lambda-target-inference	GENERATED	PLANNED	PENDING	-	Infer only explicit or unambiguous functional-interface targets for missing subject methods; refuse untyped ambiguity.
+java8	java8-method-reference	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java8/method-reference	Static, bound, unbound, constructor, and array method references.
+java8	java8-interface-default-static	UPDATED	COVERED	UPDATE_METHOD	java-language-matrix/java8/interface-default-static	Default/static interface body preservation with direct declaration update.
+java8	java8-type-use-repeatable-annotations	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java8/type-use-repeatable-annotations	Type-use and repeatable annotation preservation through update and release-8 compilation.
+java8	java8-nested-local-anonymous-types	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java8/nested-local-anonymous	Scope-safe nested, local, anonymous, and secondary top-level type handling.
+java8	java8-generic-bounds-wildcards-arrays-varargs	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java8/generic-bounds-arrays-varargs	Generic bounds, wildcards, arrays, and varargs survive update, release-8 compilation, and idempotence; generated wrapper edge cases retain focused tests.
+java11	java11-local-var	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java11/local-var	Local variable inference survives update, release-11 compilation, and idempotence.
+java11	java11-var-lambda-parameters	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java11/var-lambda-parameters	Annotated and unannotated var lambda parameters survive update and release-11 compilation.
+java11	java11-private-interface-methods	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java11/private-interface-methods	Private interface helpers remain untouched while a direct declaration is added.
+java11	java11-diamond-anonymous-class	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java11/diamond-anonymous-class	Diamond anonymous class bodies remain scoped and compile at release 11.
+java11	java11-effectively-final-try-resources	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java11/effectively-final-try-resources	Effectively-final try-with-resources survives update and release-11 compilation.
+java11	java11-module-info	INTENTIONALLY_UNSUPPORTED	COVERED	MODULE_INFO	java-language-matrix/java11/module-info	Module descriptors are ignored as subjects, preserved byte-for-byte, and compiled with the updated subject.
+java11	java11-apis	PROFILE_GATED	COVERED	JAVA11_APIS	java-language-matrix/java11/apis	Collection factory, HttpClient, and Files.readString consumer behavior compiles and executes on Java 11+; existing profile tests reject older targets.
+java17	java17-records	UPDATED	COVERED	UPDATE_METHOD	java-language-matrix/java17/record	Record components survive direct member update, release-17 compilation, and idempotence; focused tests retain header-evolution evidence.
+java17	java17-sealed-types	UPDATED	COVERED	SEALED_MULTI_FILE	java-language-matrix/java17/sealed-multi-file	A multi-file sealed hierarchy survives subject update and release-17 compilation; focused tests retain sealed-interface evidence.
+java17	java17-top-level-non-sealed	PRESERVED	COVERED	SEALED_MULTI_FILE	java-language-matrix/java17/top-level-non-sealed	A top-level non-sealed subject remains in its hierarchy through update and release-17 compilation.
+java17	java17-abstract-class	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java17/abstract-class	Abstract members remain unimplemented while a separate mechanical subject method is added.
+java17	java17-text-blocks	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java17/text-block	Text-block masking with false braces, comments, quotes, and signatures.
+java17	java17-switch-expressions	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java17/switch-expression	Arrow and yield switch expressions survive update, release-17 compilation, and idempotence.
+java17	java17-instanceof-patterns	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java17/instanceof-pattern	Pattern variables and compound conditions survive update and release-17 compilation.
+java17	java17-apis	PROFILE_GATED	COVERED	JAVA17_APIS	java-language-matrix/java17/apis	Stream.toList, HexFormat, InstantSource, and RandomGenerator compile and execute on Java 17+; existing profile tests reject older targets.
+java21	java21-record-patterns	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java21/record-pattern	Simple and nested record patterns survive update, release-21 compilation, and idempotence.
+java21	java21-pattern-switch	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java21/pattern-switch	Type/record pattern switches with null/default arms survive update and release-21 compilation.
+java21	java21-guarded-when	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java21/guarded-when	Guarded when cases with parser-adversarial content survive update and release-21 compilation.
+java21	java21-record-sealed-exhaustiveness	UPDATED	COVERED	SEALED_MULTI_FILE	java-language-matrix/java21/record-sealed-exhaustiveness	A multi-file exhaustive record/sealed switch remains valid after one subject update.
+java21	java21-sequenced-collections	PROFILE_GATED	COVERED	JAVA21_APIS	java-language-matrix/java21/sequenced-collections	SequencedCollection signatures compile and execute on Java 21+; existing profile tests reject older targets.
+java21	java21-virtual-threads	PRESERVED	COVERED	JAVA21_VIRTUAL_THREADS	java-language-matrix/java21/virtual-threads	A joined virtual-thread behavior executes deterministically and leaves no live worker.
+java25	java25-unnamed-variables-patterns	PRESERVED	PLANNED	PENDING	-	Unnamed variables and patterns in final supported forms.
+java25	java25-flexible-constructor-bodies	UPDATED	PLANNED	PENDING	-	Statements before constructor invocation preserved structurally.
+java25	java25-module-import-declarations	PRESERVED	PLANNED	PENDING	-	Module imports distinguished and preserved.
+java25	java25-compact-source-instance-main	INTENTIONALLY_UNSUPPORTED	PLANNED	PENDING	-	Compact source files ignored as subjects with actionable guidance.
+java25	java25-markdown-doc-comments	PRESERVED	PLANNED	PENDING	-	Markdown documentation comments preserved through updates.
+java25	java25-stream-gatherers	PROFILE_GATED	PLANNED	PENDING	-	Gatherer signature, typed proxy, compile, run, and older-profile refusal.
+all	parser-multiple-top-level-types	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java8/nested-local-anonymous	Only the described top-level type is inspected and updated.
+all	parser-comment-literal-offsets	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java8/comments-literals	Comments, strings, chars, and fake signatures preserve structural offsets.
+all	fidelity-crlf	PRESERVED	PLANNED	PENDING	-	Original CRLF line endings remain unchanged.
+all	fidelity-no-final-newline	PRESERVED	PLANNED	PENDING	-	Final-newline presence or absence remains stable.
+all	fidelity-utf8-bom	PRESERVED	PLANNED	PENDING	-	UTF-8 BOM detection and preservation.
+all	fidelity-unicode-identifiers	PRESERVED	PLANNED	PENDING	-	Unicode identifiers and escapes remain structurally safe.
+all	fidelity-formatting-indentation	PRESERVED	PLANNED	PENDING	-	Only local insertion indentation changes.
+all	fidelity-dry-run-parity	UPDATED	PLANNED	PENDING	-	Planned and applied operations are equivalent.
+all	fidelity-atomicity	UPDATED	PLANNED	PENDING	-	Failed writes retain the original source.
+all	fidelity-idempotence	UPDATED	PLANNED	PENDING	-	Second update is byte-empty and hash-stable.
+all	fidelity-diagnostics	INTENTIONALLY_UNSUPPORTED	PLANNED	PENDING	-	Unsafe constructs fail closed with profile, file, construct, and reason.

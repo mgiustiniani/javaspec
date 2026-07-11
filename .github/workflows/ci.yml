@@ -20,6 +20,8 @@ jobs:
           distribution: temurin
           java-version: ${{ matrix.java }}
           cache: maven
+      - name: Verify host Java language fixtures
+        run: mvn -q -Dtest=JavaLanguageCoverageManifestTest test
       - name: Verify core
         run: mvn -q verify
       - name: Audit core runtime dependencies
