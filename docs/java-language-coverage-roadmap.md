@@ -217,7 +217,10 @@ regeneration. RC2 fixed the CLI path, but the consumer's Maven `run` goal remain
 `testCompile`, so `mvn clean verify` could not regenerate support in time. RC3 adds a dedicated
 source-first `generate` goal for `generate-test-sources`, automatic generated-test-root registration,
 and mixed record/enriched-enum compile/run/idempotence coverage. The gate closes only after the
-published RC3 passes both clean CLI and clean Maven consumer replay.
+published RC3 passes both clean CLI and clean Maven consumer replay. A subsequent Magrathea boolean
+record slice exposed RC3 treating the literal `false` as an identifier. RC4 separates example values
+from naming evidence, correlates exact accessor expectations to constructor positions, validates
+identifier legality/uniqueness, and fails closed before writes when correspondence is ambiguous.
 
 Use a real Java 21 project, preferably the existing `magrathea-pki` domain work, against the published
 RC from remote repositories rather than a local javaspec checkout. Complete one coherent behavior

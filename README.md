@@ -219,7 +219,7 @@ is required for a consuming project. Consumer `pom.xml` example:
 
 ```xml
 <properties>
-  <javaspec.version>1.0.0-RC3</javaspec.version>
+  <javaspec.version>1.0.0-RC4</javaspec.version>
 </properties>
 
 <dependencies>

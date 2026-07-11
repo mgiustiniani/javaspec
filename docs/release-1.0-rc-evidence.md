@@ -185,3 +185,19 @@ Local RC3 CLI replay against `magrathea-pki` generated both support classes from
 compiled four source files, passed all four examples with zero pending, emitted no stubs, and was
 hash-idempotent. Final JLC-8 evidence still requires the immutable published RC3 and a clean isolated
 Maven repository/container replay.
+
+## 2026-07-11 — RC3 remote replay and RC4 boolean-record correction
+
+Published RC3 subsequently passed isolated Maven Central CLI and Maven lifecycle replays against
+`magrathea-pki`: both support classes regenerated, all four baseline examples passed, pending was
+zero, no stubs remained, and generated support was idempotent. The next domain slice then exposed a
+separate generation defect: `beConstructedWith(false)` plus `ca().shouldReturn(false)` produced
+invalid `record BasicConstraints(boolean false)`.
+
+RC4 treats constructor expressions only as example values. Literal arguments receive no identifier
+status; exact same-example `shouldReturn` accessor evidence in the same specification example maps
+each constructor position to its component name. Every planned name must be legal, non-keyword,
+unique, stable, and mapped once. Missing or conflicting evidence produces a detailed
+`AMBIGUOUS_RECORD_COMPONENT_NAME` refusal before production or support writes. Focused RED/GREEN
+coverage includes true/false, multiple booleans, integer/string/enum/negative/null-like literals,
+missing evidence, keywords, existing record-prefix preservation, and idempotent skeleton rendering.

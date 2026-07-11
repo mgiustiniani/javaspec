@@ -16,7 +16,7 @@
     -->
     <groupId>io.github.jvmspec</groupId>
     <artifactId>javaspec-maven-plugin</artifactId>
-    <version>1.0.0-RC3</version>
+    <version>1.0.0-RC4</version>
     <packaging>maven-plugin</packaging>
 
     <name>javaspec Maven Plugin</name>
