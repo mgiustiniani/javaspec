@@ -82,7 +82,8 @@ Verification status:
   check for core, standalone adapters, and examples.
 - `1.0.0-RC1` artifacts are available on Maven Central under `io.github.jvmspec`, including signed
   main/source/Javadoc artifacts for core and all optional Maven adapters. The Gradle plugin id is
-  `io.github.jvmspec`; RC1 submission succeeded and Portal visibility/review is tracked separately.
+  `io.github.jvmspec`; the corrected RC1 submission succeeded in workflow run 29148854181 and is
+  awaiting first-publication approval.
 
 ## Quick start
 
@@ -231,9 +232,9 @@ gradle -p javaspec-gradle-plugin clean test build
 ```
 
 These checks do not sign, stage, deploy, or publish artifacts. The MIT license and maintainer
-metadata are resolved. Maven coordinates use group `io.github.jvmspec`, and the Gradle plugin id is
-`io.github.jvmspec`. Public availability of `1.0.0-RC1` is confirmed only after the tag workflow,
-direct Maven Central checks, signature verification, and (when configured) Plugin Portal checks.
+metadata are resolved. Maven coordinates use group `io.github.jvmspec`, and Maven Central
+availability and signatures for `1.0.0-RC1` are confirmed. The Gradle plugin id is
+`io.github.jvmspec`; Plugin Portal availability remains pending first-publication approval.
 
 The GitHub Actions workflow at `.github/workflows/ci.yml` triggers on `push`, `pull_request`, and
 `workflow_dispatch`. It defines a core job matrix over Java 8, 11, 17, 21, and 25 using Temurin and
@@ -1168,11 +1169,11 @@ is additive and does not require invoking the CLI.
 
 ## Optional Maven plugin
 
-Phase 15 provides a standalone optional Maven plugin artifact at `javaspec-maven-plugin/`. It is
-intentionally not registered as a root module, so repository-root `mvn verify` continues to build
-and audit only the zero-runtime-dependency core artifact.
-
-Local plugin verification sequence:
+The standalone optional Maven plugin is published as
+`io.github.jvmspec:javaspec-maven-plugin:1.0.0-RC1`. It is intentionally not registered as a root
+module, so repository-root `mvn verify` continues to build and audit only the zero-runtime-dependency
+core artifact. Consuming projects resolve it directly from Maven Central; repository contributors
+can use this local verification sequence:
 
 ```sh
 mvn -q -DskipTests install
@@ -1223,8 +1224,12 @@ mvn -q -DskipTests install
 gradle -p javaspec-gradle-plugin build
 ```
 
-In a consuming Gradle build where the standalone plugin artifact is available to Gradle, apply
-plugin id `io.github.jvmspec` and configure the optional extension/task:
+The plugin publication description is "Optional Gradle adapter for the javaspec runner." Corrected
+RC1 submission completed in
+[workflow run 29148854181](https://github.com/mgiustiniani/javaspec/actions/runs/29148854181) and is
+awaiting first-publication approval. Until the Portal marker resolves, repository consumers should
+use the included build in `examples/gradle-basic/settings.gradle`. After approval, apply plugin id
+`io.github.jvmspec` from the Portal and configure the optional extension/task:
 
 ```groovy
 plugins {
@@ -1274,11 +1279,10 @@ No JUnit is required in projects under test; JUnit is only a plugin test depende
 
 ## Optional JUnit Platform engine
 
-Phase 17 provides a standalone optional JUnit Platform engine artifact at
-`javaspec-junit-platform-engine/`. It is intentionally not registered as a root Maven module and
-remains outside the zero-runtime-dependency core artifact.
-
-Local engine verification sequence:
+The standalone optional JUnit Platform engine is available from Maven Central as
+`io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-RC1`. It is intentionally not registered as
+a root Maven module and remains outside the zero-runtime-dependency core artifact. Repository
+contributors can use this local verification sequence:
 
 ```sh
 mvn -q -DskipTests install
@@ -2950,8 +2954,8 @@ Current verification after Phase 22:
   tests.
 - Cross-JDK and adapter verification should be read from the latest CI/local verification output.
 - Maven artifacts use group `io.github.jvmspec`; `1.0.0-RC1` is available from Maven Central. The
-  Gradle Plugin Portal id is `io.github.jvmspec`; RC1 visibility remains subject to first-publication
-  review.
+  Gradle Plugin Portal id is `io.github.jvmspec`; corrected RC1 submission succeeded in workflow run
+  29148854181 and is awaiting first-publication approval.
 
 See [`../test-report.md`](../test-report.md) for the consolidated test and quality report.
 

@@ -134,8 +134,12 @@ completed successfully:
 - The core JAR signature verified as `GOODSIG`/`VALIDSIG` with fingerprint
   `92EBAB37E11720596CD690CF212398D74CE93120`; the public key is retrievable from
   `keyserver.ubuntu.com`.
-- The Gradle Plugin Portal publication step succeeded, confirming credentials and submission. The
-  plugin marker remains externally unavailable while first-publication visibility/review completes.
+- The original Gradle submission was removed to replace an overly strong portal description.
+- Gradle-only workflow
+  [run 29148854181](https://github.com/mgiustiniani/javaspec/actions/runs/29148854181) verified the
+  Maven Central core/tag/version boundary and submitted RC1 with description "Optional Gradle
+  adapter for the javaspec runner." The plugin marker remains externally unavailable while
+  first-publication approval completes.
 
 Remaining RC evidence:
 

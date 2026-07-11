@@ -22,8 +22,9 @@ is available from Maven Central:
 
 For snapshots, use the Central Portal Snapshots repository.
 
-The Gradle plugin id is `io.github.jvmspec`; verify the requested version is listed on the Gradle
-Plugin Portal before resolving it as an external plugin.
+The Gradle plugin id is `io.github.jvmspec`. RC1 was submitted successfully with description
+"Optional Gradle adapter for the javaspec runner" and is awaiting first-publication approval; use
+the included build until `1.0.0-RC1` appears on the Gradle Plugin Portal.
 
 ## Highlights
 
@@ -213,14 +214,8 @@ Exit codes are stable: `0` for success, `1` for failed/broken examples or declin
 
 ### Maven
 
-Add the dependency and plugin to your `pom.xml`:
-
-```sh
-mvn -q -DskipTests install
-mvn -q -f javaspec-maven-plugin/pom.xml -DskipTests install
-```
-
-Consumer `pom.xml` example:
+Core and the Maven plugin are available directly from Maven Central. No local javaspec installation
+is required for a consuming project. Consumer `pom.xml` example:
 
 ```xml
 <properties>
@@ -263,10 +258,11 @@ See [`examples/maven-basic/`](examples/maven-basic/) for a complete consumer pro
 
 ### Gradle
 
-The Gradle plugin id is `io.github.jvmspec`. Use the included build during local RC verification;
-use the Plugin Portal form only after the requested version appears there. See
-[`examples/gradle-basic/settings.gradle`](examples/gradle-basic/settings.gradle) for a complete
-local example:
+The Gradle plugin id is `io.github.jvmspec`. The corrected RC1 submission completed successfully in
+[workflow run 29148854181](https://github.com/mgiustiniani/javaspec/actions/runs/29148854181), but the
+first publication is still awaiting Plugin Portal approval. Until the public marker resolves, use
+the included plugin build shown by
+[`examples/gradle-basic/settings.gradle`](examples/gradle-basic/settings.gradle):
 
 ```groovy
 pluginManagement {
@@ -279,7 +275,7 @@ pluginManagement {
 }
 ```
 
-Consumer `build.gradle` example:
+Consumer `build.gradle` with the included build:
 
 ```groovy
 plugins {
@@ -313,16 +309,18 @@ Run it with:
 gradle -p examples/gradle-basic clean javaspecRun
 ```
 
-### JUnit Platform
+After Portal approval, an external consumer can remove `includeBuild(...)` and use:
 
-The JUnit Platform engine is optional. Install it locally before use:
-
-```sh
-mvn -q -DskipTests install
-mvn -q -f javaspec-junit-platform-engine/pom.xml -DskipTests install
+```groovy
+plugins {
+    id 'java'
+    id 'io.github.jvmspec' version '1.0.0-RC1'
+}
 ```
 
-Consumer Maven example:
+### JUnit Platform
+
+The optional JUnit Platform engine is available from Maven Central. Consumer Maven example:
 
 ```xml
 <dependency>
@@ -837,8 +835,8 @@ javaspec adapter settings opt into javaspec compilation.
 
 - The core artifact remains Java 8-compatible and zero-runtime-dependency.
 - Maven artifacts use group `io.github.jvmspec`; `1.0.0-RC1` is available from Maven Central. The
-  Gradle Plugin Portal id is `io.github.jvmspec`; its first RC1 publication has been submitted and
-  remains subject to Portal visibility/review.
+  Gradle Plugin Portal id is `io.github.jvmspec`; corrected RC1 submission succeeded in workflow run
+  29148854181 and is awaiting first-publication approval.
 - The Maven plugin, Gradle plugin, JUnit Platform engine, bytecode doubles adapter, and bytecode agent adapter are standalone optional artifacts outside the root Maven reactor.
 - Repository-root `mvn verify` is intentionally core-only.
 - `scripts/verify-all.sh` verifies the core, optional adapters, and standalone examples together.
