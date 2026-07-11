@@ -55,7 +55,7 @@ snapshot_hits="$(find . \
   -path './*/target' -prune -o \
   -path './*/build' -prune -o \
   \( -name 'pom.xml' -o -name 'build.gradle' -o -name 'settings.gradle' \) \
-  -print0 | xargs -0 rg -n 'SNAPSHOT' 2>/dev/null || true)"
+  -print0 | xargs -0 grep -nH 'SNAPSHOT' 2>/dev/null || true)"
 
 if [ -n "$snapshot_hits" ]; then
   printf '%s\n' "$snapshot_hits"

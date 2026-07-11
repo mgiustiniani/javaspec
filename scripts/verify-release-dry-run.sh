@@ -98,8 +98,8 @@ require_file "javaspec-bytecode-agent/target/javaspec-bytecode-agent-${version}-
 
 manifest="$(mktemp)"
 unzip -p "javaspec-bytecode-agent/target/javaspec-bytecode-agent-${version}.jar" META-INF/MANIFEST.MF > "$manifest"
-rg -q '^Premain-Class: io.github.jvmspec.doubles.agent.JavaspecBytecodeAgent' "$manifest" || fail "bytecode agent Premain-Class missing"
-rg -q '^Agent-Class: io.github.jvmspec.doubles.agent.JavaspecBytecodeAgent' "$manifest" || fail "bytecode agent Agent-Class missing"
+grep -q '^Premain-Class: io.github.jvmspec.doubles.agent.JavaspecBytecodeAgent' "$manifest" || fail "bytecode agent Premain-Class missing"
+grep -q '^Agent-Class: io.github.jvmspec.doubles.agent.JavaspecBytecodeAgent' "$manifest" || fail "bytecode agent Agent-Class missing"
 rm -f "$manifest"
 pass "bytecode agent manifest entries present"
 

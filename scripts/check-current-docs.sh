@@ -121,8 +121,10 @@ current_paths=(
   .github
 )
 
-stale_version_hits="$(rg -n '0\.1\.1|release-notes-0\.1\.1|0\.1\.0-SNAPSHOT|<version>0\.1\.0</version>' "${current_paths[@]}" \
-  -g '!**/target/**' -g '!**/build/**' -g '!scripts/check-current-docs.sh' 2>/dev/null || true)"
+stale_version_hits="$(grep -R -n -E \
+  --exclude='check-current-docs.sh' --exclude-dir=target --exclude-dir=build \
+  '0\.1\.1|release-notes-0\.1\.1|0\.1\.0-SNAPSHOT|<version>0\.1\.0</version>' \
+  "${current_paths[@]}" 2>/dev/null || true)"
 if [ -n "$stale_version_hits" ]; then
   printf '%s\n' "$stale_version_hits"
   fail "current docs/config still contain stale pre-1.0 snapshot references"
@@ -130,8 +132,9 @@ else
   pass "no stale pre-1.0 snapshot references in current docs/config"
 fi
 
-obsolete_package_hits="$(rg -n 'org\.javaspec' "${current_paths[@]}" \
-  -g '!**/target/**' -g '!**/build/**' -g '!scripts/check-current-docs.sh' 2>/dev/null || true)"
+obsolete_package_hits="$(grep -R -n -E \
+  --exclude='check-current-docs.sh' --exclude-dir=target --exclude-dir=build \
+  'org\.javaspec' "${current_paths[@]}" 2>/dev/null || true)"
 if [ -n "$obsolete_package_hits" ]; then
   printf '%s\n' "$obsolete_package_hits"
   fail "current docs/config still contain obsolete org.javaspec references"
@@ -140,7 +143,7 @@ else
 fi
 
 if [ -f docs/phpspec-compatibility-matrix.md ]; then
-  unspecified_hits="$(rg -n '^\|.*\| UNSPECIFIED \|' docs/phpspec-compatibility-matrix.md 2>/dev/null || true)"
+  unspecified_hits="$(grep -n -E '^\|.*\| UNSPECIFIED \|' docs/phpspec-compatibility-matrix.md 2>/dev/null || true)"
   if [ -n "$unspecified_hits" ]; then
     printf '%s\n' "$unspecified_hits"
     fail "PHPSpec compatibility matrix still has UNSPECIFIED entries"
