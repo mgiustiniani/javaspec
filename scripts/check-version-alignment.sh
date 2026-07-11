@@ -124,13 +124,17 @@ fi
 printf 'Version alignment baseline: %s\n' "$root_version"
 record_result 'root pom.xml project version' "$root_version" "$root_version"
 record_result 'bin/javaspec launcher version' "$("$launcher" --launcher-version 2>/dev/null || true)" "$root_version"
-record_result 'bin/javaspec fingerprint version' "$launcher_fingerprint_version" "$root_version"
-if [ -z "$launcher_fingerprint_jar" ] || [ ! -f "$launcher_fingerprint_jar" ]; then
-  printf 'FAIL: bin/javaspec fingerprint JAR is missing or not a file: %s\n' "$launcher_fingerprint_jar"
-  status=1
+if [ -z "$launcher_fingerprint" ]; then
+  printf 'SKIP: bin/javaspec fingerprint is unavailable before the core artifact is built or installed.\n'
 else
-  printf 'PASS: bin/javaspec fingerprint JAR = %s\n' "$launcher_fingerprint_jar"
-  record_result 'bin/javaspec fingerprint SHA-256' "$launcher_fingerprint_sha256" "$(sha256sum "$launcher_fingerprint_jar" | awk '{print $1}')"
+  record_result 'bin/javaspec fingerprint version' "$launcher_fingerprint_version" "$root_version"
+  if [ -z "$launcher_fingerprint_jar" ] || [ ! -f "$launcher_fingerprint_jar" ]; then
+    printf 'FAIL: bin/javaspec fingerprint JAR is missing or not a file: %s\n' "$launcher_fingerprint_jar"
+    status=1
+  else
+    printf 'PASS: bin/javaspec fingerprint JAR = %s\n' "$launcher_fingerprint_jar"
+    record_result 'bin/javaspec fingerprint SHA-256' "$launcher_fingerprint_sha256" "$(sha256sum "$launcher_fingerprint_jar" | awk '{print $1}')"
+  fi
 fi
 record_result 'javaspec-maven-plugin/pom.xml project version' "$(extract_maven_project_version "$maven_plugin_pom")" "$root_version"
 record_result 'javaspec-junit-platform-engine/pom.xml project version' "$(extract_maven_project_version "$junit_engine_pom")" "$root_version"
