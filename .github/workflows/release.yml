@@ -63,7 +63,17 @@ jobs:
       - name: Verify release artifacts and consumers
         env:
           JAVASPEC_GRADLE_BIN: gradle
-        run: scripts/verify-release-dry-run.sh
+        run: |
+          set +e
+          scripts/verify-release-dry-run.sh 2>&1 | tee /tmp/javaspec-release-dry-run.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then
+            tail -n 20 /tmp/javaspec-release-dry-run.log | while IFS= read -r line; do
+              echo "::error title=Release dry-run failure::${line}"
+            done
+          fi
+          exit "$status"
 
       - name: Check whether Maven RC is already published
         id: central
