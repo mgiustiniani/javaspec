@@ -69,6 +69,8 @@ scripts/check-current-docs.sh
 scripts/check-api-surface.sh
 
 package_maven_module "core" "pom.xml"
+section "Install core release candidate for standalone artifact builds"
+"$MAVEN_BIN" -q -DskipTests install
 package_maven_module "Maven plugin" "javaspec-maven-plugin/pom.xml"
 package_maven_module "JUnit Platform engine" "javaspec-junit-platform-engine/pom.xml"
 package_maven_module "bytecode doubles" "javaspec-bytecode-doubles/pom.xml"
