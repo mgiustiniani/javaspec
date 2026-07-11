@@ -15,7 +15,7 @@ and stable exit criteria are defined in [`docs/java-language-coverage-roadmap.md
 | Record | Skeletons, Java 17 profile gating, method insertion, component accessors, constructor-driven component evolution | Compact constructors preserved, generic/annotated components, dry-run parity for header evolution |
 | Sealed class | Skeletons, explicit `permits`, Java 17 profile gating, method-body insertion into root | Multiline permits, nested permitted classes, Java 17 compile checks |
 | Sealed interface | Skeletons, explicit permits, nested permitted implementations, source-preserving existing updates | Additional nested generic/default-method cases |
-| Parser | Comment/string/text-block masking, brace matching, direct-member scoping, ServiceLoader replacement | Generic method type parameters, annotations, varargs, multiline declarations, and fail-closed SAM target inference for lambda arguments in specs |
+| Parser | Comment/string/text-block masking, brace matching, direct-member scoping, ServiceLoader replacement, and fail-closed SAM target inference for lambda arguments in specs | Generic method type parameters, annotations, varargs, and multiline declarations |
 | End-to-end CLI | Generate/compile/report paths for core flows; Java 17 record/sealed `run --generate --compile --release 17` fixture | Additional dry-run assertions for complex generated-source combinations |
 
 ## PHPSpec compatibility focus
@@ -56,8 +56,9 @@ and stable exit criteria are defined in [`docs/java-language-coverage-roadmap.md
   secondary top-level types.
 - JLC-2 adds release-8 update/compile/idempotence fixtures for all supported class-like kinds,
   lambda/method-reference preservation, default/static interface methods, type-use/repeatable
-  annotations, and complex generic/array/varargs source. Inferring a missing subject signature from
-  a lambda remains planned and must fail closed unless the SAM target is explicit and unambiguous.
+  annotations, complex generic/array/varargs source, and spec-lambda target inference. Standard or
+  custom generic SAMs are accepted only through explicit typing or one unambiguous production
+  signature; missing and overloaded-ambiguous targets refuse before source/support writes.
 - JLC-3 covers Java 11 local/lambda `var`, private interface helpers, diamond anonymous classes,
   effectively-final try-with-resources, byte-preserved module descriptors, and representative
   collection/HTTP/file API consumer execution without changing subject-centric spec authoring.

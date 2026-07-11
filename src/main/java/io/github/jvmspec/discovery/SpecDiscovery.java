@@ -26,6 +26,7 @@ import java.util.regex.Pattern;
  */
 public final class SpecDiscovery {
     private static final String JAVA_SUFFIX = SpecNamingConvention.JAVA_SUFFIX;
+    private static final String UNRESOLVED_FUNCTIONAL_PARAMETER_PREFIX = "__javaspecFunctionalArg";
     private static final Pattern IMPORT_PATTERN = Pattern.compile("(?m)^\\s*import\\s+([A-Za-z_$][A-Za-z0-9_$.]*)\\s*;");
     private static final Pattern SHOULD_EXTEND_PATTERN = Pattern.compile("(?<!\\.)\\bshouldExtend\\s*\\(([^)]*)\\)", Pattern.DOTALL);
     private static final Pattern SHOULD_IMPLEMENT_PATTERN = Pattern.compile("(?<!\\.)\\bshouldImplement\\s*\\(([^)]*)\\)", Pattern.DOTALL);
@@ -560,10 +561,29 @@ public final class SpecDiscovery {
     ) {
         InferredArguments arguments = inferArgumentTypesCore(
                 expectation.argumentTexts, specMethods.get(expectation.enclosingMethod), imports, describedPackageName);
-        List<String> parameterNames = parameterNamesFor(expectation.name, arguments.size());
+        List<String> parameterNames = functionalAwareParameterNames(
+                expectation.argumentTexts, arguments, parameterNamesFor(expectation.name, arguments.size()));
         String returnType = inferReturnType(
                 expectation.matcherName, joinArguments(expectation.expectationTexts), imports, describedPackageName);
         addMethod(discovered, methodDescriptor(expectation.name, returnType, arguments, parameterNames));
+    }
+
+    private static List<String> functionalAwareParameterNames(
+            List<String> argumentTexts,
+            InferredArguments arguments,
+            List<String> fallbackNames
+    ) {
+        List<String> names = new ArrayList<String>(fallbackNames);
+        for (int i = 0; i < argumentTexts.size() && i < arguments.unknowns.size(); i++) {
+            if (Boolean.TRUE.equals(arguments.unknowns.get(i)) && isFunctionalExpression(argumentTexts.get(i))) {
+                names.set(i, UNRESOLVED_FUNCTIONAL_PARAMETER_PREFIX + i);
+            }
+        }
+        return names;
+    }
+
+    private static boolean isFunctionalExpression(String expression) {
+        return expression.indexOf("->") >= 0 || expression.indexOf("::") >= 0;
     }
 
     private static MethodDescriptor methodDescriptor(
@@ -1053,11 +1073,38 @@ public final class SpecDiscovery {
 
     private static boolean isLikelyTypeName(String value) {
         String trimmed = value.trim();
-        if (trimmed.matches("(?:byte|short|int|long|float|double|boolean|char)(?:\\s*\\[\\s*\\])*")) {
+        String erased = eraseGenericArguments(trimmed);
+        if (erased == null) {
+            return false;
+        }
+        if (erased.matches("(?:byte|short|int|long|float|double|boolean|char)(?:\\s*\\[\\s*\\])*")) {
             return true;
         }
-        return trimmed.matches("[A-Z_$][A-Za-z0-9_$]*(?:\\s*\\[\\s*\\])*")
-                || trimmed.matches("[A-Za-z_$][A-Za-z0-9_$]*(?:\\.[A-Za-z_$][A-Za-z0-9_$]*)+(?:\\s*\\[\\s*\\])*");
+        return erased.matches("[A-Z_$][A-Za-z0-9_$]*(?:\\s*\\[\\s*\\])*")
+                || erased.matches("[A-Za-z_$][A-Za-z0-9_$]*(?:\\.[A-Za-z_$][A-Za-z0-9_$]*)+(?:\\s*\\[\\s*\\])*");
+    }
+
+    private static String eraseGenericArguments(String typeName) {
+        StringBuilder erased = new StringBuilder();
+        int depth = 0;
+        for (int i = 0; i < typeName.length(); i++) {
+            char current = typeName.charAt(i);
+            if (current == '<') {
+                depth++;
+                continue;
+            }
+            if (current == '>') {
+                depth--;
+                if (depth < 0) {
+                    return null;
+                }
+                continue;
+            }
+            if (depth == 0) {
+                erased.append(current);
+            }
+        }
+        return depth == 0 ? erased.toString().trim() : null;
     }
 
     /**
@@ -1392,8 +1439,14 @@ public final class SpecDiscovery {
         if (normalized.endsWith("[]")) {
             return resolveArrayTypeName(normalized, imports, describedPackageName);
         }
-        if (isPrimitiveOrVoid(normalized) || normalized.indexOf('<') >= 0) {
+        if (isPrimitiveOrVoid(normalized)) {
             return normalized;
+        }
+        int genericStart = normalized.indexOf('<');
+        if (genericStart >= 0 && normalized.endsWith(">")) {
+            String rawType = normalized.substring(0, genericStart).trim();
+            String genericSuffix = normalized.substring(genericStart);
+            return resolveTypeName(rawType, imports, describedPackageName) + genericSuffix;
         }
         if (normalized.indexOf('.') >= 0) {
             return normalized;

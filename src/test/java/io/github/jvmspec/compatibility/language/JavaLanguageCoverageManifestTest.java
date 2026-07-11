@@ -117,6 +117,10 @@ public class JavaLanguageCoverageManifestTest {
     }
 
     private void runCoveredFixture(LanguageCoverageEntry entry) throws Exception {
+        if ("SPEC_LAMBDA_TARGETS".equals(entry.scenario())) {
+            runSpecLambdaTargetFixture(entry);
+            return;
+        }
         if ("UPDATE_METHOD".equals(entry.scenario())) {
             UpdatedFixture fixture = updateFixture(entry);
             compile(fixture.sourceFile, releaseOf(entry.profile()), entry.constructId());
@@ -208,6 +212,84 @@ public class JavaLanguageCoverageManifestTest {
         assertEquals(updated, updatedAgain);
         assertEquals("Second update must be byte-idempotent", appliedHash, sha256(sourceFile));
         return new UpdatedFixture(sourceRoot, specRoot, sourceFile);
+    }
+
+    private void runSpecLambdaTargetFixture(LanguageCoverageEntry entry) throws Exception {
+        LambdaFixtureRun typed = runLambdaFixture(entry, "typed");
+        assertTrue(typed.result.shouldProceed());
+        String generatedSubject = readUtf8(typed.sourceFile);
+        assertTrue(generatedSubject.contains("java.util.function.Function<String, String>"));
+        assertTrue(generatedSubject.contains("// javaspec:stub"));
+        File typedSupport = new File(typed.generatedRoot, "spec/com/example/SubjectSpecSupport.java");
+        assertTrue(typedSupport.isFile());
+        String supportSource = readUtf8(typedSupport);
+        assertTrue("Typed proxy must retain an explicit subject() equivalent", supportSource.contains("subject()"));
+        assertTrue(supportSource.contains("transformCast"));
+        File typedSpec = new File(typed.specRoot, "spec/com/example/SubjectSpec.java");
+        compileSpecAndTypedProxy(typed.sourceFile, typedSupport, typedSpec,
+                entry.constructId() + "-typed-proxy");
+        String typedHash = sha256(typed.sourceFile);
+        LambdaFixtureRun typedAgain = executeLambdaFixture(typed);
+        assertTrue(typedAgain.result.shouldProceed());
+        assertEquals("Lambda target generation must be idempotent", typedHash, sha256(typed.sourceFile));
+
+        LambdaFixtureRun unique = runLambdaFixture(entry, "unique");
+        assertTrue(unique.result.shouldProceed());
+        assertEquals("A unique production SAM signature must remain production truth",
+                unique.initialSourceHash, sha256(unique.sourceFile));
+        assertTrue(new File(unique.generatedRoot, "spec/com/example/SubjectSpecSupport.java").isFile());
+
+        LambdaFixtureRun untyped = runLambdaFixture(entry, "untyped");
+        assertFalse(untyped.result.shouldProceed());
+        assertEquals(1, untyped.result.exitCode());
+        assertTrue(untyped.diagnostic.contains("Cannot infer functional-interface target"));
+        assertTrue(untyped.diagnostic.contains("explicitly typed variable"));
+        assertEquals(untyped.initialSourceHash, sha256(untyped.sourceFile));
+        assertFalse("Untyped lambda refusal must happen before support writes", untyped.generatedRoot.exists());
+
+        LambdaFixtureRun ambiguous = runLambdaFixture(entry, "ambiguous");
+        assertFalse(ambiguous.result.shouldProceed());
+        assertEquals(1, ambiguous.result.exitCode());
+        assertTrue(ambiguous.diagnostic.contains("one unambiguous production signature"));
+        assertEquals(ambiguous.initialSourceHash, sha256(ambiguous.sourceFile));
+        assertFalse("Ambiguous lambda refusal must happen before support writes", ambiguous.generatedRoot.exists());
+    }
+
+    private LambdaFixtureRun runLambdaFixture(LanguageCoverageEntry entry, String caseName) throws Exception {
+        File sourceRoot = temporaryFolder.newFolder(entry.constructId() + "-" + caseName + "-source");
+        File specRoot = temporaryFolder.newFolder(entry.constructId() + "-" + caseName + "-spec");
+        File generatedRoot = new File(temporaryFolder.getRoot(),
+                entry.constructId() + "-" + caseName + "-generated");
+        File sourceFile = copyResource(entry.fixturePath() + "/" + caseName
+                + "/initial/com/example/Subject.java", new File(sourceRoot, "com/example/Subject.java"));
+        copyResource(entry.fixturePath() + "/" + caseName
+                + "/spec/spec/com/example/SubjectSpec.java",
+                new File(specRoot, "spec/com/example/SubjectSpec.java"));
+        LambdaFixtureRun run = new LambdaFixtureRun(
+                sourceRoot, specRoot, generatedRoot, sourceFile, sha256(sourceFile));
+        return executeLambdaFixture(run);
+    }
+
+    private LambdaFixtureRun executeLambdaFixture(LambdaFixtureRun run) throws Exception {
+        List<DiscoveredSpec> specs = SpecDiscovery.discover(run.specRoot);
+        assertEquals(1, specs.size());
+        ByteArrayOutputStream errorOutput = new ByteArrayOutputStream();
+        run.result = GenerationOrchestrator.execute(
+                specs,
+                run.specRoot,
+                run.sourceRoot,
+                new BufferedReader(new StringReader("")),
+                new PrintStream(new ByteArrayOutputStream()),
+                new PrintStream(errorOutput),
+                true,
+                false,
+                SpecNamingConvention.defaults(),
+                getClass().getClassLoader(),
+                ConstructorPolicy.PRESERVE,
+                run.generatedRoot
+        );
+        run.diagnostic = new String(errorOutput.toByteArray(), StandardCharsets.UTF_8);
+        return run;
     }
 
     private void runModuleInfoFixture(LanguageCoverageEntry entry) throws Exception {
@@ -374,6 +456,40 @@ public class JavaLanguageCoverageManifestTest {
         }
     }
 
+    private void compileSpecAndTypedProxy(
+            File sourceFile,
+            File supportFile,
+            File specFile,
+            String fixtureId
+    ) throws IOException {
+        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+        assertNotNull("A JDK compiler is required for typed-proxy coverage", compiler);
+        File output = temporaryFolder.newFolder("compiled-" + fixtureId);
+        ByteArrayOutputStream compilerOutput = new ByteArrayOutputStream();
+        List<String> arguments = new ArrayList<String>();
+        if (javaSpecificationVersion() >= 9) {
+            arguments.add("--release");
+            arguments.add("8");
+        } else {
+            arguments.add("-source");
+            arguments.add("8");
+            arguments.add("-target");
+            arguments.add("8");
+        }
+        arguments.add("-classpath");
+        arguments.add(new File("target/classes").getAbsolutePath());
+        arguments.add("-d");
+        arguments.add(output.getAbsolutePath());
+        arguments.add(sourceFile.getAbsolutePath());
+        arguments.add(supportFile.getAbsolutePath());
+        arguments.add(specFile.getAbsolutePath());
+        int exit = compiler.run(null, compilerOutput, compilerOutput,
+                arguments.toArray(new String[arguments.size()]));
+        assertEquals("Typed proxy and spec did not compile:\n"
+                        + new String(compilerOutput.toByteArray(), StandardCharsets.UTF_8),
+                0, exit);
+    }
+
     private URLClassLoader fixtureClassLoader(File output) throws IOException {
         return new URLClassLoader(new URL[] {output.toURI().toURL()}, getClass().getClassLoader());
     }
@@ -410,6 +526,30 @@ public class JavaLanguageCoverageManifestTest {
                 + simpleName + ".class";
         assertTrue(new File(output, classRelativePath).isFile());
         return output;
+    }
+
+    private static final class LambdaFixtureRun {
+        private final File sourceRoot;
+        private final File specRoot;
+        private final File generatedRoot;
+        private final File sourceFile;
+        private final String initialSourceHash;
+        private GenerationOrchestratorResult result;
+        private String diagnostic;
+
+        private LambdaFixtureRun(
+                File sourceRoot,
+                File specRoot,
+                File generatedRoot,
+                File sourceFile,
+                String initialSourceHash
+        ) {
+            this.sourceRoot = sourceRoot;
+            this.specRoot = specRoot;
+            this.generatedRoot = generatedRoot;
+            this.sourceFile = sourceFile;
+            this.initialSourceHash = initialSourceHash;
+        }
     }
 
     private static final class UpdatedFixture {

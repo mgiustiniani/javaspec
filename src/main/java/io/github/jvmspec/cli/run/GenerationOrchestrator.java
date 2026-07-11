@@ -24,6 +24,7 @@ import io.github.jvmspec.generation.SpecSupportFileGenerator;
 import io.github.jvmspec.generation.parser.JavaSourceParserLoader;
 import io.github.jvmspec.model.DescribedType;
 import io.github.jvmspec.model.JavaTypeKind;
+import io.github.jvmspec.model.MethodDescriptor;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -42,6 +43,7 @@ import java.util.List;
  * workflow and enable unit testing.</p>
  */
 public final class GenerationOrchestrator {
+    private static final String UNRESOLVED_FUNCTIONAL_PARAMETER_PREFIX = "__javaspecFunctionalArg";
     private static final int EXIT_OK = 0;
     private static final int EXIT_MISSING_NOT_GENERATED = 1;
     private static final int EXIT_IO_ERROR = 70;
@@ -124,6 +126,11 @@ public final class GenerationOrchestrator {
             // Production truth wins over spec inference: when the production source already
             // exists, adopt its declared signatures before generating support or skeletons.
             DescribedType describedType = ProductionSignatureReader.refine(spec.describedType(), sourceRoot);
+            GenerationOrchestratorResult functionalTargetFailure = validateFunctionalTargets(
+                    describedType, spec, err);
+            if (functionalTargetFailure != null) {
+                return functionalTargetFailure;
+            }
             try {
                 RelatedSpecCheckResult relatedSpecResult = ensureRelatedSpecs(
                         describedType,
@@ -842,6 +849,30 @@ public final class GenerationOrchestrator {
                 err.println("I/O error updating prophecy helpers in support: " + messageOf(ex));
             }
         }
+    }
+
+    private static GenerationOrchestratorResult validateFunctionalTargets(
+            DescribedType describedType,
+            DiscoveredSpec spec,
+            PrintStream err
+    ) {
+        for (int methodIndex = 0; methodIndex < describedType.methods().size(); methodIndex++) {
+            MethodDescriptor method = describedType.methods().get(methodIndex);
+            for (int parameterIndex = 0; parameterIndex < method.parameterNames().size(); parameterIndex++) {
+                String parameterName = method.parameterNames().get(parameterIndex);
+                if (!method.isParameterTypeUnknown(parameterIndex)
+                        || !parameterName.startsWith(UNRESOLVED_FUNCTIONAL_PARAMETER_PREFIX)) {
+                    continue;
+                }
+                err.println("Cannot infer functional-interface target for " + describedType.qualifiedName()
+                        + "#" + method.methodName() + " parameter " + (parameterIndex + 1) + ".");
+                err.println("Spec file: " + spec.specFile().getPath());
+                err.println("Assign the lambda or method reference to an explicitly typed variable, add an explicit "
+                        + "functional-interface cast, or provide one unambiguous production signature.");
+                return GenerationOrchestratorResult.missingNotGenerated();
+            }
+        }
+        return null;
     }
 
     private static GenerationOrchestratorResult validateExistingSourceShape(

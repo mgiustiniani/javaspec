@@ -104,16 +104,16 @@ scope-safe, parser unit regressions cover text-block delimiters/offsets, and sev
 |---|---|---|
 | Class/final class/interface/enum/annotation | `UPDATED` — `COVERED` | Shared fixtures discover each type, apply its legal member shape, compile at release 8, and assert second-pass byte idempotence. Existing skeleton-generation tests remain complementary evidence. |
 | Lambdas in existing subject source | `PRESERVED` — `COVERED` | Fixtures cover inferred/explicit parameter types, expression/block bodies, captures, nested calls, update, compilation, and idempotence. |
-| Lambda arguments in specs for missing subject methods | `GENERATED` — `PLANNED` | Infer a SAM type only from an explicit generic/raw cast, an explicitly typed local/parameter, or one unambiguous existing production signature. Extend balanced/AST call scanning to expression and block lambdas. Never guess between `Function`, `UnaryOperator`, `Predicate`, or an application SAM; refuse with an actionable “assign or cast the lambda” diagnostic when no unique target exists. Test standard and custom SAMs, generics, overload ambiguity, typed-proxy regeneration, explicit `subject()` equivalence, and unchanged meaningful RED/stub behavior. |
+| Lambda arguments in specs for missing subject methods | `GENERATED` — `COVERED` | The parse-only AST retains expression/block lambdas. Explicit generic/raw casts and explicitly typed locals/parameters provide deterministic standard or application-SAM types; one unambiguous existing production signature refines an inline lambda. Missing or overloaded-ambiguous targets refuse before source/support writes with assign-or-cast guidance. The fixture compiles the generated Java 8 subject, typed proxy, and classic spec; checks explicit `subject()` equivalence, visible stubs/meaningful RED, and byte-idempotence. |
 | Method references | `PRESERVED` — `COVERED` | The fixture covers static, bound, unbound, constructor, and array-constructor references through update and release-8 compilation. |
 | Default/static interface methods | `UPDATED`/`PRESERVED` — `COVERED` | A missing direct declaration is inserted without duplicating or rewriting existing default/static bodies. |
 | Type-use and repeatable annotations | `PRESERVED` — `COVERED` | Type-use generic arguments and repeated type declarations survive update, release-8 compilation, and idempotence; focused signature tests cover additional shapes. |
 | Nested/local/anonymous types | `PRESERVED` — `COVERED` | Scope-identity fixtures ensure nested matches cannot satisfy the described subject. |
 | Generic bounds, wildcards, arrays, varargs | `PRESERVED` — `COVERED` | A combined source fixture survives update and release-8 compilation; focused generator/Prophecy tests retain complex generated-signature evidence. |
 
-Status: IN PROGRESS — all Java 8 preservation/type-shape rows are `COVERED`; only the separately
-requested spec-lambda target-inference capability remains `PLANNED`. It must remain fail-closed and
-must not infer an arbitrary application design merely to complete JLC-2.
+Status: IMPLEMENTED — all Java 8 preservation, type-shape, and spec-lambda target-inference rows
+are `COVERED`. Functional targets are inferred only from explicit typing or one unambiguous
+production signature; javaspec does not invent an application SAM.
 
 ## JLC-3 — Java 11 profile structures
 
@@ -205,8 +205,8 @@ PHPSpec-inspired subject model.
 | Idempotence | `COVERED` — every covered update fixture requires an unchanged second-pass hash. |
 | Diagnostics | `COVERED` — compact-source refusal names type/file/reason before writes; profile and other failure diagnostics retain focused contract tests. |
 
-Status: IMPLEMENTED — every cross-cutting fidelity row is `COVERED`. The strict manifest now has
-one remaining planned item: fail-closed SAM target inference for lambda arguments in specs.
+Status: IMPLEMENTED — every cross-cutting fidelity row is `COVERED`. With JLC-2 SAM target
+inference now covered, strict manifest mode has no remaining `PLANNED` rows.
 
 ## JLC-8 — Classic PHPSpec dogfooding gate
 

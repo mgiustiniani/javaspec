@@ -14,6 +14,9 @@ All notable changes to this project will be documented in this file.
   javaspec subjects before writes and recommend a normal named subject type.
 - Closed cross-cutting source-fidelity coverage for CRLF, missing final newlines, UTF-8 BOM, Unicode,
   local indentation, dry-run parity, atomic failure cleanup, idempotence, and diagnostics.
+- Added fail-closed spec-lambda target inference: explicit casts and typed locals/parameters produce
+  deterministic standard or custom SAM signatures, one unique production signature refines inline
+  lambdas, and missing or overloaded-ambiguous targets refuse before source/support writes.
 
 ## 1.0.0-RC1 — 2026-07-10
 

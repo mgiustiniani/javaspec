@@ -314,7 +314,7 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
 - Macro-area: B/E — Safe behavior-driven generation and release readiness
 - Priority: P0
 - Disposition: REQUIRED_FOR_1_0
-- Status: IN PROGRESS — JLC-0 through JLC-7 are implemented except planned spec-lambda target inference; classic-PHPSpec dogfooding remains.
+- Status: IN PROGRESS — JLC-0 through JLC-7 and the strict zero-PLANNED manifest gate are implemented; classic-PHPSpec real-project dogfooding remains.
 - Motivation: the Java 8/11/17/21/25 runtime and profile matrix is green, but stable source-compatibility claims also require systematic parser, preservation, generation, compilation, execution, and idempotence evidence for final language constructs relevant to each profile.
 - Product constraint: modern-Java support must serve the classic PHPSpec-inspired subject-centric workflow. It must not invent domain behavior, hide RED, add a second authoring model, or require javaspec to generate every Java grammar production.
 - Dependencies: M3, M7, M9, M10.
@@ -322,7 +322,7 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
   - [`docs/java-language-coverage-roadmap.md`](docs/java-language-coverage-roadmap.md) classifies each construct as generated, updated, preserved, profile-gated, or intentionally unsupported.
   - JLC-0 provides a test-only construct inventory, TSV manifest, `COVERED`/`PLANNED` evidence states, deterministic report, strict stable switch, and first Java 8 discovery/update/compile/idempotence fixture.
   - JLC-1 adds text-block-aware offset masking, direct-member scope isolation, and fixtures for comments/literals, lambdas, method references, local/anonymous types, and multiple top-level types.
-  - JLC-2 adds release-8 update/compile/idempotence fixtures for final classes, interfaces, enums, annotations, interface default/static methods, type-use/repeatable annotations, and complex generic/array/varargs signatures; spec-lambda target inference remains explicitly planned and fail-closed.
+  - JLC-2 adds release-8 update/compile/idempotence fixtures for final classes, interfaces, enums, annotations, interface default/static methods, type-use/repeatable annotations, complex generic/array/varargs signatures, and fail-closed spec-lambda SAM target inference from explicit typing or one unambiguous production signature.
   - JLC-3 covers local `var`, `var` lambda parameters, private interface helpers, anonymous diamond classes, effectively-final try-with-resources, module descriptor preservation, and representative Java 11 API compile/run evidence.
   - JLC-4 covers records, multi-file sealed hierarchies, top-level non-sealed and abstract subjects, text blocks, switch expressions, `instanceof` patterns, and representative Java 17 API execution.
   - JLC-5 covers nested record patterns, pattern switches including guarded `when`, multi-file sealed exhaustiveness, Sequenced Collections, and joined virtual-thread execution on Java 21.

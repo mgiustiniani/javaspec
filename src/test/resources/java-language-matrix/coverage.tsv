@@ -5,7 +5,7 @@ java8	java8-interface	UPDATED	COVERED	UPDATE_METHOD	java-language-matrix/java8/i
 java8	java8-enum	UPDATED	COVERED	UPDATE_METHOD	java-language-matrix/java8/enum	Enum terminator insertion, method update, release-8 compilation, and idempotence.
 java8	java8-annotation	UPDATED	COVERED	UPDATE_METHOD	java-language-matrix/java8/annotation	Annotation element update, release-8 compilation, and idempotence.
 java8	java8-lambda	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java8/lambda-block	Expression and block lambda preservation.
-java8	java8-spec-lambda-target-inference	GENERATED	PLANNED	PENDING	-	Infer only explicit or unambiguous functional-interface targets for missing subject methods; refuse untyped ambiguity.
+java8	java8-spec-lambda-target-inference	GENERATED	COVERED	SPEC_LAMBDA_TARGETS	java-language-matrix/java8/spec-lambda-targets	Typed locals and explicit casts generate deterministic SAM signatures; one production signature refines inline lambdas; missing/ambiguous targets refuse before writes.
 java8	java8-method-reference	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java8/method-reference	Static, bound, unbound, constructor, and array method references.
 java8	java8-interface-default-static	UPDATED	COVERED	UPDATE_METHOD	java-language-matrix/java8/interface-default-static	Default/static interface body preservation with direct declaration update.
 java8	java8-type-use-repeatable-annotations	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java8/type-use-repeatable-annotations	Type-use and repeatable annotation preservation through update and release-8 compilation.
