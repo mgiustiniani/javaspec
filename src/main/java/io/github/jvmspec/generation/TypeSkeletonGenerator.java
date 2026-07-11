@@ -173,19 +173,40 @@ public final class TypeSkeletonGenerator {
     }
 
     private static void appendRecord(StringBuilder builder, DescribedType describedType) {
+        List<RecordComponentPlanner.Component> components = RecordComponentPlanner.componentsFor(describedType);
         builder.append("public record ").append(describedType.simpleName()).append("(");
-        builder.append(RecordComponentPlanner.renderComponentList(
-                describedType,
-                RecordComponentPlanner.componentsFor(describedType)));
+        builder.append(RecordComponentPlanner.renderComponentList(describedType, components));
         builder.append(")");
         appendImplements(builder, describedType);
-        if (describedType.hasMethods()) {
+        List<MethodDescriptor> explicitMethods = explicitRecordMethods(describedType.methods(), components);
+        if (!explicitMethods.isEmpty()) {
             builder.append(" {\n");
-            appendMethods(builder, describedType);
+            appendMethods(builder, describedType, explicitMethods, "    ");
             builder.append("}\n");
         } else {
             builder.append(" { }\n");
         }
+    }
+
+    private static List<MethodDescriptor> explicitRecordMethods(
+            List<MethodDescriptor> methods,
+            List<RecordComponentPlanner.Component> components
+    ) {
+        List<MethodDescriptor> explicit = new ArrayList<MethodDescriptor>();
+        for (int methodIndex = 0; methodIndex < methods.size(); methodIndex++) {
+            MethodDescriptor method = methods.get(methodIndex);
+            boolean implicitAccessor = false;
+            for (int componentIndex = 0; componentIndex < components.size(); componentIndex++) {
+                if (RecordComponentPlanner.isImplicitAccessor(components.get(componentIndex), method)) {
+                    implicitAccessor = true;
+                    break;
+                }
+            }
+            if (!implicitAccessor) {
+                explicit.add(method);
+            }
+        }
+        return explicit;
     }
 
     private static void appendSealedClass(StringBuilder builder, DescribedType describedType) {

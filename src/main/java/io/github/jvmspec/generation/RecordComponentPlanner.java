@@ -6,6 +6,8 @@ import io.github.jvmspec.model.JavaTypeKind;
 import io.github.jvmspec.model.MethodDescriptor;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -17,10 +19,26 @@ import java.util.regex.Pattern;
  * descriptors discovered in specs.
  */
 final class RecordComponentPlanner {
+    private static final List<String> RESERVED_IDENTIFIERS = Collections.unmodifiableList(Arrays.asList(
+            "_", "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char", "class",
+            "const", "continue", "default", "do", "double", "else", "enum", "extends", "false", "final",
+            "finally", "float", "for", "goto", "if", "implements", "import", "instanceof", "int", "interface",
+            "long", "native", "new", "null", "package", "private", "protected", "public", "return", "short",
+            "static", "strictfp", "super", "switch", "synchronized", "this", "throw", "throws", "transient",
+            "true", "try", "void", "volatile", "while"
+    ));
+
     private RecordComponentPlanner() {
     }
 
     static List<Component> componentsFor(DescribedType describedType) {
+        return componentsFor(describedType, new ArrayList<ParsedComponent>());
+    }
+
+    private static List<Component> componentsFor(
+            DescribedType describedType,
+            List<ParsedComponent> existingComponents
+    ) {
         List<Component> components = new ArrayList<Component>();
         if (!JavaTypeKind.RECORD.equals(describedType.kind()) || !describedType.hasConstructors()) {
             return components;
@@ -31,8 +49,19 @@ final class RecordComponentPlanner {
         for (int i = 0; i < constructor.parameterTypes().size(); i++) {
             String type = constructor.parameterTypes().get(i);
             String parameterName = constructor.parameterNames().get(i);
-            String name = componentName(type, parameterName, describedType.methods(), usedMethodIndexes);
-            name = uniqueComponentName(name, i, usedNames);
+            String name;
+            if (i < existingComponents.size() && sameSourceType(type, existingComponents.get(i).type())) {
+                name = existingComponents.get(i).name();
+                int existingAccessor = findMethodIndex(name, type, describedType.methods(), usedMethodIndexes);
+                if (existingAccessor >= 0) {
+                    usedMethodIndexes.add(Integer.valueOf(existingAccessor));
+                }
+            } else {
+                name = componentName(type, parameterName, describedType.methods(), usedMethodIndexes);
+            }
+            validateComponentName(
+                    describedType, i, type, parameterName, name, describedType.methods(), usedNames);
+            usedNames.add(name);
             components.add(new Component(type, name));
         }
         return components;
@@ -42,16 +71,16 @@ final class RecordComponentPlanner {
         if (!JavaTypeKind.RECORD.equals(describedType.kind()) || !describedType.hasConstructors()) {
             return source;
         }
-        List<Component> plannedComponents = componentsFor(describedType);
-        if (plannedComponents.isEmpty()) {
-            return source;
-        }
         RecordHeader header = findHeader(source, describedType.simpleName());
         if (header == null) {
             return source;
         }
         List<ParsedComponent> existingComponents = parseExistingComponents(
                 source.substring(header.openParen + 1, header.closeParen));
+        List<Component> plannedComponents = componentsFor(describedType, existingComponents);
+        if (plannedComponents.isEmpty()) {
+            return source;
+        }
         if (!existingComponents.isEmpty()) {
             if (componentTypesMatch(existingComponents, plannedComponents)) {
                 return source;
@@ -69,6 +98,14 @@ final class RecordComponentPlanner {
         return source.substring(0, header.openParen + 1)
                 + componentList
                 + source.substring(header.closeParen);
+    }
+
+    static boolean isImplicitAccessor(Component component, MethodDescriptor method) {
+        return component.name().equals(method.methodName())
+                && !method.isStatic()
+                && !method.hasParameters()
+                && !method.isVoid()
+                && sameSourceType(component.type(), method.returnType());
     }
 
     static String renderComponentList(DescribedType owner, List<Component> components) {
@@ -121,13 +158,15 @@ final class RecordComponentPlanner {
             List<MethodDescriptor> methods,
             Set<Integer> usedMethodIndexes
     ) {
-        int exactMethod = findMethodIndex(parameterName, type, methods, usedMethodIndexes);
-        if (exactMethod >= 0) {
-            usedMethodIndexes.add(Integer.valueOf(exactMethod));
-            return parameterName;
-        }
-        if (!isPositionalName(parameterName)) {
-            return parameterName;
+        if (isLegalJavaIdentifier(parameterName)) {
+            int exactMethod = findMethodIndex(parameterName, type, methods, usedMethodIndexes);
+            if (exactMethod >= 0) {
+                usedMethodIndexes.add(Integer.valueOf(exactMethod));
+                return parameterName;
+            }
+            if (!isPositionalName(parameterName) && !isTypeDerivedName(type, parameterName)) {
+                return parameterName;
+            }
         }
         int valueMethod = findMethodIndex("value", type, methods, usedMethodIndexes);
         if (valueMethod >= 0) {
@@ -139,7 +178,7 @@ final class RecordComponentPlanner {
             usedMethodIndexes.add(Integer.valueOf(uniqueCompatible));
             return methods.get(uniqueCompatible).methodName();
         }
-        return parameterName;
+        return null;
     }
 
     private static int findMethodIndex(
@@ -188,20 +227,66 @@ final class RecordComponentPlanner {
                 && sameSourceType(componentType, method.returnType());
     }
 
-    private static String uniqueComponentName(String preferredName, int index, Set<String> usedNames) {
-        String candidate = isJavaIdentifier(preferredName) ? preferredName : "arg" + index;
-        if (!usedNames.contains(candidate)) {
-            usedNames.add(candidate);
-            return candidate;
+    private static void validateComponentName(
+            DescribedType describedType,
+            int index,
+            String type,
+            String parameterName,
+            String proposedName,
+            List<MethodDescriptor> methods,
+            Set<String> usedNames
+    ) {
+        String reason = null;
+        if (proposedName == null) {
+            reason = isLegalJavaIdentifier(parameterName)
+                    ? "no matching accessor expectation or reliable constructor parameter"
+                    : "illegal Java identifier and no matching accessor expectation";
+        } else if (!isLegalJavaIdentifier(proposedName)) {
+            reason = "illegal Java identifier";
+        } else if (usedNames.contains(proposedName)) {
+            reason = "component name is not unique or mapped to exactly one constructor position";
         }
-        String fallback = "arg" + index;
-        int suffix = 1;
-        while (usedNames.contains(fallback)) {
-            fallback = "arg" + index + "_" + suffix;
-            suffix++;
+        if (reason == null) {
+            return;
         }
-        usedNames.add(fallback);
-        return fallback;
+        throw new IllegalArgumentException(
+                "AMBIGUOUS_RECORD_COMPONENT_NAME: subject " + describedType.qualifiedName()
+                        + ", component index " + index
+                        + ", inferred type " + type
+                        + ", available naming evidence [constructor parameter '" + parameterName
+                        + "', compatible accessors " + compatibleAccessorNames(type, methods) + "]"
+                        + ", reason: " + reason + "."
+        );
+    }
+
+    private static List<String> compatibleAccessorNames(String type, List<MethodDescriptor> methods) {
+        List<String> names = new ArrayList<String>();
+        for (int i = 0; i < methods.size(); i++) {
+            MethodDescriptor method = methods.get(i);
+            if (isComponentAccessorCandidate(type, method) && isLegalJavaIdentifier(method.methodName())) {
+                names.add(method.methodName());
+            }
+        }
+        return names;
+    }
+
+    private static boolean isLegalJavaIdentifier(String value) {
+        return isJavaIdentifier(value) && !RESERVED_IDENTIFIERS.contains(value);
+    }
+
+    private static boolean isTypeDerivedName(String type, String name) {
+        String rawType = type;
+        int genericStart = rawType.indexOf('<');
+        if (genericStart >= 0) {
+            rawType = rawType.substring(0, genericStart);
+        }
+        int lastDot = rawType.lastIndexOf('.');
+        String simpleType = lastDot < 0 ? rawType : rawType.substring(lastDot + 1);
+        if (simpleType.length() == 0) {
+            return false;
+        }
+        String derived = Character.toLowerCase(simpleType.charAt(0)) + simpleType.substring(1);
+        return derived.equals(name);
     }
 
     private static boolean isPositionalName(String name) {

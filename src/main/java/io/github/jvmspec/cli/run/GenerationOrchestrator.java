@@ -132,6 +132,11 @@ public final class GenerationOrchestrator {
             if (functionalTargetFailure != null) {
                 return functionalTargetFailure;
             }
+            GenerationOrchestratorResult recordComponentFailure = validateRecordComponentNames(
+                    describedType, sourceRoot, spec, err);
+            if (recordComponentFailure != null) {
+                return recordComponentFailure;
+            }
             try {
                 RelatedSpecCheckResult relatedSpecResult = ensureRelatedSpecs(
                         describedType,
@@ -865,6 +870,38 @@ public final class GenerationOrchestrator {
             } catch (IOException ex) {
                 err.println("I/O error updating prophecy helpers in support: " + messageOf(ex));
             }
+        }
+    }
+
+    private static GenerationOrchestratorResult validateRecordComponentNames(
+            DescribedType describedType,
+            File sourceRoot,
+            DiscoveredSpec spec,
+            PrintStream err
+    ) {
+        if (!JavaTypeKind.RECORD.equals(describedType.kind()) || !describedType.hasConstructors()) {
+            return null;
+        }
+        try {
+            File sourceFile = new File(sourceRoot,
+                    describedType.qualifiedName().replace('.', File.separatorChar) + ".java");
+            if (sourceFile.isFile()) {
+                String source = new String(Files.readAllBytes(sourceFile.toPath()), StandardCharsets.UTF_8);
+                ClassConstructorUpdater.updateSource(source, describedType, ConstructorPolicy.PRESERVE);
+            } else {
+                TypeSkeletonGenerator.plan(describedType, sourceRoot);
+            }
+            return null;
+        } catch (IllegalArgumentException ex) {
+            err.println(messageOf(ex));
+            err.println("Spec file: " + spec.specFile().getPath());
+            err.println("Production source was not written. Add one unambiguous zero-argument accessor "
+                    + "expectation for each constructor value or use a reliably named local/formal parameter.");
+            return GenerationOrchestratorResult.missingNotGenerated();
+        } catch (IOException ex) {
+            err.println("I/O error while validating record component names: " + messageOf(ex));
+            err.println("Spec file: " + spec.specFile().getPath());
+            return GenerationOrchestratorResult.ioError(EXIT_IO_ERROR);
         }
     }
 
