@@ -120,8 +120,8 @@ Evidence:
 - [x] Gradle plugin marker publication path documented/tested.
 - [x] Bytecode agent manifest has required `Premain-Class` and `Agent-Class`.
 - [x] Checksums generated/verified locally by release dry-run; publication workflow checksums still recorded at RC/final publication time.
-- [x] Signing configured/documented; Maven GPG Plugin receives the repository passphrase secret as
-  `MAVEN_GPG_PASSPHRASE` after run 29139720896 exposed the previous variable-name mismatch.
+- [x] Signing configured/documented; workflow requires an imported secret key, verifies the
+  passphrase with an isolated loopback signing probe, and passes it explicitly to Maven GPG Plugin.
 - [ ] Gradle Plugin Portal API key/secret confirmed as GitHub repository secrets before tagging.
 - [x] Release workflow requires Maven/GPG secrets, detects optional Gradle credentials, and safely skips an already published Maven version on rerun.
 - [x] Release workflow publishes or stages every declared artifact or fails clearly (Maven Central artifacts include core, Maven plugin, JUnit Platform engine, bytecode doubles, and bytecode agent; Gradle Plugin Portal publication uses `publishPlugins`).
