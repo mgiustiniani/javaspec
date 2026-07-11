@@ -174,16 +174,20 @@ styles is not required for the classic PHPSpec subject model.
 
 | Element | Disposition | Proposed solution |
 |---|---|---|
-| Unnamed variables and patterns | `PRESERVED` | Cover unnamed catch/resource/lambda variables where legal and unnamed patterns in nested record/pattern switches; compile on the first final supporting release represented by the Java 25 profile. |
-| Flexible constructor bodies | `UPDATED`/`PRESERVED` | Add constructors with validation/statements before `super(...)` or `this(...)`. Replace regex-based constructor assumptions with structural ranges where needed; preserve statement order and refuse ambiguous constructor edits. |
-| Module import declarations | `PRESERVED` | Teach import scanning to distinguish module imports from ordinary imports; preserve ordering/comments and compile a modular fixture on 25. Do not synthesize module imports automatically. |
-| Compact source files and instance `main` | `INTENTIONALLY_UNSUPPORTED` as described subjects; `PRESERVED`/ignored as project files | Discovery must not misclassify them, generation must not inject a class declaration, and diagnostics should recommend a normal named subject type for SpecBDD. |
-| Markdown documentation comments | `PRESERVED` | Add `///` comments containing braces, method-like text, links, and code blocks; preserve content and line endings during update. |
-| Stream Gatherers | `PROFILE_GATED` plus end-to-end use | Extend current catalog/runtime probe with a generated or updated subject signature, compile/run behavior on 25, and reject on 21 before writes. |
+| Unnamed variables and patterns | `PRESERVED` — `COVERED` | Unnamed catch/loop variables and nested unnamed record patterns survive update, release-25 compilation, and idempotence. |
+| Flexible constructor bodies | `UPDATED`/`PRESERVED` — `COVERED` | Validation and normalization before `super(...)` retain order; matching constructor reconciliation is byte-stable; the base companion remains hash-stable; release-25 compilation passes. |
+| Module import declarations | `PRESERVED` — `COVERED` | `import module java.base` and its unqualified API use survive update, compilation, and idempotence; javaspec does not synthesize module imports. |
+| Compact source files and instance `main` | `INTENTIONALLY_UNSUPPORTED` as described subjects; `PRESERVED`/ignored as project files — `COVERED` | Compact source compiles, but generation refuses before support/source writes with an actionable named-subject diagnostic and leaves the file unchanged. |
+| Markdown documentation comments | `PRESERVED` — `COVERED` | `///` comments containing braces, method-like text, links, and code spans remain byte-stable outside the requested insertion. |
+| Stream Gatherers | `PROFILE_GATED` plus end-to-end use — `COVERED` | `Gatherers.fold` compiles and executes on Java 25; existing enforcement tests reject Gatherer signatures below 25. |
 
 Preview features, including any Java 25 preview pattern extension, are `INTENTIONALLY_UNSUPPORTED`
 for 1.0. They may be tested for safe refusal but must not be accepted through the stable `java25`
 profile merely because the host compiler enables preview syntax.
+
+Status: IMPLEMENTED — every Java 25 manifest row is `COVERED` and executed on the local Java 25
+runtime. New application syntax is preserved or refused explicitly; it does not alter the classic
+PHPSpec-inspired subject model.
 
 ## JLC-7 — Cross-cutting source fidelity
 

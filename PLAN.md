@@ -314,7 +314,7 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
 - Macro-area: B/E — Safe behavior-driven generation and release readiness
 - Priority: P0
 - Disposition: REQUIRED_FOR_1_0
-- Status: IN PROGRESS — JLC-0/JLC-1 implemented; JLC-2 Java 8 is covered except planned spec-lambda target inference; JLC-3 Java 11, JLC-4 Java 17, and JLC-5 Java 21 are covered.
+- Status: IN PROGRESS — JLC-0/JLC-1 and Java 11/17/21/25 coverage are implemented; Java 8 is covered except planned spec-lambda target inference; cross-cutting fidelity and dogfooding remain.
 - Motivation: the Java 8/11/17/21/25 runtime and profile matrix is green, but stable source-compatibility claims also require systematic parser, preservation, generation, compilation, execution, and idempotence evidence for final language constructs relevant to each profile.
 - Product constraint: modern-Java support must serve the classic PHPSpec-inspired subject-centric workflow. It must not invent domain behavior, hide RED, add a second authoring model, or require javaspec to generate every Java grammar production.
 - Dependencies: M3, M7, M9, M10.
@@ -326,6 +326,7 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
   - JLC-3 covers local `var`, `var` lambda parameters, private interface helpers, anonymous diamond classes, effectively-final try-with-resources, module descriptor preservation, and representative Java 11 API compile/run evidence.
   - JLC-4 covers records, multi-file sealed hierarchies, top-level non-sealed and abstract subjects, text blocks, switch expressions, `instanceof` patterns, and representative Java 17 API execution.
   - JLC-5 covers nested record patterns, pattern switches including guarded `when`, multi-file sealed exhaustiveness, Sequenced Collections, and joined virtual-thread execution on Java 21.
+  - JLC-6 covers unnamed variables/patterns, flexible constructor bodies, module imports, fail-closed compact-source refusal, Markdown documentation comments, and Stream Gatherers on Java 25.
   - The shared fixture harness expands across later JLC milestones to cover dry-run, one mechanical update, untouched-region preservation, `javac --release`, selected behavior execution, second-pass idempotence, and older-profile refusal where applicable.
   - CI partitions fixtures across Java 8, 11, 17, 21, and 25.
   - Java 21 real-project dogfooding uses the remotely published RC and preserves typed proxy plus explicit `subject()` equivalence.

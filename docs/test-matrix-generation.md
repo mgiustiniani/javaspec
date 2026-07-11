@@ -68,6 +68,10 @@ and stable exit criteria are defined in [`docs/java-language-coverage-roadmap.md
 - JLC-5 covers Java 21 nested record patterns, type/record pattern switches, guarded `when` blocks,
   hash-stable multi-file sealed exhaustiveness, Sequenced Collections execution, and a joined virtual
   thread that terminates before the behavior returns.
+- JLC-6 covers Java 25 unnamed variables/patterns, flexible constructor bodies, module imports,
+  Markdown documentation comments, and Stream Gatherers. Compact source files compile as project
+  files but are refused fail-closed as javaspec subjects before any support/source write, with a
+  diagnostic recommending a named subject type.
 - Record component accessors are treated as existing no-arg methods during source-preserving record
   updates, so `record UserId(String value)` does not receive a generated `value()` stub.
 - Constructor-driven record specs can evolve record headers: `beConstructedWith(...)` plus a

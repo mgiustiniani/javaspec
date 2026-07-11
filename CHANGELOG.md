@@ -9,6 +9,9 @@ All notable changes to this project will be documented in this file.
 - Hardened source-preserving updates for text blocks and direct-member scope: fake braces/signatures
   in literals, local/anonymous/nested methods, and secondary top-level types no longer suppress a
   required subject method update.
+- Added Java 25 preservation evidence for unnamed patterns, flexible constructors, module imports,
+  Markdown documentation comments, and Stream Gatherers; compact source files now fail closed as
+  javaspec subjects before writes and recommend a normal named subject type.
 
 ## 1.0.0-RC1 — 2026-07-10
 
