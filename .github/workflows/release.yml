@@ -125,7 +125,7 @@ jobs:
         env:
           SONATYPE_TOKEN_USER: ${{ secrets.SONATYPE_TOKEN_USER }}
           SONATYPE_TOKEN_PASS: ${{ secrets.SONATYPE_TOKEN_PASS }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Publish Gradle plugin to Gradle Plugin Portal
         if: steps.gradle-credentials.outputs.available == 'true'

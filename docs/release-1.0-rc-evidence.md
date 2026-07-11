@@ -104,6 +104,13 @@ Release hardening after the failed attempts added clean-run core installation be
 artifact builds, pre-build-safe launcher alignment checks, portable release gates without a
 `ripgrep` dependency, split preflight diagnostics, and redacted Maven deployment diagnostics.
 
+After the first Git Flow merge, release workflow
+[run 29139720896](https://github.com/mgiustiniani/javaspec/actions/runs/29139720896) again passed all
+pre-deployment gates and isolated the core deployment failure to Maven GPG Plugin exit code 2. The
+workflow had exposed the repository secret only as `GPG_PASSPHRASE`; Maven GPG Plugin expects
+`MAVEN_GPG_PASSPHRASE`. Direct Central lookup remained HTTP 404, so the failed tag was safely removed
+and the environment mapping was corrected on the release branch before repeating the release merge.
+
 Remaining RC/final cut-time evidence:
 
 - Successful merge of `release/1.0.0-RC1` into `main` and annotated tag on that merge commit.

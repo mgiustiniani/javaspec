@@ -81,8 +81,12 @@ tag after Maven Central or the Gradle Plugin Portal has accepted that version.
    - Local dry-run SHA-256 checksums in `target/release-dry-run-checksums.sha256`.
 7. For Maven Central / Central Portal publication:
    - Reconfirm MIT license and maintainer metadata are still correct.
-   - Configure an explicit signing profile or external signing process; GPG signing is required by Central publication workflows.
-   - Configure Central Portal publication steps.
+   - Configure repository secrets `SONATYPE_TOKEN_USER`, `SONATYPE_TOKEN_PASS`, `GPG_PRIVATE_KEY`,
+     and `GPG_PASSPHRASE`.
+   - The workflow imports `GPG_PRIVATE_KEY` and exposes `GPG_PASSPHRASE` to Maven GPG Plugin as
+     `MAVEN_GPG_PASSPHRASE`; the plugin does not consume an arbitrarily named passphrase variable.
+   - GPG signing is mandatory for every Maven artifact.
+   - Configure and verify Central Portal publication steps.
 8. For Gradle Plugin Portal publication:
    - Sign in or create an account at <https://plugins.gradle.org/user/login>.
    - Open the **API Keys** tab in the Plugin Portal profile and create/copy the key and secret.
