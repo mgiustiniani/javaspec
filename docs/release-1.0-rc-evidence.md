@@ -118,9 +118,26 @@ hardening step validates that the imported material contains a secret key, perfo
 loopback signing probe with the configured passphrase, and passes the verified passphrase explicitly
 to Maven GPG Plugin.
 
-Remaining RC/final cut-time evidence:
+## 2026-07-11 — RC1 publication
 
-- Successful merge of `release/1.0.0-RC1` into `main` and annotated tag on that merge commit.
-- Successful Maven Central deployment for all five Maven artifacts and direct URL verification.
-- Public signing-key and `.asc` signature verification.
-- Confirmation and publication evidence for Gradle Plugin Portal credentials/version, when enabled.
+Annotated tag `v1.0.0-RC1` points to production `main` commit
+`7bd8ac4cf675a6faad56393a729d9274dc3308b7`; the release fixes were merged back into `develop`.
+Release workflow [run 29146746362](https://github.com/mgiustiniani/javaspec/actions/runs/29146746362)
+completed successfully:
+
+- Contract guards, tag/dependency preflight, release dry-run, checksums, and consumer examples passed.
+- Imported-key and loopback passphrase signing probes passed.
+- Maven Central deployment completed for core, Maven plugin, JUnit Platform engine, bytecode doubles,
+  and bytecode agent.
+- Direct Maven Central checks returned HTTP 200 for every POM, main JAR, sources JAR, Javadoc JAR,
+  and corresponding `.asc` signature across all five artifacts.
+- The core JAR signature verified as `GOODSIG`/`VALIDSIG` with fingerprint
+  `92EBAB37E11720596CD690CF212398D74CE93120`; the public key is retrievable from
+  `keyserver.ubuntu.com`.
+- The Gradle Plugin Portal publication step succeeded, confirming credentials and submission. The
+  plugin marker remains externally unavailable while first-publication visibility/review completes.
+
+Remaining RC evidence:
+
+- Gradle Plugin Portal page and RC1 marker become publicly resolvable after external review.
+- External consumers validate the published RC1 from remote repositories rather than local staging.

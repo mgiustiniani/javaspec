@@ -11,7 +11,7 @@ This checklist is the release gate source for 1.0. It must be updated with comma
 - [x] Git Flow production history normalized: `main` is an ancestor of `develop`, and the former
   unrelated remote `main` commit is archived.
 - [x] `release/1.0.0-RC1` created from the verified `develop` release line.
-- [ ] RC1 release branch merged with `--no-ff` into `main`, tagged on the merge commit, and merged
+- [x] RC1 release branch merged with `--no-ff` into `main`, tagged on commit `7bd8ac4`, and merged
   back into `develop`.
 - [ ] Final `1.0.0` prepared from verified RC or documented RC fix commit.
 - [ ] Post-release snapshot bump complete.
@@ -43,7 +43,7 @@ Evidence:
 | `scripts/check-core-java8-bytecode.sh` | `e212a39` | PASS | Core classfiles max major 52 |
 | `scripts/check-release-preflight.sh` | `e212a39` | PASS | `JAVASPEC_RELEASE_TAG=v1.0.0-RC1`; actual tag publication remains pending |
 | GitHub Actions Java 8/11/17/21/25 + full Java 21 | `8b87d99` | PASS | [CI run 29139032096](https://github.com/mgiustiniani/javaspec/actions/runs/29139032096) |
-| Tagged release workflow preflight/dry-run/GPG import | `8b87d99` | PASS | [Release run 29139156898](https://github.com/mgiustiniani/javaspec/actions/runs/29139156898); Maven deploy failed afterward and Central remained HTTP 404 |
+| Tagged RC1 release workflow and publication | `7bd8ac4` | PASS | [Release run 29146746362](https://github.com/mgiustiniani/javaspec/actions/runs/29146746362); Maven Central deployment and Gradle Portal submission succeeded |
 
 ## Core gates
 
@@ -122,16 +122,17 @@ Evidence:
 - [x] Checksums generated/verified locally by release dry-run; publication workflow checksums still recorded at RC/final publication time.
 - [x] Signing configured/documented; workflow requires an imported secret key, verifies the
   passphrase with an isolated loopback signing probe, and passes it explicitly to Maven GPG Plugin.
-- [ ] Gradle Plugin Portal API key/secret confirmed as GitHub repository secrets before tagging.
+- [x] Gradle Plugin Portal API key/secret confirmed by successful `publishPlugins` execution; public
+  RC1 marker visibility remains pending first-publication review.
 - [x] Release workflow requires Maven/GPG secrets, detects optional Gradle credentials, and safely skips an already published Maven version on rerun.
 - [x] Release workflow publishes or stages every declared artifact or fails clearly (Maven Central artifacts include core, Maven plugin, JUnit Platform engine, bytecode doubles, and bytecode agent; Gradle Plugin Portal publication uses `publishPlugins`).
 - [x] Release dry-run script green locally and on the GitHub release runner.
 - [x] Git Flow policy documented: release branches start from `develop`, merge with `--no-ff` into
   `main`, receive the annotated tag on the `main` merge commit, and merge back into `develop`.
-- [ ] Tag/version/workflow alignment verified on the final RC1 `main` merge commit
-  (`scripts/check-release-preflight.sh` requires tag `v<version>`).
-- [ ] Maven Central deployment succeeds for all five artifacts; the latest attempt reached deployment
-  but failed before publication, and direct RC1 lookup remained HTTP 404.
+- [x] Tag/version/workflow alignment verified on RC1 production commit `7bd8ac4` by release workflow
+  run 29146746362.
+- [x] Maven Central deployment succeeded for all five artifacts; direct checks verified POM,
+  main/source/Javadoc JARs, and `.asc` signatures.
 - [x] Post-release checklist documented.
 
 ## Documentation gates
@@ -153,8 +154,8 @@ Evidence:
 - [x] JUnit-to-javaspec guide present.
 - [x] Cucumber boundary guide present.
 - [x] Troubleshooting current.
-- [ ] Release notes 1.0.0 complete (release workflow and Git Flow correction are recorded; successful
-  publication evidence is still appended at RC/final cut time).
+- [x] Release notes 1.0.0 include RC1 Git Flow, workflow, Maven publication, and signing evidence;
+  final 1.0.0 evidence will be appended at final cut time.
 - [x] Compatibility policy complete.
 - [x] No current pre-migration package references outside archived/historical docs.
 - [x] No contradictory current version references.

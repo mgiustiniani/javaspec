@@ -80,19 +80,14 @@ Verification status:
   `examples/bytecode-agent-basic/` demonstrates final-class and static-method doubles.
 - Repository-root `mvn verify` remains core-only. `scripts/verify-all.sh` is the aggregate local
   check for core, standalone adapters, and examples.
-- Stable `0.1.0` artifacts are available on Maven Central under `io.github.jvmspec`.
-  `1.0.0-RC1` is the active release candidate and must not be described as publicly available until
-  the tagged publication workflow and direct repository checks succeed. The Gradle plugin id is
-  `io.github.jvmspec`; Plugin Portal availability is verified separately for each version.
+- `1.0.0-RC1` artifacts are available on Maven Central under `io.github.jvmspec`, including signed
+  main/source/Javadoc artifacts for core and all optional Maven adapters. The Gradle plugin id is
+  `io.github.jvmspec`; RC1 submission succeeded and Portal visibility/review is tracked separately.
 
 ## Quick start
 
-The commands and dependency declarations in this manual target `1.0.0-RC1`. Until that version is
-confirmed on Maven Central, build and install it from the release branch before running examples:
-
-```sh
-mvn -q -DskipTests install
-```
+The commands and dependency declarations in this manual target `1.0.0-RC1`, available from Maven
+Central. A repository checkout can still install the same version locally when developing javaspec.
 
 From the repository root, core verification remains:
 
@@ -2954,8 +2949,9 @@ Current verification after Phase 22:
   reports, Gradle plugin reports, and the optional JUnit Platform adapter are covered by regression
   tests.
 - Cross-JDK and adapter verification should be read from the latest CI/local verification output.
-- Maven artifacts use group `io.github.jvmspec`; stable `0.1.0` is available, while RC/final
-  availability must be verified directly. The Gradle Plugin Portal id is `io.github.jvmspec`.
+- Maven artifacts use group `io.github.jvmspec`; `1.0.0-RC1` is available from Maven Central. The
+  Gradle Plugin Portal id is `io.github.jvmspec`; RC1 visibility remains subject to first-publication
+  review.
 
 See [`../test-report.md`](../test-report.md) for the consolidated test and quality report.
 
