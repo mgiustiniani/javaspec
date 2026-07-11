@@ -212,11 +212,12 @@ inference now covered, strict manifest mode has no remaining `PLANNED` rows.
 
 **Priority:** final stable decision gate.
 
-Status: IN PROGRESS — the first clean `magrathea-pki` RC1 run resolved the CLI artifact directly
-from Maven Central and exposed a framework blocker: matcher-only specs that extended generated
-support did not recreate that support from an empty output directory. Commit `0bfd910` fixes the
-regression and adds a compile/run test. Because RC1 is immutable, dogfooding must resume against a
-published RC2 before this gate can close.
+Status: IN PROGRESS — clean `magrathea-pki` RC1 dogfooding exposed missing matcher-only support
+regeneration. RC2 fixed the CLI path, but the consumer's Maven `run` goal remained bound after
+`testCompile`, so `mvn clean verify` could not regenerate support in time. RC3 adds a dedicated
+source-first `generate` goal for `generate-test-sources`, automatic generated-test-root registration,
+and mixed record/enriched-enum compile/run/idempotence coverage. The gate closes only after the
+published RC3 passes both clean CLI and clean Maven consumer replay.
 
 Use a real Java 21 project, preferably the existing `magrathea-pki` domain work, against the published
 RC from remote repositories rather than a local javaspec checkout. Complete one coherent behavior

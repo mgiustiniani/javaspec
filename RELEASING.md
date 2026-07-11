@@ -1,7 +1,7 @@
 # Releasing
 
 Maven artifacts are published under `io.github.jvmspec`; the Gradle Plugin Portal id is
-`io.github.jvmspec`. The active release line is `1.0.0-RC2`; use this guide for RC and final 1.0.0
+`io.github.jvmspec`. The active release line is `1.0.0-RC3`; use this guide for RC and final 1.0.0
 publication, and verify each version directly before announcing availability.
 
 ## Branch and tag policy

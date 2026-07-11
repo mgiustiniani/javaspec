@@ -145,6 +145,9 @@ moving dependency-heavy behavior into optional artifacts.
   release dry-run consumers, checksums, a deterministic archived API inventory, and the Java
   8/11/17/21/25 matrix plus full Java 21 verification. The latest full branch run is
   [29139032096](https://github.com/mgiustiniani/javaspec/actions/runs/29139032096).
+- RC3 adds a source-first Maven `generate` goal for `generate-test-sources`; it regenerates and
+  registers base typed support before `testCompile`, including matcher-only specs, without tracked
+  generated sources or consumer-specific execution-plugin workarounds.
 - RC2 closes the strict Java-language manifest with 50 covered rows and no planned rows, adds
   fail-closed SAM target inference, hardens modern-source preservation, and fixes clean-output
   regeneration for matcher-only specs discovered during remote-RC dogfooding.

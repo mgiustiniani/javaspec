@@ -108,7 +108,7 @@ assert_file_contains "Maven JSON report" "$maven_json" '"javaspec.report.schemaV
 assert_file_contains "Maven JSON report" "$maven_json" '"javaspec.report.tool": "javaspec"'
 assert_file_contains "Maven JSON report" "$maven_json" '"stableId": "spec.com.example.CalculatorSpec#it_adds_two_numbers"'
 assert_file_contains "Maven JSON report" "$maven_json" '"status": "PASSED"'
-assert_file_contains "Maven JSON report" "$maven_json" '"line": 11'
+assert_file_contains "Maven JSON report" "$maven_json" '"line": 4'
 assert_file_contains "Maven JUnit XML report" "$maven_xml" '<testsuite name="javaspec" tests="1" failures="0" errors="0" skipped="0" timestamp="'
 assert_file_contains "Maven JUnit XML report" "$maven_xml" '" time="0">'
 assert_file_contains "Maven JUnit XML report" "$maven_xml" '<properties>'
@@ -116,7 +116,7 @@ assert_file_contains "Maven JUnit XML report" "$maven_xml" '<property name="java
 assert_file_contains "Maven JUnit XML report" "$maven_xml" '<property name="javaspec.report.tool" value="javaspec"/>'
 assert_file_contains "Maven JUnit XML report" "$maven_xml" 'classname="spec.com.example.CalculatorSpec"'
 assert_file_contains "Maven JUnit XML report" "$maven_xml" 'name="it_adds_two_numbers"'
-assert_file_contains "Maven JUnit XML report" "$maven_xml" 'line="11"'
+assert_file_contains "Maven JUnit XML report" "$maven_xml" 'line="4"'
 
 remove_path "Clean previous prophecy basic example reports" examples/prophecy-basic/target/javaspec
 run_at_root "Verify prophecy basic example" "${MAVEN_BIN}" -q -f examples/prophecy-basic/pom.xml verify
