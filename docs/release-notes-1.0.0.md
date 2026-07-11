@@ -145,6 +145,9 @@ moving dependency-heavy behavior into optional artifacts.
   release dry-run consumers, checksums, a deterministic archived API inventory, and the Java
   8/11/17/21/25 matrix plus full Java 21 verification. The latest full branch run is
   [29139032096](https://github.com/mgiustiniani/javaspec/actions/runs/29139032096).
+- RC2 closes the strict Java-language manifest with 50 covered rows and no planned rows, adds
+  fail-closed SAM target inference, hardens modern-source preservation, and fixes clean-output
+  regeneration for matcher-only specs discovered during remote-RC dogfooding.
 - Releases follow Git Flow through `release/<version>`, a non-fast-forward merge into production
   branch `main`, an annotated tag on that merge commit, and a merge back into `develop`.
 - Release workflow

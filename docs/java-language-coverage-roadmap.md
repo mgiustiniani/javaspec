@@ -212,6 +212,12 @@ inference now covered, strict manifest mode has no remaining `PLANNED` rows.
 
 **Priority:** final stable decision gate.
 
+Status: IN PROGRESS — the first clean `magrathea-pki` RC1 run resolved the CLI artifact directly
+from Maven Central and exposed a framework blocker: matcher-only specs that extended generated
+support did not recreate that support from an empty output directory. Commit `0bfd910` fixes the
+regression and adds a compile/run test. Because RC1 is immutable, dogfooding must resume against a
+published RC2 before this gate can close.
+
 Use a real Java 21 project, preferably the existing `magrathea-pki` domain work, against the published
 RC from remote repositories rather than a local javaspec checkout. Complete one coherent behavior
 milestone that includes records, sealed hierarchy/pattern usage where natural, generated typed

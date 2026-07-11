@@ -144,4 +144,24 @@ completed successfully:
 Remaining RC evidence:
 
 - Gradle Plugin Portal page and RC1 marker become publicly resolvable after external review.
-- External consumers validate the published RC1 from remote repositories rather than local staging.
+- External consumers validate the corrected published RC2 from remote repositories rather than local staging.
+
+## 2026-07-11 — JLC-8 remote-RC dogfooding blocker and RC2 preparation
+
+A clean `magrathea-pki` Java 21 domain run used an empty Maven cache and resolved
+`io.github.jvmspec:javaspec:1.0.0-RC1` directly from Maven Central; Maven Resolver recorded both the
+POM and JAR as `central=` artifacts. With `target/generated-sources/javaspec` removed, the RC1 CLI
+regenerated support for a constructor-bearing record but skipped a matcher-only enum specification
+that still extended its generated `*SpecSupport` superclass. Compilation then failed because the
+support class and inherited matchers were absent.
+
+This was classified as a framework-origin clean-generation blocker, not worked around in the
+consumer project. Commit `0bfd910` makes support regeneration consider the specification's explicit
+generated-support superclass even when discovery infers no subject methods, constructors, or enum
+constants. Its regression test starts from an empty generated-output directory, generates the
+matcher-only enum support, compiles the subject/support/spec trio, and executes the example.
+
+The strict language manifest remains `pass=50 planned=0 manifest-planned=0`; core verify and
+`scripts/verify-all.sh` pass. The release line is advanced to `1.0.0-RC2`. JLC-8 remains open until
+RC2 is published and the coherent `magrathea-pki` behavior milestone passes from a clean remote
+cache/container.

@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'io.github.jvmspec.examples'
-version = '1.0.0-RC1'
+version = '1.0.0-RC2'
 
 repositories {
     mavenLocal()
@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation 'io.github.jvmspec:javaspec:1.0.0-RC1'
+    testImplementation 'io.github.jvmspec:javaspec:1.0.0-RC2'
 }
 
 java {
