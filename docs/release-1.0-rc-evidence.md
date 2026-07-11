@@ -81,9 +81,32 @@ Evidence:
   passed the Java 8/11/17/21/25 core matrix and full Java 21 adapter/consumer verification on the RC1
   version-cut commit.
 
+## 2026-07-10 — release workflow hardening and Git Flow correction
+
+Release workflow [run 29139156898](https://github.com/mgiustiniani/javaspec/actions/runs/29139156898)
+on commit `8b87d99` established that:
+
+- Required Maven/GPG repository secrets were present.
+- Release contract guards, tag/dependency preflight, artifact packaging, checksums, and standalone
+  consumer verification passed on the GitHub runner.
+- GPG private-key import passed.
+- The Maven Central deployment step failed before confirmed publication; direct Maven Central lookup
+  still returned HTTP 404 for `javaspec:1.0.0-RC1`.
+- Gradle Plugin Portal publication was skipped after the Maven failure.
+
+The failed provisional tag was deleted because no RC1 artifact had been published. Repository branch
+history was then normalized to Git Flow: `main` is the production branch and an ancestor of
+`develop`; the former unrelated remote `main` commit is preserved as
+`archive/origin-main-20260709`; stabilization continues on `release/1.0.0-RC1`. The final RC1 tag
+must be created on the `main` merge commit, not directly on `develop`.
+
+Release hardening after the failed attempts added clean-run core installation before standalone
+artifact builds, pre-build-safe launcher alignment checks, portable release gates without a
+`ripgrep` dependency, split preflight diagnostics, and redacted Maven deployment diagnostics.
+
 Remaining RC/final cut-time evidence:
 
-- Tag/version/workflow alignment at actual tag time.
-- Confirmation that `GRADLE_PUBLISH_KEY` and `GRADLE_PUBLISH_SECRET` are configured as GitHub
-  repository secrets.
-- Publication-generated signatures and Central/Gradle Plugin Portal staging evidence.
+- Successful merge of `release/1.0.0-RC1` into `main` and annotated tag on that merge commit.
+- Successful Maven Central deployment for all five Maven artifacts and direct URL verification.
+- Public signing-key and `.asc` signature verification.
+- Confirmation and publication evidence for Gradle Plugin Portal credentials/version, when enabled.

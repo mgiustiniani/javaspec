@@ -1,6 +1,6 @@
 # javaspec User Manual
 
-User manual for current javaspec development.
+User manual for the javaspec 1.0 release line.
 
 javaspec is a Java 8-compatible, zero-runtime-dependency specification tool inspired by PHPSpec. The recommended authoring style is subject-centric and PHPSpec-like: one `it_*` / `its_*` behavior method, optional `let()` / `letGo()`, `beConstructedWith(...)` or `beConstructedThrough(...)` before first subject access, and fluent `should*` expectations.
 
@@ -80,11 +80,19 @@ Verification status:
   `examples/bytecode-agent-basic/` demonstrates final-class and static-method doubles.
 - Repository-root `mvn verify` remains core-only. `scripts/verify-all.sh` is the aggregate local
   check for core, standalone adapters, and examples.
-- Artifacts are published on Maven Central under `io.github.jvmspec`. The Gradle plugin is
-  published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. Add the dependency
-  `io.github.jvmspec:javaspec:1.0.0-RC1` (test scope).
+- Stable `0.1.0` artifacts are available on Maven Central under `io.github.jvmspec`.
+  `1.0.0-RC1` is the active release candidate and must not be described as publicly available until
+  the tagged publication workflow and direct repository checks succeed. The Gradle plugin id is
+  `io.github.jvmspec`; Plugin Portal availability is verified separately for each version.
 
 ## Quick start
+
+The commands and dependency declarations in this manual target `1.0.0-RC1`. Until that version is
+confirmed on Maven Central, build and install it from the release branch before running examples:
+
+```sh
+mvn -q -DskipTests install
+```
 
 From the repository root, core verification remains:
 
@@ -156,6 +164,12 @@ javaspec='java -jar target/javaspec-1.0.0-RC1.jar'
 
 ## Release and CI verification
 
+Releases follow Git Flow: create `release/<version>` from `develop`, stabilize and verify there,
+merge it with `--no-ff` into `main`, create annotated tag `v<version>` on the `main` release commit,
+and merge the release branch back into `develop`. A release tag must never point directly to an
+unmerged `develop` commit. See [`RELEASING.md`](../../RELEASING.md) for the complete command sequence
+and publication checklist.
+
 Use `scripts/verify-all.sh` as the local aggregate verification path. It covers the zero-runtime-dependency core, version alignment, standalone Maven/Gradle/JUnit Platform adapters, runtime dependency audits, and standalone examples. The repository is intentionally not a Maven multi-module build: root `mvn verify` continues to verify and audit only the core artifact, while optional adapters and examples remain standalone artifacts.
 
 Run the version-alignment check from the repository root:
@@ -222,9 +236,9 @@ gradle -p javaspec-gradle-plugin clean test build
 ```
 
 These checks do not sign, stage, deploy, or publish artifacts. The MIT license and maintainer
-metadata are resolved. Artifacts are published on Maven Central under `io.github.jvmspec`. The
-Gradle plugin is published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. Add the
-dependency `io.github.jvmspec:javaspec:1.0.0-RC1` (test scope).
+metadata are resolved. Maven coordinates use group `io.github.jvmspec`, and the Gradle plugin id is
+`io.github.jvmspec`. Public availability of `1.0.0-RC1` is confirmed only after the tag workflow,
+direct Maven Central checks, signature verification, and (when configured) Plugin Portal checks.
 
 The GitHub Actions workflow at `.github/workflows/ci.yml` triggers on `push`, `pull_request`, and
 `workflow_dispatch`. It defines a core job matrix over Java 8, 11, 17, 21, and 25 using Temurin and
@@ -2940,8 +2954,8 @@ Current verification after Phase 22:
   reports, Gradle plugin reports, and the optional JUnit Platform adapter are covered by regression
   tests.
 - Cross-JDK and adapter verification should be read from the latest CI/local verification output.
-- Artifacts are published on Maven Central under `io.github.jvmspec`. The Gradle plugin is published
-  on the Gradle Plugin Portal with plugin id `io.github.jvmspec`.
+- Maven artifacts use group `io.github.jvmspec`; stable `0.1.0` is available, while RC/final
+  availability must be verified directly. The Gradle Plugin Portal id is `io.github.jvmspec`.
 
 See [`../test-report.md`](../test-report.md) for the consolidated test and quality report.
 
@@ -2949,7 +2963,7 @@ See [`../test-report.md`](../test-report.md) for the consolidated test and quali
 
 The active roadmap is tracked in `PLAN.md`. Recent completed work keeps the project PHPSpec-first while adding JUnit-level usefulness: optional build-tool/JUnit Platform adapters, explicit skip/pending semantics, richer doubles, opt-in compilation, report metadata, PHPSpec-style example data, row-aware reporting, record evolution, and parser/generator signature hardening.
 
-Potential backlog items include deeper compiler-backed semantic attribution, diagnostics for ambiguous overload/null cases, plugin lookup beyond ServiceLoader, script/package-scanning bootstrap activation, richer failure-location diagnostics, automatic classpath repair, richer dependency resolution beyond the local-POM resolver, publishing/signing automation after signing/portal/final-approval decisions, and any future multi-module conversion decision. No-JUnit CLI/programmatic/Maven/Gradle paths remain first-class; the JUnit Platform engine remains an optional adapter.
+Potential backlog items include deeper compiler-backed semantic attribution, diagnostics for ambiguous overload/null cases, plugin lookup beyond ServiceLoader, script/package-scanning bootstrap activation, richer failure-location diagnostics, automatic classpath repair, richer dependency resolution beyond the local-POM resolver, and any future multi-module conversion decision. Release signing and publication automation is implemented; successful RC/final deployment remains an evidence gate rather than backlog scope. No-JUnit CLI/programmatic/Maven/Gradle paths remain first-class; the JUnit Platform engine remains an optional adapter.
 
 ## Current limitations
 

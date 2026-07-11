@@ -97,11 +97,31 @@ jobs:
       - name: Publish Maven artifacts to Maven Central
         if: steps.central.outputs.published != 'true'
         run: |
-          mvn -q -s .github/maven-settings.xml deploy -pl . -P release,release-artifacts -DperformRelease=true
-          mvn -q -s .github/maven-settings.xml deploy -f javaspec-maven-plugin/pom.xml -P release,release-artifacts -DperformRelease=true
-          mvn -q -s .github/maven-settings.xml deploy -f javaspec-junit-platform-engine/pom.xml -P release,release-artifacts -DperformRelease=true
-          mvn -q -s .github/maven-settings.xml deploy -f javaspec-bytecode-doubles/pom.xml -P release,release-artifacts -DperformRelease=true
-          mvn -q -s .github/maven-settings.xml deploy -f javaspec-bytecode-agent/pom.xml -P release,release-artifacts -DperformRelease=true
+          deploy_module() {
+            label="$1"
+            shift
+            log="/tmp/javaspec-maven-${label}.log"
+            echo "Publishing Maven module: ${label}"
+            set +e
+            mvn -q -s .github/maven-settings.xml deploy "$@" -P release,release-artifacts -DperformRelease=true 2>&1 | tee "$log"
+            status=${PIPESTATUS[0]}
+            set -e
+            if [ "$status" -ne 0 ]; then
+              echo "::error title=Maven Central deployment failed::Module: ${label}"
+              grep -E '^\[ERROR\]|^Error:' "$log" | tail -n 9 | tac | while IFS= read -r line; do
+                line="${line//${SONATYPE_TOKEN_USER}/***}"
+                line="${line//${SONATYPE_TOKEN_PASS}/***}"
+                echo "::error title=Maven deployment diagnostic::${line}"
+              done
+              return "$status"
+            fi
+          }
+
+          deploy_module core -pl .
+          deploy_module maven-plugin -f javaspec-maven-plugin/pom.xml
+          deploy_module junit-platform-engine -f javaspec-junit-platform-engine/pom.xml
+          deploy_module bytecode-doubles -f javaspec-bytecode-doubles/pom.xml
+          deploy_module bytecode-agent -f javaspec-bytecode-agent/pom.xml
         env:
           SONATYPE_TOKEN_USER: ${{ secrets.SONATYPE_TOKEN_USER }}
           SONATYPE_TOKEN_PASS: ${{ secrets.SONATYPE_TOKEN_PASS }}

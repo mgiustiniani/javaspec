@@ -1,8 +1,48 @@
 # Releasing
 
-Artifacts are published on Maven Central under `io.github.jvmspec`. The Gradle plugin is published
-on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. The active release line is
-`1.0.0-RC1`; use this guide for RC and final 1.0.0 publication.
+Maven artifacts are published under `io.github.jvmspec`; the Gradle Plugin Portal id is
+`io.github.jvmspec`. The active release line is `1.0.0-RC1`; use this guide for RC and final 1.0.0
+publication, and verify each version directly before announcing availability.
+
+## Branch and tag policy
+
+This repository uses Git Flow with these permanent branches:
+
+- `main`: production history; every release tag points to a commit on this branch.
+- `develop`: integration history for the next release.
+- `release/<version>`: temporary stabilization branch created from `develop`.
+
+Never create a release tag directly from `develop`. Prepare and verify the release branch first, then
+finish it with non-fast-forward merges:
+
+```sh
+git switch develop
+git pull --ff-only origin develop
+git switch -c release/<version>
+
+# Apply only release fixes, documentation, and version alignment here.
+scripts/verify-all.sh
+scripts/verify-release-dry-run.sh
+JAVASPEC_RELEASE_TAG=v<version> scripts/check-release-preflight.sh
+git push -u origin release/<version>
+
+# After the release branch and CI are green:
+git switch main
+git pull --ff-only origin main
+git merge --no-ff release/<version>
+git tag -a v<version> -m "javaspec <version>"
+
+git switch develop
+git merge --no-ff release/<version>
+git push origin main develop
+git push origin v<version>
+```
+
+Pushing the tag starts `.github/workflows/release.yml`. Delete the release branch only after the tag
+workflow and publication checks succeed. Preserve a failed tag while investigating only when no
+commit correction is required; if the tagged commit must change and no artifact was published,
+delete the failed tag and repeat the release finish from the corrected release branch. Never move a
+tag after Maven Central or the Gradle Plugin Portal has accepted that version.
 
 ## Release checklist (for future releases)
 
@@ -13,8 +53,11 @@ on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. The active relea
 2. Choose the release version and update all aligned versions:
    - Root `pom.xml` project version.
    - `javaspec-maven-plugin/pom.xml` project version.
-   - `javaspec-junit-platform-engine/pom.xml` project version.
+   - `javaspec-junit-platform-engine/pom.xml` project version and `javaspec.version`.
+   - `javaspec-bytecode-doubles/pom.xml` project version and `javaspec.version`.
+   - `javaspec-bytecode-agent/pom.xml` project version and `javaspec.version`.
    - `javaspec-gradle-plugin/build.gradle` `version` and `javaspecCoreVersion`.
+   - Standalone consumer examples that pin the release line.
 3. Update `CHANGELOG.md`:
    - Move relevant `Unreleased` entries under the release version.
    - Add the next empty `Unreleased` section.
@@ -53,10 +96,20 @@ on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. The active relea
      are absent, it publishes Maven artifacts and explicitly skips the Plugin Portal step with a
      warning; rerunning after configuring Gradle credentials is safe because an existing Maven
      release is detected and not deployed again.
-9. Tag and create the release only after local verification and CI are green. The release workflow runs
-   the release preflight, release dry-run, Maven Central publication for all Maven artifacts, and
-   Gradle Plugin Portal publication.
-10. After the release:
+9. Finish the Git Flow release only after local verification and release-branch CI are green:
+   - Merge `release/<version>` into `main` with `--no-ff`.
+   - Create annotated tag `v<version>` on the resulting `main` release commit.
+   - Merge the release branch back into `develop` with `--no-ff`.
+   - Push `main`, `develop`, and then the tag.
+   - The tag workflow runs contract guards, tag/dependency preflight, the release dry-run, Maven
+     Central publication for all Maven artifacts, and optional Gradle Plugin Portal publication.
+10. Confirm publication before deleting the release branch:
+    - Verify all five Maven artifact directories and their POM, main/source/Javadoc JARs, checksums,
+      and `.asc` signatures directly on Maven Central.
+    - Verify the signing public key is available from a public keyserver.
+    - Verify the Gradle Plugin Portal version when Gradle credentials were available.
+    - Record workflow links and publication URLs in `docs/release-1.0-rc-evidence.md`.
+11. After the release:
     - Bump all aligned versions to the next snapshot.
     - Run `scripts/check-version-alignment.sh`.
     - Add the next `Unreleased` changelog section.
