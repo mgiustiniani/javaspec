@@ -24,7 +24,11 @@ moving dependency-heavy behavior into optional artifacts.
   contract is frozen in `docs/extension-spi-1.0.md`; typed event model v2 is deferred, and extension
   activation temporarily sets/restores the effective run thread context classloader.
 - Parser/updater generation is backed by a parser SPI and ignores signatures inside comments and
-  strings.
+  literals, including Java text blocks. Direct-member scoping prevents methods inside local,
+  anonymous, nested, or secondary top-level types from suppressing a required subject update.
+- The JLC language-coverage harness inventories final constructs relevant to Java 8/11/17/21/25,
+  emits deterministic `COVERED`/`PLANNED` evidence, and provides a strict stable-release gate while
+  preserving the classic PHPSpec-inspired subject-centric workflow.
 - Discovery now infers more static argument types before generation, including casted nulls,
   class literals, array creation expressions, Java 10+ simple `var` initializers, constructed value
   objects, and likely value-object static factory calls such as `CertificateProfileId.of("abc")`;

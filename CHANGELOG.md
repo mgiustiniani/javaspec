@@ -4,7 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-- No changes yet.
+- Added the JLC Java-language coverage manifest/harness and per-JDK CI fixture gate for final Java
+  constructs through Java 25, with progressive `COVERED`/`PLANNED` evidence and strict stable mode.
+- Hardened source-preserving updates for text blocks and direct-member scope: fake braces/signatures
+  in literals, local/anonymous/nested methods, and secondary top-level types no longer suppress a
+  required subject method update.
 
 ## 1.0.0-RC1 — 2026-07-10
 
