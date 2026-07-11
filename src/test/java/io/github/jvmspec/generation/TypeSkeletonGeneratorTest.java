@@ -145,7 +145,7 @@ public class TypeSkeletonGeneratorTest {
     }
 
     @Test
-    public void rendersRecordComponentFromConstructorAndExplicitAccessorStub() {
+    public void rendersRecordComponentWithoutDuplicatingItsImplicitAccessor() {
         DescribedType type = DescribedType.of(
                 "com.example.UserId",
                 JavaTypeKind.RECORD,
@@ -162,12 +162,7 @@ public class TypeSkeletonGeneratorTest {
         String source = TypeSkeletonGenerator.render(type);
 
         assertEquals("package com.example;\n\n" +
-                "public record UserId(String value) {\n" +
-                "    public String value() {\n" +
-                "        // javaspec:stub\n" +
-                "        return null;\n" +
-                "    }\n" +
-                "}\n", source);
+                "public record UserId(String value) { }\n", source);
     }
 
     @Test
