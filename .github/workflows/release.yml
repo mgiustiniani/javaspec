@@ -51,15 +51,19 @@ jobs:
             echo "::warning::Gradle Plugin Portal credentials are missing; Maven publication will continue and Gradle publication will be skipped."
           fi
 
-      - name: Release preflight
-        env:
-          JAVASPEC_GRADLE_BIN: gradle
+      - name: Verify release contract guards
         run: |
           scripts/check-version-alignment.sh
           scripts/check-current-docs.sh
           scripts/check-api-surface.sh
-          scripts/check-release-preflight.sh
-          scripts/verify-release-dry-run.sh
+
+      - name: Verify release tag and dependency versions
+        run: scripts/check-release-preflight.sh
+
+      - name: Verify release artifacts and consumers
+        env:
+          JAVASPEC_GRADLE_BIN: gradle
+        run: scripts/verify-release-dry-run.sh
 
       - name: Check whether Maven RC is already published
         id: central
