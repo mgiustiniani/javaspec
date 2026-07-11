@@ -219,7 +219,7 @@ is required for a consuming project. Consumer `pom.xml` example:
 
 ```xml
 <properties>
-  <javaspec.version>1.0.0-RC1</javaspec.version>
+  <javaspec.version>1.0.0-RC3</javaspec.version>
 </properties>
 
 <dependencies>
@@ -239,6 +239,17 @@ is required for a consuming project. Consumer `pom.xml` example:
       <version>${javaspec.version}</version>
       <executions>
         <execution>
+          <id>generate-javaspec-support</id>
+          <phase>generate-test-sources</phase>
+          <goals>
+            <goal>generate</goal>
+          </goals>
+          <configuration>
+            <profile>java21</profile>
+          </configuration>
+        </execution>
+        <execution>
+          <id>run-javaspec</id>
           <phase>verify</phase>
           <goals>
             <goal>run</goal>
@@ -253,6 +264,13 @@ is required for a consuming project. Consumer `pom.xml` example:
   </plugins>
 </build>
 ```
+
+The `generate` goal discovers specification source without first compiling it, writes base typed
+`*SpecSupport` classes under `target/generated-sources/javaspec`, and registers that directory as a
+Maven test source root before `testCompile`. It does not require tracked generated sources or a
+separate `build-helper-maven-plugin` binding. Keep the core dependency and both plugin goals on the
+same immutable `${javaspec.version}`; select the project's Java profile explicitly when it is newer
+than Java 8.
 
 See [`examples/maven-basic/`](examples/maven-basic/) for a complete consumer project.
 

@@ -144,7 +144,7 @@ completed successfully:
 Remaining RC evidence:
 
 - Gradle Plugin Portal page and RC1 marker become publicly resolvable after external review.
-- External consumers validate the corrected published RC2 from remote repositories rather than local staging.
+- External consumers validate the corrected published RC3 from remote repositories rather than local staging.
 
 ## 2026-07-11 — JLC-8 remote-RC dogfooding blocker and RC2 preparation
 
@@ -163,5 +163,25 @@ matcher-only enum support, compiles the subject/support/spec trio, and executes 
 
 The strict language manifest remains `pass=50 planned=0 manifest-planned=0`; core verify and
 `scripts/verify-all.sh` pass. The release line is advanced to `1.0.0-RC2`. JLC-8 remains open until
-RC2 is published and the coherent `magrathea-pki` behavior milestone passes from a clean remote
-cache/container.
+RC2 is published, but its Maven `run` goal still executes after `testCompile`; it cannot repair a
+clean generated-source directory during the normal lifecycle.
+
+## 2026-07-11 — RC3 source-first Maven generation candidate
+
+RC3 adds the dedicated `javaspec:generate` goal with default phase `generate-test-sources`. The goal
+parses specification source before specs compile, refines signatures from production source,
+generates every required base typed support class, and registers
+`target/generated-sources/javaspec` as a Maven test source root. It does not update production source
+inside the Maven lifecycle.
+
+The plugin regression starts with complete record and enriched-enum domain sources, two specs whose
+support superclasses are absent, and an empty generated directory. It proves initial compilation
+fails on both missing support types, generates both supports, compiles and executes all examples,
+finds no `javaspec:stub`, repeats generation byte-idempotently, and confirms production/spec source
+hashes are unchanged. `examples/maven-basic` now exercises `generate-test-sources -> testCompile ->
+verify/run` from `mvn clean verify` without build-helper or tracked generated support.
+
+Local RC3 CLI replay against `magrathea-pki` generated both support classes from an empty directory,
+compiled four source files, passed all four examples with zero pending, emitted no stubs, and was
+hash-idempotent. Final JLC-8 evidence still requires the immutable published RC3 and a clean isolated
+Maven repository/container replay.

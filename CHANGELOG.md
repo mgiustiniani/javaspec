@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 1.0.0-RC3 — 2026-07-11
+
+- Added the Maven `javaspec:generate` goal, bound by consumers to `generate-test-sources`, so clean
+  builds discover specs from source, regenerate required support, register generated test sources,
+  and compile without tracked generated output.
+- Added clean mixed record/enriched-enum regression coverage for base support generation,
+  compilation, execution, zero pending/stubs, and second-pass idempotence.
+
 ## 1.0.0-RC2 — 2026-07-11
 
 - Added the JLC Java-language coverage manifest/harness and per-JDK CI fixture gate for final Java

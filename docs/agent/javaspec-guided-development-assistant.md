@@ -448,10 +448,15 @@ stable, for example:
 
 ### Maven plugin parameters
 
-When using `javaspec-maven-plugin` (goal `javaspec:run`), configure via `-Djavaspec.*`:
+Bind `javaspec:generate` to `generate-test-sources` for clean source-first support regeneration,
+then bind `javaspec:run` to `verify`. Configure both via `-Djavaspec.*`:
 
 | Parameter | Description |
 |-----------|-------------|
+| `javaspec.specDir` | Specification source directory used by `generate` and `run` |
+| `javaspec.sourceDir` | Production source directory used by `generate` |
+| `javaspec.generatedSourcesDir` | Generated test-source directory registered by `generate` |
+| `javaspec.profile` | Target profile for source generation (java8/java11/java17/java21/java25) |
 | `javaspec.configFile` | Path to javaspec configuration file |
 | `javaspec.suiteName` | Suite name to select |
 | `javaspec.classFilters` | Comma-delimited class name filters |
