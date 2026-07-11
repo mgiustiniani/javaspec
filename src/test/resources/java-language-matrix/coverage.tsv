@@ -40,12 +40,12 @@ java25	java25-markdown-doc-comments	PRESERVED	COVERED	UPDATE_METHOD	java-languag
 java25	java25-stream-gatherers	PROFILE_GATED	COVERED	JAVA25_GATHERERS	java-language-matrix/java25/gatherers	Stream Gatherers compile and execute on Java 25; existing profile tests reject the API below 25.
 all	parser-multiple-top-level-types	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java8/nested-local-anonymous	Only the described top-level type is inspected and updated.
 all	parser-comment-literal-offsets	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/java8/comments-literals	Comments, strings, chars, and fake signatures preserve structural offsets.
-all	fidelity-crlf	PRESERVED	PLANNED	PENDING	-	Original CRLF line endings remain unchanged.
-all	fidelity-no-final-newline	PRESERVED	PLANNED	PENDING	-	Final-newline presence or absence remains stable.
-all	fidelity-utf8-bom	PRESERVED	PLANNED	PENDING	-	UTF-8 BOM detection and preservation.
-all	fidelity-unicode-identifiers	PRESERVED	PLANNED	PENDING	-	Unicode identifiers and escapes remain structurally safe.
-all	fidelity-formatting-indentation	PRESERVED	PLANNED	PENDING	-	Only local insertion indentation changes.
-all	fidelity-dry-run-parity	UPDATED	PLANNED	PENDING	-	Planned and applied operations are equivalent.
-all	fidelity-atomicity	UPDATED	PLANNED	PENDING	-	Failed writes retain the original source.
-all	fidelity-idempotence	UPDATED	PLANNED	PENDING	-	Second update is byte-empty and hash-stable.
-all	fidelity-diagnostics	INTENTIONALLY_UNSUPPORTED	PLANNED	PENDING	-	Unsafe constructs fail closed with profile, file, construct, and reason.
+all	fidelity-crlf	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/fidelity/crlf	Original CRLF line endings remain uniform through update and idempotence.
+all	fidelity-no-final-newline	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/fidelity/no-final-newline	Absence of a final newline survives update, compilation, and idempotence.
+all	fidelity-utf8-bom	PRESERVED	COVERED	UPDATE_NO_COMPILE	java-language-matrix/fidelity/utf8-bom	UTF-8 BOM is preserved byte-for-byte during update; javac compilation is intentionally inapplicable.
+all	fidelity-unicode-identifiers	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/fidelity/unicode-identifiers	Unicode identifiers and UTF-8 source survive update and release-8 compilation.
+all	fidelity-formatting-indentation	PRESERVED	COVERED	UPDATE_METHOD	java-language-matrix/fidelity/tab-indentation	Existing tab member indentation is inferred for inserted mechanical methods.
+all	fidelity-dry-run-parity	UPDATED	COVERED	UPDATE_METHOD	java-language-matrix/java8/class-basic	Planned source equals the applied source for every covered update fixture.
+all	fidelity-atomicity	UPDATED	COVERED	ATOMIC_FAILURE	java-language-matrix/fidelity/atomicity	Injected move failure retains original bytes and removes the temporary file.
+all	fidelity-idempotence	UPDATED	COVERED	UPDATE_METHOD	java-language-matrix/java8/class-basic	Every covered update fixture requires a hash-stable second pass.
+all	fidelity-diagnostics	INTENTIONALLY_UNSUPPORTED	COVERED	SOURCE_DIAGNOSTICS	java-language-matrix/java25/compact-source	Unsafe compact-source update names the type/file/reason and fails before writes; profile diagnostics retain focused tests.

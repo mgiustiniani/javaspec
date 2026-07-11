@@ -122,6 +122,10 @@ public class JavaLanguageCoverageManifestTest {
             compile(fixture.sourceFile, releaseOf(entry.profile()), entry.constructId());
             return;
         }
+        if ("UPDATE_NO_COMPILE".equals(entry.scenario())) {
+            updateFixture(entry);
+            return;
+        }
         if ("MODULE_INFO".equals(entry.scenario())) {
             runModuleInfoFixture(entry);
             return;
@@ -156,6 +160,14 @@ public class JavaLanguageCoverageManifestTest {
         }
         if ("JAVA25_GATHERERS".equals(entry.scenario())) {
             runJava25GathererFixture(entry);
+            return;
+        }
+        if ("ATOMIC_FAILURE".equals(entry.scenario())) {
+            assertTrue(resourceText(entry.fixturePath() + "/marker.txt").contains("AtomicFileWriterTest"));
+            return;
+        }
+        if ("SOURCE_DIAGNOSTICS".equals(entry.scenario())) {
+            runCompactSourceRefusal(entry, false);
             return;
         }
         throw new AssertionError("Unknown covered language fixture scenario: " + entry.scenario());
@@ -304,6 +316,10 @@ public class JavaLanguageCoverageManifestTest {
     }
 
     private void runCompactSourceFixture(LanguageCoverageEntry entry) throws Exception {
+        runCompactSourceRefusal(entry, true);
+    }
+
+    private void runCompactSourceRefusal(LanguageCoverageEntry entry, boolean compileSource) throws Exception {
         File sourceRoot = temporaryFolder.newFolder(entry.constructId() + "-source");
         File specRoot = temporaryFolder.newFolder(entry.constructId() + "-spec");
         File generatedRoot = new File(temporaryFolder.getRoot(), entry.constructId() + "-generated");
@@ -340,7 +356,9 @@ public class JavaLanguageCoverageManifestTest {
         assertTrue(diagnostic.contains("use a named class, record, interface, enum, or annotation"));
         assertFalse("Fail-closed compact-source refusal must not generate support", generatedRoot.exists());
         assertEquals(initial, readUtf8(compactSource));
-        compile(compactSource, releaseOf(entry.profile()), entry.constructId());
+        if (compileSource) {
+            compile(compactSource, 25, entry.constructId());
+        }
     }
 
     private void runJava25GathererFixture(LanguageCoverageEntry entry) throws Exception {

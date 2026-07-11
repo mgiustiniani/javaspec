@@ -1,0 +1,2 @@
+# Preserve intentional CRLF bytes in language-fidelity fixtures and omit textual diff normalization.
+src/test/resources/java-language-matrix/fidelity/crlf/** binary
