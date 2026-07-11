@@ -16,7 +16,7 @@
     -->
     <groupId>io.github.jvmspec</groupId>
     <artifactId>javaspec-junit-platform-engine</artifactId>
-    <version>1.0.0-RC2</version>
+    <version>1.0.0-RC3</version>
     <packaging>jar</packaging>
 
     <name>javaspec JUnit Platform Engine</name>

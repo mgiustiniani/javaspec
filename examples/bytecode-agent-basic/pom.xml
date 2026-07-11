@@ -6,7 +6,7 @@
 
     <groupId>io.github.jvmspec.examples</groupId>
     <artifactId>javaspec-bytecode-agent-basic</artifactId>
-    <version>1.0.0-RC2</version>
+    <version>1.0.0-RC3</version>
     <packaging>jar</packaging>
 
     <name>javaspec bytecode agent basic example</name>
@@ -15,7 +15,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <javaspec.version>1.0.0-RC2</javaspec.version>
+        <javaspec.version>1.0.0-RC3</javaspec.version>
         <maven.compiler.plugin.version>3.13.0</maven.compiler.plugin.version>
     </properties>
 
