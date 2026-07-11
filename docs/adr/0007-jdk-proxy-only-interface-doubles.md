@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted; extended by [ADR 0021](0021-stronger-interface-doubles.md) for argument matchers, throwing stubs, and answer callbacks while preserving the JDK proxy-only interface boundary.
 
 ## Context
 
@@ -12,7 +12,7 @@ The JDK already provides `java.lang.reflect.Proxy`, which can create runtime imp
 
 ## Decision
 
-The core doubles implementation uses JDK dynamic proxies only and lives under `org.javaspec.doubles`.
+The core doubles implementation uses JDK dynamic proxies only and lives under `io.github.jvmspec.doubles`.
 
 The supported target is an ordinary Java interface. The API rejects unsupported targets with clear `IllegalArgumentException` diagnostics: `null`, primitives, arrays, annotations, enums, concrete classes, and final classes.
 
@@ -22,7 +22,7 @@ Doubles support return-value stubbing by method name with any arguments or by me
 
 `toString`, `equals`, and `hashCode` are handled deterministically by the proxy invocation handler. Unstubbed interface methods return Java defaults: primitive defaults, `null` for reference types, and no action for `void`.
 
-The MVP intentionally does not support concrete class doubles, final class doubles, static method doubles, constructor doubles, wildcard argument matchers, exception or callback stubbing, bytecode-library integrations in core, or invocation of default interface methods.
+The MVP intentionally does not support concrete class doubles, final class doubles, static method doubles, constructor doubles, bytecode-library integrations in core, or invocation of default interface methods. ADR 0021 later extends the interface-only boundary with argument matchers plus throwing and answer stubs without adding concrete/static/constructor/bytecode mocking.
 
 ## Consequences
 
@@ -37,11 +37,11 @@ Negative consequences and limitations:
 
 - Users can double only ordinary interfaces in the core runtime.
 - Projects that need concrete class, static, constructor, or final-class doubles must use future optional extensions or external tools outside the core runtime.
-- Argument matching is exact only; wildcard and predicate matchers remain future work.
-- Stubbing is limited to return values; exceptions, callbacks, sequences, and side effects are not implemented in the MVP.
+- In the Phase 8 MVP, argument matching was exact only. ADR 0021 later adds explicit argument matchers inside the interface-only boundary.
+- In the Phase 8 MVP, stubbing was limited to return values. ADR 0021 later adds throwing stubs and answer callbacks.
 - Default interface methods are not invoked by the proxy handler.
 
 Verification:
 
 - `mvn verify` passed with 328 tests after the Phase 8 MVP collaborators/doubles implementation.
-- `mvn dependency:tree -Dscope=runtime` remained limited to `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+- `mvn dependency:tree -Dscope=runtime` remained limited to `io.github.jvmspec:javaspec:jar:0.1.0-SNAPSHOT`.

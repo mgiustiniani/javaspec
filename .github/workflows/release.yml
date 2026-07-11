@@ -1,0 +1,136 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+          server-id: central
+          server-username: SONATYPE_TOKEN_USER
+          server-password: SONATYPE_TOKEN_PASS
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.8'
+
+      - name: Verify Maven publication credentials are configured
+        env:
+          SONATYPE_TOKEN_USER: ${{ secrets.SONATYPE_TOKEN_USER }}
+          SONATYPE_TOKEN_PASS: ${{ secrets.SONATYPE_TOKEN_PASS }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          missing=0
+          for name in SONATYPE_TOKEN_USER SONATYPE_TOKEN_PASS GPG_PRIVATE_KEY GPG_PASSPHRASE; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::Missing required repository secret: ${name}"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Detect optional Gradle Plugin Portal credentials
+        id: gradle-credentials
+        env:
+          GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
+          GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
+        run: |
+          if [ -n "${GRADLE_PUBLISH_KEY:-}" ] && [ -n "${GRADLE_PUBLISH_SECRET:-}" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Gradle Plugin Portal credentials are missing; Maven publication will continue and Gradle publication will be skipped."
+          fi
+
+      - name: Verify release contract guards
+        run: |
+          scripts/check-version-alignment.sh
+          scripts/check-current-docs.sh
+          scripts/check-api-surface.sh
+
+      - name: Verify release tag and dependency versions
+        run: scripts/check-release-preflight.sh
+
+      - name: Verify release artifacts and consumers
+        env:
+          JAVASPEC_GRADLE_BIN: gradle
+        run: |
+          set +e
+          scripts/verify-release-dry-run.sh 2>&1 | tee /tmp/javaspec-release-dry-run.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then
+            tail -n 20 /tmp/javaspec-release-dry-run.log | tac | while IFS= read -r line; do
+              echo "::error title=Release dry-run failure::${line}"
+            done
+          fi
+          exit "$status"
+
+      - name: Check whether Maven RC is already published
+        id: central
+        run: |
+          version="$(awk '/^[[:space:]]*<version>[^<]+<\/version>[[:space:]]*$/ { line=$0; sub(/^[[:space:]]*<version>/, "", line); sub(/<\/version>[[:space:]]*$/, "", line); gsub(/[[:space:]]/, "", line); print line; exit }' pom.xml)"
+          url="https://repo.maven.apache.org/maven2/io/github/jvmspec/javaspec/${version}/javaspec-${version}.pom"
+          if curl --fail --silent --head "$url" >/dev/null; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "Maven Central already contains javaspec ${version}; Maven deployment will be skipped."
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Import GPG key
+        if: steps.central.outputs.published != 'true'
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 -d | gpg --batch --import
+          echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
+          gpgconf --kill gpg-agent
+
+      - name: Publish Maven artifacts to Maven Central
+        if: steps.central.outputs.published != 'true'
+        run: |
+          deploy_module() {
+            label="$1"
+            shift
+            log="/tmp/javaspec-maven-${label}.log"
+            echo "Publishing Maven module: ${label}"
+            set +e
+            mvn -q -s .github/maven-settings.xml deploy "$@" -P release,release-artifacts -DperformRelease=true 2>&1 | tee "$log"
+            status=${PIPESTATUS[0]}
+            set -e
+            if [ "$status" -ne 0 ]; then
+              echo "::error title=Maven Central deployment failed::Module: ${label}"
+              grep -E '^\[ERROR\]|^Error:' "$log" | tail -n 9 | tac | while IFS= read -r line; do
+                line="${line//${SONATYPE_TOKEN_USER}/***}"
+                line="${line//${SONATYPE_TOKEN_PASS}/***}"
+                echo "::error title=Maven deployment diagnostic::${line}"
+              done
+              return "$status"
+            fi
+          }
+
+          deploy_module core -pl .
+          deploy_module maven-plugin -f javaspec-maven-plugin/pom.xml
+          deploy_module junit-platform-engine -f javaspec-junit-platform-engine/pom.xml
+          deploy_module bytecode-doubles -f javaspec-bytecode-doubles/pom.xml
+          deploy_module bytecode-agent -f javaspec-bytecode-agent/pom.xml
+        env:
+          SONATYPE_TOKEN_USER: ${{ secrets.SONATYPE_TOKEN_USER }}
+          SONATYPE_TOKEN_PASS: ${{ secrets.SONATYPE_TOKEN_PASS }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Publish Gradle plugin to Gradle Plugin Portal
+        if: steps.gradle-credentials.outputs.available == 'true'
+        working-directory: javaspec-gradle-plugin
+        run: gradle publishPlugins
+        env:
+          GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
+          GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}

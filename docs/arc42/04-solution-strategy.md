@@ -2,85 +2,303 @@
 
 ## 4.1 Strategy Overview
 
-javaspec is being built as a small Java 8-compatible core with clear extension boundaries. The implemented core already contains the first-MVP CLI/generation slice, profile metadata, compatibility checks/probes, Phase 4 configuration, naming, and discovery-filter integration, the Phase 5/6 MVP reflection runner, the Phase 7 matcher/expectation expansion, Phase 8 JDK-proxy interface doubles, Phase 9 run controls, Phase 10 interface-style method generation, and Phase 11 formatter/reporting/programmatic extension contracts. Later phases may add bootstrap execution, deeper profile enforcement, pending examples, external extension loading, optional advanced doubles, and other behavior needed for a fuller phpspec-inspired workflow.
+javaspec is being built as a small Java 8-compatible core with clear extension boundaries. The
+implemented core already contains the first-MVP CLI/generation slice, profile metadata,
+compatibility checks/probes, Phase 4 configuration, naming, and discovery-filter integration, the
+Phase 5/6 MVP reflection runner, the Phase 7 matcher/expectation expansion, Phase 8 JDK-proxy
+interface doubles, Phase 9 run controls, Phase 10 interface-style method generation, Phase 11
+formatter/reporting/programmatic extension contracts, the Phase 14 no-JUnit integration foundation
+for programmatic invocation, explicit classpath input, and JUnit XML-compatible reports, and the
+Phase 18 stable identifier/source-location/report polish increment. Phases 15, 16, and 17 add
+standalone optional Maven, Gradle, and JUnit Platform adapters outside the core runtime. Phase 19
+adds non-disruptive aggregate release/CI verification through `scripts/verify-all.sh` and
+`.github/workflows/ci.yml` while keeping root `mvn verify` core-only and avoiding a mandatory Maven
+multi-module conversion. Phase 20 adds release-readiness scaffolding through version alignment,
+changelog/releasing documentation, the confirmed MIT `LICENSE`, MIT license and maintainer metadata,
+local source/javadoc artifact checks, and safe URL/SCM/issues metadata without publishing, signing,
+secrets, portal publication/credentials, runtime dependencies, or multi-module conversion. Phase 21
+adds standalone adoption examples, report schema documentation, golden report examples, and examples
+verification by default in `scripts/verify-all.sh` without public publication or core runtime
+changes. Phase 22 adds explicit skipped/pending semantics through zero-dependency annotations,
+runtime signals, `ObjectBehavior` helpers, distinct `PENDING` result counts, and pending-aware
+reports/adapters. Phase 23 adds classpath/execution availability diagnostics through enriched
+not-executable reasons, deterministic `RunDiagnostics` helper lines, CLI output, and Maven/Gradle
+warnings without integrated compilation. Phase 24 adds optional configuration-level JSON/JUnit
+XML-compatible report destinations with CLI and explicit adapter override precedence, without
+changing report schemas, writers, exit semantics, or adapter architecture. Phase 25 adds JDK
+ServiceLoader discovery for external run formatter/extension providers without adding runtime
+dependencies, report schema/content changes, integrated compilation, or publishing changes; Phase 32
+adds activation/formatter controls where implemented. Phase 26 adds target-profile enforcement
+before generation/update writes, without integrated compilation, report schema changes, new
+dependencies, or optional adapter architecture changes. Phase 27 adds explicit bootstrap hook
+execution before examples, and Phase 33 adds ServiceLoader-discovered providers after explicit
+hooks, without script engines, package scanning, dependency resolution, runtime dependencies, Java 8
+compatibility exceptions, or optional adapter architecture changes. Phase 28 strengthens interface
+doubles with argument matchers, deterministic argument-constrained stub priority, throwing stubs,
+and answer callbacks while keeping the core interface-only and zero-dependency. Phase 29 adds
+CLI-only opt-in source/spec compilation through the current JDK `javax.tools.JavaCompiler`. Phases
+30-36 resolved deferred known limitations: bounded Iterable matcher checks, existing sealed-interface
+source updates, config-driven extension activation and formatter controls, ServiceLoader bootstrap
+hook discovery, programmatic/Maven/Gradle opt-in compilation, additive report metadata/properties,
+and deeper source/generation-scoped profile enforcement. Phase 37 adds standalone optional
+ByteBuddy-backed non-final concrete-class doubles outside the root reactor and outside the core
+dependency tree.
 
 ## 4.2 Key Architectural Decisions
 
-| Decision | ADR |
-|---|---|
-| Java 8 baseline with metadata-driven Java LTS target profiles | [ADR 0001](../adr/0001-java-8-baseline-with-lts-target-profiles.md) |
-| Zero runtime dependency policy | [ADR 0002](../adr/0002-zero-runtime-dependency-policy.md) |
-| First-MVP PHPSpec-style describe/run generator flow | [ADR 0003](../adr/0003-course-correction-move-class-creation-suggestion-into-first-mvp.md) |
-| Construction defaults, typed matcher proxies, and method generators course correction | [ADR 0004](../adr/0004-course-correction-construction-defaults-typed-matcher-proxies-and-method-generators.md) |
-| Restricted line-based configuration format | [ADR 0005](../adr/0005-restricted-line-based-configuration-format.md) |
-| Classpath reflection runner for executable examples | [ADR 0006](../adr/0006-classpath-reflection-runner.md) |
-| JDK proxy-only interface doubles | [ADR 0007](../adr/0007-jdk-proxy-only-interface-doubles.md) |
-| Run-only controls and dry-run planning | [ADR 0008](../adr/0008-run-only-controls-and-non-mutating-dry-run-planning.md) |
-| Interface-style method generation and sealed-interface update deferral | [ADR 0009](../adr/0009-interface-style-method-generation-and-sealed-interface-update-deferral.md) |
-| Formatter, reporting, and programmatic extension boundary | [ADR 0010](../adr/0010-zero-dependency-formatter-reporting-and-programmatic-extension-boundary.md) |
+- **Java 8 baseline with metadata-driven Java LTS target profiles**: [ADR 0001](../adr/0001-java-8-baseline-with-lts-target-profiles.md)
+- **Zero runtime dependency policy**: [ADR 0002](../adr/0002-zero-runtime-dependency-policy.md)
+- **First-MVP PHPSpec-style describe/run generator flow**: [ADR 0003](../adr/0003-course-correction-move-class-creation-suggestion-into-first-mvp.md)
+- **Construction defaults, typed matcher proxies, and method generators course correction**:
+  [ADR 0004](../adr/0004-course-correction-construction-defaults-typed-matcher-proxies-and-method-generators.md)
+- **Restricted line-based configuration format**: [ADR 0005](../adr/0005-restricted-line-based-configuration-format.md)
+- **Classpath reflection runner for executable examples**: [ADR 0006](../adr/0006-classpath-reflection-runner.md)
+- **JDK proxy-only interface doubles**: [ADR 0007](../adr/0007-jdk-proxy-only-interface-doubles.md)
+- **Run-only controls and dry-run planning**: [ADR 0008](../adr/0008-run-only-controls-and-non-mutating-dry-run-planning.md)
+- **Interface-style method generation and sealed-interface update deferral**: [ADR 0009](../adr/0009-interface-style-method-generation-and-sealed-interface-update-deferral.md)
+- **Formatter, reporting, and programmatic extension boundary**: [ADR 0010](../adr/0010-zero-dependency-formatter-reporting-and-programmatic-extension-boundary.md)
+- **Canonical runner, no-JUnit invocation foundation, optional Maven/Gradle plugin adapters,
+  optional JUnit Platform engine boundary, and stable id/source metadata polish**: [ADR 0011](../adr/0011-optional-junit-adapter-and-canonical-javaspec-runner.md)
+- **Non-disruptive aggregate release/CI verification instead of mandatory Maven multi-module
+  conversion**: [ADR 0012](../adr/0012-non-disruptive-aggregate-release-ci-verification.md)
+- **Release-readiness scaffolding with resolved metadata (publication completed)**: [ADR 0013](../adr/0013-release-readiness-scaffolding-with-publication-blockers.md)
+- **Standalone adoption assets and default examples verification**: [ADR 0014](../adr/0014-standalone-adoption-assets-and-default-examples-verification.md)
+- **Explicit skipped and pending semantics**: [ADR 0015](../adr/0015-explicit-skipped-and-pending-semantics.md)
+- **Classpath execution availability diagnostics without integrated compilation**: [ADR 0016](../adr/0016-classpath-execution-availability-diagnostics.md)
+- **Configuration-level report destinations**: [ADR 0017](../adr/0017-configuration-level-report-destinations.md)
+- **ServiceLoader external formatter and extension discovery**: [ADR 0018](../adr/0018-serviceloader-external-formatter-extension-discovery.md)
+- **Deep target-profile enforcement before generation/update writes**: [ADR 0019](../adr/0019-deep-target-profile-enforcement.md)
+- **Bootstrap hook execution before examples**: [ADR 0020](../adr/0020-bootstrap-hook-execution.md)
+- **Stronger interface doubles**: [ADR 0021](../adr/0021-stronger-interface-doubles.md)
+- **Opt-in CLI source/spec compilation**: [ADR 0022](../adr/0022-opt-in-cli-source-spec-compilation.md)
+- **Known-limitations resolution (completed)**: [ADR 0023](../adr/0023-course-correction-resolve-deferred-known-limitations.md)
+- **Standalone optional bytecode doubles adapter**: [ADR 0024](../adr/0024-standalone-optional-bytecode-doubles-adapter.md)
 
 ## 4.3 Core Strategy
 
 1. **Java 8-compatible production code**
-   Production code uses only Java 8 language and library APIs. Newer JDK APIs are never imported directly.
+   Production code uses only Java 8 language and library APIs. Newer JDK APIs are never imported
+directly.
 
 2. **Profile catalog**
-   The implemented metadata catalog describes Java LTS profiles (`java8`, `java11`, `java17`, `java21`, `java25`), feature flags, and public API symbols relevant to javaspec.
+   The implemented metadata catalog describes Java LTS profiles (`java8`, `java11`, `java17`,
+`java21`, `java25`), feature flags, and public API symbols relevant to javaspec.
 
 3. **Restricted configuration and naming model**
-   The implemented `org.javaspec.config` package loads inferred defaults and explicit line-based configuration without external parser dependencies. The CLI applies selected-suite spec/source paths, package-prefix naming, configured constructor-policy defaults, and configured profile/formatter defaults. Bootstrap hooks remain metadata; selected profiles are validated/reported but not deeply enforced yet.
+   The implemented `io.github.jvmspec.config` package loads inferred defaults and explicit line-based
+configuration without external parser dependencies. The CLI applies selected-suite spec/source
+paths, package-prefix naming, configured constructor-policy defaults, configured profile/formatter
+defaults, executable bootstrap hook class names, and optional JSON/JUnit XML-compatible report
+destinations. Bootstrap hooks execute immediately before examples from the effective run
+classloader/classpath; selected profiles are enforced before generation/update writes for described
+type kinds and resolvable cataloged Java API signature owners.
 
 4. **Classpath reflection runner**
-   The implemented `org.javaspec.runner` package executes discovered examples only when compiled specification classes are available on the effective classloader. It reuses `DiscoveredSpec` and `SpecExample` metadata so suite, class, and example filters remain effective. The runner creates a fresh spec instance per example, supports optional public no-arg `let()`/`letGo()` hooks, and can stop after the first FAILED or BROKEN executable example when `run --stop-on-failure` is selected.
+   The implemented `io.github.jvmspec.runner` package executes discovered examples only when compiled
+specification classes are available on the effective, selected explicit, or CLI compile-output-first
+classloader. It reuses `DiscoveredSpec` and `SpecExample` metadata so suite, class, and example
+filters remain effective. The runner creates a fresh spec instance per example, supports optional
+public no-arg `let()`/`letGo()` hooks, and can stop after the first FAILED or BROKEN executable
+example when `run --stop-on-failure` is selected.
 
 5. **Reflective compatibility boundary**
-   Runtime probing of optional newer APIs is isolated in the implemented compatibility layer, which accepts class, method, and field names as strings.
+   Runtime probing of optional newer APIs is isolated in the implemented compatibility layer, which
+accepts class, method, and field names as strings.
 
 6. **phpspec-inspired model adapted to Java**
-   Concepts such as `describe`, examples, subject lifecycle, matchers, doubles, generators, formatters, and extensions are retained where useful but adapted to Java packages, classes, methods, constructors, and static typing.
+   Concepts such as `describe`, examples, subject lifecycle, matchers, doubles, generators,
+formatters, and extensions are retained where useful but adapted to Java packages, classes, methods,
+constructors, and static typing.
 
 7. **Interface proxy doubles**
-   The implemented doubles boundary uses Java 8 JDK dynamic proxies for ordinary interfaces, records calls, verifies simple call predictions, returns Java defaults for unstubbed methods, and rejects unsupported target kinds with explicit diagnostics.
+   The implemented doubles boundary uses Java 8 JDK dynamic proxies for ordinary interfaces, records
+calls, supports exact and matcher-aware argument constraints, verifies call predictions and counts,
+returns Java defaults for unstubbed methods, supports return/throw/answer stubs, and rejects
+unsupported target kinds with explicit diagnostics.
 
 8. **No dependency leakage**
-   Runtime packaging is audited so third-party libraries are absent. Optional integrations must live outside the core or in test/build scopes.
+   Runtime packaging is audited so third-party libraries are absent. JSON reporting, JUnit
+XML-compatible reporting, explicit classpath handling, and programmatic invocation are implemented
+with JDK APIs. Optional integrations that need additional libraries must live outside the core or in
+test/build scopes.
 
 9. **First-MVP PHPSpec-style describe/run slice**
-   The implemented first-MVP keeps `describe`/`desc` focused on PHPSpec-style specification skeleton creation. The `run` command discovers `spec.*.*Spec.java` files, infers described production class-like types, reports missing types with target paths, asks whether to create them (`Y/n`), writes Java 8-compatible class/interface/enum/annotation plus source-text record/sealed skeletons only after confirmation or when `run --generate` is supplied, and then executes loadable discovered examples through the MVP reflection runner.
+   The implemented first-MVP keeps `describe`/`desc` focused on PHPSpec-style specification skeleton
+creation. The `run` command discovers `spec.*.*Spec.java` files, infers described production
+class-like types, reports missing types with target paths, asks whether to create them (`Y/n`),
+writes Java 8-compatible class/interface/enum/annotation plus source-text record/sealed skeletons
+only after confirmation or when `run --generate` is supplied, and then executes loadable discovered
+examples through the MVP reflection runner.
 
 ## 4.4 Building Blocks
 
-The implemented architecture includes the Phase 2 first-MVP slice, the Phase 3 profile/catalog slice, the Phase 4 configuration slice, the Phase 5/6 MVP reflection-runner slice, the Phase 7 matcher/expectation expansion, the Phase 8 interface-doubles slice, the Phase 9 CLI expansion, the Phase 10 interface-style method generation increment, and the Phase 11 formatter/reporting/extension increment. See [ARC42 section 5](05-building-block-view.md) for concise building-block notes.
+The implemented architecture includes the Phase 2 first-MVP slice, the Phase 3 profile/catalog
+slice, the Phase 4 configuration slice, the Phase 5/6 MVP reflection-runner slice, the Phase 7
+matcher/expectation expansion, the Phase 8 interface-doubles slice, the Phase 9 CLI expansion, the
+Phase 10 interface-style method generation increment, the Phase 11 formatter/reporting/extension
+increment, the Phase 14 no-JUnit integration foundation, the Phase 15 Maven, Phase 16 Gradle, and
+Phase 17 JUnit Platform standalone optional adapters, the Phase 18 stable
+identifier/source-location/report polish increment, the Phase 19 aggregate release/CI verification
+assets, the Phase 20 release-readiness scaffolding assets, the Phase 21 standalone adoption/report
+assets, the Phase 22 explicit skipped/pending semantics, the Phase 23 execution-availability
+diagnostics, the Phase 24 configuration-level report destinations, the Phase 25 ServiceLoader
+formatter/extension discovery increment, the Phase 26 target-profile enforcement increment, the
+Phase 27 bootstrap hook execution increment, the Phase 28 stronger-interface-doubles increment, the
+Phase 29 opt-in CLI compilation increment, Phases 30-36 known-limitations resolution, and the Phase
+37 optional bytecode-doubles adapter. See [ARC42 section 5](05-building-block-view.md) for concise
+building-block notes.
 
 Implemented building blocks:
 
-- **CLI adapter**: parses `describe`/`desc`, `run`, `--config`, `--suite`, source/spec-root aliases, `--generate`, `--dry-run`, `--stop-on-failure`, `--formatter <progress|pretty>`, `--profile <java8|java11|java17|java21|java25>`, `--verbose`, `--report`/`--report-file`, constructor policy, filters, help, and exit codes without external libraries; after discovery/generation/update it renders selected progress/pretty output, writes optional JSON reports, and exits `1` for failed or broken executable examples or pending dry-run work.
+- **CLI adapter**: parses `describe`/`desc`, `run`, `--config`, `--suite`, source/spec-root aliases,
+  `--classpath`/`--classpath-file`, `--compile`, `--compile-output <dir>`, `--generate`,
+  `--dry-run`, `--stop-on-failure`, `--formatter <progress|pretty|custom>`, `--profile
+  <java8|java11|java17|java21|java25>`, `--verbose`, `--report`/`--report-file`,
+  `--junit-xml`/`--junit-xml-file`, constructor policy, filters, help, and exit codes without
+  external libraries; after discovery and profile enforcement, then generation/update, it optionally
+  compiles source/spec trees for CLI runs, executes configured bootstrap hooks immediately before
+  examples when specs exist, renders selected built-in or ServiceLoader-discovered formatter output,
+  writes optional JSON and/or JUnit XML-compatible reports from CLI or config destinations, exits
+  `64` for profile compatibility, unavailable JDK compiler, or bootstrap failures before reports,
+  and exits `1` for compile failures, failed or broken executable examples, or pending dry-run work.
 - **Described-class model**: validates Java class names and maps them to source-relative paths.
-- **Spec discovery model**: maps default or configured spec-package-prefix `*Spec.java` files to described production class-like types deterministically, recognizes kind markers such as `shouldBeAnInterface()`, parses relationship markers such as `shouldExtend(...)` and `shouldImplement(...)`, parses construction markers, expanded chained typed proxy matcher calls for method-discovery/default-return inference where applicable, throw proxy calls, sealed permitted subtype markers such as `shouldPermit(Circle.class)`, public `it_`/`its_` example metadata, and class/example filters.
-- **Discovery check**: detects source-root and classpath presence for a described class.
-- **Object behavior base and matcher engine**: provide the generic `ObjectBehavior<T>` type used by generated specs, lazy construction configuration, throw expectations, expanded `Matchable` expectation methods, direct convenience assertions that delegate through `match(actual)`, custom matcher registration, `ObjectBehavior` double conveniences, and a zero-dependency default matcher registry including negated equality.
-- **Reflection runner**: uses the discovered spec/example metadata to load compiled spec classes from the effective classloader, execute filtered examples with fresh instances and optional `let()`/`letGo()`, produce PASSED/FAILED/BROKEN/SKIPPED results, and stop after the first failed/broken executable example when requested.
-- **Spec/support skeleton generator**: plans and writes Java 8-compatible PHPSpec-style spec and typed support skeletons from `describe` and `run` support updates.
-- **Type/method skeleton generator**: plans and writes minimal production class/interface/enum/annotation/record/sealed skeletons, constructor/static-factory changes, Java 8-compatible method bodies, ordinary-interface declarations, compatible annotation elements, and missing sealed-interface skeleton declarations plus nested permitted implementation bodies after an interactive `run` confirmation or non-interactive `run --generate`; post-Java-8 forms are emitted only as source text.
-- **Profile catalog**: `org.javaspec.profile` stores deterministic target profiles, feature flags, API symbols, symbol categories/kinds, and representative Java LTS data-structure metadata including Java 25 stream gatherers.
-- **Configuration and naming model**: `org.javaspec.config` loads inferred defaults and explicit suite/profile/formatter/path/package-prefix/constructor-policy settings with a restricted line-based parser; `SpecNamingConvention` applies suite package prefixes to describe, discovery, and support generation; run CLI options override valid configured profile/formatter/constructor-policy selections where applicable.
-- **Compatibility boundary**: `org.javaspec.compatibility` checks profile compatibility and probes optional APIs reflectively by string name, without direct Java 9+ production imports.
-- **Doubles engine**: `org.javaspec.doubles` creates ordinary-interface doubles through JDK dynamic proxies, configures return-value stubs by method name or exact arguments, records immutable call snapshots, verifies simple call expectations, and returns Java defaults for unstubbed methods.
-- **Formatter/reporting/extension boundaries**: `org.javaspec.formatter`, `org.javaspec.reporting`, and `org.javaspec.extension` provide built-in formatter contracts/registry, dependency-free JSON reports, and minimal programmatic extension registration. External CLI extension loading is not implemented.
+- **Spec discovery model**: maps default or configured spec-package-prefix `*Spec.java` files to
+  described production class-like types deterministically, exposes stable discovered-spec ids,
+  recognizes kind markers such as `shouldBeAnInterface()`, parses relationship markers such as
+  `shouldExtend(...)` and `shouldImplement(...)`, parses construction markers, expanded chained
+  typed proxy matcher calls for method-discovery/default-return inference where applicable, throw
+  proxy calls, sealed permitted subtype markers such as `shouldPermit(Circle.class)`, public
+  `it_`/`its_` example metadata with 1-based source lines, and class/example filters.
+- **Discovery check**: detects source-root and selected-classloader presence for a described type.
+- **Object behavior base and matcher engine**: provide the generic `ObjectBehavior<T>` type used by
+  generated specs, lazy construction configuration, throw expectations, expanded `Matchable`
+  expectation methods, direct convenience assertions that delegate through `match(actual)`, custom
+  matcher registration, `ObjectBehavior` double conveniences, and a zero-dependency default matcher
+  registry including negated equality.
+- **Reflection runner**: uses the discovered spec/example metadata to load compiled spec classes
+  from the effective or selected explicit classloader, execute filtered examples with fresh
+  instances and optional `let()`/`letGo()`, produce PASSED/FAILED/BROKEN/SKIPPED/PENDING results
+  with stable id aliases, source metadata, and enriched execution-availability reasons where
+  available, and stop after the first failed/broken executable example when requested.
+- **Spec/support skeleton generator**: plans and writes Java 8-compatible PHPSpec-style spec and
+  typed support skeletons from `describe` and `run` support updates.
+- **Type/method skeleton generator**: plans and writes minimal production
+  class/interface/enum/annotation/record/sealed skeletons, constructor/static-factory changes, Java
+  8-compatible method bodies, ordinary-interface declarations, compatible annotation elements, and
+  missing sealed-interface skeleton declarations plus nested permitted implementation bodies after
+  an interactive `run` confirmation or non-interactive `run --generate`; post-Java-8 forms are
+  emitted only as source text.
+- **Profile catalog**: `io.github.jvmspec.profile` stores deterministic target profiles, feature flags,
+  API symbols, symbol categories/kinds, and representative Java LTS data-structure metadata
+  including Java 25 stream gatherers.
+- **Configuration and naming model**: `io.github.jvmspec.config` loads inferred defaults and explicit
+  suite/profile/formatter/path/package-prefix/bootstrap/constructor-policy/report-destination
+  settings with a restricted line-based parser; `SpecNamingConvention` applies suite package
+  prefixes to describe, discovery, and support generation; run CLI options override valid configured
+  profile/formatter/constructor-policy/report destination selections where applicable, while
+  bootstrap hooks combine top-level entries before selected-suite entries with order and duplicates
+  preserved.
+- **Compatibility boundary**: `io.github.jvmspec.compatibility` checks profile compatibility, exposes
+  `ProfileEnforcement`/`ProfileEnforcementReport`/`ProfileViolation`, enforces described type kinds
+  and resolvable cataloged API signature owners before generation/update writes, and probes optional
+  APIs reflectively by string name, without direct Java 9+ production imports.
+- **Doubles engine**: `io.github.jvmspec.doubles` creates ordinary-interface doubles through JDK dynamic
+  proxies, configures method-wide or argument-constrained return/throw/answer stubs, supports
+  `ArgumentMatcher` factories and `Doubles` aliases, records immutable call snapshots before stub
+  actions, verifies matcher-aware call expectations/counts, and returns Java defaults for unstubbed
+  methods. It also exposes the zero-dependency `ConcreteDoubleProvider` SPI plus
+  `Doubles.concreteDouble`/`classDouble`; without a provider these APIs fail with guidance.
+- **Formatter/reporting/invocation/diagnostics/extension/bootstrap boundaries**:
+  `io.github.jvmspec.formatter`, `io.github.jvmspec.reporting`, `io.github.jvmspec.invocation`,
+  `io.github.jvmspec.diagnostics`, `io.github.jvmspec.extension`, and `io.github.jvmspec.bootstrap` provide
+  built-in formatter contracts/registry, ServiceLoader discovery for external
+  `RunFormatter`/`JavaspecExtension`/alias `Extension` providers, dependency-free JSON and JUnit
+  XML-compatible reports with stable id/source metadata where available, no-`System.exit`
+  programmatic invocation, deterministic execution-availability diagnostic lines from `RunResult`,
+  minimal extension registration, and explicit zero-dependency bootstrap hook execution from
+  configured class names.
+- **Optional Maven plugin adapter**: `javaspec-maven-plugin/` is a standalone optional Maven plugin
+  artifact that provides `javaspec:run`, uses Maven test dependency resolution/classpath, supports
+  filters, top-level plus selected-suite bootstrap hooks, and reports, uses config report
+  destinations as defaults when explicit plugin report settings are absent, logs through Maven
+  including `javaspec:` execution-availability warnings with Maven test classpath element counts,
+  fails builds clearly on bootstrap failures, and delegates to `JavaspecLauncher` without requiring
+  JUnit in projects under test.
+- **Optional Gradle plugin adapter**: `javaspec-gradle-plugin/` is a standalone optional Gradle
+  plugin artifact that provides plugin id `io.github.jvmspec`, extension `javaspec`, task `javaspecRun`,
+  Gradle classpath integration, filters, top-level plus selected-suite bootstrap hooks,
+  ServiceLoader external formatter discovery from the run classloader, reports, config report
+  defaults when explicit extension/task report settings are absent, logging including `javaspec:`
+  execution-availability warnings with Gradle classpath element counts, clear bootstrap task-failure
+  diagnostics, and canonical `JavaspecLauncher` delegation without requiring JUnit in projects under
+  test.
+- **Optional JUnit Platform engine adapter**: `javaspec-junit-platform-engine/` is a standalone
+  optional JUnit Platform engine artifact with engine id `javaspec`, ServiceLoader registration,
+  selector/configuration-parameter filters over canonical discovery, stable unique-id shape and
+  MethodSource behavior, descriptor reporting aligned to stable ids, and canonical
+  `JavaspecLauncher` execution without adding JUnit Platform dependencies to core.
+- **Optional bytecode doubles adapter**: `javaspec-bytecode-doubles/` is a standalone optional
+  adapter outside the root reactor. It depends on ByteBuddy 1.14.18, implements
+  `ConcreteDoubleProvider`, supports non-final concrete classes, delegates to core `DoubleControl`
+  semantics, and rejects final/static/constructor/enum/array/annotation/primitive/interface cases as
+  documented.
+- **Release/CI verification and adoption assets**: `scripts/verify-all.sh` and
+  `.github/workflows/ci.yml` aggregate core and standalone-adapter verification without changing the
+  root Maven reactor or adding publishing/signing behavior. Phase 20 extends this boundary with
+  `scripts/check-version-alignment.sh`, `CHANGELOG.md`, `RELEASING.md`, the confirmed MIT `LICENSE`,
+  MIT license and maintainer metadata, Maven `release-artifacts` source/javadoc packaging checks,
+  Gradle source/javadoc jar readiness, and safe URL/SCM/issues metadata while keeping public
+  publication completed; artifacts are published on Maven Central under `io.github.jvmspec`,
+  and final approval decisions are complete. Phase 21 extends adoption assets with standalone
+  examples under `examples/`, `scripts/verify-examples.sh`, report schema docs, and golden reports;
+  examples run by default in `scripts/verify-all.sh` with explicit opt-outs.
+- **Explicit skipped/pending semantics**: `io.github.jvmspec.api.Skip`, `Pending`,
+  `SkipExampleException`, `PendingExampleException`, and `ObjectBehavior.skip(...)`/`pending(...)`
+  provide zero-dependency non-execution markers/signals. Core results keep `PENDING` distinct from
+  `SKIPPED`, while JUnit XML-compatible and JUnit Platform mappings use skipped events/elements for
+  compatibility.
+- **Execution availability diagnostics**: `io.github.jvmspec.diagnostics.RunDiagnostics` turns canonical
+  `RunResult` data into deterministic human-readable lines for non-executable specs and
+  stale/missing compiled example methods. CLI/Maven/Gradle output uses those lines only when
+  availability issues exist and leaves compilation/classpath assembly external.
 
 Later building blocks remain planned:
 
-- **Runner expansion**: pending examples, source locations, bootstrap execution, and deeper profile-aware behavior.
-- **Expectation and matcher engine follow-up**: additional PHPSpec parity, diagnostics, approximate equality, richer object-state matchers, and iteration/yield variants where Java-compatible.
-- **Advanced doubles extensions**: richer argument matching, exception/callback stubbing, or concrete-class/final-class/static/constructor doubles outside the zero-dependency core if a future ADR permits optional integrations.
-- **Advanced generator**: richer spec/source templates, safe existing sealed-interface source updates, and missing-method snippets beyond the current generator subset.
-- **External extension loading**: configuration/classpath/plugin activation for extension-provided behavior, to be designed separately before implementation.
+- **Runner expansion**: richer failure-location diagnostics and broader compiler-integrated
+  profile-aware behavior.
+- **Expectation and matcher engine follow-up**: additional PHPSpec parity, diagnostics, approximate
+  equality, richer object-state matchers, and iteration/yield variants where Java-compatible.
+- **Advanced doubles extensions**: final-class/static/constructor doubles, default-method dispatch,
+  sequential behaviors, or broader side-effect orchestration outside the zero-dependency core if a
+  future ADR permits optional integrations.
+- **Advanced generator**: richer spec/source templates and missing-method snippets beyond the
+  current generator subset.
+- **Extension activation beyond ServiceLoader**: package scanning and plugin lookup for
+  extension-provided behavior, to be designed separately before implementation.
 
 ## 4.5 Risk Reduction Strategy
 
 - Validate Java 8 bytecode and runtime behavior early.
 - Add a runtime dependency audit as a build gate.
-- Keep the profile catalog synchronized with explicit research and re-validate Java 25 stream gatherer metadata during quality-matrix work before relying on environment-specific behavior.
-- Keep configuration syntax restricted and line-based unless a future zero-runtime-dependency-compatible design supersedes it.
-- Keep MVP doubles interface-only and JDK-proxy based; require a future ADR before adding optional advanced doubles that need external tooling.
-- Treat safe sealed-interface existing-source updates, deeper profile enforcement, bootstrap execution, advanced doubles, and external extension loading as later features requiring explicit design before implementation.
+- Keep the profile catalog synchronized with explicit research and re-validate Java 25 stream
+  gatherer metadata during quality-matrix work before relying on environment-specific behavior.
+- Keep configuration syntax restricted and line-based unless a future
+  zero-runtime-dependency-compatible design supersedes it.
+- Keep core doubles interface-only and JDK-proxy based; allow matcher, throwing, and answer behavior
+  inside the zero-dependency core, and keep ByteBuddy-based non-final concrete doubles isolated in
+  the standalone optional adapter. Require a future ADR before adding final/static/constructor
+  doubles or other external-tooling behavior.
+- Treat broader compiler-grade profile checks, optional final/static/constructor doubles, dependency
+  resolution, incremental compilation caches, source-level/release management, automatic classpath
+  repair, plugin lookup beyond ServiceLoader, script/package-scanning bootstrap activation, actual
+  publishing/signing automation, and any Maven multi-module conversion as backlog
+  features requiring explicit design before implementation.
+- Keep root `mvn verify` scoped to the core artifact unless a future ADR changes the release/build
+  boundary; use `scripts/verify-all.sh` or equivalent explicit commands for aggregate standalone
+  adapter and examples verification.
+- GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final
+  release version/tag, and final publish approval are resolved; artifacts are published;
+  preserve the confirmed MIT license and maintainer metadata.
+- Keep Phase 21 examples and report schema/golden docs standalone until public artifacts are
+  explicitly available; examples remain adoption assets even though remote GitHub Actions success
+  for HEAD `5088e96` on `develop` is now user-/maintainer-confirmed after the Phase 20/21/22 push.

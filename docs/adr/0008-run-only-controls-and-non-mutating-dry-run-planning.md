@@ -14,11 +14,11 @@ The implementation must preserve the PHPSpec-style split from ADR 0003, the Java
 
 Run controls are accepted only by `javaspec run`. `describe` and `desc` reject `--generate`, `--dry-run`, `--stop-on-failure`, `--formatter`, `--profile`, `--verbose`, `--report`, `--report-file`, `--constructor-policy`, `--class`, and `--example` because those options either mutate production code, control execution, or describe run output.
 
-`run --dry-run` performs discovery and planning without writes and without prompts. It reports pending related-spec/support generation, support updates, constructor changes, method bodies, ordinary-interface declarations, annotation elements, and missing production type generation. Dry-run exits `1` when pending generation/update work exists. If no pending work exists, execution proceeds according to the normal runner result semantics, so passing or skipped-only runs exit `0` and failed or broken executable examples exit `1`.
+`run --dry-run` performs discovery and planning without writes and without prompts. It reports pending related-spec/support generation, support updates, constructor changes, method bodies, ordinary-interface declarations, annotation elements, and missing production type generation. Dry-run exits `1` when pending generation/update work exists. If no pending generation/update work exists, execution proceeds according to the normal runner result semantics, so passing or skipped/pending-only runs exit `0` and failed or broken executable examples exit `1`.
 
 `run --stop-on-failure` stops reflection execution after the first FAILED or BROKEN executable example. Without the flag, the runner processes all discovered example metadata.
 
-`run --formatter <progress|pretty>` and `run --profile <java8|java11|java17|java21|java25>` override valid configured/default selections. Formatter selection is limited to built-in names in the CLI until external extension loading is implemented. Profile selection is validated and reported but is not deep execution enforcement yet.
+`run --formatter <progress|pretty|custom>` and `run --profile <java8|java11|java17|java21|java25>` override valid configured/default selections. Formatter selection originally covered built-in names; Phase 25 / ADR 0018 extends it to ServiceLoader-discovered names available on the effective run classloader. Phase 26 / ADR 0019 extends profile selection with conservative target-profile enforcement before generation/update writes; this remains source/generation-scoped enforcement rather than compiler-grade integrated execution.
 
 `run --verbose` prints the selected run settings before run work proceeds.
 
@@ -34,8 +34,8 @@ Positive consequences:
 Negative consequences and limitations:
 
 - Dry-run planning must stay synchronized with every generation/update capability, including later method-generation increments.
-- Profile selection is visible and validated but can be misunderstood as full profile enforcement; documentation must keep this limitation explicit.
-- CLI formatter selection cannot use extension-provided names until a separate extension-loading design is implemented.
+- Profile enforcement can be misunderstood as compiler-grade validation of all project source and dependencies; documentation must keep the conservative source/generation-scoped boundary explicit.
+- CLI formatter selection can use ServiceLoader-discovered names after ADR 0018, but only when providers are available on the effective run classloader.
 - Dry-run behavior has multiple exit paths and therefore requires regression tests whenever run planning changes.
 
 Related ARC42 sections: [5. Building Block View](../arc42/05-building-block-view.md), [6. Runtime View](../arc42/06-runtime-view.md), [8. Concepts](../arc42/08-concepts.md), and [10. Quality Requirements](../arc42/10-quality-requirements.md).

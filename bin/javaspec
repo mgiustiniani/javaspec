@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# javaspec launcher
+# Locates the built or installed javaspec jar and invokes the CLI.
+set -euo pipefail
+
+# Resolve the directory containing this script.
+bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+repo_root="$(cd "${bin_dir}/.." && pwd -P)"
+
+# Resolve the project version from the root POM so the launcher cannot drift
+# from the artifact produced by the current checkout.
+version="$(awk '
+  /^[[:space:]]*<version>[[:space:]]*[^<]+[[:space:]]*<\/version>[[:space:]]*$/ {
+    line = $0
+    sub(/^[[:space:]]*<version>[[:space:]]*/, "", line)
+    sub(/[[:space:]]*<\/version>[[:space:]]*$/, "", line)
+    print line
+    exit
+  }
+' "${repo_root}/pom.xml")"
+
+if [ -z "${version}" ]; then
+  printf 'javaspec: project version not found in %s\n' "${repo_root}/pom.xml" >&2
+  exit 1
+fi
+
+if [ "${1:-}" = "--launcher-version" ]; then
+  printf '%s\n' "${version}"
+  exit 0
+fi
+
+# Locate the jar: prefer the local Maven repository, then build output.
+local_repo="${HOME}/.m2/repository/io/github/jvmspec/javaspec/${version}/javaspec-${version}.jar"
+target_jar="${repo_root}/target/javaspec-${version}.jar"
+
+if [ -f "${local_repo}" ]; then
+  jar="${local_repo}"
+elif [ -f "${target_jar}" ]; then
+  jar="${target_jar}"
+else
+  printf 'javaspec: jar not found.\n' >&2
+  printf 'Run: mvn -q package  (or: mvn -q -DskipTests install)\n' >&2
+  exit 1
+fi
+
+if [ "${1:-}" = "--launcher-fingerprint" ]; then
+  if command -v sha256sum >/dev/null 2>&1; then
+    jar_sha256="$(sha256sum "${jar}" | awk '{print $1}')"
+  elif command -v shasum >/dev/null 2>&1; then
+    jar_sha256="$(shasum -a 256 "${jar}" | awk '{print $1}')"
+  else
+    printf 'javaspec: SHA-256 utility not found (requires sha256sum or shasum).\n' >&2
+    exit 1
+  fi
+  printf 'javaspec.launcher.version=%s\n' "${version}"
+  printf 'javaspec.launcher.jar=%s\n' "${jar}"
+  printf 'javaspec.launcher.sha256=%s\n' "${jar_sha256}"
+  exit 0
+fi
+
+exec java -jar "${jar}" "$@"

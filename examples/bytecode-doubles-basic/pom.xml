@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>io.github.jvmspec.examples</groupId>
+    <artifactId>javaspec-bytecode-doubles-basic</artifactId>
+    <version>1.0.0-RC1</version>
+    <packaging>jar</packaging>
+
+    <name>javaspec bytecode doubles basic example</name>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <javaspec.version>1.0.0-RC1</javaspec.version>
+        <maven.compiler.plugin.version>3.13.0</maven.compiler.plugin.version>
+    </properties>
+
+    <dependencies>
+        <!-- javaspec core -->
+        <dependency>
+            <groupId>io.github.jvmspec</groupId>
+            <artifactId>javaspec</artifactId>
+            <version>${javaspec.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- bytecode doubles adapter for concrete-class doubles -->
+        <dependency>
+            <groupId>io.github.jvmspec</groupId>
+            <artifactId>javaspec-bytecode-doubles</artifactId>
+            <version>${javaspec.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven.compiler.plugin.version}</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>io.github.jvmspec</groupId>
+                <artifactId>javaspec-maven-plugin</artifactId>
+                <version>${javaspec.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <reportFile>target/javaspec/run-report.json</reportFile>
+                    <junitXmlReportFile>target/javaspec/junit-report.xml</junitXmlReportFile>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

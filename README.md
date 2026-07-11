@@ -1,172 +1,922 @@
 # javaspec
 
-javaspec is a Java 8-compatible, zero-runtime-dependency specification framework inspired by phpspec. Its goal is to bring a specification-first workflow to Java while preserving a small runtime footprint and a conservative compatibility baseline.
+[![CI](https://github.com/mgiustiniani/javaspec/actions/workflows/ci.yml/badge.svg)](https://github.com/mgiustiniani/javaspec/actions/workflows/ci.yml)
 
-Phases 2 through 11 are implemented, and Phase 12 compatibility/quality verification is complete through the Distrobox multi-JDK matrix for Java 8, 11, 17, 21, and 25. Phase 2 provides a Maven-based CLI entry point, `org.javaspec.cli.Main`, with a PHPSpec-style split: `describe` creates specification/support skeletons, while `run` discovers specs and can generate missing class-like production type skeletons after confirmation or `--generate`. Phase 3 adds Java LTS target profiles `java8`, `java11`, `java17`, `java21`, and `java25`, the profile catalog, API-symbol metadata, compatibility checks, and reflective API availability probes. Phase 4 adds the zero-runtime-dependency line-based configuration model, `--config <file>` and `--suite <name>` integration, suite-level spec/source directories, package-prefix-driven naming conventions, suite selection for `describe` and `run`, and class/example filters for `run`. The Phase 5/6 MVP keeps the existing `run` discovery/generation/update behavior and then executes discovered examples when the compiled spec classes are available on the effective classloader. Phase 7 expands `Matchable`, `ObjectBehavior` convenience assertions, and matcher-name discovery for the documented zero-dependency matcher subset. Phase 8 adds zero-runtime-dependency interface doubles under `org.javaspec.doubles` using JDK dynamic proxies. Phase 9 expands `javaspec run` with run-only controls: `--dry-run`, `--stop-on-failure`, `--formatter <progress|pretty>`, `--profile <java8|java11|java17|java21|java25>`, and `--verbose`. Phase 10 adds advanced interface-style method generation for ordinary interfaces, annotations, and missing sealed-interface skeletons. Phase 11 adds public zero-dependency formatter contracts and a deterministic registry for the built-in `progress` and `pretty` output, a minimal programmatic extension lifecycle API, and `javaspec run --report <file>` / `--report-file <file>` for UTF-8 JSON runner reports with `schemaVersion` 1. Reports are run-only, are written after summary rendering for no-spec, passing, failing, broken, and skipped-only runs, are skipped when dry-run exits before execution because pending generation/update work exists, and report write failures exit `70`. Dry runs never write files or prompt; stop-on-failure stops after the first FAILED or BROKEN executable example; formatter/profile CLI options override valid config/default selections; verbose output reports selected run settings and includes the report path when specified. Known limitations: selected profiles are validated but not deeply enforced during execution yet; external extension discovery/loading is not implemented, so CLI formatter selection remains limited to built-in `progress` and `pretty`; JSON reporting is limited to schemaVersion 1 and has no config-level report destination or alternate machine-readable format; existing sealed-interface source updates are intentionally skipped until nested permitted implementations can also be updated source-preservingly; generic `Iterable` count/empty checks consume the iterable and can hang on infinite iterables; doubles are interface-only and do not support concrete class, final class, static, constructor, primitive, array, annotation, or enum doubles, wildcard matchers, exception/callback stubbing, bytecode libraries, or invocation of default interface methods. The binary remains Java 8-compatible; post-Java 8 forms such as records, sealed types, sequenced collections, and stream gatherers are modeled as source text or metadata/reflection only. Specs can declare `shouldExtend(...)`, `shouldImplement(...)`, and sealed `shouldPermit(...)`; missing related types get specs before production skeletons, except permitted implementations of sealed interfaces, which stay in the same production file.
+![javaspec demo](docs/assets/demo.gif)
 
-## Project Goals
+javaspec is a spec-first BDD tool for Java, inspired by PHPSpec. You write subject-centric `it_*` examples with `let`, `beConstructedWith`, `subject()`, and `should*` expectations, run the specification, and let javaspec guide the next small production-code step.
 
-- Provide a Java port inspired by phpspec concepts: describing classes, discovering specifications, running examples, expectations, doubles, generation prompts, and extensibility.
-- Compile and run on Java 8.
-- Keep the runtime artifact free of third-party dependencies.
-- Allow test-scope dependencies for the project test suite only.
-- Model target Java LTS profiles for Java 8 and later LTS releases available as of 2026-05-27: 8, 11, 17, 21, and 25.
-- Represent post-Java 8 APIs through metadata, strings, or reflection so the Java 8-compatible binary never directly links against APIs that do not exist on Java 8.
+The core is Java 8-compatible and has no third-party runtime dependencies. It can be used directly from the CLI, embedded through a no-`System.exit` launcher, or adopted through optional Maven, Gradle, and JUnit Platform adapters.
 
-## Architectural Constraints
+Artifacts use the Maven Central group `io.github.jvmspec`. The dependency below targets the active
+`1.0.0-RC1` release candidate; until its publication is confirmed on Maven Central, build and install
+it from the release branch with `mvn -q -DskipTests install`:
 
-1. **Java 8 baseline**: all production code must compile with Java 8 source and target compatibility.
-2. **No runtime dependencies**: the main artifact must depend only on the Java 8 standard library.
-3. **Test-scope dependencies only**: external libraries may be used for tests, compatibility verification, or build-time quality checks when scoped outside the runtime artifact.
-4. **LTS profile metadata**: Java 11, 17, 21, and 25 capabilities must be modeled as target profiles rather than as direct compile-time references.
-5. **Package base**: production code uses the package base `org.javaspec`.
-6. **Maven implementation**: the project uses Maven while preserving Java 8 bytecode compatibility.
+```xml
+<dependency>
+    <groupId>io.github.jvmspec</groupId>
+    <artifactId>javaspec</artifactId>
+    <version>1.0.0-RC1</version>
+    <scope>test</scope>
+</dependency>
+```
 
-## Architecture Principles
+For snapshots, use the Central Portal Snapshots repository.
 
-- **Compatibility first**: Java 8 compatibility is a release gate, not an optional mode.
-- **Metadata over linkage**: newer JDK APIs are named and discovered through profile metadata and reflection, not imported directly by Java 8-compiled production code.
-- **Small core**: the core runtime should contain only the specification model, runner, matcher contracts, profile catalog, and minimal utilities required to execute specs.
-- **Explicit boundaries**: CLI, configuration, discovery, runner, expectations, doubles, generators, and extension points should have separate responsibilities.
-- **Deterministic behavior**: spec discovery, execution order, output, and exit codes should be predictable for local and CI use.
-- **Extensibility without dependency cost**: extension hooks should be exposed through Java interfaces and programmatic contracts without adding runtime dependencies; external CLI extension loading is not implemented yet.
+The Gradle plugin id is `io.github.jvmspec`; verify the requested version is listed on the Gradle
+Plugin Portal before resolving it as an external plugin.
 
-## Zero-Dependency Policy
+## Highlights
 
-The runtime artifact must not require libraries such as YAML parsers, bytecode manipulation libraries, assertion libraries, logging frameworks, or dependency injection containers. If a capability normally depends on such libraries, javaspec should either:
+- Spec-first disciplined TDD/BDD workflow inspired by PHPSpec.
+- Java 8-compatible core.
+- Zero-runtime-dependency core artifact.
+- CLI, Maven plugin, Gradle plugin, and JUnit Platform adapter.
+- Generation and update support for specs, support classes, production skeletons, constructors, and methods.
+- JSON and JUnit XML-compatible reports.
+- Recommended PHPSpec-like authoring with `ObjectBehavior<T>`, `it_*` examples, `let`, `beConstructedWith`, `subject()`, and generated typed proxy methods such as `method().shouldReturn(expected)`.
+- Interface doubles in core; optional ByteBuddy-based concrete-class doubles adapter.
 
-- implement a small internal equivalent using Java 8 APIs,
-- expose an extension point so users can integrate optional tools outside the core runtime, or
-- defer the feature until it can be implemented without violating the policy.
+## Quick Start
 
-Project tests may use external test dependencies, but those dependencies must not leak into runtime packaging. The current repository test suite uses JUnit in test scope only; using javaspec specs does not require JUnit. Any future JUnit Platform support is planned as a separate optional adapter/engine, not as a dependency of the core runtime. Phase 8 doubles use JDK dynamic proxies rather than bytecode libraries. The runtime dependency tree contains only the project artifact, aside from the JDK platform.
+### Setup
 
-## Profile Catalog and Java 8 Compatibility Strategy
+Build the local release candidate and make the launcher available:
 
-The implemented profile/catalog model lives in `org.javaspec.profile`. `TargetProfile`, `FeatureFlag`, `ApiSymbol`, `ApiSymbolKey`, `ApiSymbolKind`, `ApiSymbolCategory`, and `ProfileCatalog` provide deterministic metadata for Java 8, 11, 17, 21, and 25. The default catalog covers representative data-structure APIs from [`docs/research/java-lts-data-structures.md`](docs/research/java-lts-data-structures.md), including Java 11 collection factories, Java 17 stream/record/sealed metadata, Java 21 sequenced collections, and Java 25 stream gatherers.
+```sh
+# Build and install the local release candidate
+mvn -q -DskipTests install
 
-Compatibility checks live behind `org.javaspec.compatibility`. `ProfileCompatibilityCheck` evaluates whether type kinds, feature flags, or API symbols fit a target profile, while `ApiAvailabilityProbe` uses class, method, and field names to probe optional APIs reflectively. Production code does not import Java 9+ APIs directly, so the runtime artifact can remain Java 8-compatible while understanding newer LTS capabilities.
+# Add bin/ to your PATH for this session
+export PATH="$PWD/bin:$PATH"
 
-## First MVP: Build, Test, and CLI Usage
+# Or invoke directly
+./bin/javaspec --help
+```
 
-Build and test from the repository root:
+After adding `bin/` to your `PATH`, the `javaspec` command is available. You can also run `./bin/javaspec` directly from the repository root without modifying `PATH`.
+
+### The red-green cycle
+
+**Step 1 — Describe a class:** creates spec and support skeletons.
+
+```sh
+javaspec describe com.example.PriceCalculator
+```
+
+**Step 2 — View and edit the generated spec:** open `src/test/java/spec/com/example/PriceCalculatorSpec.java` and add one example.
+
+```java
+package spec.com.example;
+
+import com.example.PriceCalculator;
+
+public class PriceCalculatorSpec extends PriceCalculatorSpecSupport {
+    public void it_calculates_the_total_price() {
+        total(10.0, 2.5).shouldReturn(12.5);
+    }
+}
+```
+
+The recommended concrete-spec style is PHPSpec-like: write one behavior method, call the generated typed proxy (`total(...).shouldReturn(...)`), and let the generated `*SpecSupport` class stay in the background. The explicit form `match(subject().total(10.0, 2.5)).shouldReturn(12.5)` is also supported when a proxy has not been generated yet or when an explicit subject call is clearer.
+
+**Step 3 — Run specs:** the generation prompt fires because the production class is missing. `--generate` accepts automatically; `--compile` recompiles before execution; `--formatter pretty` shows descriptive output.
+
+```sh
+javaspec run --generate --compile --formatter pretty
+```
+
+Sample output:
+
+```
+PriceCalculator
+  ✗ it calculates the total price  [BROKEN: class not found]
+
+describes missing class: com.example.PriceCalculator
+Generated class skeleton: src/main/java/com/example/PriceCalculator.java
+Compilation output: target/javaspec-classes
+
+  ✓ it calculates the total price  [PASSED]
+
+1 spec, 1 example — 1 passed, 0 failed, 0 broken, 0 skipped, 0 pending
+```
+
+**Step 4 — View the generated production class:**
+
+```sh
+cat src/main/java/com/example/PriceCalculator.java
+```
+
+javaspec wrote a skeleton with a stub return value (`return 0.0d;`) and a `// javaspec:stub` marker. Generated production stubs are mechanical scaffolding, not domain logic: while any marker remains, a compiled run reports a synthetic broken generation result and exits non-zero so a default return value cannot become an accidental GREEN.
+
+**Step 5 — Implement the body (minimal fix):**
+
+```sh
+sed -i 's/return 0.0d;/return arg0 + arg1;/' src/main/java/com/example/PriceCalculator.java
+```
+
+The fixed method now looks like:
+
+```java
+public double total(double arg0, double arg1) {
+    return arg0 + arg1;
+}
+```
+
+**Step 6 — Verify everything passes:**
+
+```sh
+javaspec run --compile --formatter pretty
+```
+
+If you have a Maven project with the javaspec Maven plugin configured, `mvn javaspec:run` works too.
+
+That's the full red-green cycle with javaspec.
+
+## Why use javaspec?
+
+Use javaspec when you want to:
+
+- start with executable behavior examples before production implementation;
+- keep test/runtime infrastructure small and dependency-light;
+- generate boring spec/support/production skeletons while you focus on behavior;
+- run the same specs from the CLI, Maven, Gradle, or JUnit Platform-based tools;
+- produce machine-readable JSON and CI-friendly JUnit XML-compatible reports;
+- use built-in expectations and interface doubles without requiring JUnit or a mocking framework.
+
+## Writing a first spec
+
+A javaspec spec is a Java class whose public no-argument methods are examples. `javaspec describe` creates a concrete `*Spec` plus a generated `*SpecSupport`; the support class extends `ObjectBehavior<T>`, while the concrete spec stays focused on behavior.
+
+```java
+public class CalculatorSpec extends CalculatorSpecSupport {
+    public void it_adds_two_numbers() {
+        add(2, 3).shouldReturn(5);
+    }
+}
+```
+
+That concise form is the recommended PHPSpec-like style. The generated support class provides typed proxy methods for each subject method — each returns `Matchable<T>` and can be chained directly. The explicit form `match(subject().add(2, 3)).shouldReturn(5)` is equivalent and useful when calling methods not yet reflected in the support class.
+
+Common authoring concepts:
+
+- `subject()` lazily creates the described object.
+- Generated typed proxies (`add(2, 3).shouldReturn(5)`) are the preferred subject-call syntax.
+- `match(value).shouldReturn(expected)` and related matchers express expectations when you need the explicit form.
+- `beConstructedWith(...)` selects constructor arguments before `subject()` is used.
+- `beConstructedThrough("factoryName", ...)` selects a static factory method.
+- `@Skip`, `@Pending`, `skip(...)`, and `pending(...)` mark examples intentionally not executed.
+
+## Running javaspec
+
+### CLI
+
+After building from the repository root:
+
+```sh
+java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main --help
+java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main describe com.example.Calculator
+java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main run --compile --generate
+```
+
+Useful `run` options:
+
+```sh
+--config <file>              # load javaspec configuration
+--suite <name>               # select a configured suite
+--spec-dir <dir>             # spec source root
+--source-dir <dir>           # production source root
+--classpath <path-list>      # explicit runtime/dependency classpath
+--classpath-file <file>      # one classpath entry per line
+--resolve-pom <pom.xml>      # resolve runtime deps from POM (offline, local repo)
+--compile                    # compile source/spec trees before execution
+--compile-output <dir>       # compile output directory; implies --compile
+--release <N>                # Java release target for --compile (e.g. 8, 11, 17)
+--generate                   # apply generation/update prompts non-interactively
+--dry-run                    # plan generation/update work without writes
+--stop-on-failure            # stop after first failed or broken example
+--formatter progress|pretty  # select built-in output format
+--profile java8|java11|java17|java21|java25
+--report <file>              # JSON report
+--junit-xml <file>           # JUnit XML-compatible report
+--class <name>               # filter described/spec class
+--example <name>             # filter example method/display name/order index
+```
+
+Other commands:
+
+```sh
+javaspec list-extensions     # list discovered formatters and extensions + classpath hints
+javaspec prophesize <Class>  # generate typed Prophecy wrapper for an interface or concrete class
+```
+
+Exit codes are stable: `0` for success, `1` for failed/broken examples or declined/pending generation work, `64` for usage/profile/compiler/bootstrap errors, and `70` for I/O failures.
+
+### Maven
+
+Add the dependency and plugin to your `pom.xml`:
+
+```sh
+mvn -q -DskipTests install
+mvn -q -f javaspec-maven-plugin/pom.xml -DskipTests install
+```
+
+Consumer `pom.xml` example:
+
+```xml
+<properties>
+  <javaspec.version>1.0.0-RC1</javaspec.version>
+</properties>
+
+<dependencies>
+  <dependency>
+    <groupId>io.github.jvmspec</groupId>
+    <artifactId>javaspec</artifactId>
+    <version>${javaspec.version}</version>
+    <scope>test</scope>
+  </dependency>
+</dependencies>
+
+<build>
+  <plugins>
+    <plugin>
+      <groupId>io.github.jvmspec</groupId>
+      <artifactId>javaspec-maven-plugin</artifactId>
+      <version>${javaspec.version}</version>
+      <executions>
+        <execution>
+          <phase>verify</phase>
+          <goals>
+            <goal>run</goal>
+          </goals>
+          <configuration>
+            <jsonReportFile>${project.build.directory}/javaspec/run-report.json</jsonReportFile>
+            <junitXmlReportFile>${project.build.directory}/javaspec/junit-report.xml</junitXmlReportFile>
+          </configuration>
+        </execution>
+      </executions>
+    </plugin>
+  </plugins>
+</build>
+```
+
+See [`examples/maven-basic/`](examples/maven-basic/) for a complete consumer project.
+
+### Gradle
+
+The Gradle plugin id is `io.github.jvmspec`. Use the included build during local RC verification;
+use the Plugin Portal form only after the requested version appears there. See
+[`examples/gradle-basic/settings.gradle`](examples/gradle-basic/settings.gradle) for a complete
+local example:
+
+```groovy
+pluginManagement {
+    includeBuild('../../javaspec-gradle-plugin')
+    repositories {
+        gradlePluginPortal()
+        mavenLocal()
+        mavenCentral()
+    }
+}
+```
+
+Consumer `build.gradle` example:
+
+```groovy
+plugins {
+    id 'java'
+    id 'io.github.jvmspec'
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation 'io.github.jvmspec:javaspec:1.0.0-RC1'
+}
+
+javaspec {
+    jsonReportFile = file("$buildDir/reports/javaspec/run-report.json")
+    junitXmlReportFile = file("$buildDir/reports/javaspec/junit-report.xml")
+}
+
+tasks.named('javaspecRun') {
+    stopOnFailure = true
+    failOnFailure = true
+}
+```
+
+Run it with:
+
+```sh
+gradle -p examples/gradle-basic clean javaspecRun
+```
+
+### JUnit Platform
+
+The JUnit Platform engine is optional. Install it locally before use:
+
+```sh
+mvn -q -DskipTests install
+mvn -q -f javaspec-junit-platform-engine/pom.xml -DskipTests install
+```
+
+Consumer Maven example:
+
+```xml
+<dependency>
+  <groupId>io.github.jvmspec</groupId>
+  <artifactId>javaspec</artifactId>
+  <version>1.0.0-RC1</version>
+  <scope>test</scope>
+</dependency>
+<dependency>
+  <groupId>io.github.jvmspec</groupId>
+  <artifactId>javaspec-junit-platform-engine</artifactId>
+  <version>1.0.0-RC1</version>
+  <scope>test</scope>
+</dependency>
+<dependency>
+  <groupId>org.junit.platform</groupId>
+  <artifactId>junit-platform-launcher</artifactId>
+  <version>1.10.2</version>
+  <scope>test</scope>
+</dependency>
+```
+
+Configure your JUnit Platform launcher, IDE, or Surefire setup to include `*Spec.java`. The stable 1.0 engine id, selector, unique-id, source, row, status-mapping, and IDE boundaries are documented in [`docs/junit-platform-contract-1.0.md`](docs/junit-platform-contract-1.0.md). See [`examples/junit-platform-basic/`](examples/junit-platform-basic/) and [`javaspec-junit-platform-engine/README.md`](javaspec-junit-platform-engine/README.md).
+
+### Programmatic invocation
+
+Build tools and custom launchers can call javaspec without `System.exit`:
+
+```java
+SpecDiscoveryRequest request = SpecDiscoveryRequest.of(new File("src/test/java"));
+JavaspecInvocation invocation = JavaspecInvocation.discovering(request, classLoader)
+        .withStopOnFailure(true);
+JavaspecInvocationResult result = JavaspecLauncher.run(invocation);
+int exitCode = result.exitCode();
+```
+
+## Matchers and expectations
+
+Prefer generated typed proxy methods for PHPSpec-like fluent expectations:
+
+```java
+add(2, 3).shouldReturn(5);
+name().shouldStartWith("calc");
+items().shouldHaveCount(3);
+```
+
+The explicit `match(subject().method(...))` form is available too, and useful when a proxy method is not yet generated:
+
+```java
+match(subject().add(2, 3)).shouldReturn(5);
+match(subject().name()).shouldStartWith("calc");
+match(subject().items()).shouldHaveCount(3);
+match(subject()).shouldBeAnInstanceOf(Calculator.class);
+```
+
+`ObjectBehavior` also has direct convenience assertions such as `shouldReturn(actual, expected)`. Treat those as ad-hoc helpers; they are not the recommended style for ordinary subject behavior examples.
+
+Available expectation families include:
+
+- equality/identity: `shouldReturn`, `shouldEqual`, `shouldBe`, and negated aliases;
+- type checks: `shouldHaveType`, `shouldBeAnInstanceOf`, `shouldImplement`;
+- numeric approximation: `shouldBeApproximately(expected, tolerance)`, `shouldReturnApproximately(...)`, and negated aliases;
+- generated object-state helpers: `shouldBeActive()` / `shouldNotBeActive()` for boolean accessors and `shouldHaveTitle(expected)` / `shouldNotHaveTitle(unexpected)` for value accessors;
+- strings, collections, maps, arrays, iterables, and iterators: contain/count/empty/key/value checks;
+- string helpers: starts-with, ends-with, and regular-expression checks;
+- exception expectations through `shouldThrow(...).during...` support methods;
+- structural markers used by generation, such as `shouldBeAnInterface()` and `shouldImplement(...)`.
+
+Custom matcher 1.0 scope is programmatic: register `Matcher`/`CustomMatcher` instances in the
+`MatcherRegistry` and call `match(actual).shouldMatch("name", args...)`. Configuration-file matcher
+registration and generated typed custom matcher methods are deferred; see
+`docs/matcher-contract-1.0.md`.
+
+## Construction
+
+Configure construction before calling `subject()`:
+
+```java
+public void it_uses_constructor_arguments() {
+    beConstructedWith("USD", 2);
+
+    currency().shouldReturn("USD");
+}
+
+public void it_uses_a_factory() {
+    beConstructedThrough("from", "42");
+
+    value().shouldReturn(42);
+}
+```
+
+Generation can preserve, comment, or delete constructor-related skeleton code according to the selected constructor policy.
+
+## PHPSpec-style example data
+
+Use example data when one behavior needs a few concrete examples but a Cucumber `Scenario Outline` or
+JUnit parameterized test would add ceremony. The public `it_*` method remains the behavior example;
+rows execute inside that example and failing rows include row context in the assertion message.
+
+```java
+public void it_normalizes_known_inputs() {
+    examples(row("  Alice  ", "Alice"), row("Bob", "Bob"))
+        .verify(new Example2<String, String>() {
+            @Override
+            public void run(String input, String expected) {
+                match(subject().normalize(input)).shouldReturn(expected);
+            }
+        });
+}
+```
+
+`Example1` and `Example2` callbacks are available in core and keep the API Java 8-compatible without
+Jupiter dependencies. JSON/JUnit XML/JUnit Platform row reporting and selector boundaries are frozen
+in `docs/example-data-contract-1.0.md`; row selectors filter adapter descriptors/events and do not
+turn rows into isolated Jupiter parameterized invocations.
+
+## Doubles
+
+### Interface doubles in core
+
+Core doubles use JDK dynamic proxies and require no extra dependencies:
+
+```java
+InterfaceDouble<Notifier> notifier = interfaceDouble(Notifier.class);
+notifier.control().returns("send", true);
+
+beConstructedWith(notifier.instance());
+match(subject().notify("hello")).shouldReturn(true);
+notifier.control().verifyCalled("send", "hello");
+```
+
+Argument matchers, throwing stubs, and answer callbacks are supported:
+
+```java
+import static io.github.jvmspec.doubles.Doubles.any;
+import static io.github.jvmspec.doubles.Doubles.eq;
+
+notifier.control().returnsFor("send", true, eq("alerts"), any(String.class));
+notifier.control().verifyCalled("send", eq("alerts"), any(String.class));
+```
+
+Core doubles support ordinary interfaces only. Concrete classes, final classes, static methods, and constructors are not mocked by the core runtime.
+
+Advanced stubbing APIs (all zero-dependency, all in core):
+
+```java
+// Sequential returns — each call returns the next value; last value repeats
+notifier.control().when("send").thenReturn(true, false, true);
+
+// Exhaustion policy — return values then throw
+notifier.control().when("fetch").thenReturnThenThrow(new NoSuchElementException(), "a", "b");
+
+// Sequential answer callbacks
+notifier.control().when("transform").thenAnswerSequence(
+    inv -> "first:"  + inv.argument(0),
+    inv -> "second:" + inv.argument(0)
+);
+
+// Argument captor
+ArgumentCaptor<String> captor = ArgumentCaptor.create();
+notifier.control().when("send", captor).thenReturn(true);
+notifier.instance().send("hello");
+assertEquals("hello", captor.value());
+
+// Ordered verification
+notifier.control().verifyInOrder("prepare", "send", "cleanup");
+notifier.control().verifyCalledBefore("prepare", "send");
+```
+
+### Optional bytecode concrete-class doubles
+
+Install and add the standalone adapter only when you need non-final concrete-class doubles:
+
+```sh
+mvn -q -f javaspec-bytecode-doubles/pom.xml -DskipTests install
+```
+
+```xml
+<dependency>
+  <groupId>io.github.jvmspec</groupId>
+  <artifactId>javaspec-bytecode-doubles</artifactId>
+  <version>1.0.0-RC1</version>
+  <scope>test</scope>
+</dependency>
+```
+
+Example:
+
+```java
+import io.github.jvmspec.doubles.Doubles;
+import io.github.jvmspec.doubles.InterfaceDouble;
+
+InterfaceDouble<DataStore> storeDouble = Doubles.concreteDouble(DataStore.class);
+storeDouble.control().returns("save", true);
+beConstructedWith(storeDouble.instance());
+match(subject().save("item")).shouldReturn(true);
+```
+
+The adapter is ByteBuddy-based and lives outside the core artifact. It supports non-final concrete classes only and explicitly rejects final classes, enums, arrays, annotations, primitives, and interfaces. See [`examples/bytecode-doubles-basic/`](examples/bytecode-doubles-basic/).
+
+### Optional bytecode agent doubles
+
+Install and add the standalone agent adapter when you need final-class, static-method, or
+construction-aware doubles:
+
+```sh
+mvn -q -f javaspec-bytecode-agent/pom.xml -DskipTests install
+```
+
+```xml
+<dependency>
+  <groupId>io.github.jvmspec</groupId>
+  <artifactId>javaspec-bytecode-agent</artifactId>
+  <version>1.0.0-RC1</version>
+  <scope>test</scope>
+</dependency>
+```
+
+The module supports dynamic self-attach through ByteBuddy Agent when the JVM allows it. You can also
+start tests with `-javaagent:javaspec-bytecode-agent.jar` to make instrumentation available before
+execution.
+
+```java
+// Final concrete class instance-method double
+InterfaceDouble<FinalGreeter> greeter = Doubles.concreteDouble(FinalGreeter.class);
+greeter.when("greet", "Ada").thenReturn("stubbed Ada");
+assertEquals("stubbed Ada", greeter.instance().greet("Ada"));
+
+// Static method double; close() restores original behavior for later calls
+try (StaticDouble<StaticUtility> statics = BytecodeAgentDoubles.staticDouble(StaticUtility.class)) {
+    statics.when("message", "x").thenReturn("stubbed x");
+    assertEquals("stubbed x", StaticUtility.message("x"));
+}
+
+// Construction-aware double; subsequently created instances are registered
+try (ConstructionDouble<ConstructedGreeter> construction =
+         BytecodeAgentDoubles.mockConstruction(ConstructedGreeter.class)) {
+    construction.when("name").thenReturn("stubbed");
+    assertEquals("stubbed", new ConstructedGreeter().name());
+}
+```
+
+While a static double is active, unstubbed static calls return normal javaspec default values
+(`null`, `0`, `false`, etc.) instead of executing the original method. Closing the handle removes the
+static/construction registration; the class remains instrumented, but unregistered calls fall through
+to original behavior. See [`examples/bytecode-agent-basic/`](examples/bytecode-agent-basic/) for a
+Maven example covering final-class and static-method doubles.
+
+## Prophecy-Style Doubles
+
+Inspired by [phpspec/prophecy](https://github.com/phpspec/prophecy), javaspec provides a
+declarative doubles API built around prophecies, promises, and predictions.
+
+Doubles replace **dependencies** of the subject under test — interfaces that the subject
+collaborates with — not the subject itself.
+
+The recommended PHPSpec-like collaborator style is the generated typed `*Prophecy` wrapper:
+write `MailerProphecy mailer = prophesizeMailer();`, configure promises with
+`mailer.send(...).willReturn(...)`, inject `mailer.reveal()`, then add predictions such as
+`mailer.send(...).shouldBeCalled()`. The lower-level reflective `mailer.method("send", ...)` form is
+available as a bootstrap/fallback API, but should not be the primary style in user specs once the
+wrapper has been generated.
+
+### Typed wrapper API (recommended PHPSpec-like syntax)
+
+For concise, method-name-safe syntax, generate typed `*Prophecy` wrapper classes using the
+reflection-based generator:
+
+```sh
+javaspec prophesize com.example.Mailer
+```
+
+This produces `MailerProphecy extends ObjectProphecy<Mailer>` with typed delegation methods,
+so you can call `mailer.send(...)` instead of `mailer.method("send", ...)`:
+
+```java
+import static io.github.jvmspec.doubles.prophecy.Argument.*;
+
+public class UserServiceSpec extends UserServiceSpecSupport {
+    public void it_sends_a_welcome_email() {
+        MailerProphecy mailer = prophesizeMailer();
+
+        mailer.send(any(String.class), any(String.class), any(String.class))
+            .willReturn(true)
+            .shouldBeCalled();
+
+        setMailer(mailer.reveal());
+        sendWelcomeEmail("user@example.com");
+
+        checkPredictions();
+    }
+}
+```
+
+On Java 10+, the same generated helper also supports local-variable inference while keeping the same
+typed PHPSpec-like method syntax:
+
+```java
+var mailer = prophesizeMailer();
+mailer.send(any(String.class), any(String.class), any(String.class))
+    .willReturn(true)
+    .shouldBeCalled();
+```
+
+The typed wrapper and the support helper are generated under `target/generated-sources/javaspec`.
+The wrapper is not written to `src/`; Java 8 specs name the wrapper type explicitly, while Java 10+
+specs can hide it with `var`.
+
+Predictions are checked by calling `checkPredictions()` at the end of an example, or automatically
+when `--auto-check-predictions` is enabled.
+
+You can also receive supported collaborators as PHPSpec-style parameters on `let`, examples, and
+`letGo`. For one example run, parameters are resolved in declared method-parameter order and the same
+typed prophecy is reused across lifecycle and example methods. Declare each collaborator type at
+most once per method; duplicate same-type parameters are reported as ambiguous:
+
+```java
+public void let(MailerProphecy mailer) {
+    mailer.send("user@example.com").willReturn(true).shouldBeCalled();
+    setMailer(mailer.reveal());
+}
+
+public void it_sends_a_welcome_email(MailerProphecy mailer) {
+    sendWelcomeEmail("user@example.com");
+}
+```
+
+### Reflective API (bootstrap/fallback)
+
+The core prophecy types live in `io.github.jvmspec.doubles.prophecy`:
+
+| Type | Purpose |
+|---|---|
+| `ObjectProphecy<T>` | Prophecy about an object of type `T` — wraps an `InterfaceDouble<T>` produced by core interface doubles or an optional concrete-double adapter |
+| `MethodProphecy<R>` | Prophecy about a specific method call — stub setup and predictions |
+| `Promise<R>` | A promised return value or side-effect (`willReturn`, `willThrow`, `will`) |
+| `Prediction` | A verification that a method was called, not called, or called N times |
+| `PredictionRegistry` | Collects predictions and checks them all at once |
+| `Argument` / `Arg` | Static matcher DSL (`any()`, `eq()`, `same()`, `in()`, `notIn()`, `matching()`, `containingString()`, `isNull()`, `notNull()`) |
+
+Use `ObjectBehavior.prophesize(Class<T>)` when the typed wrapper/helper has not been generated yet:
+
+```java
+ObjectProphecy<Mailer> mailer = prophesize(Mailer.class);
+mailer.method("send", any(String.class), any(String.class), any(String.class))
+        .willReturn(true)
+        .shouldBeCalled();
+```
+
+A common workflow is to start with the reflective call, run `javaspec run --generate`, then switch
+the concrete spec to the generated `MailerProphecy` / `prophesizeMailer()` syntax.
+
+### Generating wrappers via CLI
+
+```sh
+javaspec prophesize <fqcn>                  # generate wrapper to generated-sources/
+javaspec prophesize <fqcn> --output <dir>   # custom output directory
+javaspec prophesize <fqcn> --package <pkg>  # custom target package
+javaspec prophesize <fqcn> --overwrite      # replace existing file
+javaspec prophesize <fqcn> --dry-run        # preview without writing
+```
+
+### Auto-generation during `javaspec run`
+
+When `javaspec run --generate` is used, javaspec scans spec files for `prophesize(...)` and
+`prophecy(...)` calls, detects missing wrapper classes, and generates them automatically. It also
+updates the generated `*SpecSupport` class with typed helpers such as `prophesizeMailer()` and
+`prophecyMailer()` under `target/generated-sources/javaspec` only:
+
+```sh
+javaspec run --generate --compile --formatter pretty
+```
+
+A common workflow is to write `prophesize(Mailer.class)` first, run generation once, then switch the
+spec to the recommended typed helper (`MailerProphecy mailer = prophesizeMailer();`). Generated typed
+wrappers include argument-token overloads, so calls such as `mailer.send(any(String.class))` keep the
+PHPSpec-like wrapper syntax instead of requiring reflective `method("send", ...)` fallback.
+
+### Argument matchers
+
+Import from `Argument`:
+
+```java
+import static io.github.jvmspec.doubles.prophecy.Argument.*;
+```
+
+| Matcher | Description |
+|---|---|
+| `any()` | Matches any value, including null |
+| `any(Class<?>)` | Matches null or any value assignable to the type |
+| `eq(Object)` | Matches using javaspec's array-aware equality |
+| `isNull()` | Matches only null |
+| `notNull()` | Matches any non-null argument |
+| `containingString(String)` | Matches strings containing a substring |
+| `same(Object)` / `identicalTo(Object)` | Matches the same object reference |
+| `in(Object...)` / `notIn(Object...)` | Matches membership using array-aware equality |
+| `matching(Predicate<Object>, String)` | Matches with a custom callback and diagnostic description |
+| `token(ArgumentToken)` / `custom(ArgumentToken)` | Uses a named custom Prophecy-style token |
+
+Custom prediction callbacks are available when built-in predictions are not expressive enough:
+
+```java
+mailer.send(any(String.class)).should(context -> {
+    if (context.callCount() < 2) {
+        throw new AssertionError("expected at least two mail sends");
+    }
+});
+```
+
+The callback receives matching calls, all calls, the method name, and the argument pattern through
+`PredictionContext`.
+
+### Auto-check predictions
+
+Enable automatic prediction verification after each example via CLI flag:
+
+```sh
+javaspec run --auto-check-predictions
+```
+
+Or programmatically in a spec:
+
+```java
+public UserServiceSpec() {
+    super(UserService.class);
+    setAutoCheckPredictions(true);
+}
+```
+
+When enabled, the runner calls `checkPredictions()` after each example. If any prediction fails,
+the example is marked FAILED with a descriptive message.
+
+### Full example
+
+See [`examples/prophecy-basic/`](examples/prophecy-basic/) for a complete working example with an
+interface to prophesize, the recommended typed-wrapper syntax, the reflective bootstrap/fallback
+form, and a standalone verification test.
+
+## Reports
+
+The CLI and adapters can write both JSON and JUnit XML-compatible reports:
+
+```sh
+java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main run \
+  --compile \
+  --report target/javaspec-report.json \
+  --junit-xml target/javaspec-report.xml
+```
+
+Notes:
+
+- JSON reports use `schemaVersion: 1` and include stable ids, status counts, pending counts, source metadata where available, and optional run metadata/properties.
+- JUnit XML-compatible reports map skipped and pending examples to `<skipped>` elements.
+- Report write failures exit with code `70`.
+- Schema and golden examples: [`docs/schemas/run-report-v1.schema.json`](docs/schemas/run-report-v1.schema.json), [`docs/examples/reports/`](docs/examples/reports/).
+
+## Configuration
+
+Without a config file, javaspec uses conventional defaults:
+
+- suite: `default`
+- spec root: `src/test/java`
+- source root: `src/main/java`
+- spec package prefix: `spec`
+- production package prefix: empty
+- profile: `java8`
+- formatter: `progress`
+- constructor policy: `comment`
+
+A small line-based config avoids adding parser dependencies:
+
+```properties
+profile=java17
+formatter=pretty
+report=target/javaspec/run-report.json
+junit-xml=target/javaspec/junit-report.xml
+constructor-policy=comment
+
+suite.domain.spec-dir=src/spec/java
+suite.domain.source-dir=src/main/java
+suite.domain.spec-package-prefix=spec
+suite.domain.package-prefix=com.example
+suite.domain.bootstrap=com.example.SpecBootstrap
+```
+
+Use it with:
+
+```sh
+java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main run --config javaspec.conf --suite domain
+```
+
+CLI options override matching config values where an override exists.
+
+## Compilation
+
+javaspec is classpath/reflection based by default. Source/spec compilation is explicit:
+
+```sh
+java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main run --compile
+java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main run --compile-output target/javaspec-classes
+java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main run --compile --release 8
+java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main run --compile --resolve-pom pom.xml
+```
+
+Compilation uses the current JDK `javax.tools.JavaCompiler` API. It can use `--release <N>` on
+Java 9+ compilers, caches unchanged source compilation inputs, and can resolve simple Maven POM test
+classpath entries from the local Maven repository via `--resolve-pom`. It still does not fork
+`javac`; Maven and Gradle builds normally rely on their own Java compilation tasks unless their
+javaspec adapter settings opt into javaspec compilation.
+
+## Compatibility and boundaries
+
+- The core artifact remains Java 8-compatible and zero-runtime-dependency.
+- Maven artifacts use group `io.github.jvmspec`; stable `0.1.0` is available, while RC/final
+  availability must be verified directly. The Gradle Plugin Portal id is `io.github.jvmspec`.
+- The Maven plugin, Gradle plugin, JUnit Platform engine, bytecode doubles adapter, and bytecode agent adapter are standalone optional artifacts outside the root Maven reactor.
+- Repository-root `mvn verify` is intentionally core-only.
+- `scripts/verify-all.sh` verifies the core, optional adapters, and standalone examples together.
+- Non-final concrete-class doubles require the optional ByteBuddy subclass adapter; final-class, static-method, and construction-aware doubles require the optional bytecode agent adapter.
+- Compilation is opt-in; it supports local-POM dependency resolution, incremental cache hits, and `--release <N>`, but does not fork `javac`.
+- Target profiles (`java8`, `java11`, `java17`, `java21`, `java25`) are enforced conservatively before generation/update writes where metadata is resolvable.
+- Extension, formatter, bootstrap, parser, and dependency-resolver SPI semantics are frozen in `docs/extension-spi-1.0.md`; package scanning, plugin lookup, script engines, typed event model v2, and automatic classpath repair are out of scope.
+
+## Development and verification
+
+For day-to-day core verification:
 
 ```sh
 mvn verify
 mvn dependency:tree -Dscope=runtime
 ```
 
-Latest verification after the Phase 12 Distrobox multi-JDK matrix: Distrobox `1.8.2.5` with Podman `5.8.2` ran Maven `3.9.16` Temurin containers for Java 8 (`1.8.0_492`), Java 11 (`11.0.31`), Java 17 (`17.0.19`), Java 21 (`21.0.11 LTS`), and Java 25 (`25.0.3 LTS`). Every container passed `mvn clean` and `mvn verify` with 364 tests, 0 failures, 0 errors, and 0 skipped. JDK 17+ produced only expected `-source 8` / `-target 1.8` warnings. The Java 25 runtime Gatherer reflection probe passed, and `mvn dependency:tree -Dscope=runtime` in the Java 25 container showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`. Blockers: none. See [`docs/test-report.md`](docs/test-report.md).
-
-The Maven compiler configuration targets Java 8 (`source`/`target` 1.8). The packaged runtime has no third-party dependencies.
-
-After packaging, run the CLI with the jar, or substitute an installed `javaspec` launcher when one exists:
+For aggregate local verification of core, standalone adapters, and examples:
 
 ```sh
-java -jar target/javaspec-0.1.0-SNAPSHOT.jar --help
-java -jar target/javaspec-0.1.0-SNAPSHOT.jar describe <ClassName> [--config <file>] [--suite <name>] [--spec-dir <dir>]
-java -jar target/javaspec-0.1.0-SNAPSHOT.jar desc <ClassName> [--config <file>] [--suite <name>] [--spec-root <dir>]
-java -jar target/javaspec-0.1.0-SNAPSHOT.jar run [--config <file>] [--suite <name>] [--spec-dir <dir>] [--source-dir <dir>] [--generate] [--dry-run] [--stop-on-failure] [--formatter <progress|pretty>] [--profile <java8|java11|java17|java21|java25>] [--verbose] [--report <file>] [--report-file <file>] [--constructor-policy <delete|preserve|comment>] [--class <name>] [--example <name>]
+scripts/verify-all.sh
 ```
 
-Without `--config`, javaspec infers defaults: suite `default`, spec root `src/test/java`, source root `src/main/java`, spec package prefix `spec`, production package prefix empty, profile `java8`, formatter `progress`, constructor policy `comment`, and empty bootstrap hooks. `--config <file>` loads a restricted line-based configuration file, and `--suite <name>` selects a configured suite. Selected-suite paths and package prefixes drive spec/source naming unless overridden by `--spec-dir`/`--spec-root` or `--source-dir`/`--source-root`. `run` uses the configured constructor policy, profile, and formatter unless CLI options override them; repeatable `--class <name>` and `--example <name>` filters limit discovery and execution by described/spec class and example method/display name/order index. Run-only options such as `--generate`, `--dry-run`, `--stop-on-failure`, `--formatter`, `--profile`, `--verbose`, `--report`, `--report-file`, `--constructor-policy`, `--class`, and `--example` are rejected for `describe`.
-
-After discovery, generation, and source updates complete without declined prompts, `run` invokes the reflection runner for discovered examples. PASSED examples complete normally; AssertionError is FAILED; non-assertion throwables, lifecycle errors, instantiation errors, and reflection errors are BROKEN; non-loadable spec classes and missing reflected example methods are SKIPPED. By default every discovered example metadata entry is processed; `--stop-on-failure` stops after the first FAILED or BROKEN executable example. `--formatter progress` prints concise summary-oriented output, while `--formatter pretty` prints per-example status lines plus details. Built-in output now uses the public `RunFormatter` contract and deterministic `RunFormatterRegistry`, but the CLI does not yet load external extension-provided formatters. `--profile` selects and validates one of the configured LTS profile keys but does not yet perform deep profile enforcement. The CLI runner does not compile source or spec files itself, so source-only or otherwise unavailable spec classes are discovered but skipped rather than executed.
-
-`run --report <file>` writes a UTF-8 JSON runner report; `--report-file <file>` is an alias. The report contains `schemaVersion: 1`, aggregate summary counts, specs, examples, nullable failure details, throwable class/message, and stack trace lines. Passing, failing, broken, skipped-only, and no-spec runs write reports after normal summary/no-spec output; failed or broken executable examples still exit `1` after the report is written. Dry-run pending generation/update exits before execution and does not write a report. Report write failures print I/O diagnostics and exit `70`.
-
-`run --dry-run` performs discovery and planning without writes and without prompts. It reports would-generate/would-update actions for related specs/support, support updates, constructor changes, method bodies/declarations/elements, and missing production type generation. Dry-run exits `1` when pending generation/update work exists; when no pending changes exist, executable examples are handled normally and passed or skipped-only runs exit `0`.
-
-Examples:
+For release dry-run verification of packaged artifacts and consumer examples:
 
 ```sh
-# Describe creates only the PHPSpec-style spec skeleton.
-java -jar target/javaspec-0.1.0-SNAPSHOT.jar describe org.example.Calculator --spec-dir /tmp/javaspec-demo/src/test/java
-# creates /tmp/javaspec-demo/src/test/java/spec/org/example/CalculatorSpec.java
-
-# Run discovers specs. If the described production type is missing, it asks whether to create it.
-java -jar target/javaspec-0.1.0-SNAPSHOT.jar run --spec-dir /tmp/javaspec-demo/src/test/java --source-dir /tmp/javaspec-demo/src/main/java
-# Do you want me to create org.example.Calculator for you? [Y/n]
-
-# Explicit generation belongs to run and answers yes non-interactively.
-java -jar target/javaspec-0.1.0-SNAPSHOT.jar run --spec-dir /tmp/javaspec-demo/src/test/java --source-dir /tmp/javaspec-demo/src/main/java --generate
-
-# Configured suite paths can be selected with --config and --suite.
-java -jar target/javaspec-0.1.0-SNAPSHOT.jar describe org.example.Calculator --config javaspec.conf --suite domain
-java -jar target/javaspec-0.1.0-SNAPSHOT.jar run --config javaspec.conf --suite domain --generate
-
-# Run controls and JSON reports are run-only.
-java -jar target/javaspec-0.1.0-SNAPSHOT.jar run --dry-run
-java -jar target/javaspec-0.1.0-SNAPSHOT.jar run --stop-on-failure --formatter pretty --profile java17 --verbose
-java -jar target/javaspec-0.1.0-SNAPSHOT.jar run --report target/javaspec-report.json
-java -jar target/javaspec-0.1.0-SNAPSHOT.jar run --report-file target/javaspec-report.json --verbose
+scripts/verify-release-dry-run.sh
 ```
 
-Exit codes: `0` for success/help/generated-or-existing targets, successful dry-runs with no pending generation/update work, and successful or skipped-only executable runs; `1` when missing production types or method updates are not generated after a prompt is declined or unavailable, when dry-run finds pending generation/update work, or when executable examples fail or break; `64` for invalid arguments; and `70` for I/O errors, including report write failures.
+For examples only:
 
-## Interface Doubles
+```sh
+scripts/verify-examples.sh
+```
 
-`org.javaspec.doubles` provides zero-runtime-dependency interface doubles built with `java.lang.reflect.Proxy`. Create a proxy with `Doubles.create(Foo.class)`, `Doubles.of(Foo.class)`, or `Doubles.proxy(Foo.class)`, or create a typed handle with `Doubles.interfaceDouble(Foo.class)`. `ObjectBehavior` also exposes `doubleFor`, `interfaceDouble`, `doubleControl`/`inspectDouble`, call-history, call-count, and called/not-called/count assertion helpers.
+Version alignment across the root project and standalone adapters:
 
-Doubles support ordinary interfaces only. Unsupported inputs are rejected with clear diagnostics: `null`, primitives, arrays, annotations, enums, concrete classes, and final classes. Stubs can match any arguments by method name or exact arguments with `when(...).thenReturn(...)`, `returns(...)`, and `returnsFor(...)`; exact argument comparison handles `null` values and array contents. Unstubbed interface methods return Java defaults and `void` methods are no-ops. Calls are recorded as `Call` snapshots and can be inspected or verified through `called()`, `notCalled()`, `calledOnce()`, `times(n)`, and convenience methods. `toString`, `equals`, and `hashCode` are deterministic.
+```sh
+scripts/check-version-alignment.sh
+```
 
-Limitations: no concrete class/final class/static/constructor doubles, no wildcard argument matchers, no exception/callback stubbing, no bytecode-library integration in core, and default interface methods are not invoked.
+Detailed verification evidence is maintained in [`docs/test-report.md`](docs/test-report.md). The implementation plan and status history live in [`PLAN.md`](PLAN.md), not at the top of this README.
 
-## Java LTS Targeting Concept
+## Examples and deeper documentation
 
-javaspec runs as a Java 8-compatible binary while understanding target profiles:
+Start here:
 
-| LTS version | Profile key | Runtime strategy |
-|---|---|---|
-| Java 8 | `java8` | Direct use of Java 8 public APIs is allowed and representative data-structure symbols are cataloged. |
-| Java 11 | `java11` | APIs introduced in 9-11 are stored as metadata and reflected only when running on a compatible JDK. |
-| Java 17 | `java17` | APIs introduced in 12-17 are metadata-driven; stream additions, records, and sealed types are modeled without compile-time linkage. |
-| Java 21 | `java21` | Sequenced collection APIs are modeled by names and reflected conditionally. |
-| Java 25 | `java25` | Stream gatherer metadata is implemented for `java.util.stream.Gatherer`, nested gatherer types, and `java.util.stream.Gatherers`; runtime availability is still probed reflectively. |
+- [`examples/README.md`](examples/README.md) — standalone consumer examples.
+- [`examples/maven-basic/`](examples/maven-basic/) — Maven plugin adoption.
+- [`examples/gradle-basic/`](examples/gradle-basic/) — Gradle plugin adoption.
+- [`examples/junit-platform-basic/`](examples/junit-platform-basic/) — JUnit Platform adoption.
+- [`examples/bytecode-doubles-basic/`](examples/bytecode-doubles-basic/) — optional non-final concrete-class doubles.
+- [`examples/bytecode-agent-basic/`](examples/bytecode-agent-basic/) — optional final-class and static-method doubles.
+- [`docs/usermanual/Home.md`](docs/usermanual/Home.md) — user manual with more CLI details.
+- [`docs/release-notes-1.0.0.md`](docs/release-notes-1.0.0.md) — 1.0 RC release notes.
+- [`docs/compatibility-policy-1.0.md`](docs/compatibility-policy-1.0.md), [`docs/java-compatibility-1.0.md`](docs/java-compatibility-1.0.md), and [`docs/troubleshooting.md`](docs/troubleshooting.md) — 1.0 policy, Java matrix, and diagnostics.
+- [`docs/migration-guide-1.0.md`](docs/migration-guide-1.0.md), [`docs/junit-to-javaspec-guide.md`](docs/junit-to-javaspec-guide.md), and [`docs/cucumber-boundary.md`](docs/cucumber-boundary.md) — migration and boundary guides.
+- [`javaspec-gradle-plugin/README.md`](javaspec-gradle-plugin/README.md) — Gradle plugin details.
+- [`javaspec-junit-platform-engine/README.md`](javaspec-junit-platform-engine/README.md) — JUnit Platform engine details.
+- [`CHANGELOG.md`](CHANGELOG.md) — release-change log scaffold.
+- [`RELEASING.md`](RELEASING.md) — release-readiness checklist and publication blockers.
 
-The implemented catalog is based on the Java data-structure research in [`docs/research/java-lts-data-structures.md`](docs/research/java-lts-data-structures.md).
+Architecture and decisions:
 
-## Future Usage Vision
-
-The implemented MVP covers `describe`/`desc` for PHPSpec-style spec/support skeleton generation, a `run` command that maps discovered `*Spec.java` files under the active naming convention to described production classes, interfaces, enums, annotations, records, sealed classes, and sealed interfaces, Phase 4 configuration files for defaults, suite path selection, package-prefix naming, class/example filters, selected profile/formatter defaults, bootstrap metadata, and constructor-policy defaults, the Phase 5/6 reflection runner for executable examples that are already compiled and available on the effective classloader, the Phase 7 matcher/expectation expansion, Phase 8 interface doubles, Phase 9 run controls for dry-run planning, stop-on-failure, progress/pretty formatting, profile selection, and verbose diagnostics, the Phase 10 interface-style method generation increment for missing/existing ordinary interfaces and annotations plus missing sealed-interface skeletons, and the Phase 11 formatter/reporting/extension increment with JSON run reports and minimal programmatic extension contracts. Later phases are planned to expand the phpspec-inspired workflow with bootstrap execution, deeper profile-aware enforcement, pending examples, external extension loading, advanced double integrations, and richer optional integrations.
-
-Future integration phases are roadmap only and are not implemented yet. The intended order is a no-JUnit test integration foundation first, including a programmatic no-`System.exit` invocation API, explicit classpath input, dependency-free JUnit XML-compatible reports, and stable CI behavior; then optional Maven and Gradle plugins that delegate to the canonical javaspec runner without requiring JUnit; then a separate optional JUnit Platform engine for IDE/CI integration. JUnit must remain optional: the core runner stays in javaspec, no-JUnit CLI/build-tool execution remains first-class, and the core runtime must not gain a JUnit dependency.
-
-The stabilized discovery and execution flow honors configured suite package prefixes through `SpecNamingConvention`, maps described classes to generated specs/support files with those prefixes, selects suites with `--suite`, filters classes with repeatable `--class <qualified-or-simple-name>`, filters examples with repeatable `--example <method-name|display-name|order-index>`, and applies `run`-only controls before generation and reflection execution. The broader intended workflow remains:
-
-1. Describe a Java type, generating or locating a matching specification class.
-2. Run specs.
-3. Let the run phase ask whether to generate missing production code, or answer yes non-interactively with `--generate`.
-4. Run examples expressed with javaspec expectations.
-5. Use interface collaborators/doubles where possible without runtime dependencies.
-6. Render human-readable failures and, when requested, write JSON runner reports with stable exit codes.
-
-## Documentation Map
-
-- [`docs/usermanual/Home.md`](docs/usermanual/Home.md) — user manual with CLI examples and PHPSpec-to-Java migration notes.
-- [`PLAN.md`](PLAN.md) — phased implementation plan and requirement traceability.
-- [`docs/test-report.md`](docs/test-report.md) — Phase 12 test and quality matrix.
-- [`docs/arc42/01-introduction-and-goals.md`](docs/arc42/01-introduction-and-goals.md) — goals and quality requirements.
-- [`docs/arc42/02-constraints.md`](docs/arc42/02-constraints.md) — technical and organizational constraints.
-- [`docs/arc42/03-context-and-scope.md`](docs/arc42/03-context-and-scope.md) — system context and boundaries.
-- [`docs/arc42/04-solution-strategy.md`](docs/arc42/04-solution-strategy.md) — initial architecture strategy.
-- [`docs/arc42/05-building-block-view.md`](docs/arc42/05-building-block-view.md) — building-block notes, including the generation boundary, CLI run controls, formatter/reporting/extension contracts, configuration model, profile catalog, and compatibility boundary.
-- [`docs/arc42/06-runtime-view.md`](docs/arc42/06-runtime-view.md) — implemented runtime scenarios for describe, run, execution, generation, doubles, reporting, and profile probes.
-- [`docs/arc42/07-deployment-view.md`](docs/arc42/07-deployment-view.md) — runtime artifact, deployment environments, classpath requirements, and verification/dependency constraints.
-- [`docs/arc42/08-concepts.md`](docs/arc42/08-concepts.md) — cross-cutting concepts, including PHPSpec-to-Java mapping and extension boundaries.
-- [`docs/arc42/09-architecture-decisions.md`](docs/arc42/09-architecture-decisions.md) — ADR index.
-- [`docs/arc42/10-quality-requirements.md`](docs/arc42/10-quality-requirements.md) — quality requirements and Phase 12 evidence.
-- [`docs/arc42/11-risks-and-technical-debt.md`](docs/arc42/11-risks-and-technical-debt.md) — current limitations, risks, and mitigation actions.
-- [`docs/arc42/12-glossary.md`](docs/arc42/12-glossary.md) — glossary of javaspec architecture and user-facing terms.
-- [`docs/adr/0001-java-8-baseline-with-lts-target-profiles.md`](docs/adr/0001-java-8-baseline-with-lts-target-profiles.md) — Java compatibility decision.
-- [`docs/adr/0002-zero-runtime-dependency-policy.md`](docs/adr/0002-zero-runtime-dependency-policy.md) — dependency policy decision.
-- [`docs/adr/0003-course-correction-move-class-creation-suggestion-into-first-mvp.md`](docs/adr/0003-course-correction-move-class-creation-suggestion-into-first-mvp.md) — first-MVP PHPSpec-style describe/run generator split.
-- [`docs/adr/0004-course-correction-construction-defaults-typed-matcher-proxies-and-method-generators.md`](docs/adr/0004-course-correction-construction-defaults-typed-matcher-proxies-and-method-generators.md) — implemented construction, typed matcher proxy, and method-generator correction.
-- [`docs/adr/0005-restricted-line-based-configuration-format.md`](docs/adr/0005-restricted-line-based-configuration-format.md) — restricted zero-dependency configuration format decision.
-- [`docs/adr/0006-classpath-reflection-runner.md`](docs/adr/0006-classpath-reflection-runner.md) — classpath reflection runner decision for the Phase 5/6 MVP.
-- [`docs/adr/0007-jdk-proxy-only-interface-doubles.md`](docs/adr/0007-jdk-proxy-only-interface-doubles.md) — JDK proxy-only interface doubles decision for the Phase 8 MVP.
-- [`docs/adr/0008-run-only-controls-and-non-mutating-dry-run-planning.md`](docs/adr/0008-run-only-controls-and-non-mutating-dry-run-planning.md) — run-only controls and dry-run planning decision for Phase 9.
-- [`docs/adr/0009-interface-style-method-generation-and-sealed-interface-update-deferral.md`](docs/adr/0009-interface-style-method-generation-and-sealed-interface-update-deferral.md) — Phase 10 interface/annotation/sealed-interface generation decision.
-- [`docs/adr/0010-zero-dependency-formatter-reporting-and-programmatic-extension-boundary.md`](docs/adr/0010-zero-dependency-formatter-reporting-and-programmatic-extension-boundary.md) — Phase 11 formatter, JSON reporting, and programmatic extension boundary decision.
-- [`docs/adr/0011-optional-junit-adapter-and-canonical-javaspec-runner.md`](docs/adr/0011-optional-junit-adapter-and-canonical-javaspec-runner.md) — optional JUnit adapter and canonical javaspec runner decision for future integrations.
-- [`docs/research/phpspec-feature-inventory.md`](docs/research/phpspec-feature-inventory.md) — phpspec feature inventory for the Java port.
+- [`PLAN.md`](PLAN.md) — implementation plan and requirement traceability.
+- [`docs/arc42/`](docs/arc42/) — architecture documentation.
+- [`docs/arc42/01-introduction-and-goals.md`](docs/arc42/01-introduction-and-goals.md)
+- [`docs/arc42/02-constraints.md`](docs/arc42/02-constraints.md)
+- [`docs/arc42/03-context-and-scope.md`](docs/arc42/03-context-and-scope.md)
+- [`docs/arc42/04-solution-strategy.md`](docs/arc42/04-solution-strategy.md)
+- [`docs/arc42/05-building-block-view.md`](docs/arc42/05-building-block-view.md)
+- [`docs/arc42/06-runtime-view.md`](docs/arc42/06-runtime-view.md)
+- [`docs/arc42/07-deployment-view.md`](docs/arc42/07-deployment-view.md)
+- [`docs/arc42/08-concepts.md`](docs/arc42/08-concepts.md)
+- [`docs/arc42/09-architecture-decisions.md`](docs/arc42/09-architecture-decisions.md)
+- [`docs/arc42/10-quality-requirements.md`](docs/arc42/10-quality-requirements.md)
+- [`docs/arc42/11-risks-and-technical-debt.md`](docs/arc42/11-risks-and-technical-debt.md)
+- [`docs/arc42/12-glossary.md`](docs/arc42/12-glossary.md)
+- [`docs/adr/`](docs/adr/) — architectural decision records.
+- [`docs/research/phpspec-feature-inventory.md`](docs/research/phpspec-feature-inventory.md) — phpspec feature inventory.
+- [`docs/research/java-lts-data-structures.md`](docs/research/java-lts-data-structures.md) — Java LTS profile research.

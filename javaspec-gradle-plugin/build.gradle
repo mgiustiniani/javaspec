@@ -1,0 +1,88 @@
+plugins {
+    id 'java-gradle-plugin'
+    id 'maven-publish'
+    id 'com.gradle.plugin-publish' version '1.3.1'
+}
+
+group = 'io.github.jvmspec'
+version = '1.0.0-RC1'
+
+description = 'Optional Gradle adapter for the javaspec runner.'
+
+ext {
+    javaspecCoreVersion = '1.0.0-RC1'
+    junitVersion = '4.13.2'
+}
+
+repositories {
+    // Resolve the local core snapshot after running `mvn install` from the repository root.
+    mavenLocal()
+    mavenCentral()
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+    withSourcesJar()
+    withJavadocJar()
+}
+
+dependencies {
+    implementation "io.github.jvmspec:javaspec:${javaspecCoreVersion}"
+
+    testImplementation gradleTestKit()
+    testImplementation "junit:junit:${junitVersion}"
+}
+
+gradlePlugin {
+    website = 'https://github.com/mgiustiniani/javaspec'
+    vcsUrl = 'https://github.com/mgiustiniani/javaspec'
+    plugins {
+        javaspec {
+            id = 'io.github.jvmspec'
+            displayName = 'javaspec'
+            description = 'PHPSpec-first specification runner for Java.'
+            tags.set(['bdd', 'phpspec', 'specification', 'testing'])
+            implementationClass = 'io.github.jvmspec.gradle.JavaspecPlugin'
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.withType(Javadoc).configureEach {
+    options.addStringOption('Xdoclint:none', '-quiet')
+}
+
+publishing {
+    publications.withType(MavenPublication).configureEach {
+        pom {
+            url = 'https://github.com/mgiustiniani/javaspec'
+            licenses {
+                license {
+                    name = 'MIT License'
+                    url = 'https://opensource.org/licenses/MIT'
+                    distribution = 'repo'
+                }
+            }
+            developers {
+                developer {
+                    name = 'Mario Giustiniani'
+                    email = 'mariogiustiniani@gmail.com'
+                    roles = ['maintainer']
+                }
+            }
+            scm {
+                connection = 'scm:git:https://github.com/mgiustiniani/javaspec.git'
+                developerConnection = 'scm:git:ssh://git@github.com/mgiustiniani/javaspec.git'
+                url = 'https://github.com/mgiustiniani/javaspec'
+            }
+            issueManagement {
+                system = 'GitHub Issues'
+                url = 'https://github.com/mgiustiniani/javaspec/issues'
+            }
+        }
+    }
+}

@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "metadata": {
+    "timestamp": "2026-01-01T00:00:00Z",
+    "hostname": "ci.example.local",
+    "time": 0,
+    "properties": {
+      "javaspec.report.schemaVersion": "1",
+      "javaspec.report.tool": "javaspec"
+    }
+  },
+  "summary": {
+    "total": 1,
+    "passed": 0,
+    "failed": 0,
+    "broken": 0,
+    "skipped": 0,
+    "pending": 1,
+    "successful": true
+  },
+  "specs": [
+    {
+      "name": "spec.com.example.PaymentSpec",
+      "id": "spec.com.example.PaymentSpec",
+      "stableId": "spec.com.example.PaymentSpec",
+      "sourceFile": "src/test/java/spec/com/example/PaymentSpec.java",
+      "executable": true,
+      "notExecutableReason": "",
+      "summary": {
+        "total": 1,
+        "passed": 0,
+        "failed": 0,
+        "broken": 0,
+        "skipped": 0,
+        "pending": 1,
+        "successful": true
+      },
+      "examples": [
+        {
+          "specName": "spec.com.example.PaymentSpec",
+          "id": "spec.com.example.PaymentSpec#it_charges_a_card",
+          "stableId": "spec.com.example.PaymentSpec#it_charges_a_card",
+          "fullName": "spec.com.example.PaymentSpec#it_charges_a_card",
+          "method": "it_charges_a_card",
+          "displayName": "it charges a card",
+          "sourceOrderIndex": 0,
+          "source": {
+            "file": "src/test/java/spec/com/example/PaymentSpec.java",
+            "line": 12
+          },
+          "status": "PENDING",
+          "detail": "waiting for billing provider",
+          "failure": null
+        }
+      ]
+    }
+  ]
+}

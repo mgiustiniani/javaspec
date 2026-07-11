@@ -12,7 +12,7 @@ The CLI currently receives Java source and spec roots but does not own project c
 
 ## Decision
 
-javaspec implements the MVP example runner as a dependency-free reflection runner in `org.javaspec.runner`.
+javaspec implements the MVP example runner as a dependency-free reflection runner in `io.github.jvmspec.runner`.
 
 After `javaspec run` completes discovery, generation, and source updates without declined prompts, it executes examples only when the compiled specification class is available on the effective classloader. The runner reuses `DiscoveredSpec` and `SpecExample` metadata, so suite, class, and example filters remain effective and unrelated examples are not executed.
 
@@ -41,15 +41,16 @@ Negative consequences and limitations:
 - The CLI runner does not compile source or spec files itself. Source-only or otherwise unavailable specification classes are skipped rather than executed.
 - Lifecycle support is intentionally minimal: public no-argument `let()` and `letGo()` only.
 - Missing reflected example methods are skipped because the source-discovered metadata and compiled class can diverge.
-- Full runner features such as pending examples, stop-on-failure, bootstrap execution, active formatter selection, richer reporting, and profile-aware execution remain future work.
+- Full runner features such as stop-on-failure, bootstrap execution, active formatter selection, richer reporting, and profile-aware execution were outside the original MVP. Stop-on-failure/formatter/reporting and explicit skipped/pending semantics are now covered by later ADRs and phases.
 
 Verification:
 
 - `mvn verify` passed with 307 tests.
-- `mvn dependency:tree -Dscope=runtime` still showed only `org.javaspec:javaspec:jar:0.1.0-SNAPSHOT`.
+- `mvn dependency:tree -Dscope=runtime` still showed only `io.github.jvmspec:javaspec:jar:0.1.0-SNAPSHOT`.
 
 Implementation follow-up:
 
 - Phase 9 implemented stop-on-failure, dry-run planning, active built-in formatter selection, profile selection, and verbose diagnostics; see [ADR 0008](0008-run-only-controls-and-non-mutating-dry-run-planning.md).
 - Phase 11 implemented optional JSON runner reports and public formatter contracts; see [ADR 0010](0010-zero-dependency-formatter-reporting-and-programmatic-extension-boundary.md).
-- Pending examples, bootstrap execution, and deep profile-aware execution remain future work.
+- Phase 22 implemented explicit skipped/pending semantics; see [ADR 0015](0015-explicit-skipped-and-pending-semantics.md).
+- Bootstrap execution and deep profile-aware execution remain future work.
