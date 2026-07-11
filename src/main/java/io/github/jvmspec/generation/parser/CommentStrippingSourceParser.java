@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
 
 /**
  * Built-in {@link JavaSourceParser} that strips line comments, block comments,
- * and string/character literals before applying structural regex queries.
+ * ordinary strings, text blocks, and character literals before applying structural regex queries.
  *
  * <p>This removes the main sources of false positives and false negatives in
  * the heuristic-based {@code ClassMethodUpdater}: a method name in a comment
@@ -45,6 +45,7 @@ public final class CommentStrippingSourceParser implements JavaSourceParser {
      *   <li>Line comments ({@code //…\n}) are replaced by spaces up to the newline.</li>
      *   <li>Block comments ({@code /*…{@literal *}/}) are replaced by spaces, newlines preserved.</li>
      *   <li>String literals ({@code "…"}) are replaced by {@code ""} plus spaces for the content.</li>
+     *   <li>Text blocks are blanked completely while preserving line breaks and offsets.</li>
      *   <li>Character literals ({@code '…'}) are replaced by {@code ''} plus spaces.</li>
      * </ul>
      */
@@ -108,16 +109,32 @@ public final class CommentStrippingSourceParser implements JavaSourceParser {
         int i = start + 1;
         // Check for text block (triple-quote) — Java 13+
         if (i + 1 < in.length && in[i] == '"' && in[i + 1] == '"') {
-            // Text block: scan for closing """
+            // Text block: blank delimiters and content, preserving offsets and line breaks. An
+            // escaped quote cannot begin the closing delimiter.
+            out[start] = ' ';
             out[i] = ' ';
             out[i + 1] = ' ';
             i += 2;
             while (i < in.length) {
+                if (in[i] == '\\') {
+                    out[i] = ' ';
+                    i++;
+                    if (i < in.length) {
+                        if (in[i] != '\n' && in[i] != '\r') {
+                            out[i] = ' ';
+                        }
+                        i++;
+                    }
+                    continue;
+                }
                 if (in[i] == '"' && i + 2 < in.length && in[i + 1] == '"' && in[i + 2] == '"') {
+                    out[i] = ' ';
+                    out[i + 1] = ' ';
+                    out[i + 2] = ' ';
                     i += 3;
                     break;
                 }
-                if (in[i] != '\n') {
+                if (in[i] != '\n' && in[i] != '\r') {
                     out[i] = ' ';
                 }
                 i++;

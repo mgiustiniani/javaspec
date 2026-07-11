@@ -507,6 +507,72 @@ public class SpecDiscoveryTest {
     }
 
     @Test
+    public void explicitlyTypedLambdaLocalContributesFunctionalInterfaceType() throws Exception {
+        File specRoot = temporaryFolder.newFolder("typed-lambda-local-root");
+        writeFile(
+                specRoot,
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator + "TransformerSpec.java",
+                "package spec.com.example;\n" +
+                "import java.util.function.Function;\n" +
+                "public class TransformerSpec extends TransformerSpecSupport {\n" +
+                "    public void it_transforms_with_a_typed_lambda() {\n" +
+                "        Function<String, String> normalizer = value -> value.trim();\n" +
+                "        transform(\" value \", normalizer).shouldReturn(\"value\");\n" +
+                "    }\n" +
+                "}\n"
+        );
+
+        MethodDescriptor method = SpecDiscovery.discover(specRoot).get(0).describedType().methods().get(0);
+
+        assertEquals(Arrays.asList("String", "java.util.function.Function<String, String>"),
+                method.parameterTypes());
+        assertTrue(!method.hasUnknownParameterTypes());
+    }
+
+    @Test
+    public void explicitGenericLambdaCastContributesFunctionalInterfaceType() throws Exception {
+        File specRoot = temporaryFolder.newFolder("cast-lambda-root");
+        writeFile(
+                specRoot,
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator + "TransformerSpec.java",
+                "package spec.com.example;\n" +
+                "public class TransformerSpec extends TransformerSpecSupport {\n" +
+                "    public void it_transforms_with_a_cast_lambda() {\n" +
+                "        transform(\" value \", (java.util.function.Function<String, String>) value -> value.trim())\n" +
+                "            .shouldReturn(\"value\");\n" +
+                "    }\n" +
+                "}\n"
+        );
+
+        MethodDescriptor method = SpecDiscovery.discover(specRoot).get(0).describedType().methods().get(0);
+
+        assertEquals(Arrays.asList("String", "java.util.function.Function<String, String>"),
+                method.parameterTypes());
+        assertTrue(!method.hasUnknownParameterTypes());
+    }
+
+    @Test
+    public void untypedInlineLambdaIsMarkedAsUnresolvedFunctionalTarget() throws Exception {
+        File specRoot = temporaryFolder.newFolder("untyped-lambda-root");
+        writeFile(
+                specRoot,
+                "spec" + File.separator + "com" + File.separator + "example" + File.separator + "TransformerSpec.java",
+                "package spec.com.example;\n" +
+                "public class TransformerSpec extends TransformerSpecSupport {\n" +
+                "    public void it_requires_a_lambda_target() {\n" +
+                "        transform(\" value \", value -> value.toString()).shouldReturn(\"value\");\n" +
+                "    }\n" +
+                "}\n"
+        );
+
+        MethodDescriptor method = SpecDiscovery.discover(specRoot).get(0).describedType().methods().get(0);
+
+        assertEquals("Object", method.parameterTypes().get(1));
+        assertTrue(method.isParameterTypeUnknown(1));
+        assertTrue(method.parameterNames().get(1).startsWith("__javaspecFunctionalArg"));
+    }
+
+    @Test
     public void classLiteralArgumentContributesClassStaticTypeForProxyCalls() throws Exception {
         File specRoot = temporaryFolder.newFolder("class-literal-root");
         writeFile(

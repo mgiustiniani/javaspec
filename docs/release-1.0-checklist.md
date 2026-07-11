@@ -13,6 +13,8 @@ This checklist is the release gate source for 1.0. It must be updated with comma
 - [x] `release/1.0.0-RC1` created from the verified `develop` release line.
 - [x] RC1 release branch merged with `--no-ff` into `main`, tagged on commit `7bd8ac4`, and merged
   back into `develop`.
+- [ ] Java 8/11/17/21/25 language-coverage closure completed according to
+  `docs/java-language-coverage-roadmap.md`, including remote-RC Java 21 dogfooding.
 - [ ] Final `1.0.0` prepared from verified RC or documented RC fix commit.
 - [ ] Post-release snapshot bump complete.
 
@@ -172,4 +174,6 @@ After RC1:
 
 ## Final release decision
 
-The release is ready only when all P0 gates above are green, P1 deferrals are explicitly documented, and no current documentation contradicts the 1.0 contract.
+The release is ready only when all P0 gates above are green, every supported final Java construct has
+a tested generated/updated/preserved/profile-gated/intentionally-unsupported disposition, P1
+deferrals are explicitly documented, and no current documentation contradicts the 1.0 contract.

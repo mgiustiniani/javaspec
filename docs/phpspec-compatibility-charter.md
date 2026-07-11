@@ -4,7 +4,9 @@ This charter defines the product direction for javaspec as a PHPSpec-first frame
 
 ## Positioning
 
-javaspec is a Java implementation of a spec-first, subject-centric, behavior-driven experience inspired by PHPSpec. It is intended for precise behavior slices close to code: domain objects, value objects, collaborators, edge cases, and design feedback loops where Cucumber/Gherkin adds ceremony instead of clarity.
+javaspec is a spec-first, subject-centric SpecBDD framework for Java inspired specifically by the classic PHPSpec `ObjectBehavior` lineage. It is intended for precise behavior slices close to code: domain objects, value objects, collaborators, edge cases, and design feedback loops where Cucumber/Gherkin adds ceremony instead of clarity.
+
+PHPSpec 9 and later may pursue a different closure-based, unified SpecBDD/StoryBDD direction. Those releases remain valuable sources of ideas, but they do not automatically define javaspec's compatibility target. Future features are evaluated against this charter rather than copied from every present or future PHPSpec roadmap.
 
 javaspec complements, rather than replaces, Cucumber:
 
@@ -25,6 +27,8 @@ javaspec also complements, rather than clones, JUnit:
 5. **No Jupiter clone in core** — core must not adopt `@Test`, `@BeforeEach`, `@ParameterizedTest`, or Jupiter extension APIs as canonical syntax.
 6. **No Gherkin runner in core** — core must not add feature files, step definitions, or Given/When/Then DSLs.
 7. **Zero runtime dependencies in core** — dependency-heavy capabilities remain optional adapters.
+8. **Subject-centric must not mean opaque** — every concise generated proxy must have inspectable source, an identifiable subject-method mapping, and an always-supported explicit `subject()` equivalent.
+9. **Modern Java without semantic drift** — support for newer Java structures must preserve the same one-subject, meaningful-RED, mechanical-generation workflow; language compatibility must not introduce a competing authoring model.
 
 ## Canonical Java adaptation
 
@@ -88,6 +92,10 @@ public void it_normalizes_known_inputs() {
 ## 1.0 semantic core
 
 For 1.0, the PHPSpec-first semantic core is the primary release criterion. CLI, generation, reports, Maven, Gradle, JUnit Platform, doubles, and extension SPI must serve this subject-centric model rather than redefine it. The release can defer non-essential parity only when the compatibility matrix records the difference, the main spec -> RED -> skeleton -> GREEN loop remains coherent, and public documentation does not imply unsupported behavior.
+
+## Java language coverage boundary
+
+The Java 8 core runtime floor is distinct from the source level of the project under specification. Final language constructs in the supported Java 8/11/17/21/25 profiles are assigned explicit generated, updated, preserved, profile-gated, or intentionally-unsupported behavior in the [`Java language coverage roadmap`](java-language-coverage-roadmap.md). Supporting modern syntax means preserving subject-centric semantics and failing closed when a mechanical update is unsafe; it does not authorize generation of domain behavior.
 
 ## Workflow guardrails
 

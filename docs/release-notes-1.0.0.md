@@ -24,7 +24,15 @@ moving dependency-heavy behavior into optional artifacts.
   contract is frozen in `docs/extension-spi-1.0.md`; typed event model v2 is deferred, and extension
   activation temporarily sets/restores the effective run thread context classloader.
 - Parser/updater generation is backed by a parser SPI and ignores signatures inside comments and
-  strings.
+  literals, including Java text blocks. Direct-member scoping prevents methods inside local,
+  anonymous, nested, or secondary top-level types from suppressing a required subject update.
+- The JLC language-coverage harness inventories final constructs relevant to Java 8/11/17/21/25,
+  emits deterministic `COVERED`/`PLANNED` evidence, and provides a strict stable-release gate while
+  preserving the classic PHPSpec-inspired subject-centric workflow. Java 25 compact source files
+  remain valid project files but are refused fail-closed as described subjects before generation
+  writes, with guidance to use a named class-like subject. Source updates also retain CRLF style,
+  missing final newlines, UTF-8 BOM, Unicode content, and local member indentation; injected atomic
+  move failures preserve original bytes and clean temporary files.
 - Discovery now infers more static argument types before generation, including casted nulls,
   class literals, array creation expressions, Java 10+ simple `var` initializers, constructed value
   objects, and likely value-object static factory calls such as `CertificateProfileId.of("abc")`;
@@ -137,6 +145,9 @@ moving dependency-heavy behavior into optional artifacts.
   release dry-run consumers, checksums, a deterministic archived API inventory, and the Java
   8/11/17/21/25 matrix plus full Java 21 verification. The latest full branch run is
   [29139032096](https://github.com/mgiustiniani/javaspec/actions/runs/29139032096).
+- RC2 closes the strict Java-language manifest with 50 covered rows and no planned rows, adds
+  fail-closed SAM target inference, hardens modern-source preservation, and fixes clean-output
+  regeneration for matcher-only specs discovered during remote-RC dogfooding.
 - Releases follow Git Flow through `release/<version>`, a non-fast-forward merge into production
   branch `main`, an annotated tag on that merge commit, and a merge back into `develop`.
 - Release workflow
