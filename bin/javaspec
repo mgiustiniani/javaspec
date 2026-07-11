@@ -43,4 +43,19 @@ else
   exit 1
 fi
 
+if [ "${1:-}" = "--launcher-fingerprint" ]; then
+  if command -v sha256sum >/dev/null 2>&1; then
+    jar_sha256="$(sha256sum "${jar}" | awk '{print $1}')"
+  elif command -v shasum >/dev/null 2>&1; then
+    jar_sha256="$(shasum -a 256 "${jar}" | awk '{print $1}')"
+  else
+    printf 'javaspec: SHA-256 utility not found (requires sha256sum or shasum).\n' >&2
+    exit 1
+  fi
+  printf 'javaspec.launcher.version=%s\n' "${version}"
+  printf 'javaspec.launcher.jar=%s\n' "${jar}"
+  printf 'javaspec.launcher.sha256=%s\n' "${jar_sha256}"
+  exit 0
+fi
+
 exec java -jar "${jar}" "$@"
