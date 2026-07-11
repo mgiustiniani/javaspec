@@ -18,12 +18,12 @@ This document records capabilities verified while preparing the 1.0 roadmap. It 
 
 | Artifact/module | Coordinates / plugin id | Runtime baseline | Runtime dependencies | Stability for 1.0 |
 |---|---|---:|---|---|
-| Core | `io.github.jvmspec:javaspec` | Java 8 | none in runtime dependency tree | REQUIRED_FOR_1_0; API/SPI freeze pending |
-| Maven plugin | `io.github.jvmspec:javaspec-maven-plugin` | Java 8 | core + Maven APIs in plugin context | REQUIRED_FOR_1_0 if published; release workflow audit pending |
-| JUnit Platform engine | `io.github.jvmspec:javaspec-junit-platform-engine` | Java 8 | core + JUnit Platform engine APIs | REQUIRED_BEFORE_RC adapter contract audit |
-| Gradle plugin | plugin id `io.github.jvmspec` | Java 8 | core in plugin runtimeClasspath | REQUIRED_FOR_1_0 if plugin marker is published; release workflow audit pending |
-| Bytecode doubles | `io.github.jvmspec:javaspec-bytecode-doubles` | Java 8 | core + ByteBuddy | Optional adapter; preview/stable label pending |
-| Bytecode agent | `io.github.jvmspec:javaspec-bytecode-agent` | Java 8 | core + ByteBuddy + ByteBuddy Agent | Optional adapter; preview/stable label pending |
+| Core | `io.github.jvmspec:javaspec` | Java 8 | none in runtime dependency tree | REQUIRED_FOR_1_0; API/SPI frozen |
+| Maven plugin | `io.github.jvmspec:javaspec-maven-plugin` | Java 8 | core + Maven APIs in plugin context | REQUIRED_FOR_1_0; verified and included in publication workflow |
+| JUnit Platform engine | `io.github.jvmspec:javaspec-junit-platform-engine` | Java 8 | core + JUnit Platform engine APIs | REQUIRED_FOR_1_0 adapter; contract frozen |
+| Gradle plugin | plugin id `io.github.jvmspec` | Java 8 | core in plugin runtimeClasspath | REQUIRED_FOR_1_0; verified, publication pending Portal confirmation |
+| Bytecode doubles | `io.github.jvmspec:javaspec-bytecode-doubles` | Java 8 | core + ByteBuddy | Optional stable adapter for 1.0 |
+| Bytecode agent | `io.github.jvmspec:javaspec-bytecode-agent` | Java 8 | core + ByteBuddy + ByteBuddy Agent | Optional stable adapter for 1.0 |
 
 ## Implemented core capabilities
 
@@ -40,7 +40,7 @@ This document records capabilities verified while preparing the 1.0 roadmap. It 
 - Record hardening: existing-record kind preservation, record header evolution, support default construction, compact-constructor preservation, explicit record construction prefix padding at runtime.
 - Optional Maven, Gradle, JUnit Platform, bytecode doubles, and bytecode agent integrations.
 
-## Partially verified or contract-pending capabilities
+## Frozen contracts and explicitly deferred capabilities
 
 - API/SPI classification is frozen in `docs/api-surface-1.0.md`; `scripts/check-api-surface.sh` guards unclassified shipped Java packages.
 - JSON schema is versioned (`schemaVersion: 1`) and documented in `docs/result-contract-1.0.md`.
@@ -52,9 +52,9 @@ This document records capabilities verified while preparing the 1.0 roadmap. It 
 - Mutating generation paths use atomic source-file writes, and pending generated stubs produce a synthetic `BROKEN` result to prevent accidental GREEN.
 - Release dry-run coverage verifies all declared modules/artifacts and external consumer examples.
 
-## Public contracts already visible
+## Public 1.0 contract areas
 
-Areas needing classification before API freeze:
+The API freeze classifies these shipped areas in `docs/api-surface-1.0.md`:
 
 - `io.github.jvmspec.api`: `ObjectBehavior`, example data APIs, lifecycle helpers, skip/pending, Prophecy convenience hooks.
 - `io.github.jvmspec.runner`: `SpecRunner`, result model, statuses, failure detail.
@@ -74,8 +74,9 @@ Areas needing classification before API freeze:
 - Historical docs still mention previous `0.1.0` releases; current docs are guarded by `scripts/check-current-docs.sh`.
 - Historical documents may keep pre-migration package/version references only with migration context; current docs are checked automatically.
 - README, user manual, CLI/configuration/matcher/Prophecy/generation/adapter docs, migration, troubleshooting, and compatibility policy have 1.0 contract coverage.
-- Release notes now use `docs/release-notes-1.0.0.md`; content still needs final RC evidence.
-- Release engineering docs now cover the real artifact set and Gradle Plugin Portal marker path; final RC/final tag evidence is still recorded at release time.
+- Release notes use `docs/release-notes-1.0.0.md`; successful publication evidence is still pending.
+- Release engineering docs cover the real artifact set, Git Flow through `main`/`develop` and
+  `release/*`, Maven Central signing/deployment, and the Gradle Plugin Portal marker path.
 
 ## Risk register
 

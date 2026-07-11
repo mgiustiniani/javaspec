@@ -135,4 +135,10 @@ moving dependency-heavy behavior into optional artifacts.
   JUnit-to-javaspec guide, Cucumber/Gherkin boundary, and troubleshooting pages.
 - RC1 evidence passed with aligned `1.0.0-RC1` artifacts, no build-file `SNAPSHOT` references,
   release dry-run consumers, checksums, a deterministic archived API inventory, and the Java
-  8/11/17/21/25 matrix plus full Java 21 verification in CI run 29118310277.
+  8/11/17/21/25 matrix plus full Java 21 verification. The latest full branch run is
+  [29139032096](https://github.com/mgiustiniani/javaspec/actions/runs/29139032096).
+- Releases follow Git Flow through `release/<version>`, a non-fast-forward merge into production
+  branch `main`, an annotated tag on that merge commit, and a merge back into `develop`.
+- Release workflow run 29139156898 passed preflight, artifact/consumer verification, and GPG import,
+  but Maven deployment failed before confirmed publication. `1.0.0-RC1` remains unpublished until
+  all Maven Central and optional Gradle Plugin Portal checks are recorded.

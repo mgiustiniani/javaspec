@@ -8,6 +8,11 @@ This checklist is the release gate source for 1.0. It must be updated with comma
 - [x] API/SPI classification complete and RC1 binary signature inventory archived.
 - [x] `1.0.0-RC1` prepared from an aligned, locally verified version-cut commit.
 - [x] RC consumer verification complete against locally staged `1.0.0-RC1` artifacts.
+- [x] Git Flow production history normalized: `main` is an ancestor of `develop`, and the former
+  unrelated remote `main` commit is archived.
+- [x] `release/1.0.0-RC1` created from the verified `develop` release line.
+- [ ] RC1 release branch merged with `--no-ff` into `main`, tagged on the merge commit, and merged
+  back into `develop`.
 - [ ] Final `1.0.0` prepared from verified RC or documented RC fix commit.
 - [ ] Post-release snapshot bump complete.
 
@@ -37,7 +42,8 @@ Evidence:
 | `scripts/verify-release-dry-run.sh` | `e212a39` | PASS | RC1 artifacts, checksums, and consumer examples |
 | `scripts/check-core-java8-bytecode.sh` | `e212a39` | PASS | Core classfiles max major 52 |
 | `scripts/check-release-preflight.sh` | `e212a39` | PASS | `JAVASPEC_RELEASE_TAG=v1.0.0-RC1`; actual tag publication remains pending |
-| GitHub Actions Java 8/11/17/21/25 + full Java 21 | `e212a39` | PASS | [RC1 CI run 29118310277](https://github.com/mgiustiniani/javaspec/actions/runs/29118310277) |
+| GitHub Actions Java 8/11/17/21/25 + full Java 21 | `8b87d99` | PASS | [CI run 29139032096](https://github.com/mgiustiniani/javaspec/actions/runs/29139032096) |
+| Tagged release workflow preflight/dry-run/GPG import | `8b87d99` | PASS | [Release run 29139156898](https://github.com/mgiustiniani/javaspec/actions/runs/29139156898); Maven deploy failed afterward and Central remained HTTP 404 |
 
 ## Core gates
 
@@ -118,8 +124,13 @@ Evidence:
 - [ ] Gradle Plugin Portal API key/secret confirmed as GitHub repository secrets before tagging.
 - [x] Release workflow requires Maven/GPG secrets, detects optional Gradle credentials, and safely skips an already published Maven version on rerun.
 - [x] Release workflow publishes or stages every declared artifact or fails clearly (Maven Central artifacts include core, Maven plugin, JUnit Platform engine, bytecode doubles, and bytecode agent; Gradle Plugin Portal publication uses `publishPlugins`).
-- [x] Release dry-run script green.
-- [ ] Tag/version/workflow alignment verified at RC/final tag time (`scripts/check-release-preflight.sh` requires tag `v<version>`).
+- [x] Release dry-run script green locally and on the GitHub release runner.
+- [x] Git Flow policy documented: release branches start from `develop`, merge with `--no-ff` into
+  `main`, receive the annotated tag on the `main` merge commit, and merge back into `develop`.
+- [ ] Tag/version/workflow alignment verified on the final RC1 `main` merge commit
+  (`scripts/check-release-preflight.sh` requires tag `v<version>`).
+- [ ] Maven Central deployment succeeds for all five artifacts; the latest attempt reached deployment
+  but failed before publication, and direct RC1 lookup remained HTTP 404.
 - [x] Post-release checklist documented.
 
 ## Documentation gates
@@ -141,7 +152,8 @@ Evidence:
 - [x] JUnit-to-javaspec guide present.
 - [x] Cucumber boundary guide present.
 - [x] Troubleshooting current.
-- [ ] Release notes 1.0.0 complete (final RC evidence still appended at RC/final cut time).
+- [ ] Release notes 1.0.0 complete (release workflow and Git Flow correction are recorded; successful
+  publication evidence is still appended at RC/final cut time).
 - [x] Compatibility policy complete.
 - [x] No current pre-migration package references outside archived/historical docs.
 - [x] No contradictory current version references.
