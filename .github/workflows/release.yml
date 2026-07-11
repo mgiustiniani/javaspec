@@ -87,12 +87,29 @@ jobs:
             echo "published=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Import GPG key
+      - name: Import and verify GPG signing key
         if: steps.central.outputs.published != 'true'
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
-          echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 -d | gpg --batch --import
+          printf '%s' "$GPG_PRIVATE_KEY" | base64 -d | gpg --batch --import
           echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
           gpgconf --kill gpg-agent
+
+          signing_key="$(gpg --batch --list-secret-keys --with-colons | awk -F: '$1 == "fpr" { print $10; exit }')"
+          if [ -z "$signing_key" ]; then
+            echo "::error::The imported GPG material contains no secret signing key."
+            exit 1
+          fi
+          printf 'javaspec release signing probe\n' > /tmp/javaspec-signing-probe.txt
+          if ! printf '%s' "$GPG_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback \
+            --passphrase-fd 0 --local-user "$signing_key" --detach-sign \
+            /tmp/javaspec-signing-probe.txt; then
+            echo "::error::The imported GPG secret key could not sign with GPG_PASSPHRASE."
+            exit 1
+          fi
+          rm -f /tmp/javaspec-signing-probe.txt /tmp/javaspec-signing-probe.txt.sig
 
       - name: Publish Maven artifacts to Maven Central
         if: steps.central.outputs.published != 'true'
@@ -103,7 +120,8 @@ jobs:
             log="/tmp/javaspec-maven-${label}.log"
             echo "Publishing Maven module: ${label}"
             set +e
-            mvn -q -s .github/maven-settings.xml deploy "$@" -P release,release-artifacts -DperformRelease=true 2>&1 | tee "$log"
+            mvn -q -s .github/maven-settings.xml deploy "$@" -P release,release-artifacts \
+              -DperformRelease=true -Dgpg.passphrase="$MAVEN_GPG_PASSPHRASE" 2>&1 | tee "$log"
             status=${PIPESTATUS[0]}
             set -e
             if [ "$status" -ne 0 ]; then

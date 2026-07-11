@@ -111,6 +111,13 @@ workflow had exposed the repository secret only as `GPG_PASSPHRASE`; Maven GPG P
 `MAVEN_GPG_PASSPHRASE`. Direct Central lookup remained HTTP 404, so the failed tag was safely removed
 and the environment mapping was corrected on the release branch before repeating the release merge.
 
+Release workflow [run 29139966108](https://github.com/mgiustiniani/javaspec/actions/runs/29139966108)
+showed that the environment mapping alone was insufficient: Maven GPG Plugin still exited with code
+2 while signing core. Central remained HTTP 404, so the tag was again removed safely. The next
+hardening step validates that the imported material contains a secret key, performs an isolated
+loopback signing probe with the configured passphrase, and passes the verified passphrase explicitly
+to Maven GPG Plugin.
+
 Remaining RC/final cut-time evidence:
 
 - Successful merge of `release/1.0.0-RC1` into `main` and annotated tag on that merge commit.
