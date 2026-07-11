@@ -83,8 +83,10 @@ tag after Maven Central or the Gradle Plugin Portal has accepted that version.
    - Reconfirm MIT license and maintainer metadata are still correct.
    - Configure repository secrets `SONATYPE_TOKEN_USER`, `SONATYPE_TOKEN_PASS`, `GPG_PRIVATE_KEY`,
      and `GPG_PASSPHRASE`.
-   - The workflow imports `GPG_PRIVATE_KEY` and exposes `GPG_PASSPHRASE` to Maven GPG Plugin as
-     `MAVEN_GPG_PASSPHRASE`; the plugin does not consume an arbitrarily named passphrase variable.
+   - The workflow imports `GPG_PRIVATE_KEY`, requires an imported secret key, and performs an
+     isolated loopback signing probe with `GPG_PASSPHRASE` before Maven deployment.
+   - It exposes the secret as `MAVEN_GPG_PASSPHRASE` and passes the verified value through Maven's
+     `gpg.passphrase` user property; the plugin does not consume an arbitrarily named variable.
    - GPG signing is mandatory for every Maven artifact.
    - Configure and verify Central Portal publication steps.
 8. For Gradle Plugin Portal publication:
