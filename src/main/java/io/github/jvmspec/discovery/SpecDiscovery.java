@@ -27,6 +27,14 @@ import java.util.regex.Pattern;
 public final class SpecDiscovery {
     private static final String JAVA_SUFFIX = SpecNamingConvention.JAVA_SUFFIX;
     private static final String UNRESOLVED_FUNCTIONAL_PARAMETER_PREFIX = "__javaspecFunctionalArg";
+    private static final List<String> RESERVED_IDENTIFIERS = Collections.unmodifiableList(Arrays.asList(
+            "_", "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char", "class",
+            "const", "continue", "default", "do", "double", "else", "enum", "extends", "false", "final",
+            "finally", "float", "for", "goto", "if", "implements", "import", "instanceof", "int", "interface",
+            "long", "native", "new", "null", "package", "private", "protected", "public", "return", "short",
+            "static", "strictfp", "super", "switch", "synchronized", "this", "throw", "throws", "transient",
+            "true", "try", "void", "volatile", "while"
+    ));
     private static final Pattern IMPORT_PATTERN = Pattern.compile("(?m)^\\s*import\\s+([A-Za-z_$][A-Za-z0-9_$.]*)\\s*;");
     private static final Pattern SHOULD_EXTEND_PATTERN = Pattern.compile("(?<!\\.)\\bshouldExtend\\s*\\(([^)]*)\\)", Pattern.DOTALL);
     private static final Pattern SHOULD_IMPLEMENT_PATTERN = Pattern.compile("(?<!\\.)\\bshouldImplement\\s*\\(([^)]*)\\)", Pattern.DOTALL);
@@ -187,6 +195,8 @@ public final class SpecDiscovery {
                 SpecCallScanner.Call call = scan.constructionCalls.get(i);
                 ConstructionArguments arguments = inferConstructionArgumentsCore(
                         call.argumentTexts, methods.get(call.enclosingMethod), imports, describedPackageName);
+                arguments = applyAccessorNamingEvidence(
+                        arguments, call, scan, imports, describedPackageName);
                 ConstructorDescriptor cd = ConstructorDescriptor.of(arguments.parameterTypes, arguments.parameterNames, "");
                 if (!constructors.contains(cd)) {
                     constructors.add(cd);
@@ -208,6 +218,75 @@ public final class SpecDiscovery {
         }
 
         return constructors;
+    }
+
+    private static ConstructionArguments applyAccessorNamingEvidence(
+            ConstructionArguments arguments,
+            SpecCallScanner.Call constructionCall,
+            SpecCallScanner.ScanResult scan,
+            Map<String, String> imports,
+            String describedPackageName
+    ) {
+        List<String> names = new ArrayList<String>(arguments.parameterNames);
+        for (int i = 0; i < constructionCall.argumentTexts.size(); i++) {
+            String argumentText = constructionCall.argumentTexts.get(i).trim();
+            if (isLegalJavaIdentifier(argumentText)) {
+                continue;
+            }
+            String accessorName = uniqueAccessorForExampleValue(
+                    argumentText,
+                    arguments.parameterTypes.get(i),
+                    constructionCall.enclosingMethod,
+                    scan,
+                    imports,
+                    describedPackageName
+            );
+            if (accessorName != null) {
+                names.set(i, accessorName);
+            }
+        }
+        return new ConstructionArguments(arguments.parameterTypes, names);
+    }
+
+    private static String uniqueAccessorForExampleValue(
+            String argumentText,
+            String argumentType,
+            String enclosingMethod,
+            SpecCallScanner.ScanResult scan,
+            Map<String, String> imports,
+            String describedPackageName
+    ) {
+        List<SpecCallScanner.Expectation> expectations = new ArrayList<SpecCallScanner.Expectation>();
+        expectations.addAll(scan.proxyExpectations);
+        expectations.addAll(scan.matchSubjectExpectations);
+        String candidate = null;
+        for (int i = 0; i < expectations.size(); i++) {
+            SpecCallScanner.Expectation expectation = expectations.get(i);
+            if (!Objects.equals(enclosingMethod, expectation.enclosingMethod)
+                    || !expectation.argumentTexts.isEmpty()
+                    || !"shouldReturn".equals(expectation.matcherName)
+                    || expectation.expectationTexts.size() != 1
+                    || !argumentText.equals(expectation.expectationTexts.get(0).trim())) {
+                continue;
+            }
+            String expectationType = inferLiteralType(
+                    expectation.expectationTexts.get(0), imports, describedPackageName).typeName;
+            if (!sameInferredType(argumentType, expectationType)
+                    || !isLegalJavaIdentifier(expectation.name)) {
+                continue;
+            }
+            if (candidate != null && !candidate.equals(expectation.name)) {
+                return null;
+            }
+            candidate = expectation.name;
+        }
+        return candidate;
+    }
+
+    private static boolean sameInferredType(String left, String right) {
+        return left.equals(right)
+                || ("String".equals(left) && "java.lang.String".equals(right))
+                || ("java.lang.String".equals(left) && "String".equals(right));
     }
 
     private static ConstructionArguments inferConstructionArguments(
@@ -894,10 +973,14 @@ public final class SpecDiscovery {
     }
 
     private static String parameterNameForArgument(String argument, int index) {
-        if (isJavaIdentifier(argument)) {
+        if (isLegalJavaIdentifier(argument)) {
             return argument;
         }
         return "arg" + index;
+    }
+
+    private static boolean isLegalJavaIdentifier(String value) {
+        return isJavaIdentifier(value) && !RESERVED_IDENTIFIERS.contains(value);
     }
 
     private static InferredType inferLiteralType(String expression, Map<String, String> imports, String describedPackageName) {

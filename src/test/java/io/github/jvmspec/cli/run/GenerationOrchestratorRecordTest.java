@@ -263,7 +263,8 @@ public class GenerationOrchestratorRecordTest {
                 "package spec.com.example;\n\n" +
                 "public class CertificateProfileIdSpec extends CertificateProfileIdSpecSupport {\n" +
                 "    public void it_constructs_after_record_evolution() {\n" +
-                "        subject();\n" +
+                "        beConstructedWith(\"id\");\n" +
+                "        value().shouldReturn(\"id\");\n" +
                 "    }\n" +
                 "}\n");
         DescribedType inferredClassDescription = DescribedType.of(
@@ -274,9 +275,9 @@ public class GenerationOrchestratorRecordTest {
                 Collections.<String>emptyList(),
                 Arrays.asList(ConstructorDescriptor.of(
                         Arrays.asList("String"),
-                        Arrays.asList("arg0"),
+                        Arrays.asList("value"),
                         "")),
-                Collections.<MethodDescriptor>emptyList()
+                Arrays.asList(MethodDescriptor.of("value", "String"))
         );
 
         GenerationOrchestratorResult result = GenerationOrchestrator.execute(
@@ -303,7 +304,7 @@ public class GenerationOrchestratorRecordTest {
         String support = readFile(supportFile);
         assertEquals(0, result.exitCode());
         assertTrue(result.shouldProceed());
-        assertTrue(updated.contains("public record CertificateProfileId(String arg0)"));
+        assertTrue(updated.contains("public record CertificateProfileId(String value)"));
         assertTrue("generated support must be updated even when only constructor data is described",
                 support.contains("super(CertificateProfileId.class);\n" +
                         "        beConstructedWith((String) null);"));

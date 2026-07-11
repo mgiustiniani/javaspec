@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 1.0.0-RC4 — 2026-07-11
+
+- Fixed record-component inference so literal constructor examples are never emitted as identifiers;
+  exact zero-argument accessor expectations now provide component names for boolean, numeric,
+  string, enum, negative, and null-like values.
+- Added fail-closed `AMBIGUOUS_RECORD_COMPONENT_NAME` diagnostics for missing, illegal, duplicate,
+  or otherwise unmappable names before production or generated-support writes.
+- Preserved RC3 source-first Maven support generation and matcher-only enriched-enum regeneration.
+
 ## 1.0.0-RC3 — 2026-07-11
 
 - Added the Maven `javaspec:generate` goal, bound by consumers to `generate-test-sources`, so clean
