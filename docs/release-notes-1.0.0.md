@@ -141,6 +141,8 @@ moving dependency-heavy behavior into optional artifacts.
   branch `main`, an annotated tag on that merge commit, and a merge back into `develop`.
 - Release workflow
   [run 29146746362](https://github.com/mgiustiniani/javaspec/actions/runs/29146746362) passed all
-  preflight, artifact/consumer, GPG signing, Maven Central, and Gradle submission steps. All five
-  Maven artifacts and their POM, main/source/Javadoc JARs, and signatures were verified directly;
-  first-publication Gradle Plugin Portal visibility remains under external review.
+  preflight, artifact/consumer, GPG signing, and Maven Central steps. All five Maven artifacts and
+  their POM, main/source/Javadoc JARs, and signatures were verified directly. Corrected Gradle Plugin
+  Portal submission completed in
+  [run 29148854181](https://github.com/mgiustiniani/javaspec/actions/runs/29148854181); public
+  visibility remains under first-publication review.

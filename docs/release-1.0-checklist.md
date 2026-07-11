@@ -43,7 +43,8 @@ Evidence:
 | `scripts/check-core-java8-bytecode.sh` | `e212a39` | PASS | Core classfiles max major 52 |
 | `scripts/check-release-preflight.sh` | `e212a39` | PASS | `JAVASPEC_RELEASE_TAG=v1.0.0-RC1`; actual tag publication remains pending |
 | GitHub Actions Java 8/11/17/21/25 + full Java 21 | `8b87d99` | PASS | [CI run 29139032096](https://github.com/mgiustiniani/javaspec/actions/runs/29139032096) |
-| Tagged RC1 release workflow and publication | `7bd8ac4` | PASS | [Release run 29146746362](https://github.com/mgiustiniani/javaspec/actions/runs/29146746362); Maven Central deployment and Gradle Portal submission succeeded |
+| Tagged RC1 release workflow and Maven publication | `7bd8ac4` | PASS | [Release run 29146746362](https://github.com/mgiustiniani/javaspec/actions/runs/29146746362); Maven Central deployment succeeded |
+| Corrected Gradle Plugin Portal submission | `e797ca0` | PASS | [Gradle publish run 29148854181](https://github.com/mgiustiniani/javaspec/actions/runs/29148854181); awaiting first-publication approval |
 
 ## Core gates
 
