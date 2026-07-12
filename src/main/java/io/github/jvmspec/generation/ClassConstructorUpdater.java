@@ -365,19 +365,9 @@ public final class ClassConstructorUpdater {
     private static String renderExtendedConstructor(ParsedConstructor existing, ConstructorDescriptor spec, DescribedType describedType) {
         List<String> newParams = new ArrayList<String>();
         List<String> newNames = new ArrayList<String>();
-        for (int pi = 0; pi < spec.parameterTypes().size(); pi++) {
-            boolean found = false;
-            for (int epi = 0; epi < existing.paramTypes.size(); epi++) {
-                if (sameErasedType(existing.paramTypes.get(epi), spec.parameterTypes().get(pi))
-                        && existing.paramNames.get(epi).equals(spec.parameterNames().get(pi))) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                newParams.add(spec.parameterTypes().get(pi));
-                newNames.add(spec.parameterNames().get(pi));
-            }
+        for (int pi = existing.paramTypes.size(); pi < spec.parameterTypes().size(); pi++) {
+            newParams.add(spec.parameterTypes().get(pi));
+            newNames.add(spec.parameterNames().get(pi));
         }
         StringBuilder builder = new StringBuilder();
         builder.append("public ").append(describedType.simpleName()).append("(");
@@ -446,42 +436,15 @@ public final class ClassConstructorUpdater {
         if (existing.paramTypes.size() >= spec.parameterTypes().size()) {
             return false;
         }
-        // Check that all existing params are present in the spec
-        for (int ei = 0; ei < existing.paramTypes.size(); ei++) {
-            String existingType = existing.paramTypes.get(ei);
-            String existingName = existing.paramNames.get(ei);
-            boolean found = false;
-            for (int si = 0; si < spec.parameterTypes().size(); si++) {
-                String specType = spec.parameterTypes().get(si);
-                String specName = spec.parameterNames().get(si);
-                if (sameErasedType(existingType, specType) && existingName.equals(specName)) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
+        // Constructor signatures are ordered and parameter names are not identity. An existing
+        // implementation can be extended only when its erased parameter sequence is a prefix of
+        // the requested signature; its body and meaningful existing parameter names are retained.
+        for (int i = 0; i < existing.paramTypes.size(); i++) {
+            if (!sameErasedType(existing.paramTypes.get(i), spec.parameterTypes().get(i))) {
                 return false;
             }
         }
-        // Check that spec has at least one param not in existing
-        int extraCount = 0;
-        for (int si = 0; si < spec.parameterTypes().size(); si++) {
-            String specType = spec.parameterTypes().get(si);
-            String specName = spec.parameterNames().get(si);
-            boolean found = false;
-            for (int ei = 0; ei < existing.paramTypes.size(); ei++) {
-                String existingType = existing.paramTypes.get(ei);
-                String existingName = existing.paramNames.get(ei);
-                if (sameErasedType(specType, existingType) && specName.equals(existingName)) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                extraCount++;
-            }
-        }
-        return extraCount > 0;
+        return true;
     }
 
     private static boolean constructorsMatch(ParsedConstructor existing, ConstructorDescriptor spec) {

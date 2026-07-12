@@ -228,6 +228,33 @@ public class ClassConstructorUpdaterTest {
     }
 
     @Test
+    public void extendsGenericConstructorByErasedOrderedTypesRegardlessOfParameterNames() {
+        String source = "package com.example;\n" +
+                "import java.util.Map;\n" +
+                "public class Service {\n" +
+                "  private final Map<String, String> fields;\n" +
+                "  public Service(Map<String, String> normalizedFields) {\n" +
+                "    this.fields = normalizedFields;\n" +
+                "  }\n" +
+                "}\n";
+        ConstructorDescriptor spec = ConstructorDescriptor.of(
+                Arrays.asList("java.util.Map<String, String>", "int"),
+                Arrays.asList("arg0", "arg1"), "");
+        DescribedType type = DescribedType.of(
+                "com.example.Service", JavaTypeKind.CLASS,
+                Collections.<String>emptyList(), Collections.<String>emptyList(),
+                Collections.<String>emptyList(), Arrays.asList(spec));
+
+        String updated = ClassConstructorUpdater.updateSource(
+                source, type, ConstructorPolicy.PRESERVE);
+
+        assertTrue(updated, updated.contains(
+                "Service(Map<String, String> normalizedFields, int arg1)"));
+        assertTrue(updated, updated.contains("this.fields = normalizedFields;"));
+        assertEquals(1, countOccurrences(updated, "public Service("));
+    }
+
+    @Test
     public void doesNotExtendWhenExistingHasParamsNotInSpec() {
         // Existing: Service(int id) { this.id = id; }
         // Spec: Service(String name) { }

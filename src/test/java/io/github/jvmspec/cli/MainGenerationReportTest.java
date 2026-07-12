@@ -232,7 +232,8 @@ public class MainGenerationReportTest {
         assertEquals(0, first.exitCode);
         assertEquals(0, second.exitCode);
         String generatedSource = new String(generated, StandardCharsets.UTF_8);
-        assertEquals(1, countOccurrences(generatedSource, "Service(String arg0, int arg1)"));
+        assertEquals(1, countOccurrences(
+                generatedSource, "Service(String normalizedFields, int arg1)"));
         assertEquals(generatedSource,
                 new String(Files.readAllBytes(source.toPath()), StandardCharsets.UTF_8));
         assertEquals(generatedModified, source.lastModified());
