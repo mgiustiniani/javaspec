@@ -7,9 +7,9 @@ Generation supports the PHPSpec workflow by creating mechanical scaffolding only
 `javaspec run --generation-report <file>` atomically writes generation report schema version 1
 for successful, dry-run, stopped, and failed pipelines. The document contains no timestamp;
 `pendingStubs` uses source-root-relative `/`-separated paths sorted by path and line. Consumers
-must use `outcome`, `exitCode`, `proceed`, `pendingGenerationWork`, and `pendingStubs` rather than
-parsing human diagnostics. The initial v1 `actions` array is reserved for structured action details
-and is emitted as an empty array. See
+must use `outcome`, `exitCode`, `proceed`, `actions`, `appliedWrites`,
+`pendingGenerationWork`, and `pendingStubs` rather than parsing human diagnostics. Each action is
+reported as `PROPOSED` or `APPLIED`; `appliedWrites` counts only actual changed-file writes. See
 [`docs/schemas/generation-report-v1.schema.json`](schemas/generation-report-v1.schema.json).
 
 With `--formatter json`, stdout is reserved for exactly one run-result JSON document. Human

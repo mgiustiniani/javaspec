@@ -10,6 +10,7 @@
     "exitCode",
     "proceed",
     "actions",
+    "appliedWrites",
     "pendingGenerationWork",
     "pendingStubs"
   ],
@@ -22,8 +23,18 @@
     "proceed": { "type": "boolean" },
     "actions": {
       "type": "array",
-      "items": { "type": "object" }
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "path", "status"],
+        "properties": {
+          "kind": { "type": "string", "minLength": 1 },
+          "path": { "type": "string", "minLength": 1 },
+          "status": { "enum": ["PROPOSED", "APPLIED"] }
+        }
+      }
     },
+    "appliedWrites": { "type": "integer", "minimum": 0 },
     "pendingGenerationWork": { "type": "integer", "minimum": 0 },
     "pendingStubs": {
       "type": "array",

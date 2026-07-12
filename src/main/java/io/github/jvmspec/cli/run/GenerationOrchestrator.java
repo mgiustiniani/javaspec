@@ -119,6 +119,26 @@ public final class GenerationOrchestrator {
             ConstructorPolicy constructorPolicy,
             File generatedSourcesRoot
     ) {
+        return execute(specs, specRoot, sourceRoot, input, out, err, generate, dryRun,
+                namingConvention, classLoader, constructorPolicy, generatedSourcesRoot,
+                new GenerationActivity());
+    }
+
+    public static GenerationOrchestratorResult execute(
+            List<DiscoveredSpec> specs,
+            File specRoot,
+            File sourceRoot,
+            BufferedReader input,
+            PrintStream out,
+            PrintStream err,
+            boolean generate,
+            boolean dryRun,
+            SpecNamingConvention namingConvention,
+            ClassLoader classLoader,
+            ConstructorPolicy constructorPolicy,
+            File generatedSourcesRoot,
+            GenerationActivity activity
+    ) {
         int missingWithoutGeneration = 0;
         int dryRunPendingChanges = 0;
 
@@ -149,7 +169,8 @@ public final class GenerationOrchestrator {
                         dryRun,
                         namingConvention,
                         classLoader,
-                        generatedSourcesRoot
+                        generatedSourcesRoot,
+                        activity
                 );
                 if (!relatedSpecResult.allAccepted()) {
                     missingWithoutGeneration++;
@@ -179,11 +200,13 @@ public final class GenerationOrchestrator {
                         if (dryRun) {
                             if (reportSupportDryRun(supportPlan, out, "specification support")) {
                                 dryRunPendingChanges++;
+                                activity.proposed("SPEC_SUPPORT", supportPlan.targetFile());
                             }
                         } else {
                             SpecSupportFileGenerator.SupportWriteResult supportResult =
                                     SpecSupportFileGenerator.writeOrUpdateResult(supportPlan);
                             if (supportResult.changed()) {
+                                activity.applied("SPEC_SUPPORT", supportResult.file());
                                 out.println("Updated specification support: " + supportResult.file().getPath());
                             }
                         }
@@ -220,101 +243,60 @@ public final class GenerationOrchestrator {
                                 + " (expected " + describedType.kind().displayName() + ")");
                     }
                 }
-                String dryRunSource = null;
-                if (JavaTypeKind.RECORD.equals(describedType.kind()) && checkResult.sourceFilePresent()) {
+                if (checkResult.sourceFilePresent()
+                        && (describedType.hasConstructors() || describedType.hasMethods())) {
                     File sourceFile = checkResult.sourceFile();
                     try {
-                        String existingSource = new String(Files.readAllBytes(sourceFile.toPath()), StandardCharsets.UTF_8);
-                        String updatedSource = existingSource;
-                        if (describedType.hasMethods()) {
-                            String methodUpdatedSource = ClassMethodUpdater.updateSource(updatedSource, describedType);
-                            if (!updatedSource.equals(methodUpdatedSource)) {
-                                if (dryRun) {
-                                    dryRunPendingChanges++;
-                                    out.println("Would update methods in " + sourceFile.getPath());
-                                } else {
-                                    boolean accepted = generate || askToUpdateMethods(input, out, sourceFile, describedType);
-                                    if (!accepted) {
-                                        missingWithoutGeneration++;
-                                        continue;
-                                    }
-                                    AtomicFileWriter.writeUtf8(sourceFile, methodUpdatedSource);
-                                    out.println("Updated methods in " + sourceFile.getPath());
-                                }
-                                updatedSource = methodUpdatedSource;
-                            }
-                        }
+                        String existingSource = new String(
+                                Files.readAllBytes(sourceFile.toPath()), StandardCharsets.UTF_8);
+                        String proposedSource = existingSource;
+                        boolean constructorChange = false;
+                        boolean methodChange = false;
                         if (describedType.hasConstructors()) {
-                            String constructorUpdatedSource = ClassConstructorUpdater.updateSource(updatedSource, describedType, constructorPolicy);
-                            if (!updatedSource.equals(constructorUpdatedSource)) {
-                                if (dryRun) {
-                                    dryRunPendingChanges++;
+                            String constructorSource = ClassConstructorUpdater.updateSource(
+                                    proposedSource, describedType, constructorPolicy);
+                            constructorChange = !proposedSource.equals(constructorSource);
+                            proposedSource = constructorSource;
+                        }
+                        if (describedType.hasMethods()) {
+                            String methodSource = ClassMethodUpdater.updateSource(
+                                    proposedSource, describedType);
+                            methodChange = !proposedSource.equals(methodSource);
+                            proposedSource = methodSource;
+                        }
+                        int proposedChanges = (constructorChange ? 1 : 0) + (methodChange ? 1 : 0);
+                        if (proposedChanges > 0) {
+                            if (dryRun) {
+                                if (constructorChange) activity.proposed("CONSTRUCTOR_SYNCHRONIZATION", sourceFile);
+                                if (methodChange) activity.proposed("METHOD_SYNCHRONIZATION", sourceFile);
+                                dryRunPendingChanges += proposedChanges;
+                                if (constructorChange) {
                                     out.println("Would update constructors in " + sourceFile.getPath()
                                             + " (policy: " + policyOptionName(constructorPolicy) + ")");
-                                } else {
-                                    AtomicFileWriter.writeUtf8(sourceFile, constructorUpdatedSource);
+                                }
+                                if (methodChange) {
+                                    out.println("Would update methods in " + sourceFile.getPath());
+                                }
+                            } else if (authorizeSourceSynchronization(
+                                    generate, input, out, sourceFile, describedType,
+                                    constructorChange, methodChange)) {
+                                applyAuthorizedSourceUpdate(
+                                        sourceFile, proposedSource, activity);
+                                if (constructorChange) {
                                     out.println("Updated constructors in " + sourceFile.getPath()
                                             + " (policy: " + policyOptionName(constructorPolicy) + ")");
                                 }
-                                updatedSource = constructorUpdatedSource;
-                            }
-                        }
-                    } catch (IOException ex) {
-                        err.println("I/O error while updating record source: " + messageOf(ex));
-                        err.println("Target path: " + sourceFile.getPath());
-                        return GenerationOrchestratorResult.ioError(EXIT_IO_ERROR);
-                    }
-                    continue;
-                }
-                if (describedType.hasConstructors() && checkResult.sourceFilePresent()) {
-                    File sourceFile = checkResult.sourceFile();
-                    try {
-                        if (dryRun) {
-                            dryRunSource = new String(Files.readAllBytes(sourceFile.toPath()), StandardCharsets.UTF_8);
-                            String updatedSource = ClassConstructorUpdater.updateSource(dryRunSource, describedType, constructorPolicy);
-                            if (!dryRunSource.equals(updatedSource)) {
-                                dryRunPendingChanges++;
-                                out.println("Would update constructors in " + sourceFile.getPath()
-                                        + " (policy: " + policyOptionName(constructorPolicy) + ")");
-                            }
-                            dryRunSource = updatedSource;
-                        } else {
-                            boolean constructorsChanged = ClassConstructorUpdater.updateFileIfChanged(
-                                    sourceFile, describedType, constructorPolicy);
-                            if (constructorsChanged) {
-                                out.println("Updated constructors in " + sourceFile.getPath()
-                                        + " (policy: " + policyOptionName(constructorPolicy) + ")");
-                            }
-                        }
-                    } catch (IOException ex) {
-                        err.println("I/O error while updating constructors: " + messageOf(ex));
-                        err.println("Target path: " + sourceFile.getPath());
-                        return GenerationOrchestratorResult.ioError(EXIT_IO_ERROR);
-                    }
-                }
-                if (describedType.hasMethods() && checkResult.sourceFilePresent()) {
-                    File sourceFile = checkResult.sourceFile();
-                    try {
-                        String existingSource = dryRun && dryRunSource != null
-                                ? dryRunSource
-                                : new String(Files.readAllBytes(sourceFile.toPath()), StandardCharsets.UTF_8);
-                        String updatedSource = ClassMethodUpdater.updateSource(existingSource, describedType);
-                        if (!existingSource.equals(updatedSource)) {
-                            if (dryRun) {
-                                dryRunPendingChanges++;
-                                out.println("Would update methods in " + sourceFile.getPath());
-                            } else {
-                                boolean accepted = generate || askToUpdateMethods(input, out, sourceFile, describedType);
-                                if (!accepted) {
-                                    missingWithoutGeneration++;
-                                    continue;
+                                if (methodChange) {
+                                    out.println("Updated methods in " + sourceFile.getPath());
                                 }
-                                AtomicFileWriter.writeUtf8(sourceFile, updatedSource);
-                                out.println("Updated methods in " + sourceFile.getPath());
+                            } else {
+                                if (constructorChange) activity.proposed("CONSTRUCTOR_SYNCHRONIZATION", sourceFile);
+                                if (methodChange) activity.proposed("METHOD_SYNCHRONIZATION", sourceFile);
+                                missingWithoutGeneration += proposedChanges;
                             }
                         }
                     } catch (IOException ex) {
-                        err.println("I/O error while updating methods: " + messageOf(ex));
+                        err.println("I/O error while synchronizing source: " + messageOf(ex));
                         err.println("Target path: " + sourceFile.getPath());
                         return GenerationOrchestratorResult.ioError(EXIT_IO_ERROR);
                     }
@@ -330,6 +312,7 @@ public final class GenerationOrchestrator {
 
             if (dryRun) {
                 dryRunPendingChanges++;
+                activity.proposed("TYPE_SKELETON", plan.targetFile());
                 out.println("Would generate " + plan.describedType().kind().displayName()
                         + " skeleton: " + plan.targetFile().getPath());
                 continue;
@@ -344,6 +327,7 @@ public final class GenerationOrchestrator {
                     return GenerationOrchestratorResult.ioError(EXIT_IO_ERROR);
                 }
                 if (!accepted) {
+                    activity.proposed("TYPE_SKELETON", plan.targetFile());
                     missingWithoutGeneration++;
                     continue;
                 }
@@ -351,6 +335,7 @@ public final class GenerationOrchestrator {
 
             try {
                 File generatedFile = TypeFileGenerator.write(plan);
+                activity.applied("TYPE_SKELETON", generatedFile);
                 out.println("Generated " + plan.describedType().kind().displayName()
                         + " skeleton: " + generatedFile.getPath());
             } catch (IOException ex) {
@@ -371,7 +356,7 @@ public final class GenerationOrchestrator {
         try {
             prophecyWrappersGenerated = ensureProphecyWrappers(
                     specs, specRoot, sourceRoot, input, out, err, generate, dryRun, classLoader,
-                    generatedSourcesRoot, namingConvention
+                    generatedSourcesRoot, namingConvention, activity
             );
         } catch (IOException ex) {
             err.println("I/O error while checking prophecy wrappers: " + messageOf(ex));
@@ -431,7 +416,8 @@ public final class GenerationOrchestrator {
             boolean dryRun,
             SpecNamingConvention namingConvention,
             ClassLoader classLoader,
-            File generatedSourcesRoot
+            File generatedSourcesRoot,
+            GenerationActivity activity
     ) throws IOException {
         boolean allAccepted = true;
         boolean pendingChanges = false;
@@ -455,7 +441,9 @@ public final class GenerationOrchestrator {
                 SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(relatedType, specRoot, generatedSourcesRoot, namingConvention);
                 if (reportSupportDryRun(supportPlan, out, "related specification support")) {
                     pendingChanges = true;
+                    activity.proposed("RELATED_SPEC_SUPPORT", supportPlan.targetFile());
                 }
+                activity.proposed("RELATED_SPEC", specPlan.targetFile());
                 out.println("Would generate related specification: " + specPlan.targetFile().getPath());
                 pendingChanges = true;
                 specs.add(DiscoveredSpec.of(specPlan.targetFile(), specPlan.specQualifiedName(), relatedType));
@@ -464,6 +452,7 @@ public final class GenerationOrchestrator {
 
             boolean accepted = generate || askToGenerateSpec(input, out, specPlan);
             if (!accepted) {
+                activity.proposed("RELATED_SPEC", specPlan.targetFile());
                 allAccepted = false;
                 continue;
             }
@@ -471,6 +460,8 @@ public final class GenerationOrchestrator {
             SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(relatedType, specRoot, generatedSourcesRoot, namingConvention);
             File generatedSupport = SpecSupportFileGenerator.writeOrUpdate(supportPlan);
             File generatedSpec = SpecFileGenerator.write(specPlan);
+            activity.applied("RELATED_SPEC_SUPPORT", generatedSupport);
+            activity.applied("RELATED_SPEC", generatedSpec);
             out.println("Generated related specification support: " + generatedSupport.getPath());
             out.println("Generated related specification: " + generatedSpec.getPath());
             specs.add(DiscoveredSpec.of(generatedSpec, specPlan.specQualifiedName(), relatedType));
@@ -632,6 +623,42 @@ public final class GenerationOrchestrator {
         }
     }
 
+    private static boolean authorizeSourceSynchronization(
+            boolean generate,
+            BufferedReader input,
+            PrintStream out,
+            File sourceFile,
+            DescribedType describedType,
+            boolean constructorChange,
+            boolean methodChange
+    ) throws IOException {
+        if (generate) return true;
+        if (methodChange && !constructorChange) {
+            return askToUpdateMethods(input, out, sourceFile, describedType);
+        }
+        String scope = methodChange ? "constructors and methods" : "constructors";
+        while (true) {
+            out.println("Do you want me to update " + scope + " for "
+                    + promptTarget(describedType) + " in " + sourceFile.getPath() + "? [Y/n]");
+            String answer = input.readLine();
+            if (answer == null) return false;
+            String normalized = answer.trim();
+            if (normalized.length() == 0 || "y".equalsIgnoreCase(normalized)
+                    || "yes".equalsIgnoreCase(normalized)) return true;
+            if ("n".equalsIgnoreCase(normalized) || "no".equalsIgnoreCase(normalized)) return false;
+            out.println("Please answer y or n.");
+        }
+    }
+
+    private static void applyAuthorizedSourceUpdate(
+            File sourceFile,
+            String proposedSource,
+            GenerationActivity activity
+    ) throws IOException {
+        AtomicFileWriter.writeUtf8(sourceFile, proposedSource);
+        activity.applied("SOURCE_SYNCHRONIZATION", sourceFile);
+    }
+
     private static boolean askToUpdateMethods(
             BufferedReader input,
             PrintStream out,
@@ -690,7 +717,8 @@ public final class GenerationOrchestrator {
             boolean dryRun,
             ClassLoader classLoader,
             File generatedSourcesRoot,
-            SpecNamingConvention namingConvention
+            SpecNamingConvention namingConvention,
+            GenerationActivity activity
     ) throws IOException {
         // Collect spec files
         List<File> specFiles = new ArrayList<File>();
@@ -753,12 +781,14 @@ public final class GenerationOrchestrator {
             out.println("Target path: " + targetFile.getPath());
 
             if (dryRun) {
+                activity.proposed("PROPHECY_WRAPPER", targetFile);
                 out.println("Would generate prophecy wrapper: " + targetFile.getPath());
                 continue;
             }
 
             boolean accepted = generate || askToGenerateProphecy(input, out, typeFqcn);
             if (!accepted) {
+                activity.proposed("PROPHECY_WRAPPER", targetFile);
                 allGenerated = false;
                 continue;
             }
@@ -768,6 +798,7 @@ public final class GenerationOrchestrator {
             );
             try {
                 File writtenFile = ProphecyFileGenerator.write(plan);
+                activity.applied("PROPHECY_WRAPPER", writtenFile);
                 out.println("Generated prophecy wrapper: " + writtenFile.getPath());
             } catch (IOException ex) {
                 err.println("I/O error while generating prophecy wrapper: " + messageOf(ex));
@@ -782,7 +813,8 @@ public final class GenerationOrchestrator {
 
         // --- Update support class helpers in generatedSourcesRoot, never in src ---
         updateSupportProphecyHelpers(
-                specs, specRoot, generatedSourcesRoot, namingConvention, prophesizedTypes, dryRun, out, err);
+                specs, specRoot, generatedSourcesRoot, namingConvention, prophesizedTypes,
+                dryRun, generate, out, err, activity);
 
         return allGenerated;
     }
@@ -817,8 +849,10 @@ public final class GenerationOrchestrator {
             SpecNamingConvention namingConvention,
             List<String> prophesizedTypeNames,
             boolean dryRun,
+            boolean generate,
             PrintStream out,
-            PrintStream err
+            PrintStream err,
+            GenerationActivity activity
     ) {
         if (prophesizedTypeNames.isEmpty()) {
             return;
@@ -860,10 +894,12 @@ public final class GenerationOrchestrator {
                 String updated = SpecSupportFileGenerator.updateSourceWithProphecyHelpers(
                         source, spec.describedType(), typesForThisSpec);
                 if (!source.equals(updated)) {
-                    if (dryRun) {
+                    if (dryRun || !generate) {
+                        activity.proposed("PROPHECY_SUPPORT_HELPERS", supportFile);
                         out.println("Would add prophecy helpers to support: " + supportFile.getPath());
                     } else {
                         AtomicFileWriter.writeUtf8(supportFile, updated);
+                        activity.applied("PROPHECY_SUPPORT_HELPERS", supportFile);
                         out.println("Updated prophecy helpers in support: " + supportFile.getPath());
                     }
                 }

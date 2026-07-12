@@ -1,5 +1,6 @@
 package io.github.jvmspec.cli;
 
+import io.github.jvmspec.cli.run.GenerationActivity;
 import io.github.jvmspec.generation.AtomicFileWriter;
 import io.github.jvmspec.generation.StubMarkerScanner;
 
@@ -41,6 +42,17 @@ final class GenerationReportWriter {
     }
 
     static String render(GenerationReportState state, ParsedArguments parsed, int exitCode) {
+        List<GenerationActivity.Action> actions =
+                new ArrayList<GenerationActivity.Action>(state.actions());
+        Collections.sort(actions, new Comparator<GenerationActivity.Action>() {
+            @Override
+            public int compare(GenerationActivity.Action left, GenerationActivity.Action right) {
+                int path = actionPath(left, parsed).compareTo(actionPath(right, parsed));
+                if (path != 0) return path;
+                int kind = left.kind().compareTo(right.kind());
+                return kind != 0 ? kind : left.status().name().compareTo(right.status().name());
+            }
+        });
         List<StubMarkerScanner.StubLocation> stubs =
                 new ArrayList<StubMarkerScanner.StubLocation>(state.pendingStubs());
         Collections.sort(stubs, new Comparator<StubMarkerScanner.StubLocation>() {
@@ -57,7 +69,17 @@ final class GenerationReportWriter {
         json.append("  \"outcome\": \"").append(outcome(state, parsed, exitCode)).append("\",\n");
         json.append("  \"exitCode\": ").append(exitCode).append(",\n");
         json.append("  \"proceed\": ").append(state.proceed()).append(",\n");
-        json.append("  \"actions\": [],\n");
+        json.append("  \"actions\": [");
+        for (int i = 0; i < actions.size(); i++) {
+            if (i > 0) json.append(',');
+            GenerationActivity.Action action = actions.get(i);
+            json.append("\n    {\"kind\": \"").append(escape(action.kind()))
+                    .append("\", \"path\": \"").append(escape(actionPath(action, parsed)))
+                    .append("\", \"status\": \"").append(action.status().name()).append("\"}");
+        }
+        if (!actions.isEmpty()) json.append("\n  ");
+        json.append("],\n");
+        json.append("  \"appliedWrites\": ").append(state.appliedWriteCount()).append(",\n");
         json.append("  \"pendingGenerationWork\": ")
                 .append(state.pendingGenerationWork()).append(",\n");
         json.append("  \"pendingStubs\": [");
@@ -83,16 +105,29 @@ final class GenerationReportWriter {
         if (parsed.dryRun) {
             return "NO_CHANGES";
         }
-        return parsed.generate ? "APPLIED" : "NO_CHANGES";
+        return state.appliedWriteCount() > 0 ? "APPLIED" : "NO_CHANGES";
+    }
+
+    private static String actionPath(GenerationActivity.Action action, ParsedArguments parsed) {
+        File file = new File(action.path());
+        String sourcePath = relativePathIfWithin(file, new File(parsed.sourceRoot));
+        if (sourcePath != null) return sourcePath;
+        String specPath = relativePathIfWithin(file, new File(parsed.specRoot));
+        if (specPath != null) return specPath;
+        String generatedPath = relativePathIfWithin(file, new File(Main.DEFAULT_GENERATED_SOURCES));
+        return generatedPath == null ? file.getName() : generatedPath;
     }
 
     private static String relativePath(File file, File sourceRoot) {
-        Path root = sourceRoot.toPath().toAbsolutePath().normalize();
+        String relative = relativePathIfWithin(file, sourceRoot);
+        return relative == null ? file.getName() : relative;
+    }
+
+    private static String relativePathIfWithin(File file, File rootFile) {
+        Path root = rootFile.toPath().toAbsolutePath().normalize();
         Path target = file.toPath().toAbsolutePath().normalize();
-        if (target.startsWith(root)) {
-            return root.relativize(target).toString().replace(File.separatorChar, '/');
-        }
-        return file.getName();
+        if (!target.startsWith(root)) return null;
+        return root.relativize(target).toString().replace(File.separatorChar, '/');
     }
 
     private static String escape(String value) {

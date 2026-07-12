@@ -17,6 +17,15 @@ All notable changes to this project will be documented in this file.
 - Pending generated stubs now produce a synthetic BROKEN result independently of `--compile`.
 - Record component/accessor equivalence now preserves all generic arguments, arrays, and wildcard
   bounds instead of comparing erased raw types.
+- Constructor discovery now deduplicates by declaring type and ordered erased Java parameter
+  signature while retaining full `ConstructorDescriptor` structural equality; incompatible generic
+  requests with the same erasure fail with `CONFLICTING_CONSTRUCTOR_SIGNATURE`.
+- Existing constructor parsing now uses balanced Java parameter/body scanning for nested generics,
+  annotations, arrays, varargs, and multiline signatures without rewriting matched implementations.
+- Class and record source synchronization is planned before mutation and passes through one explicit
+  `--generate`/interactive authorization gate; non-interactive and dry-run commands are read-only.
+- Generation reports now distinguish proposed actions from actual applied writes and derive
+  `appliedWrites`/`NO_CHANGES` from recorded changed-file writes.
 
 ## 1.0.0-RC4 — 2026-07-11
 

@@ -1,6 +1,7 @@
 package io.github.jvmspec.discovery;
 
 import io.github.jvmspec.generation.TypeSkeletonGenerator;
+import io.github.jvmspec.internal.type.ConstructorDiscoveryException;
 import io.github.jvmspec.model.DescribedType;
 import io.github.jvmspec.model.MethodDescriptor;
 import org.junit.Rule;
@@ -47,6 +48,84 @@ public class SpecDiscoveryConstructorTest {
         assertEquals(1, type.constructors().size());
         assertEquals("com.example.Writer", type.constructors().get(0).parameterTypes().get(0));
         assertEquals("writer", type.constructors().get(0).parameterNames().get(0));
+    }
+
+    @Test
+    public void deduplicatesRepeatedConstructionRequestsByJavaSignatureNotLocalNames() throws Exception {
+        File specRoot = temporaryFolder.newFolder("duplicate-signature-spec-root");
+        File specDir = new File(specRoot, "spec/com/example");
+        assertTrue(specDir.mkdirs());
+        File specFile = new File(specDir, "SemanticPolicyHashSpec.java");
+        String specSource =
+                "package spec.com.example;\n" +
+                "import io.github.jvmspec.api.ObjectBehavior;\n" +
+                "import java.util.Map;\n" +
+                "public class SemanticPolicyHashSpec extends ObjectBehavior<SemanticPolicyHash> {\n" +
+                "  public void it_is_order_independent() {\n" +
+                "    Map<String, String> firstMap = null;\n" +
+                "    Map<String, String> secondMap = null;\n" +
+                "    beConstructedWith(firstMap);\n" +
+                "    beConstructedWith(secondMap);\n" +
+                "  }\n" +
+                "}\n";
+        Files.write(specFile.toPath(), specSource.getBytes(StandardCharsets.UTF_8));
+
+        DescribedType type = SpecDiscovery.discover(specRoot).get(0).describedType();
+
+        assertEquals(1, type.constructors().size());
+        assertEquals(Arrays.asList("java.util.Map<String, String>"),
+                type.constructors().get(0).parameterTypes());
+    }
+
+    @Test
+    public void preservesLegalConstructorOverloadsWithDifferentErasedTypes() throws Exception {
+        File specRoot = temporaryFolder.newFolder("legal-overload-spec-root");
+        File specDir = new File(specRoot, "spec/com/example");
+        assertTrue(specDir.mkdirs());
+        File specFile = new File(specDir, "SubjectSpec.java");
+        Files.write(specFile.toPath(), (
+                "package spec.com.example;\n" +
+                "import io.github.jvmspec.api.ObjectBehavior;\n" +
+                "public class SubjectSpec extends ObjectBehavior<Subject> {\n" +
+                "  public void it_supports_legal_overloads(String text, int number) {\n" +
+                "    beConstructedWith(text);\n" +
+                "    beConstructedWith(number);\n" +
+                "  }\n" +
+                "}\n").getBytes(StandardCharsets.UTF_8));
+
+        DescribedType type = SpecDiscovery.discover(specRoot).get(0).describedType();
+
+        assertEquals(2, type.constructors().size());
+        assertEquals(Arrays.asList("String"), type.constructors().get(0).parameterTypes());
+        assertEquals(Arrays.asList("int"), type.constructors().get(1).parameterTypes());
+    }
+
+    @Test
+    public void rejectsIncompatibleGenericRequestsWithTheSameErasedSignature() throws Exception {
+        File specRoot = temporaryFolder.newFolder("erasure-conflict-spec-root");
+        File specDir = new File(specRoot, "spec/com/example");
+        assertTrue(specDir.mkdirs());
+        File specFile = new File(specDir, "SemanticPolicyHashSpec.java");
+        Files.write(specFile.toPath(), (
+                "package spec.com.example;\n" +
+                "import io.github.jvmspec.api.ObjectBehavior;\n" +
+                "import java.util.Map;\n" +
+                "public class SemanticPolicyHashSpec extends ObjectBehavior<SemanticPolicyHash> {\n" +
+                "  public void it_rejects_an_erasure_conflict() {\n" +
+                "    Map<String, String> strings = null;\n" +
+                "    Map<String, Integer> integers = null;\n" +
+                "    beConstructedWith(strings);\n" +
+                "    beConstructedWith(integers);\n" +
+                "  }\n" +
+                "}\n").getBytes(StandardCharsets.UTF_8));
+
+        try {
+            SpecDiscovery.discover(specRoot);
+            throw new AssertionError("Expected erased constructor conflict");
+        } catch (ConstructorDiscoveryException expected) {
+            assertTrue(expected.getMessage(),
+                    expected.getMessage().contains("CONFLICTING_CONSTRUCTOR_SIGNATURE"));
+        }
     }
 
     @Test

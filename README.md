@@ -793,7 +793,7 @@ java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main run \
 Notes:
 
 - Executable-example JSON reports use `schemaVersion: 1` and include stable ids, status counts, pending counts, source metadata where available, and optional run metadata/properties.
-- Generation reports are written for success, dry-run, generation stop, and later pipeline failures. They contain no timestamp, sort pending stubs by source-relative path/line, and expose `outcome`, `exitCode`, `proceed`, `actions`, `pendingGenerationWork`, and `pendingStubs` without requiring prose parsing.
+- Generation reports are written for success, dry-run, generation stop, and later pipeline failures. They contain no timestamp, sort paths deterministically, distinguish `PROPOSED` from `APPLIED` actions, count actual changed-file writes in `appliedWrites`, and expose `outcome`, `exitCode`, `proceed`, `pendingGenerationWork`, and `pendingStubs` without requiring prose parsing.
 - JUnit XML-compatible reports map skipped and pending examples to `<skipped>` elements.
 - Report write failures exit with code `70`.
 - Schema and golden examples: [`docs/schemas/run-report-v1.schema.json`](docs/schemas/run-report-v1.schema.json), [`docs/examples/reports/`](docs/examples/reports/).

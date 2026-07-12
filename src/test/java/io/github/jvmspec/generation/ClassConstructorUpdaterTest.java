@@ -348,6 +348,62 @@ public class ClassConstructorUpdaterTest {
     }
 
     @Test
+    public void matchesGenericConstructorRegardlessOfParameterNameAndPreservesBodyByteForByte() {
+        String source = "package com.example;\n\n" +
+                "import java.util.Map;\n\n" +
+                "public class Service {\n" +
+                "    public Service(Map<String, String> normalizedFields) {\n" +
+                "        this.value = normalizedFields.toString();\n" +
+                "    }\n" +
+                "}\n";
+        ConstructorDescriptor spec = ConstructorDescriptor.of(
+                Arrays.asList("java.util.Map<java.lang.String, java.lang.String>"),
+                Arrays.asList("fields"), "");
+        DescribedType type = DescribedType.of(
+                "com.example.Service", JavaTypeKind.CLASS,
+                Collections.<String>emptyList(), Collections.<String>emptyList(),
+                Collections.<String>emptyList(), Arrays.asList(spec));
+
+        String updated = ClassConstructorUpdater.updateSource(source, type, ConstructorPolicy.COMMENT);
+
+        assertEquals(source, updated);
+        assertFalse(updated.contains("/*"));
+        assertEquals(1, countOccurrences(updated, "public Service("));
+    }
+
+    @Test
+    public void parsesNestedGenericAnnotatedArrayVarargsAndMultipleParameters() {
+        String source = "package com.example;\n\n" +
+                "import java.util.List;\n" +
+                "import java.util.Map;\n\n" +
+                "public class Service {\n" +
+                "    public Service(\n" +
+                "            final String first,\n" +
+                "            @Deprecated Map<String, List<Integer>> second,\n" +
+                "            Map<String, List<Map<String, Integer>>> third,\n" +
+                "            String... values) {\n" +
+                "        this.value = first;\n" +
+                "    }\n" +
+                "}\n";
+        ConstructorDescriptor spec = ConstructorDescriptor.of(
+                Arrays.asList(
+                        "String",
+                        "java.util.Map<String, java.util.List<Integer>>",
+                        "java.util.Map<String, java.util.List<java.util.Map<String, Integer>>>",
+                        "String[]"),
+                Arrays.asList("a", "b", "c", "d"), "");
+        DescribedType type = DescribedType.of(
+                "com.example.Service", JavaTypeKind.CLASS,
+                Collections.<String>emptyList(), Collections.<String>emptyList(),
+                Collections.<String>emptyList(), Arrays.asList(spec));
+
+        String updated = ClassConstructorUpdater.updateSource(source, type, ConstructorPolicy.COMMENT);
+
+        assertEquals(source, updated);
+        assertEquals(1, countOccurrences(updated, "public Service("));
+    }
+
+    @Test
     public void addsMultipleConstructorsFromSpec() {
         ConstructorDescriptor spec1 = ConstructorDescriptor.of(
                 Arrays.asList("String"),
@@ -607,5 +663,15 @@ public class ClassConstructorUpdaterTest {
         // Extended constructor with preserved body
         assertTrue(updated.contains("public Service(String name, int count) {"));
         assertTrue(updated.contains("this.name = name;"));
+    }
+
+    private static int countOccurrences(String value, String token) {
+        int count = 0;
+        int index = 0;
+        while ((index = value.indexOf(token, index)) >= 0) {
+            count++;
+            index += token.length();
+        }
+        return count;
     }
 }

@@ -5,12 +5,14 @@ import io.github.jvmspec.cli.run.ClasspathResolver;
 import io.github.jvmspec.cli.run.ClasspathSelection;
 import io.github.jvmspec.cli.run.CompilationOrchestrator;
 import io.github.jvmspec.cli.run.ExtensionOrchestrator;
+import io.github.jvmspec.cli.run.GenerationActivity;
 import io.github.jvmspec.cli.run.GenerationOrchestrator;
 import io.github.jvmspec.cli.run.GenerationOrchestratorResult;
 import io.github.jvmspec.cli.run.ReportOrchestrator;
 import io.github.jvmspec.resolver.DependencyResolutionException;
 import io.github.jvmspec.resolver.DependencyResolver;
 import io.github.jvmspec.resolver.DependencyResolverLoader;
+import io.github.jvmspec.internal.type.ConstructorDiscoveryException;
 import io.github.jvmspec.discovery.DiscoveredSpec;
 import io.github.jvmspec.discovery.SpecDiscovery;
 import io.github.jvmspec.discovery.SpecDiscoveryRequest;
@@ -161,6 +163,9 @@ final class RunCommandHandler implements CommandHandler {
         List<DiscoveredSpec> specs;
         try {
             specs = SpecDiscovery.discover(discoveryRequest);
+        } catch (ConstructorDiscoveryException ex) {
+            err.println(ex.getMessage());
+            return Main.EXIT_MISSING_NOT_GENERATED;
         } catch (SecurityException ex) {
             err.println("I/O error while discovering specifications: " + ConfigurationHelper.messageOf(ex));
             err.println("Spec root: " + specRoot.getPath());
@@ -182,6 +187,7 @@ final class RunCommandHandler implements CommandHandler {
         if (profileEnforcementExitCode != Main.EXIT_OK) {
             return profileEnforcementExitCode;
         }
+        GenerationActivity generationActivity = new GenerationActivity();
         GenerationOrchestratorResult genResult = GenerationOrchestrator.execute(
                 specs,
                 specRoot,
@@ -193,9 +199,11 @@ final class RunCommandHandler implements CommandHandler {
                 parsed.dryRun,
                 parsed.namingConvention,
                 selectedClassLoader,
-                ConfigurationHelper.resolveConstructorPolicy(parsed)
+                ConfigurationHelper.resolveConstructorPolicy(parsed),
+                new File(Main.DEFAULT_GENERATED_SOURCES),
+                generationActivity
         );
-        reportState.generationCompleted(genResult);
+        reportState.generationCompleted(genResult, generationActivity);
         if (!genResult.shouldProceed()) {
             return genResult.exitCode();
         }

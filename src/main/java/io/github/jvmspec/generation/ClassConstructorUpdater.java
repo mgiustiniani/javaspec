@@ -1,5 +1,7 @@
 package io.github.jvmspec.generation;
 
+import io.github.jvmspec.internal.type.ConstructorSignature;
+import io.github.jvmspec.internal.type.JavaSyntaxSplitter;
 import io.github.jvmspec.model.ConstructorDescriptor;
 import io.github.jvmspec.model.DescribedType;
 import io.github.jvmspec.model.JavaTypeKind;
@@ -41,15 +43,13 @@ import java.util.regex.Pattern;
  * class's opening brace without touching anything already present.
  */
 public final class ClassConstructorUpdater {
-    private static final Pattern CONSTRUCTOR_PATTERN = Pattern.compile(
-            "\\s*(public|protected|private)\\s+" +
-            "([A-Za-z_$][A-Za-z0-9_$]*)\\s*\\(" +
-            "([^)]*)" +
-            "\\)\\s*\\{\\s*" +
-            "((?:[^}]|\\{[^}]*\\})*)\\s*" +
-            "\\s*\\}",
+    private static final Pattern CONSTRUCTOR_HEADER_PATTERN = Pattern.compile(
+            "\\b(public|protected|private)\\s+" +
+            "([A-Za-z_$][A-Za-z0-9_$]*)\\s*\\(",
             Pattern.DOTALL
     );
+    private static final Pattern PARAMETER_NAME_PATTERN = Pattern.compile(
+            "([A-Za-z_$][A-Za-z0-9_$]*)\\s*((?:\\[\\s*\\]\\s*)*)$");
 
     private ClassConstructorUpdater() {
     }
@@ -117,47 +117,60 @@ public final class ClassConstructorUpdater {
 
     private static List<ParsedConstructor> parseConstructors(String source, String className) {
         List<ParsedConstructor> constructors = new ArrayList<ParsedConstructor>();
-        Matcher matcher = CONSTRUCTOR_PATTERN.matcher(source);
+        String masked = NonCodeSourceMasker.mask(source);
+        Matcher matcher = CONSTRUCTOR_HEADER_PATTERN.matcher(masked);
         while (matcher.find()) {
-            String accessModifier = matcher.group(1);
-            String methodName = matcher.group(2);
-            String paramsGroup = matcher.group(3);
-            String body = matcher.group(4);
-
-            if (!methodName.equals(className)) {
-                continue;
-            }
+            if (!className.equals(matcher.group(2))) continue;
+            int openParen = matcher.end() - 1;
+            int closeParen = findMatching(masked, openParen, '(', ')');
+            if (closeParen < 0) continue;
+            int bodyOpen = findConstructorBodyOpen(masked, closeParen + 1);
+            if (bodyOpen < 0) continue;
+            int bodyClose = findMatching(masked, bodyOpen, '{', '}');
+            if (bodyClose < 0) continue;
 
             List<String> paramTypes = new ArrayList<String>();
             List<String> paramNames = new ArrayList<String>();
-
-            if (paramsGroup.trim().length() > 0) {
-                String[] params = paramsGroup.split(",");
-                for (int i = 0; i < params.length; i++) {
-                    String param = params[i].trim();
-                    if (param.length() > 0) {
-                        int lastSpace = param.lastIndexOf(' ');
-                        if (lastSpace >= 0) {
-                            paramTypes.add(param.substring(0, lastSpace).trim());
-                            paramNames.add(param.substring(lastSpace + 1).trim());
-                        }
-                    }
-                }
+            String paramsGroup = source.substring(openParen + 1, closeParen);
+            List<String> params = JavaSyntaxSplitter.splitTopLevel(paramsGroup, ',');
+            for (int i = 0; i < params.size(); i++) {
+                String parameter = params.get(i).trim();
+                if (parameter.length() == 0) continue;
+                Matcher parameterMatcher = PARAMETER_NAME_PATTERN.matcher(parameter);
+                if (!parameterMatcher.find()) continue;
+                String name = parameterMatcher.group(1);
+                String trailingArrays = parameterMatcher.group(2).replaceAll("\\s+", "");
+                String type = parameter.substring(0, parameterMatcher.start(1)).trim()
+                        + trailingArrays;
+                paramTypes.add(type.trim());
+                paramNames.add(name);
             }
 
-            boolean isEmpty = body.trim().length() == 0;
-
+            String body = source.substring(bodyOpen + 1, bodyClose).trim();
             constructors.add(new ParsedConstructor(
-                    accessModifier,
-                    paramTypes,
-                    paramNames,
-                    body.trim(),
-                    isEmpty,
-                    matcher.start(),
-                    matcher.end()
-            ));
+                    matcher.group(1), paramTypes, paramNames, body, body.length() == 0,
+                    matcher.start(), bodyClose + 1));
         }
         return constructors;
+    }
+
+    private static int findConstructorBodyOpen(String masked, int start) {
+        for (int i = start; i < masked.length(); i++) {
+            char c = masked.charAt(i);
+            if (c == '{') return i;
+            if (c == ';') return -1;
+        }
+        return -1;
+    }
+
+    private static int findMatching(String source, int open, char openChar, char closeChar) {
+        int depth = 0;
+        for (int i = open; i < source.length(); i++) {
+            char c = source.charAt(i);
+            if (c == openChar) depth++;
+            else if (c == closeChar && --depth == 0) return i;
+        }
+        return -1;
     }
 
     private static String applyConstructorChanges(
@@ -355,7 +368,7 @@ public final class ClassConstructorUpdater {
         for (int pi = 0; pi < spec.parameterTypes().size(); pi++) {
             boolean found = false;
             for (int epi = 0; epi < existing.paramTypes.size(); epi++) {
-                if (simpleName(existing.paramTypes.get(epi)).equals(simpleName(spec.parameterTypes().get(pi)))
+                if (sameErasedType(existing.paramTypes.get(epi), spec.parameterTypes().get(pi))
                         && existing.paramNames.get(epi).equals(spec.parameterNames().get(pi))) {
                     found = true;
                     break;
@@ -435,13 +448,13 @@ public final class ClassConstructorUpdater {
         }
         // Check that all existing params are present in the spec
         for (int ei = 0; ei < existing.paramTypes.size(); ei++) {
-            String existingType = simpleName(existing.paramTypes.get(ei));
+            String existingType = existing.paramTypes.get(ei);
             String existingName = existing.paramNames.get(ei);
             boolean found = false;
             for (int si = 0; si < spec.parameterTypes().size(); si++) {
-                String specType = simpleName(spec.parameterTypes().get(si));
+                String specType = spec.parameterTypes().get(si);
                 String specName = spec.parameterNames().get(si);
-                if (existingType.equals(specType) && existingName.equals(specName)) {
+                if (sameErasedType(existingType, specType) && existingName.equals(specName)) {
                     found = true;
                     break;
                 }
@@ -453,13 +466,13 @@ public final class ClassConstructorUpdater {
         // Check that spec has at least one param not in existing
         int extraCount = 0;
         for (int si = 0; si < spec.parameterTypes().size(); si++) {
-            String specType = simpleName(spec.parameterTypes().get(si));
+            String specType = spec.parameterTypes().get(si);
             String specName = spec.parameterNames().get(si);
             boolean found = false;
             for (int ei = 0; ei < existing.paramTypes.size(); ei++) {
-                String existingType = simpleName(existing.paramTypes.get(ei));
+                String existingType = existing.paramTypes.get(ei);
                 String existingName = existing.paramNames.get(ei);
-                if (specType.equals(existingType) && specName.equals(existingName)) {
+                if (sameErasedType(specType, existingType) && specName.equals(existingName)) {
                     found = true;
                     break;
                 }
@@ -472,20 +485,15 @@ public final class ClassConstructorUpdater {
     }
 
     private static boolean constructorsMatch(ParsedConstructor existing, ConstructorDescriptor spec) {
-        if (existing.paramTypes.size() != spec.parameterTypes().size()) {
-            return false;
-        }
-        for (int i = 0; i < existing.paramTypes.size(); i++) {
-            String existingType = simpleName(existing.paramTypes.get(i));
-            String specType = simpleName(spec.parameterTypes().get(i));
-            if (!existingType.equals(specType)) {
-                return false;
-            }
-            // Parameter names are intentionally NOT compared: discovery infers synthetic names
-            // (arg0, arg1, ...) while production code uses meaningful names. In Java, parameter
-            // names are not part of a constructor's signature.
-        }
-        return true;
+        // Java constructor identity uses ordered erased parameter types. Parameter names,
+        // annotations, source qualification, and generic arguments cannot define overloads.
+        return ConstructorSignature.of("", existing.paramTypes).equals(
+                ConstructorSignature.of("", spec.parameterTypes()));
+    }
+
+    private static boolean sameErasedType(String left, String right) {
+        return ConstructorSignature.of("", Collections.singletonList(left)).equals(
+                ConstructorSignature.of("", Collections.singletonList(right)));
     }
 
     private static void appendParameters(StringBuilder builder, List<String> types, List<String> names) {
@@ -495,14 +503,6 @@ public final class ClassConstructorUpdater {
             }
             builder.append(types.get(pi)).append(" ").append(names.get(pi));
         }
-    }
-
-    private static String simpleName(String typeName) {
-        int lastDot = typeName.lastIndexOf('.');
-        if (lastDot < 0) {
-            return typeName;
-        }
-        return typeName.substring(lastDot + 1);
     }
 
     private static final class ParsedConstructor {

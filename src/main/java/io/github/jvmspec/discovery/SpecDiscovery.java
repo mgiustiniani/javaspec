@@ -1,5 +1,7 @@
 package io.github.jvmspec.discovery;
 
+import io.github.jvmspec.internal.type.ConstructorDiscoveryException;
+import io.github.jvmspec.internal.type.ConstructorSignature;
 import io.github.jvmspec.internal.type.JavaTypeRef;
 import io.github.jvmspec.model.ConstructorDescriptor;
 import io.github.jvmspec.model.DescribedClass;
@@ -150,13 +152,15 @@ public final class SpecDiscovery {
             SpecCallScanner.ScanResult scan = scanSpecCalls(source);
             JavaTypeKind kind = describedKind(source);
             List<ConstructorDescriptor> constructors = extractConstructors(
-                    source, describedPackageName, scan, JavaTypeKind.RECORD.equals(kind));
+                    source, describedPackageName, describedQualifiedName, scan,
+                    JavaTypeKind.RECORD.equals(kind));
             List<MethodDescriptor> methods = extractMethods(source, describedPackageName, describedQualifiedName, scan);
             List<DescribedType.EnumConstantInfo> enumConstants = extractEnumConstants(source, describedPackageName);
             // When enum constants have constructor arguments, infer the enum constructor
             if (kind.equals(JavaTypeKind.ENUM) && !enumConstants.isEmpty()) {
                 List<ConstructorDescriptor> enumConstructors = enumConstructorsFromConstants(enumConstants);
-                constructors = combineConstructors(constructors, enumConstructors);
+                constructors = combineConstructors(
+                        constructors, enumConstructors, describedQualifiedName);
             }
             specs.add(DiscoveredSpec.of(
                     specFile,
@@ -191,6 +195,7 @@ public final class SpecDiscovery {
     private static List<ConstructorDescriptor> extractConstructors(
             String source,
             String describedPackageName,
+            String describedQualifiedName,
             SpecCallScanner.ScanResult scan,
             boolean recordSubject
     ) {
@@ -208,10 +213,9 @@ public final class SpecDiscovery {
                     arguments = applyAccessorNamingEvidence(
                             arguments, call, scan, methodInfo, imports, describedPackageName);
                 }
-                ConstructorDescriptor cd = ConstructorDescriptor.of(arguments.parameterTypes, arguments.parameterNames, "");
-                if (!constructors.contains(cd)) {
-                    constructors.add(cd);
-                }
+                ConstructorDescriptor cd = ConstructorDescriptor.of(
+                        arguments.parameterTypes, arguments.parameterNames, "");
+                addConstructorBySignature(constructors, cd, describedQualifiedName);
             }
             return constructors;
         }
@@ -222,13 +226,54 @@ public final class SpecDiscovery {
         while (withMatcher.find()) {
             List<String> argNames = splitArguments(withMatcher.group(1).trim());
             ConstructionArguments arguments = inferConstructionArguments(argNames, source, withMatcher.start(), methods, imports, describedPackageName);
-            ConstructorDescriptor cd = ConstructorDescriptor.of(arguments.parameterTypes, arguments.parameterNames, "");
-            if (!constructors.contains(cd)) {
-                constructors.add(cd);
-            }
+            ConstructorDescriptor cd = ConstructorDescriptor.of(
+                    arguments.parameterTypes, arguments.parameterNames, "");
+            addConstructorBySignature(constructors, cd, describedQualifiedName);
         }
 
         return constructors;
+    }
+
+    private static void addConstructorBySignature(
+            List<ConstructorDescriptor> constructors,
+            ConstructorDescriptor candidate,
+            String describedQualifiedName
+    ) {
+        ConstructorSignature candidateSignature =
+                ConstructorSignature.of(describedQualifiedName, candidate);
+        for (int i = 0; i < constructors.size(); i++) {
+            ConstructorDescriptor existing = constructors.get(i);
+            if (!candidateSignature.equals(
+                    ConstructorSignature.of(describedQualifiedName, existing))) {
+                continue;
+            }
+            if (sameStructuredParameterTypes(
+                    existing.parameterTypes(), candidate.parameterTypes())) {
+                return;
+            }
+            throw new ConstructorDiscoveryException(
+                    "CONFLICTING_CONSTRUCTOR_SIGNATURE: subject " + describedQualifiedName
+                            + ", erased signature " + candidateSignature
+                            + ", incompatible parameter types " + existing.parameterTypes()
+                            + " and " + candidate.parameterTypes() + "."
+            );
+        }
+        constructors.add(candidate);
+    }
+
+    private static boolean sameStructuredParameterTypes(List<String> left, List<String> right) {
+        if (left.size() != right.size()) return false;
+        for (int i = 0; i < left.size(); i++) {
+            try {
+                JavaTypeRef leftType = JavaTypeRef.parseCanonical(left.get(i));
+                JavaTypeRef rightType = JavaTypeRef.parseCanonical(right.get(i));
+                if (!leftType.structurallyEquivalent(rightType)) return false;
+            } catch (IllegalArgumentException ex) {
+                if (!left.get(i).replace("...", "[]").equals(
+                        right.get(i).replace("...", "[]"))) return false;
+            }
+        }
+        return true;
     }
 
     private static ConstructionArguments applyAccessorNamingEvidence(
@@ -1607,14 +1652,12 @@ public final class SpecDiscovery {
 
     private static List<ConstructorDescriptor> combineConstructors(
             List<ConstructorDescriptor> existing,
-            List<ConstructorDescriptor> additional
+            List<ConstructorDescriptor> additional,
+            String describedQualifiedName
     ) {
         List<ConstructorDescriptor> result = new ArrayList<ConstructorDescriptor>(existing);
         for (int i = 0; i < additional.size(); i++) {
-            ConstructorDescriptor cd = additional.get(i);
-            if (!result.contains(cd)) {
-                result.add(cd);
-            }
+            addConstructorBySignature(result, additional.get(i), describedQualifiedName);
         }
         return result;
     }
