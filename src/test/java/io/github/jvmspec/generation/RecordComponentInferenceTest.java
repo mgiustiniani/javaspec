@@ -8,6 +8,7 @@ import io.github.jvmspec.discovery.SpecDiscovery;
 import io.github.jvmspec.model.ConstructorDescriptor;
 import io.github.jvmspec.model.DescribedType;
 import io.github.jvmspec.model.JavaTypeKind;
+import io.github.jvmspec.model.MethodDescriptor;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -109,7 +110,8 @@ public class RecordComponentInferenceTest {
                 "public class CertificateProfileSpec extends CertificateProfileSpecSupport {\n" +
                 "    public void it_forms_the_profile() {\n" +
                 "        SubjectTemplate subject = null;\n" +
-                "        List<SubjectPublicKeyProfile> publicKeys = null;\n" +
+                "        List<SubjectPublicKeyProfile> publicKeys = List." +
+                "of(SubjectPublicKeyProfile.RSA_3072);\n" +
                 "        ValidityDays validity = null;\n" +
                 "        List<KeyUsage> keyUsages = null;\n" +
                 "        List<ExtendedKeyUsage> extendedKeyUsages = null;\n" +
@@ -117,7 +119,8 @@ public class RecordComponentInferenceTest {
                 "        shouldBeARecord();\n" +
                 "        beConstructedWith(subject, publicKeys, validity, keyUsages, extendedKeyUsages, constraints);\n" +
                 "        subjectTemplate().shouldReturn(subject);\n" +
-                "        publicKeyAlgorithms().shouldReturn(publicKeys);\n" +
+                "        publicKeyAlgorithms().shouldReturn(List." +
+                "of(SubjectPublicKeyProfile.RSA_3072));\n" +
                 "        validityDays().shouldReturn(validity);\n" +
                 "        keyUsages().shouldReturn(keyUsages);\n" +
                 "        extendedKeyUsages().shouldReturn(extendedKeyUsages);\n" +
@@ -145,7 +148,11 @@ public class RecordComponentInferenceTest {
         assertFalse(skeleton, skeleton.contains("javaspec:stub"));
         String support = SpecSkeletonGenerator.renderSupport(type);
         assertTrue(support, support.contains("import com.example.SubjectPublicKeyProfile;"));
+        assertTrue(support, support.contains("import com.example.KeyUsage;"));
+        assertTrue(support, support.contains("import com.example.ExtendedKeyUsage;"));
         assertTrue(support, support.contains("Matchable<List<SubjectPublicKeyProfile>> publicKeyAlgorithms()"));
+        assertFalse(support, support.contains("Matchable<List>"));
+        assertFalse(support, support.contains("javaspec:stub"));
         File supportRoot = temporaryFolder.newFolder("aggregate-support");
         SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(
                 type, specRoot, supportRoot, SpecNamingConvention.defaults());
@@ -205,6 +212,19 @@ public class RecordComponentInferenceTest {
         assertTrue(skeleton, skeleton.contains("List<SubjectPublicKeyProfile> publicKeyAlgorithms"));
         assertFalse(skeleton, skeleton.contains("publicKeys"));
         assertFalse(skeleton, skeleton.contains("javaspec:stub"));
+    }
+
+    @Test
+    public void recordAccessorMatchingNeverErasesGenericArguments() {
+        RecordComponentPlanner.Component publicKeys = new RecordComponentPlanner.Component(
+                "java.util.List<com.example.SubjectPublicKeyProfile>", "publicKeyAlgorithms");
+        MethodDescriptor wrongGenericAccessor = MethodDescriptor.of(
+                "publicKeyAlgorithms", "java.util.List<com.example.KeyUsage>");
+        MethodDescriptor exactGenericAccessor = MethodDescriptor.of(
+                "publicKeyAlgorithms", "java.util.List<com.example.SubjectPublicKeyProfile>");
+
+        assertFalse(RecordComponentPlanner.isImplicitAccessor(publicKeys, wrongGenericAccessor));
+        assertTrue(RecordComponentPlanner.isImplicitAccessor(publicKeys, exactGenericAccessor));
     }
 
     @Test
@@ -289,8 +309,11 @@ public class RecordComponentInferenceTest {
                 "KeyUsage", "ExtendedKeyUsage", "BasicConstraints"
         };
         for (int i = 0; i < names.length; i++) {
+            String declaration = "SubjectPublicKeyProfile".equals(names[i])
+                    ? "public enum SubjectPublicKeyProfile { RSA_3072, EC_P256 }"
+                    : "public final class " + names[i] + " { }";
             sources.add(writeSource(sourceRoot, "com/example/" + names[i] + ".java",
-                    "package com.example; public final class " + names[i] + " { }\n"));
+                    "package com.example; " + declaration + "\n"));
         }
         File classes = temporaryFolder.newFolder("aggregate-classes");
         List<String> arguments = new ArrayList<String>();

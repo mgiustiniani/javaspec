@@ -1,5 +1,6 @@
 package io.github.jvmspec.generation;
 
+import io.github.jvmspec.internal.type.JavaTypeRef;
 import io.github.jvmspec.model.ConstructorDescriptor;
 import io.github.jvmspec.model.DescribedType;
 import io.github.jvmspec.model.JavaTypeKind;
@@ -454,23 +455,13 @@ final class RecordComponentPlanner {
     }
 
     private static boolean sameSourceType(String left, String right) {
-        return normalizedSourceType(left).equals(normalizedSourceType(right));
-    }
-
-    private static String normalizedSourceType(String typeName) {
-        String normalized = typeName.trim().replace("...", "[]").replace(" ", "");
-        if (normalized.startsWith("java.lang.")) {
-            normalized = normalized.substring("java.lang.".length());
+        try {
+            JavaTypeRef leftType = JavaTypeRef.parseCanonical(left.trim().replace("...", "[]"));
+            JavaTypeRef rightType = JavaTypeRef.parseCanonical(right.trim().replace("...", "[]"));
+            return leftType.structurallyEquivalent(rightType);
+        } catch (IllegalArgumentException ex) {
+            return false;
         }
-        int genericStart = normalized.indexOf('<');
-        if (genericStart >= 0) {
-            normalized = normalized.substring(0, genericStart);
-        }
-        int lastDot = normalized.lastIndexOf('.');
-        if (lastDot >= 0) {
-            normalized = normalized.substring(lastDot + 1);
-        }
-        return normalized;
     }
 
     private static String sourceTypeName(DescribedType owner, String typeName) {

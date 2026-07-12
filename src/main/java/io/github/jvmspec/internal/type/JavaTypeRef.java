@@ -45,6 +45,29 @@ public final class JavaTypeRef {
         return new Parser(source, Collections.<String, String>emptyMap(), "").parse();
     }
 
+    public boolean structurallyEquivalent(JavaTypeRef other) {
+        if (other == null || !kind.equals(other.kind)) {
+            return false;
+        }
+        if (Kind.ARRAY.equals(kind)) {
+            return component.structurallyEquivalent(other.component);
+        }
+        if (Kind.WILDCARD.equals(kind)) {
+            return Objects.equals(wildcardBoundKind, other.wildcardBoundKind)
+                    && (component == null ? other.component == null
+                    : component.structurallyEquivalent(other.component));
+        }
+        if (!equivalentDeclaredName(name, other.name) || arguments.size() != other.arguments.size()) {
+            return false;
+        }
+        for (int i = 0; i < arguments.size(); i++) {
+            if (!arguments.get(i).structurallyEquivalent(other.arguments.get(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public String canonicalName() {
         if (Kind.ARRAY.equals(kind)) {
             return component.canonicalName() + "[]";
@@ -102,6 +125,15 @@ public final class JavaTypeRef {
         for (int i = 0; i < arguments.size(); i++) {
             arguments.get(i).collectQualifiedTypes(result);
         }
+    }
+
+    private static boolean equivalentDeclaredName(String left, String right) {
+        if (left.equals(right)) {
+            return true;
+        }
+        boolean leftQualified = left.indexOf('.') >= 0;
+        boolean rightQualified = right.indexOf('.') >= 0;
+        return leftQualified != rightQualified && simpleName(left).equals(simpleName(right));
     }
 
     private static String renderDeclaredName(

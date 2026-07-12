@@ -25,6 +25,32 @@ public class JavaTypeRefTest {
     }
 
     @Test
+    public void structuralEquivalencePreservesEveryGenericArgument() {
+        JavaTypeRef publicKeys = JavaTypeRef.parseCanonical(
+                "java.util.List<com.example.SubjectPublicKeyProfile>");
+        JavaTypeRef simplePublicKeys = JavaTypeRef.parseCanonical(
+                "List<SubjectPublicKeyProfile>");
+        JavaTypeRef keyUsages = JavaTypeRef.parseCanonical(
+                "java.util.List<com.example.KeyUsage>");
+
+        assertEquals(true, publicKeys.structurallyEquivalent(simplePublicKeys));
+        assertEquals(false, publicKeys.structurallyEquivalent(keyUsages));
+    }
+
+    @Test
+    public void structuralEquivalencePreservesNestedWildcardsAndArrays() {
+        JavaTypeRef left = JavaTypeRef.parseCanonical(
+                "java.util.Map<String, ? extends com.example.KeyUsage[]>[]");
+        JavaTypeRef same = JavaTypeRef.parseCanonical(
+                "Map<java.lang.String, ? extends KeyUsage[]>[]");
+        JavaTypeRef different = JavaTypeRef.parseCanonical(
+                "Map<String, ? super KeyUsage[]>[]");
+
+        assertEquals(true, left.structurallyEquivalent(same));
+        assertEquals(false, left.structurallyEquivalent(different));
+    }
+
+    @Test
     public void importPlanImportsNestedGenericArgumentsDeterministically() {
         JavaTypeImportPlan plan = JavaTypeImportPlan.forTypes(
                 "spec.com.example",
