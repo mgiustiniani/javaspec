@@ -56,7 +56,7 @@ public class MainGenerationReportTest {
         assertTrue(json.contains("\"exitCode\": 1"));
         assertTrue(json.contains("\"proceed\": false"));
         assertTrue(json.contains("\"actions\": []"));
-        assertTrue(json.contains("\"pendingGenerationWork\": 1"));
+        assertTrue(json.contains("\"pendingGenerationWork\": 2"));
         assertFalse(new File(sourceRoot, "com/example/Profile.java").exists());
     }
 

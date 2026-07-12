@@ -11,14 +11,14 @@ import java.util.List;
 final class GenerationReportState {
     private boolean generationObserved;
     private boolean proceed = true;
-    private int generationExitCode;
+    private int pendingGenerationWork;
     private List<StubMarkerScanner.StubLocation> pendingStubs =
             Collections.<StubMarkerScanner.StubLocation>emptyList();
 
     void generationCompleted(GenerationOrchestratorResult result) {
         generationObserved = true;
         proceed = result.shouldProceed();
-        generationExitCode = result.exitCode();
+        pendingGenerationWork = result.pendingGenerationWork();
     }
 
     void pendingStubs(List<StubMarkerScanner.StubLocation> stubs) {
@@ -34,8 +34,8 @@ final class GenerationReportState {
         return proceed;
     }
 
-    int generationExitCode() {
-        return generationExitCode;
+    int pendingGenerationWork() {
+        return pendingGenerationWork;
     }
 
     List<StubMarkerScanner.StubLocation> pendingStubs() {

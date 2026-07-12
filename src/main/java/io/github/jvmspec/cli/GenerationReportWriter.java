@@ -59,7 +59,7 @@ final class GenerationReportWriter {
         json.append("  \"proceed\": ").append(state.proceed()).append(",\n");
         json.append("  \"actions\": [],\n");
         json.append("  \"pendingGenerationWork\": ")
-                .append(state.generationObserved() && !state.proceed() ? 1 : 0).append(",\n");
+                .append(state.pendingGenerationWork()).append(",\n");
         json.append("  \"pendingStubs\": [");
         for (int i = 0; i < stubs.size(); i++) {
             if (i > 0) json.append(',');

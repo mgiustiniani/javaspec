@@ -119,8 +119,8 @@ public final class GenerationOrchestrator {
             ConstructorPolicy constructorPolicy,
             File generatedSourcesRoot
     ) {
-        boolean missingWithoutGeneration = false;
-        boolean dryRunPendingChanges = false;
+        int missingWithoutGeneration = 0;
+        int dryRunPendingChanges = 0;
 
         for (int i = 0; i < specs.size(); i++) {
             DiscoveredSpec spec = specs.get(i);
@@ -152,10 +152,10 @@ public final class GenerationOrchestrator {
                         generatedSourcesRoot
                 );
                 if (!relatedSpecResult.allAccepted()) {
-                    missingWithoutGeneration = true;
+                    missingWithoutGeneration++;
                 }
                 if (relatedSpecResult.hasPendingChanges()) {
-                    dryRunPendingChanges = true;
+                    dryRunPendingChanges++;
                 }
             } catch (IOException ex) {
                 err.println("I/O error while generating related specification: " + messageOf(ex));
@@ -178,7 +178,7 @@ public final class GenerationOrchestrator {
                     if (needsSupportUpdate(describedType) || declaresGeneratedSupport(spec, supportPlan)) {
                         if (dryRun) {
                             if (reportSupportDryRun(supportPlan, out, "specification support")) {
-                                dryRunPendingChanges = true;
+                                dryRunPendingChanges++;
                             }
                         } else {
                             SpecSupportFileGenerator.SupportWriteResult supportResult =
@@ -230,12 +230,12 @@ public final class GenerationOrchestrator {
                             String methodUpdatedSource = ClassMethodUpdater.updateSource(updatedSource, describedType);
                             if (!updatedSource.equals(methodUpdatedSource)) {
                                 if (dryRun) {
-                                    dryRunPendingChanges = true;
+                                    dryRunPendingChanges++;
                                     out.println("Would update methods in " + sourceFile.getPath());
                                 } else {
                                     boolean accepted = generate || askToUpdateMethods(input, out, sourceFile, describedType);
                                     if (!accepted) {
-                                        missingWithoutGeneration = true;
+                                        missingWithoutGeneration++;
                                         continue;
                                     }
                                     AtomicFileWriter.writeUtf8(sourceFile, methodUpdatedSource);
@@ -248,7 +248,7 @@ public final class GenerationOrchestrator {
                             String constructorUpdatedSource = ClassConstructorUpdater.updateSource(updatedSource, describedType, constructorPolicy);
                             if (!updatedSource.equals(constructorUpdatedSource)) {
                                 if (dryRun) {
-                                    dryRunPendingChanges = true;
+                                    dryRunPendingChanges++;
                                     out.println("Would update constructors in " + sourceFile.getPath()
                                             + " (policy: " + policyOptionName(constructorPolicy) + ")");
                                 } else {
@@ -273,7 +273,7 @@ public final class GenerationOrchestrator {
                             dryRunSource = new String(Files.readAllBytes(sourceFile.toPath()), StandardCharsets.UTF_8);
                             String updatedSource = ClassConstructorUpdater.updateSource(dryRunSource, describedType, constructorPolicy);
                             if (!dryRunSource.equals(updatedSource)) {
-                                dryRunPendingChanges = true;
+                                dryRunPendingChanges++;
                                 out.println("Would update constructors in " + sourceFile.getPath()
                                         + " (policy: " + policyOptionName(constructorPolicy) + ")");
                             }
@@ -301,12 +301,12 @@ public final class GenerationOrchestrator {
                         String updatedSource = ClassMethodUpdater.updateSource(existingSource, describedType);
                         if (!existingSource.equals(updatedSource)) {
                             if (dryRun) {
-                                dryRunPendingChanges = true;
+                                dryRunPendingChanges++;
                                 out.println("Would update methods in " + sourceFile.getPath());
                             } else {
                                 boolean accepted = generate || askToUpdateMethods(input, out, sourceFile, describedType);
                                 if (!accepted) {
-                                    missingWithoutGeneration = true;
+                                    missingWithoutGeneration++;
                                     continue;
                                 }
                                 AtomicFileWriter.writeUtf8(sourceFile, updatedSource);
@@ -329,7 +329,7 @@ public final class GenerationOrchestrator {
             out.println("Target path: " + plan.targetFile().getPath());
 
             if (dryRun) {
-                dryRunPendingChanges = true;
+                dryRunPendingChanges++;
                 out.println("Would generate " + plan.describedType().kind().displayName()
                         + " skeleton: " + plan.targetFile().getPath());
                 continue;
@@ -344,7 +344,7 @@ public final class GenerationOrchestrator {
                     return GenerationOrchestratorResult.ioError(EXIT_IO_ERROR);
                 }
                 if (!accepted) {
-                    missingWithoutGeneration = true;
+                    missingWithoutGeneration++;
                     continue;
                 }
             }
@@ -378,20 +378,20 @@ public final class GenerationOrchestrator {
             return GenerationOrchestratorResult.ioError(EXIT_IO_ERROR);
         }
         if (!prophecyWrappersGenerated) {
-            missingWithoutGeneration = true;
+            missingWithoutGeneration++;
         }
 
         if (dryRun) {
-            if (dryRunPendingChanges) {
+            if (dryRunPendingChanges > 0) {
                 out.println("Dry-run found pending generation/update work; no files were written.");
-                return GenerationOrchestratorResult.missingNotGenerated();
+                return GenerationOrchestratorResult.missingNotGenerated(dryRunPendingChanges);
             }
             out.println("Dry-run found no pending generation/update work.");
         }
 
-        if (missingWithoutGeneration) {
+        if (missingWithoutGeneration > 0) {
             out.println("No production files were written.");
-            return GenerationOrchestratorResult.missingNotGenerated();
+            return GenerationOrchestratorResult.missingNotGenerated(missingWithoutGeneration);
         }
 
         return GenerationOrchestratorResult.proceed();
