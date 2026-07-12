@@ -250,6 +250,7 @@ public class MainGenerationReportTest {
 
     @Test
     public void nonGenerativeRecordSynchronizationIsReadOnly() throws Exception {
+        assumeTrue(javaSpecificationVersion() >= 17);
         File sourceRoot = temporaryFolder.newFolder("readonly-record-source");
         File specRoot = temporaryFolder.newFolder("readonly-record-spec");
         File report = new File(temporaryFolder.getRoot(), "readonly-record-report.json");
@@ -282,6 +283,7 @@ public class MainGenerationReportTest {
 
     @Test
     public void explicitRecordSynchronizationAppliesOnceAndThenIsIdempotent() throws Exception {
+        assumeTrue(javaSpecificationVersion() >= 17);
         File sourceRoot = temporaryFolder.newFolder("generate-record-source");
         File specRoot = temporaryFolder.newFolder("generate-record-spec");
         File firstReport = new File(temporaryFolder.getRoot(), "generate-record-first.json");
@@ -319,6 +321,13 @@ public class MainGenerationReportTest {
         assertEquals(1, countOccurrences(firstJson, "SOURCE_SYNCHRONIZATION"));
         assertTrue(firstJson, firstJson.contains("\"status\": \"APPLIED\""));
         assertTrue(secondJson, secondJson.contains("\"appliedWrites\": 0"));
+    }
+
+    private static int javaSpecificationVersion() {
+        String value = System.getProperty("java.specification.version", "8");
+        if (value.startsWith("1.")) value = value.substring(2);
+        int dot = value.indexOf('.');
+        return Integer.parseInt(dot < 0 ? value : value.substring(0, dot));
     }
 
     private static int countOccurrences(String value, String token) {
