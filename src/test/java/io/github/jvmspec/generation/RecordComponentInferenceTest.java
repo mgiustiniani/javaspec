@@ -164,6 +164,50 @@ public class RecordComponentInferenceTest {
     }
 
     @Test
+    public void accessorValueExpressionMayDifferWhenItsStructuredGenericTypeUniquelyIdentifiesTheComponent() throws Exception {
+        File specRoot = temporaryFolder.newFolder("aggregate-value-expression-spec");
+        File specFile = new File(specRoot, "spec/com/example/CertificateProfileSpec.java");
+        assertTrue(specFile.getParentFile().mkdirs());
+        String source = "package spec.com.example;\n" +
+                "import com.example.ExtendedKeyUsage;\n" +
+                "import com.example.KeyUsage;\n" +
+                "import com.example.SubjectPublicKeyProfile;\n" +
+                "import java.util.List;\n" +
+                "public class CertificateProfileSpec extends CertificateProfileSpecSupport {\n" +
+                "    public void it_forms_the_profile() {\n" +
+                "        List<SubjectPublicKeyProfile> publicKeys = List." +
+                "of(SubjectPublicKeyProfile.RSA_3072);\n" +
+                "        List<KeyUsage> keyUsages = List." +
+                "of(KeyUsage.digitalSignature);\n" +
+                "        List<ExtendedKeyUsage> extendedKeyUsages = List." +
+                "of(ExtendedKeyUsage.serverAuth);\n" +
+                "        shouldBeARecord();\n" +
+                "        beConstructedWith(publicKeys, keyUsages, extendedKeyUsages);\n" +
+                "        publicKeyAlgorithms().shouldReturn(List." +
+                "of(SubjectPublicKeyProfile.EC_P256));\n" +
+                "        keyUsages().shouldReturn(List." +
+                "of(KeyUsage.keyEncipherment));\n" +
+                "        extendedKeyUsages().shouldReturn(List." +
+                "of(ExtendedKeyUsage.clientAuth));\n" +
+                "    }\n" +
+                "}\n";
+        Files.write(specFile.toPath(), source.getBytes(StandardCharsets.UTF_8));
+
+        DescribedType type = SpecDiscovery.discover(specRoot).get(0).describedType();
+
+        assertEquals(Arrays.asList("publicKeyAlgorithms", "keyUsages", "extendedKeyUsages"),
+                constructor(type).parameterNames());
+        assertEquals(Arrays.asList(
+                "java.util.List<com.example.SubjectPublicKeyProfile>",
+                "java.util.List<com.example.KeyUsage>",
+                "java.util.List<com.example.ExtendedKeyUsage>"), constructor(type).parameterTypes());
+        String skeleton = TypeSkeletonGenerator.render(type);
+        assertTrue(skeleton, skeleton.contains("List<SubjectPublicKeyProfile> publicKeyAlgorithms"));
+        assertFalse(skeleton, skeleton.contains("publicKeys"));
+        assertFalse(skeleton, skeleton.contains("javaspec:stub"));
+    }
+
+    @Test
     public void duplicateAccessorEvidenceCannotMapToTwoConstructorPositions() throws Exception {
         DescribedType type = discoverRecord(
                 "beConstructedWith(false, false);\n" +

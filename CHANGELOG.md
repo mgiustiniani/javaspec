@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 
 - Reconciled multi-component record constructor slots with stronger accessor evidence before stub
-  planning, so local example names no longer define the record API when accessors differ.
+  planning, so local example names no longer define the record API when accessors differ; typed
+  generic factory expectations can identify the component even when the expected value expression
+  is intentionally different from the constructor expression.
 - Added recursive structured generic type resolution and deterministic import rendering for record
   skeletons and generated SpecSupport, including nested generics and simple-name collisions.
 

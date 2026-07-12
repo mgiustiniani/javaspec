@@ -245,6 +245,7 @@ public final class SpecDiscovery {
             String accessorName = uniqueAccessorForExampleValue(
                     argumentText,
                     arguments.parameterTypes.get(i),
+                    arguments.parameterTypes,
                     constructionCall.enclosingMethod,
                     scan,
                     methodInfo,
@@ -261,6 +262,7 @@ public final class SpecDiscovery {
     private static String uniqueAccessorForExampleValue(
             String argumentText,
             String argumentType,
+            List<String> constructionTypes,
             String enclosingMethod,
             SpecCallScanner.ScanResult scan,
             MethodParameterInfo methodInfo,
@@ -270,28 +272,48 @@ public final class SpecDiscovery {
         List<SpecCallScanner.Expectation> expectations = new ArrayList<SpecCallScanner.Expectation>();
         expectations.addAll(scan.proxyExpectations);
         expectations.addAll(scan.matchSubjectExpectations);
-        String candidate = null;
+        String exactCandidate = null;
+        String typedCandidate = null;
         for (int i = 0; i < expectations.size(); i++) {
             SpecCallScanner.Expectation expectation = expectations.get(i);
             if (!Objects.equals(enclosingMethod, expectation.enclosingMethod)
                     || !expectation.argumentTexts.isEmpty()
                     || !"shouldReturn".equals(expectation.matcherName)
                     || expectation.expectationTexts.size() != 1
-                    || !argumentText.equals(expectation.expectationTexts.get(0).trim())) {
-                continue;
-            }
-            String expectationType = inferredExpressionType(
-                    expectation.expectationTexts.get(0), methodInfo, imports, describedPackageName);
-            if (!sameInferredType(argumentType, expectationType)
                     || !isLegalJavaIdentifier(expectation.name)) {
                 continue;
             }
-            if (candidate != null && !candidate.equals(expectation.name)) {
+            String expectationText = expectation.expectationTexts.get(0).trim();
+            String expectationType = inferredExpressionType(
+                    expectationText, methodInfo, imports, describedPackageName);
+            if (!sameInferredType(argumentType, expectationType)) {
+                continue;
+            }
+            if (typedCandidate != null && !typedCandidate.equals(expectation.name)) {
+                typedCandidate = "";
+            } else if (typedCandidate == null) {
+                typedCandidate = expectation.name;
+            }
+            if (!argumentText.equals(expectationText)) {
+                continue;
+            }
+            if (exactCandidate != null && !exactCandidate.equals(expectation.name)) {
                 return null;
             }
-            candidate = expectation.name;
+            exactCandidate = expectation.name;
         }
-        return candidate;
+        if (exactCandidate != null) {
+            return exactCandidate;
+        }
+        int compatibleConstructionSlots = 0;
+        for (int i = 0; i < constructionTypes.size(); i++) {
+            if (sameInferredType(argumentType, constructionTypes.get(i))) {
+                compatibleConstructionSlots++;
+            }
+        }
+        return compatibleConstructionSlots == 1 && typedCandidate != null && typedCandidate.length() > 0
+                ? typedCandidate
+                : null;
     }
 
     private static String inferredExpressionType(
@@ -1063,6 +1085,11 @@ public final class SpecDiscovery {
         if (constructedType != null) {
             return InferredType.known(resolveTypeName(constructedType, imports, describedPackageName));
         }
+        String parameterizedFactoryType = parameterizedCollectionFactoryType(
+                value, imports, describedPackageName);
+        if (parameterizedFactoryType != null) {
+            return InferredType.known(parameterizedFactoryType);
+        }
         String staticFactoryType = staticFactoryReceiverType(value);
         if (staticFactoryType != null) {
             return InferredType.known(resolveTypeName(staticFactoryType, imports, describedPackageName));
@@ -1147,6 +1174,46 @@ public final class SpecDiscovery {
             return null;
         }
         return typeName;
+    }
+
+    private static String parameterizedCollectionFactoryType(
+            String value,
+            Map<String, String> imports,
+            String describedPackageName
+    ) {
+        String trimmed = value.trim();
+        int open = trimmed.indexOf('(');
+        int close = trimmed.lastIndexOf(')');
+        if (open < 0 || close != trimmed.length() - 1 || close <= open) {
+            return null;
+        }
+        String invocation = trimmed.substring(0, open).trim();
+        int methodSeparator = invocation.lastIndexOf('.');
+        if (methodSeparator < 0 || !"of".equals(invocation.substring(methodSeparator + 1))) {
+            return null;
+        }
+        String receiver = invocation.substring(0, methodSeparator);
+        String resolvedReceiver = resolveTypeName(receiver, imports, describedPackageName);
+        if (!"java.util.List".equals(resolvedReceiver)) {
+            return null;
+        }
+        List<String> elements = splitArguments(trimmed.substring(open + 1, close));
+        if (elements.isEmpty()) {
+            return null;
+        }
+        String elementType = null;
+        for (int i = 0; i < elements.size(); i++) {
+            InferredType inferred = inferLiteralType(elements.get(i), imports, describedPackageName);
+            if (inferred.unknown || "Object".equals(inferred.typeName)) {
+                return null;
+            }
+            if (elementType == null) {
+                elementType = inferred.typeName;
+            } else if (!sameInferredType(elementType, inferred.typeName)) {
+                return null;
+            }
+        }
+        return resolvedReceiver + "<" + elementType + ">";
     }
 
     private static String staticFactoryReceiverType(String value) {
