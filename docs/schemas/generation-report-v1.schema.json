@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://javaspec.dev/schemas/generation-report-v1.schema.json",
+  "title": "JavaSpec generation report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "outcome",
+    "exitCode",
+    "proceed",
+    "actions",
+    "pendingGenerationWork",
+    "pendingStubs"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "outcome": {
+      "enum": ["APPLIED", "NO_CHANGES", "PLANNED", "STOPPED", "FAILED"]
+    },
+    "exitCode": { "type": "integer", "minimum": 0 },
+    "proceed": { "type": "boolean" },
+    "actions": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "pendingGenerationWork": { "type": "integer", "minimum": 0 },
+    "pendingStubs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "line"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "line": { "type": "integer", "minimum": 1 }
+        }
+      }
+    }
+  }
+}

@@ -10,6 +10,13 @@ All notable changes to this project will be documented in this file.
   is intentionally different from the constructor expression.
 - Added recursive structured generic type resolution and deterministic import rendering for record
   skeletons and generated SpecSupport, including nested generics and simple-name collisions.
+- Made `--formatter json` reserve stdout for exactly one JSON document and route operational
+  diagnostics to stderr, including generation-stop and compilation-failure paths.
+- Added deterministic `--generation-report` output for applied, dry-run, stopped, and failed runs,
+  with sorted source-relative pending-stub locations.
+- Pending generated stubs now produce a synthetic BROKEN result independently of `--compile`.
+- Record component/accessor equivalence now preserves all generic arguments, arrays, and wildcard
+  bounds instead of comparing erased raw types.
 
 ## 1.0.0-RC4 — 2026-07-11
 

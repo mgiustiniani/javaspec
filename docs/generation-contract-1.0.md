@@ -2,11 +2,25 @@
 
 Generation supports the PHPSpec workflow by creating mechanical scaffolding only. It must not invent domain logic or hide RED feedback.
 
+## Deterministic generation report
+
+`javaspec run --generation-report <file>` atomically writes generation report schema version 1
+for successful, dry-run, stopped, and failed pipelines. The document contains no timestamp;
+`pendingStubs` uses source-root-relative `/`-separated paths sorted by path and line. Consumers
+must use `outcome`, `exitCode`, `proceed`, `pendingGenerationWork`, and `pendingStubs` rather than
+parsing human diagnostics. The initial v1 `actions` array is reserved for structured action details
+and is emitted as an empty array. See
+[`docs/schemas/generation-report-v1.schema.json`](schemas/generation-report-v1.schema.json).
+
+With `--formatter json`, stdout is reserved for exactly one run-result JSON document. Human
+configuration, discovery, generation, compilation, pending-stub, and execution diagnostics are
+written to stderr, including early generation stops and compilation failures.
+
 ## Generation outcomes
 
 | Outcome | Meaning | CLI/report behavior |
 |---|---|---|
-| planned | `--dry-run` found work that would be generated or updated. | Print `Would ...`, exit non-zero before execution, no reports. |
+| planned | `--dry-run` found work that would be generated or updated. | Print `Would ...`, exit non-zero before execution; write `--generation-report` when requested. |
 | applied | `--generate` or accepted prompt wrote/updated files. | Print generated/updated paths, proceed to compile/run when requested. |
 | already satisfied | Target source/support/wrapper already matches discovered behavior. | No mutation; proceed. |
 | refused | User declined generation/update. | Exit non-zero before execution. |

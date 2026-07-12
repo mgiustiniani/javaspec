@@ -195,9 +195,10 @@ Useful `run` options:
 --generate                   # apply generation/update prompts non-interactively
 --dry-run                    # plan generation/update work without writes
 --stop-on-failure            # stop after first failed or broken example
---formatter progress|pretty  # select built-in output format
+--formatter progress|pretty|json # select built-in output format; json owns stdout exclusively
 --profile java8|java11|java17|java21|java25
---report <file>              # JSON report
+--report <file>              # executable-example JSON report
+--generation-report <file>   # deterministic generation outcome report, including failures
 --junit-xml <file>           # JUnit XML-compatible report
 --class <name>               # filter described/spec class
 --example <name>             # filter example method/display name/order index
@@ -779,18 +780,20 @@ form, and a standalone verification test.
 
 ## Reports
 
-The CLI and adapters can write both JSON and JUnit XML-compatible reports:
+The CLI and adapters can write executable-example JSON, deterministic generation JSON, and JUnit XML-compatible reports. With `--formatter json`, stdout contains exactly one JSON document; discovery, generation, compilation, and execution diagnostics are written to stderr.
 
 ```sh
 java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main run \
   --compile \
   --report target/javaspec-report.json \
+  --generation-report target/javaspec-generation-report.json \
   --junit-xml target/javaspec-report.xml
 ```
 
 Notes:
 
-- JSON reports use `schemaVersion: 1` and include stable ids, status counts, pending counts, source metadata where available, and optional run metadata/properties.
+- Executable-example JSON reports use `schemaVersion: 1` and include stable ids, status counts, pending counts, source metadata where available, and optional run metadata/properties.
+- Generation reports are written for success, dry-run, generation stop, and later pipeline failures. They contain no timestamp, sort pending stubs by source-relative path/line, and expose `outcome`, `exitCode`, `proceed`, `actions`, `pendingGenerationWork`, and `pendingStubs` without requiring prose parsing.
 - JUnit XML-compatible reports map skipped and pending examples to `<skipped>` elements.
 - Report write failures exit with code `70`.
 - Schema and golden examples: [`docs/schemas/run-report-v1.schema.json`](docs/schemas/run-report-v1.schema.json), [`docs/examples/reports/`](docs/examples/reports/).

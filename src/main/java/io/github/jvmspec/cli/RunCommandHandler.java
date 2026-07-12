@@ -14,6 +14,7 @@ import io.github.jvmspec.resolver.DependencyResolverLoader;
 import io.github.jvmspec.discovery.DiscoveredSpec;
 import io.github.jvmspec.discovery.SpecDiscovery;
 import io.github.jvmspec.discovery.SpecDiscoveryRequest;
+import io.github.jvmspec.formatter.JsonRunFormatter;
 import io.github.jvmspec.formatter.RunFormatterRegistry;
 import io.github.jvmspec.generation.StubMarkerScanner;
 import io.github.jvmspec.invocation.JavaspecExitCode;
@@ -25,6 +26,7 @@ import io.github.jvmspec.runner.SpecResult;
 import io.github.jvmspec.runner.SpecRunner;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -41,6 +43,37 @@ import java.util.List;
 final class RunCommandHandler implements CommandHandler {
     @Override
     public int execute(ParsedArguments parsed, InputStream in, PrintStream out, PrintStream err) {
+        GenerationReportState reportState = new GenerationReportState();
+        if (!RunFormatterRegistry.FORMATTER_JSON.equals(parsed.effectiveFormatter)) {
+            int exitCode = executePipeline(parsed, in, out, err, null, reportState);
+            return GenerationReportWriter.write(
+                    parsed.generationReportPath, reportState, parsed, exitCode, err);
+        }
+        ByteArrayOutputStream jsonBytes = new ByteArrayOutputStream();
+        PrintStream jsonOut = new PrintStream(jsonBytes, true);
+        int pipelineExitCode = executePipeline(parsed, in, err, err, jsonOut, reportState);
+        int exitCode = GenerationReportWriter.write(
+                parsed.generationReportPath, reportState, parsed, pipelineExitCode, err);
+        if (exitCode != pipelineExitCode) {
+            jsonBytes.reset();
+        }
+        if (jsonBytes.size() == 0) {
+            new JsonRunFormatter().format(machineResultForEarlyExit(exitCode), jsonOut);
+        }
+        jsonOut.flush();
+        out.print(new String(jsonBytes.toByteArray(), StandardCharsets.UTF_8));
+        out.flush();
+        return exitCode;
+    }
+
+    private int executePipeline(
+            ParsedArguments parsed,
+            InputStream in,
+            PrintStream out,
+            PrintStream err,
+            PrintStream jsonOut,
+            GenerationReportState reportState
+    ) {
         File specRoot = new File(parsed.specRoot);
         File sourceRoot = new File(parsed.sourceRoot);
         BufferedReader input = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
@@ -162,11 +195,13 @@ final class RunCommandHandler implements CommandHandler {
                 selectedClassLoader,
                 ConfigurationHelper.resolveConstructorPolicy(parsed)
         );
+        reportState.generationCompleted(genResult);
         if (!genResult.shouldProceed()) {
             return genResult.exitCode();
         }
 
         List<StubMarkerScanner.StubLocation> pendingStubs = reportPendingStubs(sourceRoot, out, err);
+        reportState.pendingStubs(pendingStubs);
 
         ClasspathSelection executionClasspathSelection = classpathSelection;
         if (parsed.compile && !parsed.dryRun) {
@@ -200,9 +235,10 @@ final class RunCommandHandler implements CommandHandler {
 
         RunResult runResult = SpecRunner.run(specs, selectedClassLoader, parsed.stopOnFailure,
                 parsed.autoCheckPredictions);
-        runResult = withPendingStubResult(runResult, parsed.compile ? pendingStubs : null);
+        runResult = withPendingStubResult(runResult, pendingStubs);
         RunDiagnosticsPrinter diagnosticsPrinter = new RunDiagnosticsPrinter();
-        diagnosticsPrinter.printRunnerSummary(runResult, out, parsed.effectiveFormatter, runFormatters);
+        diagnosticsPrinter.printRunnerSummary(
+                runResult, jsonOut == null ? out : jsonOut, parsed.effectiveFormatter, runFormatters);
         diagnosticsPrinter.printExecutionDiagnostics(runResult, out, executionClasspathSelection);
         int reportExitCode = ReportOrchestrator.writeRequested(
                 runResult,
@@ -214,6 +250,26 @@ final class RunCommandHandler implements CommandHandler {
             return reportExitCode;
         }
         return JavaspecExitCode.from(runResult);
+    }
+
+    private static RunResult machineResultForEarlyExit(int exitCode) {
+        if (exitCode == Main.EXIT_OK) {
+            return ReportOrchestrator.emptyResult();
+        }
+        String detail = "Run stopped before example execution (exit code " + exitCode + ").";
+        ExampleResult stopped = ExampleResult.of(
+                "javaspec.cli.Run",
+                "run_stopped_before_example_execution",
+                "run stopped before example execution",
+                0,
+                ExampleStatus.BROKEN,
+                detail,
+                FailureDetail.of(new IllegalStateException(detail)),
+                null,
+                0
+        );
+        return RunResult.of(java.util.Arrays.asList(
+                SpecResult.of("javaspec.cli.Run", java.util.Arrays.asList(stopped))));
     }
 
     /**

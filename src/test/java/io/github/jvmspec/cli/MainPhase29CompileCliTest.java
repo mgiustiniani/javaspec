@@ -155,6 +155,38 @@ public class MainPhase29CompileCliTest {
     }
 
     @Test
+    public void pendingGeneratedStubIsBrokenEvenWithoutCompile() throws Exception {
+        File sourceRoot = temporaryFolder.newFolder("pending-stub-without-compile-source-root");
+        File specRoot = temporaryFolder.newFolder("pending-stub-without-compile-spec-root");
+        File jsonReport = new File(temporaryFolder.getRoot(), "pending-stub-without-compile-report.json");
+        writeSource(sourceRoot, "com.phase29.PendingWithoutCompileSubject",
+                "public class PendingWithoutCompileSubject {\n" +
+                        "    public boolean ready() {\n" +
+                        "        // javaspec:stub\n" +
+                        "        return false;\n" +
+                        "    }\n" +
+                        "}\n");
+        writeSource(specRoot, "spec.com.phase29.PendingWithoutCompileSubjectSpec",
+                "public class PendingWithoutCompileSubjectSpec {\n" +
+                        "    public void it_is_discovered_without_compilation() { }\n" +
+                        "}\n");
+
+        CommandResult result = run(
+                "run",
+                "--spec-dir", specRoot.getAbsolutePath(),
+                "--source-dir", sourceRoot.getAbsolutePath(),
+                "--report", jsonReport.getAbsolutePath()
+        );
+
+        assertEquals("stdout:\n" + result.out + "\nstderr:\n" + result.err, 1, result.exitCode);
+        assertContains(result.out, "Pending stubs: 1");
+        assertContains(result.out,
+                "BROKEN javaspec.generation.PendingStubs#generated_stubs_pending_implementation");
+        assertContains(readFile(jsonReport),
+                "\"stableId\": \"javaspec.generation.PendingStubs#generated_stubs_pending_implementation\"");
+    }
+
+    @Test
     public void runCompileFailureExitsOneAndDoesNotWriteReports() throws Exception {
         requireJdkCompiler();
         File sourceRoot = temporaryFolder.newFolder("compile-failure-source-root");

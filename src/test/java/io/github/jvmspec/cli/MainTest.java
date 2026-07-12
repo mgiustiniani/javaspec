@@ -575,7 +575,8 @@ public class MainTest {
 
         CommandResult result = run("run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath(), "--generate");
 
-        assertEquals(0, result.exitCode);
+        assertEquals(1, result.exitCode);
+        assertTrue(result.out.contains("Pending stubs: 4"));
         assertTrue(result.out.contains("Updated specification support: " + supportFile.getPath()));
         assertTrue(result.out.contains("Generated class skeleton: " + sourceFile.getPath()));
         assertEquals("", result.err);
@@ -634,7 +635,8 @@ public class MainTest {
 
         CommandResult result = runWithInput("y\n", "run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath());
 
-        assertEquals(0, result.exitCode);
+        assertEquals(1, result.exitCode);
+        assertTrue(result.out.contains("Pending stubs: 1"));
         assertTrue(result.out.contains("Do you want me to add missing method skeletons to com.example.Book in " + sourceFile.getPath() + "? [Y/n]"));
         assertTrue(result.out.contains("Updated methods in " + sourceFile.getPath()));
         assertEquals("", result.err);

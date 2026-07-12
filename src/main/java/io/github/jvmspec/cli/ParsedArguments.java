@@ -37,6 +37,8 @@ public final class ParsedArguments {
     String reportPath;
     String reportOption;
     boolean reportSpecified;
+    String generationReportPath;
+    boolean generationReportSpecified;
     String junitXmlPath;
     String junitXmlOption;
     boolean junitXmlSpecified;
