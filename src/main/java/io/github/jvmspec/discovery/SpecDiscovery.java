@@ -1,5 +1,6 @@
 package io.github.jvmspec.discovery;
 
+import io.github.jvmspec.internal.type.JavaTypeRef;
 import io.github.jvmspec.model.ConstructorDescriptor;
 import io.github.jvmspec.model.DescribedClass;
 import io.github.jvmspec.model.DescribedType;
@@ -147,11 +148,13 @@ public final class SpecDiscovery {
                 return;
             }
             SpecCallScanner.ScanResult scan = scanSpecCalls(source);
-            List<ConstructorDescriptor> constructors = extractConstructors(source, describedPackageName, scan);
+            JavaTypeKind kind = describedKind(source);
+            List<ConstructorDescriptor> constructors = extractConstructors(
+                    source, describedPackageName, scan, JavaTypeKind.RECORD.equals(kind));
             List<MethodDescriptor> methods = extractMethods(source, describedPackageName, describedQualifiedName, scan);
             List<DescribedType.EnumConstantInfo> enumConstants = extractEnumConstants(source, describedPackageName);
             // When enum constants have constructor arguments, infer the enum constructor
-            if (describedKind(source).equals(JavaTypeKind.ENUM) && !enumConstants.isEmpty()) {
+            if (kind.equals(JavaTypeKind.ENUM) && !enumConstants.isEmpty()) {
                 List<ConstructorDescriptor> enumConstructors = enumConstructorsFromConstants(enumConstants);
                 constructors = combineConstructors(constructors, enumConstructors);
             }
@@ -160,7 +163,7 @@ public final class SpecDiscovery {
                     specQualifiedName,
                     DescribedType.of(
                             DescribedClass.of(describedQualifiedName),
-                            describedKind(source),
+                            kind,
                             typeNames(source, describedPackageName, SHOULD_EXTEND_PATTERN),
                             typeNames(source, describedPackageName, SHOULD_IMPLEMENT_PATTERN),
                             typeNames(source, describedPackageName, SHOULD_PERMIT_PATTERN),
@@ -185,7 +188,12 @@ public final class SpecDiscovery {
         }
     }
 
-    private static List<ConstructorDescriptor> extractConstructors(String source, String describedPackageName, SpecCallScanner.ScanResult scan) {
+    private static List<ConstructorDescriptor> extractConstructors(
+            String source,
+            String describedPackageName,
+            SpecCallScanner.ScanResult scan,
+            boolean recordSubject
+    ) {
         Map<String, String> imports = importsBySimpleName(source);
         List<ConstructorDescriptor> constructors = new ArrayList<ConstructorDescriptor>();
 
@@ -193,10 +201,13 @@ public final class SpecDiscovery {
             Map<String, MethodParameterInfo> methods = methodInfoFromScan(scan, imports, describedPackageName);
             for (int i = 0; i < scan.constructionCalls.size(); i++) {
                 SpecCallScanner.Call call = scan.constructionCalls.get(i);
+                MethodParameterInfo methodInfo = methods.get(call.enclosingMethod);
                 ConstructionArguments arguments = inferConstructionArgumentsCore(
-                        call.argumentTexts, methods.get(call.enclosingMethod), imports, describedPackageName);
-                arguments = applyAccessorNamingEvidence(
-                        arguments, call, scan, imports, describedPackageName);
+                        call.argumentTexts, methodInfo, imports, describedPackageName);
+                if (recordSubject) {
+                    arguments = applyAccessorNamingEvidence(
+                            arguments, call, scan, methodInfo, imports, describedPackageName);
+                }
                 ConstructorDescriptor cd = ConstructorDescriptor.of(arguments.parameterTypes, arguments.parameterNames, "");
                 if (!constructors.contains(cd)) {
                     constructors.add(cd);
@@ -224,20 +235,19 @@ public final class SpecDiscovery {
             ConstructionArguments arguments,
             SpecCallScanner.Call constructionCall,
             SpecCallScanner.ScanResult scan,
+            MethodParameterInfo methodInfo,
             Map<String, String> imports,
             String describedPackageName
     ) {
         List<String> names = new ArrayList<String>(arguments.parameterNames);
         for (int i = 0; i < constructionCall.argumentTexts.size(); i++) {
             String argumentText = constructionCall.argumentTexts.get(i).trim();
-            if (isLegalJavaIdentifier(argumentText)) {
-                continue;
-            }
             String accessorName = uniqueAccessorForExampleValue(
                     argumentText,
                     arguments.parameterTypes.get(i),
                     constructionCall.enclosingMethod,
                     scan,
+                    methodInfo,
                     imports,
                     describedPackageName
             );
@@ -253,6 +263,7 @@ public final class SpecDiscovery {
             String argumentType,
             String enclosingMethod,
             SpecCallScanner.ScanResult scan,
+            MethodParameterInfo methodInfo,
             Map<String, String> imports,
             String describedPackageName
     ) {
@@ -269,8 +280,8 @@ public final class SpecDiscovery {
                     || !argumentText.equals(expectation.expectationTexts.get(0).trim())) {
                 continue;
             }
-            String expectationType = inferLiteralType(
-                    expectation.expectationTexts.get(0), imports, describedPackageName).typeName;
+            String expectationType = inferredExpressionType(
+                    expectation.expectationTexts.get(0), methodInfo, imports, describedPackageName);
             if (!sameInferredType(argumentType, expectationType)
                     || !isLegalJavaIdentifier(expectation.name)) {
                 continue;
@@ -281,6 +292,22 @@ public final class SpecDiscovery {
             candidate = expectation.name;
         }
         return candidate;
+    }
+
+    private static String inferredExpressionType(
+            String expression,
+            MethodParameterInfo methodInfo,
+            Map<String, String> imports,
+            String describedPackageName
+    ) {
+        String value = expression.trim();
+        if (methodInfo != null) {
+            int localIndex = methodInfo.names.indexOf(value);
+            if (localIndex >= 0) {
+                return methodInfo.types.get(localIndex);
+            }
+        }
+        return inferLiteralType(value, imports, describedPackageName).typeName;
     }
 
     private static boolean sameInferredType(String left, String right) {
@@ -642,8 +669,8 @@ public final class SpecDiscovery {
                 expectation.argumentTexts, specMethods.get(expectation.enclosingMethod), imports, describedPackageName);
         List<String> parameterNames = functionalAwareParameterNames(
                 expectation.argumentTexts, arguments, parameterNamesFor(expectation.name, arguments.size()));
-        String returnType = inferReturnType(
-                expectation.matcherName, joinArguments(expectation.expectationTexts), imports, describedPackageName);
+        String returnType = inferExpectationReturnType(
+                expectation, specMethods.get(expectation.enclosingMethod), imports, describedPackageName);
         addMethod(discovered, methodDescriptor(expectation.name, returnType, arguments, parameterNames));
     }
 
@@ -663,6 +690,27 @@ public final class SpecDiscovery {
 
     private static boolean isFunctionalExpression(String expression) {
         return expression.indexOf("->") >= 0 || expression.indexOf("::") >= 0;
+    }
+
+    private static String inferExpectationReturnType(
+            SpecCallScanner.Expectation expectation,
+            MethodParameterInfo methodInfo,
+            Map<String, String> imports,
+            String describedPackageName
+    ) {
+        if (expectation.expectationTexts.size() == 1 && methodInfo != null) {
+            String expression = expectation.expectationTexts.get(0).trim();
+            int localIndex = methodInfo.names.indexOf(expression);
+            if (localIndex >= 0) {
+                return methodInfo.types.get(localIndex);
+            }
+        }
+        return inferReturnType(
+                expectation.matcherName,
+                joinArguments(expectation.expectationTexts),
+                imports,
+                describedPackageName
+        );
     }
 
     private static MethodDescriptor methodDescriptor(
@@ -1518,46 +1566,7 @@ public final class SpecDiscovery {
     }
 
     static String resolveTypeName(String typeName, Map<String, String> imports, String describedPackageName) {
-        String normalized = typeName.trim();
-        if (normalized.endsWith("[]")) {
-            return resolveArrayTypeName(normalized, imports, describedPackageName);
-        }
-        if (isPrimitiveOrVoid(normalized)) {
-            return normalized;
-        }
-        int genericStart = normalized.indexOf('<');
-        if (genericStart >= 0 && normalized.endsWith(">")) {
-            String rawType = normalized.substring(0, genericStart).trim();
-            String genericSuffix = normalized.substring(genericStart);
-            return resolveTypeName(rawType, imports, describedPackageName) + genericSuffix;
-        }
-        if (normalized.indexOf('.') >= 0) {
-            return normalized;
-        }
-        String importedName = imports.get(normalized);
-        if (importedName != null) {
-            return importedName;
-        }
-        if (isJavaLangType(normalized)) {
-            return normalized;
-        }
-        if (describedPackageName.length() == 0) {
-            return normalized;
-        }
-        return describedPackageName + "." + normalized;
-    }
-
-    private static String resolveArrayTypeName(String typeName, Map<String, String> imports, String describedPackageName) {
-        String component = typeName;
-        StringBuilder suffix = new StringBuilder();
-        while (component.endsWith("[]")) {
-            component = component.substring(0, component.length() - 2).trim();
-            suffix.append("[]");
-        }
-        if (component.indexOf('<') >= 0) {
-            return typeName;
-        }
-        return resolveTypeName(component, imports, describedPackageName) + suffix.toString();
+        return JavaTypeRef.resolve(typeName, imports, describedPackageName).canonicalName();
     }
 
     private static boolean isPrimitiveOrVoid(String typeName) {

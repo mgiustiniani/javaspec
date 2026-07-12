@@ -1,5 +1,6 @@
 package io.github.jvmspec.generation;
 
+import io.github.jvmspec.internal.type.JavaTypeImportPlan;
 import io.github.jvmspec.model.ConstructorDescriptor;
 import io.github.jvmspec.model.DescribedType;
 import io.github.jvmspec.model.JavaTypeKind;
@@ -32,16 +33,18 @@ public final class TypeSkeletonGenerator {
         if (describedType.hasPackage()) {
             builder.append("package ").append(describedType.packageName()).append(";\n\n");
         }
+        if (JavaTypeKind.RECORD.equals(describedType.kind())) {
+            JavaTypeImportPlan importPlan = recordImportPlan(describedType);
+            appendImports(builder, importPlan);
+            appendRecord(builder, describedType, importPlan);
+            return builder.toString();
+        }
         appendDeclaration(builder, describedType);
         return builder.toString();
     }
 
     private static void appendDeclaration(StringBuilder builder, DescribedType describedType) {
         JavaTypeKind kind = describedType.kind();
-        if (JavaTypeKind.RECORD.equals(kind)) {
-            appendRecord(builder, describedType);
-            return;
-        }
         if (JavaTypeKind.SEALED_CLASS.equals(kind)) {
             appendSealedClass(builder, describedType);
             return;
@@ -172,10 +175,18 @@ public final class TypeSkeletonGenerator {
         }
     }
 
-    private static void appendRecord(StringBuilder builder, DescribedType describedType) {
+    private static void appendRecord(
+            StringBuilder builder,
+            DescribedType describedType,
+            JavaTypeImportPlan importPlan
+    ) {
         List<RecordComponentPlanner.Component> components = RecordComponentPlanner.componentsFor(describedType);
         builder.append("public record ").append(describedType.simpleName()).append("(");
-        builder.append(RecordComponentPlanner.renderComponentList(describedType, components));
+        for (int i = 0; i < components.size(); i++) {
+            if (i > 0) builder.append(", ");
+            RecordComponentPlanner.Component component = components.get(i);
+            builder.append(importPlan.render(component.type())).append(" ").append(component.name());
+        }
         builder.append(")");
         appendImplements(builder, describedType);
         List<MethodDescriptor> explicitMethods = explicitRecordMethods(describedType.methods(), components);
@@ -186,6 +197,23 @@ public final class TypeSkeletonGenerator {
         } else {
             builder.append(" { }\n");
         }
+    }
+
+    private static JavaTypeImportPlan recordImportPlan(DescribedType describedType) {
+        List<String> types = new ArrayList<String>();
+        List<RecordComponentPlanner.Component> components = RecordComponentPlanner.componentsFor(describedType);
+        for (int i = 0; i < components.size(); i++) {
+            types.add(components.get(i).type());
+        }
+        return JavaTypeImportPlan.forTypes(describedType.packageName(), types);
+    }
+
+    private static void appendImports(StringBuilder builder, JavaTypeImportPlan importPlan) {
+        List<String> imports = importPlan.imports();
+        for (int i = 0; i < imports.size(); i++) {
+            builder.append("import ").append(imports.get(i)).append(";\n");
+        }
+        if (!imports.isEmpty()) builder.append("\n");
     }
 
     private static List<MethodDescriptor> explicitRecordMethods(

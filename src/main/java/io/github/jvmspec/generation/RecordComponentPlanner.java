@@ -145,8 +145,13 @@ final class RecordComponentPlanner {
         ConstructorDescriptor selected = constructors.get(0);
         for (int i = 1; i < constructors.size(); i++) {
             ConstructorDescriptor candidate = constructors.get(i);
-            if (candidate.parameterTypes().size() > selected.parameterTypes().size()) {
-                selected = candidate;
+            if (!selected.parameterTypes().equals(candidate.parameterTypes())
+                    || !selected.parameterNames().equals(candidate.parameterNames())) {
+                throw new IllegalArgumentException(
+                        "AMBIGUOUS_RECORD_COMPONENT_MAPPING: subject " + describedType.qualifiedName()
+                                + ", constructor evidence conflicts between " + selected + " and " + candidate
+                                + "; a record requires one canonical ordered component mapping."
+                );
             }
         }
         return selected;

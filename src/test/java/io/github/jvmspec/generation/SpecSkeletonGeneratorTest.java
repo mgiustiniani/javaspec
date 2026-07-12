@@ -99,7 +99,8 @@ public class SpecSkeletonGeneratorTest {
 
         String source = SpecSkeletonGenerator.renderSupport(describedType);
 
-        assertTrue(source.contains("beConstructedWith((byte) 0, (short) 0, 0.0f, (String) null, (java.time.Instant) null);"));
+        assertTrue(source.contains("import java.time.Instant;"));
+        assertTrue(source.contains("beConstructedWith((byte) 0, (short) 0, 0.0f, (String) null, (Instant) null);"));
     }
 
     @Test
@@ -119,8 +120,8 @@ public class SpecSkeletonGeneratorTest {
 
         String source = SpecSkeletonGenerator.renderSupport(describedType);
 
-        assertEquals(1, countOccurrences(source, "protected io.github.jvmspec.matcher.Matchable<Boolean> isCanonicalText(java.lang.String arg0)"));
-        assertEquals(1, countOccurrences(source, "public void duringIsCanonicalText(final java.lang.String arg0)"));
+        assertEquals(1, countOccurrences(source, "protected io.github.jvmspec.matcher.Matchable<Boolean> isCanonicalText(String arg0)"));
+        assertEquals(1, countOccurrences(source, "public void duringIsCanonicalText(final String arg0)"));
     }
 
     @Test
@@ -233,7 +234,7 @@ public class SpecSkeletonGeneratorTest {
         assertTrue(source.contains("protected io.github.jvmspec.matcher.Matchable<String> getTitle()"));
         assertTrue(source.contains("return match(subject().getTitle());"));
         assertTrue(source.contains("protected io.github.jvmspec.matcher.Matchable<Boolean> isActive()"));
-        assertTrue(source.contains("protected io.github.jvmspec.matcher.Matchable<java.lang.Boolean> hasInventory()"));
+        assertTrue(source.contains("protected io.github.jvmspec.matcher.Matchable<Boolean> hasInventory()"));
         assertTrue(source.contains("protected void shouldHaveTitle(String expected)"));
         assertTrue(source.contains("getTitle().shouldReturn(expected);"));
         assertTrue(source.contains("protected void shouldNotHaveTitle(String unexpected)"));

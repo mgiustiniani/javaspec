@@ -37,6 +37,7 @@ Compatibility policy:
 | `io.github.jvmspec.diagnostics` | `PUBLIC_API` | Diagnostic model surfaced by CLI and adapters. |
 | `io.github.jvmspec.cli` | `ADAPTER_API` | Command-line entrypoint/options/exit codes are public CLI contract; individual parser/handler classes are internal Java API. |
 | `io.github.jvmspec.cli.run` | `INTERNAL` | Run-command orchestration internals. |
+| `io.github.jvmspec.internal.type` | `INTERNAL` | Structured source-type resolution, recursive import collection, and deterministic rendering used by discovery/generation. |
 
 ## Optional artifacts
 
