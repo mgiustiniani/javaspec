@@ -72,6 +72,11 @@ public final class ProductionSignatureReader {
 
         String packageName = packageNameOf(unit);
         Map<String, String> imports = importsBySimpleName(unit);
+        addNestedTypesBySimpleName(
+                classTree,
+                describedType.qualifiedName(),
+                imports
+        );
         List<ProductionMethod> productionMethods = new ArrayList<ProductionMethod>();
         List<ProductionMethod> productionConstructors = new ArrayList<ProductionMethod>();
         collectMembers(classTree, packageName, imports, productionMethods, productionConstructors);
@@ -353,6 +358,25 @@ public final class ProductionSignatureReader {
 
     private static String packageNameOf(CompilationUnitTree unit) {
         return unit.getPackageName() == null ? "" : unit.getPackageName().toString();
+    }
+
+    private static void addNestedTypesBySimpleName(
+            ClassTree owner,
+            String ownerQualifiedName,
+            Map<String, String> typesBySimpleName
+    ) {
+        List<? extends Tree> members = owner.getMembers();
+        for (int i = 0; i < members.size(); i++) {
+            Tree member = members.get(i);
+            if (!(member instanceof ClassTree)) {
+                continue;
+            }
+            ClassTree nestedType = (ClassTree) member;
+            String simpleName = nestedType.getSimpleName().toString();
+            String qualifiedName = ownerQualifiedName + "." + simpleName;
+            typesBySimpleName.put(simpleName, qualifiedName);
+            addNestedTypesBySimpleName(nestedType, qualifiedName, typesBySimpleName);
+        }
     }
 
     private static Map<String, String> importsBySimpleName(CompilationUnitTree unit) {

@@ -55,6 +55,34 @@ final class SpecCallScanner {
     private SpecCallScanner() {
     }
 
+    static boolean isFrameworkMethodName(String methodName) {
+        return "subject".equals(methodName)
+                || "setSubject".equals(methodName)
+                || "matcherRegistry".equals(methodName)
+                || "setMatcherRegistry".equals(methodName)
+                || "assertions".equals(methodName)
+                || "match".equals(methodName)
+                || "row".equals(methodName)
+                || "examples".equals(methodName)
+                || "doubleFor".equals(methodName)
+                || "interfaceDouble".equals(methodName)
+                || "doubleControl".equals(methodName)
+                || "inspectDouble".equals(methodName)
+                || "doubleCalls".equals(methodName)
+                || "doubleCallCount".equals(methodName)
+                || "doubleCallCountFor".equals(methodName)
+                || "prophesize".equals(methodName)
+                || "prophecy".equals(methodName)
+                || "prophecyRegistry".equals(methodName)
+                || "sharedProphecyRegistry".equals(methodName)
+                || "checkPredictions".equals(methodName)
+                || "setProphecyRegistry".equals(methodName)
+                || "setAutoCheckPredictions".equals(methodName)
+                || "isAutoCheckPredictions".equals(methodName)
+                || "skip".equals(methodName)
+                || "pending".equals(methodName);
+    }
+
     /** A call event: target name, argument expression texts, and the enclosing spec method. */
     static final class Call {
         final String name;
@@ -241,7 +269,7 @@ final class SpecCallScanner {
                     }
                 } else if (select instanceof IdentifierTree) {
                     String name = ((IdentifierTree) select).getName().toString();
-                    if (isSetterName(name)) {
+                    if (isSetterName(name) && !isFrameworkMethodName(name)) {
                         result.setterStatements.add(
                                 new Call(name, argumentTexts(invocation), currentMethod));
                     } else if (isStateExpectationName(name)) {
@@ -396,11 +424,9 @@ final class SpecCallScanner {
         }
 
         private static boolean isIgnoredName(String methodName) {
-            return "match".equals(methodName)
-                    || "subject".equals(methodName)
-                    || methodName.startsWith("should")
+            return methodName.startsWith("should")
                     || methodName.startsWith("beConstructed")
-                    || "matcherRegistry".equals(methodName);
+                    || isFrameworkMethodName(methodName);
         }
 
         private static boolean startsLowerCase(String name) {

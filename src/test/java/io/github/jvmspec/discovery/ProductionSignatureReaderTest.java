@@ -89,6 +89,27 @@ public class ProductionSignatureReaderTest {
     }
 
     @Test
+    public void nestedProductionTypesShadowImportsDuringRefinement() throws Exception {
+        File sourceRoot = writeProductionSource("com/example/Key.java",
+                "package com.example;\n\n" +
+                "import other.Status;\n\n" +
+                "public class Key {\n" +
+                "    public enum Status { ACTIVE }\n\n" +
+                "    public Status status() {\n" +
+                "        return Status.ACTIVE;\n" +
+                "    }\n" +
+                "}\n");
+        DescribedType described = describedKey(
+                Collections.<ConstructorDescriptor>emptyList(),
+                Arrays.asList(MethodDescriptor.of("status", "Object")));
+
+        DescribedType refined = ProductionSignatureReader.refine(described, sourceRoot);
+
+        assertEquals(Arrays.asList(MethodDescriptor.of("status", "com.example.Key.Status")),
+                refined.methods());
+    }
+
+    @Test
     public void refinesConstructorParameterTypesAndNames() throws Exception {
         File sourceRoot = writeProductionSource("com/example/Key.java",
                 "package com.example;\n\n" +

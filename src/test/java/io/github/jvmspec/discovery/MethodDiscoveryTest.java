@@ -46,6 +46,42 @@ public class MethodDiscoveryTest {
     }
 
     @Test
+    public void frameworkLifecycleCallsAreNotProductionMethods() {
+        String source = "package spec.com.example;\n"
+                + "public class ServiceSpec {\n"
+                + "  public void it_continues_with_a_replacement(Service replacement) {\n"
+                + "    setSubject(replacement);\n"
+                + "    setMatcherRegistry(null);\n"
+                + "  }\n"
+                + "}\n";
+
+        List<MethodDescriptor> ast = MethodDiscovery.discover(
+                source, "com.example", "com.example.Service", SpecCallScanner.scan(source));
+        List<MethodDescriptor> legacy = MethodDiscovery.discover(
+                source, "com.example", "com.example.Service", null);
+
+        assertTrue(ast.isEmpty());
+        assertTrue(legacy.isEmpty());
+    }
+
+    @Test
+    public void variableAssignmentsToSpecHelpersAreNotProductionMethods() {
+        String source = "package spec.com.example;\n"
+                + "public class ServiceSpec {\n"
+                + "  public void it_uses_a_spec_helper() {\n"
+                + "    var replacement = helper();\n"
+                + "    setSubject(replacement);\n"
+                + "  }\n"
+                + "  private Service helper() { return null; }\n"
+                + "}\n";
+
+        List<MethodDescriptor> methods = MethodDiscovery.discover(
+                source, "com.example", "com.example.Service", SpecCallScanner.scan(source));
+
+        assertTrue(methods.isEmpty());
+    }
+
+    @Test
     public void knownTypeEvidenceReplacesUnknownEvidenceForEquivalentSignature() {
         String source = "package spec.com.example;\n"
                 + "public class ServiceSpec {\n"

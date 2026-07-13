@@ -133,6 +133,9 @@ final class MethodDiscovery {
         Matcher setterMatcher = PLAIN_SETTER_CALL_PATTERN.matcher(source);
         while (setterMatcher.find()) {
             String methodName = setterMatcher.group(1);
+            if (SpecCallScanner.isFrameworkMethodName(methodName)) {
+                continue;
+            }
             String argumentSource = setterMatcher.group(2).trim();
             InferredArguments arguments = inferArgumentTypes(argumentSource, source, setterMatcher.start(), specMethods, imports, describedPackageName);
             List<String> parameterNames = parameterNamesFor(methodName, arguments.size());
@@ -502,11 +505,9 @@ final class MethodDiscovery {
     }
 
     private static boolean isIgnoredProxyCall(String methodName) {
-        return "match".equals(methodName)
-                || "subject".equals(methodName)
-                || methodName.startsWith("should")
+        return methodName.startsWith("should")
                 || methodName.startsWith("beConstructed")
-                || "matcherRegistry".equals(methodName);
+                || SpecCallScanner.isFrameworkMethodName(methodName);
     }
 
     private static void addMethod(Map<String, MethodDescriptor> methods, MethodDescriptor candidate) {
