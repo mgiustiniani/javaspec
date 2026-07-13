@@ -70,6 +70,13 @@ and state expectations generated production and support sources byte-for-byte id
 constructor, qualified-overload, authorization, hash, mtime, and zero-write replays also remained
 unchanged.
 
+Inference-component extraction was replayed with `1.0.0-RC4-dev-4394868` (JAR SHA-256
+`d77586c3450c96a964ad70f8b0d166ea8adf7a1034387f3690425755ccbcedf1`). The callable workflow
+fixture again generated production and support sources byte-for-byte identical to `8ac362f`, with
+unchanged meaningful RED and pending-stub BROKEN results. Generic construction, current hand-written
+generic source, qualified overload, write authorization, body preservation, hash, mtime, and
+zero-write repeat evidence also remained unchanged.
+
 ## Phase 47 example-data API verification update
 
 Date: 2026-07-09
