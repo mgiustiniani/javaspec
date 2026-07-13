@@ -74,6 +74,9 @@ Evidence:
 - [x] API compatibility tool added as test/build tooling.
 - [x] 1.0 API baseline generation procedure documented.
 - [x] RC1 public/protected JVM signature inventory archived in `docs/history/api-baseline-1.0.0.md`.
+- [x] RC5 pre-cut API delta reviewed in `docs/release-1.0-rc5-api-review.md`: additive inventory only,
+  no supported `PUBLIC_API`/`PUBLIC_SPI` removal; committed baseline regeneration remains part of the
+  aligned RC5 version cut.
 
 ## Semantic gates
 
