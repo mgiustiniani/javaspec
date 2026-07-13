@@ -324,6 +324,48 @@ public class MainGenerationReportTest {
         assertTrue(secondJson, secondJson.contains("\"appliedWrites\": 0"));
     }
 
+    @Test
+    public void existingPackagePrivateAndGenericConstructorsRequireNoSynchronization() throws Exception {
+        File sourceRoot = temporaryFolder.newFolder("existing-constructor-shapes-source");
+        File specRoot = temporaryFolder.newFolder("existing-constructor-shapes-spec");
+        File report = new File(temporaryFolder.getRoot(), "existing-constructor-shapes-report.json");
+        File packagePrivate = writeSource(sourceRoot, "com.example.PackagePrivateSubject",
+                "public class PackagePrivateSubject {\n" +
+                        "  PackagePrivateSubject(String value) { this.value = value; }\n" +
+                        "  private final String value;\n" +
+                        "}\n");
+        File generic = writeSource(sourceRoot, "com.example.GenericSubject",
+                "public class GenericSubject {\n" +
+                        "  public <T> GenericSubject(T value) { this.value = value; }\n" +
+                        "  private final Object value;\n" +
+                        "}\n");
+        writeSource(specRoot, "spec.com.example.PackagePrivateSubjectSpec",
+                "import io.github.jvmspec.api.ObjectBehavior;\n" +
+                        "public class PackagePrivateSubjectSpec extends ObjectBehavior<com.example.PackagePrivateSubject> {\n" +
+                        "  public void it_uses_the_existing_constructor() { beConstructedWith(\"value\"); }\n" +
+                        "}\n");
+        writeSource(specRoot, "spec.com.example.GenericSubjectSpec",
+                "import io.github.jvmspec.api.ObjectBehavior;\n" +
+                        "public class GenericSubjectSpec extends ObjectBehavior<com.example.GenericSubject> {\n" +
+                        "  public void it_uses_the_existing_constructor() { beConstructedWith(new Object()); }\n" +
+                        "}\n");
+        byte[] packagePrivateBefore = Files.readAllBytes(packagePrivate.toPath());
+        byte[] genericBefore = Files.readAllBytes(generic.toPath());
+
+        CommandResult result = run("run", "--generation-report", report.getAbsolutePath(),
+                "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath());
+
+        assertEquals(result.out + "\n" + result.err, 0, result.exitCode);
+        assertEquals(new String(packagePrivateBefore, StandardCharsets.UTF_8),
+                new String(Files.readAllBytes(packagePrivate.toPath()), StandardCharsets.UTF_8));
+        assertEquals(new String(genericBefore, StandardCharsets.UTF_8),
+                new String(Files.readAllBytes(generic.toPath()), StandardCharsets.UTF_8));
+        String json = new String(Files.readAllBytes(report.toPath()), StandardCharsets.UTF_8);
+        assertTrue(json, json.contains("\"outcome\": \"NO_CHANGES\""));
+        assertTrue(json, json.contains("\"appliedWrites\": 0"));
+        assertFalse(json, json.contains("CONSTRUCTOR_SYNCHRONIZATION"));
+    }
+
     private static int javaSpecificationVersion() {
         String value = System.getProperty("java.specification.version", "8");
         if (value.startsWith("1.")) value = value.substring(2);

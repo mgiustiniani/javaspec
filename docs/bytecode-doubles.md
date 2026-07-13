@@ -14,7 +14,7 @@ Add the adapter dependency to your project:
 <dependency>
     <groupId>io.github.jvmspec</groupId>
     <artifactId>javaspec-bytecode-doubles</artifactId>
-    <version>1.0.0-RC1</version>
+    <version>1.0.0-RC4</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -85,4 +85,4 @@ storeDouble.control().verifyCalled("save", "item");
 - [examples/bytecode-doubles-basic/](../examples/bytecode-doubles-basic/) — concrete-class doubles example.
 - [README Doubles section](../README.md#doubles) — interface doubles in core.
 - [README Prophecy section](../README.md#prophecy-style-doubles) — Prophecy-style doubles overview.
-- [docs/migration-guide.md](migration-guide.md) — migrating from existing doubles API.
+- [docs/migration-guide-1.0.md](migration-guide-1.0.md) — migrating from existing doubles API.

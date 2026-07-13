@@ -1,4 +1,4 @@
-# Release notes — 1.0.0 / RC1
+# Release notes — 1.0.0 release-candidate line
 
 This development line keeps the core artifact Java 8-compatible and zero-runtime-dependency while
 moving dependency-heavy behavior into optional artifacts.
@@ -148,6 +148,11 @@ moving dependency-heavy behavior into optional artifacts.
 - RC4 prevents constructor example literals from becoming record-component identifiers, maps exact
   accessor expectations to constructor positions, and refuses ambiguous/illegal/duplicate names
   before writes with `AMBIGUOUS_RECORD_COMPONENT_NAME` evidence.
+- Current post-RC4 `develop` hardening deduplicates constructors by canonical ordered erased types,
+  recognizes package-private and generic production constructors, preserves distinct qualified
+  overloads, centralizes authorized source synchronization, and introduces a Java-only internal
+  frontend/backend seam. These changes are not part of the immutable RC4 artifacts and require a
+  later explicitly approved release candidate.
 - RC3 adds a source-first Maven `generate` goal for `generate-test-sources`; it regenerates and
   registers base typed support before `testCompile`, including matcher-only specs, without tracked
   generated sources or consumer-specific execution-plugin workarounds.

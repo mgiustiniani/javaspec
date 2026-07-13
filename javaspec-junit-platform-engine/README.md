@@ -6,7 +6,7 @@ This artifact is intentionally not registered as a root Maven module and remains
 
 ## Artifact
 
-- Coordinates: `io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-RC1`
+- Coordinates: `io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-RC4`
 - Packaging: `jar`
 - Java source/target: `1.8`
 - JUnit Platform baseline: `1.10.2` (not JUnit Platform 6/JUnit 6)

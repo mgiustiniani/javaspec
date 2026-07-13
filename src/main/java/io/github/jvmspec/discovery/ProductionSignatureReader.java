@@ -5,6 +5,7 @@ import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.ImportTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
+import com.sun.source.tree.TypeParameterTree;
 import com.sun.source.tree.VariableTree;
 import io.github.jvmspec.model.ConstructorDescriptor;
 import io.github.jvmspec.model.DescribedType;
@@ -248,6 +249,9 @@ public final class ProductionSignatureReader {
             List<ProductionMethod> methods,
             List<ProductionMethod> constructors
     ) {
+        Map<String, String> classTypeBounds = typeVariableBounds(
+                classTree.getTypeParameters(), imports, packageName,
+                new LinkedHashMap<String, String>());
         List<? extends Tree> members = classTree.getMembers();
         for (int i = 0; i < members.size(); i++) {
             Tree member = members.get(i);
@@ -255,20 +259,24 @@ public final class ProductionSignatureReader {
                 continue;
             }
             MethodTree methodTree = (MethodTree) member;
-            if (!methodTree.getModifiers().getFlags().contains(Modifier.PUBLIC)) {
+            String methodName = methodTree.getName().toString();
+            boolean constructor = "<init>".equals(methodName);
+            if (!constructor
+                    && !methodTree.getModifiers().getFlags().contains(Modifier.PUBLIC)) {
                 continue;
             }
+            Map<String, String> typeBounds = typeVariableBounds(
+                    methodTree.getTypeParameters(), imports, packageName, classTypeBounds);
             List<String> parameterTypes = new ArrayList<String>();
             List<String> parameterNames = new ArrayList<String>();
             List<? extends VariableTree> parameters = methodTree.getParameters();
             for (int j = 0; j < parameters.size(); j++) {
                 VariableTree parameter = parameters.get(j);
-                parameterTypes.add(SpecDiscovery.resolveTypeName(
-                        parameter.getType().toString(), imports, packageName));
+                parameterTypes.add(resolveProductionType(
+                        parameter.getType().toString(), typeBounds, imports, packageName));
                 parameterNames.add(parameter.getName().toString());
             }
-            String methodName = methodTree.getName().toString();
-            if ("<init>".equals(methodName)) {
+            if (constructor) {
                 constructors.add(new ProductionMethod(
                         methodName, "void", false, parameterTypes, parameterNames));
                 continue;
@@ -283,6 +291,40 @@ public final class ProductionSignatureReader {
             methods.add(new ProductionMethod(
                     methodName, returnType, isStatic, parameterTypes, parameterNames));
         }
+    }
+
+    private static Map<String, String> typeVariableBounds(
+            List<? extends TypeParameterTree> parameters,
+            Map<String, String> imports,
+            String packageName,
+            Map<String, String> inherited
+    ) {
+        Map<String, String> result = new LinkedHashMap<String, String>(inherited);
+        for (int i = 0; i < parameters.size(); i++) {
+            TypeParameterTree parameter = parameters.get(i);
+            String bound = "java.lang.Object";
+            if (!parameter.getBounds().isEmpty()) {
+                bound = SpecDiscovery.resolveTypeName(
+                        parameter.getBounds().get(0).toString(), imports, packageName);
+            }
+            result.put(parameter.getName().toString(), bound);
+        }
+        return result;
+    }
+
+    private static String resolveProductionType(
+            String sourceType,
+            Map<String, String> typeBounds,
+            Map<String, String> imports,
+            String packageName
+    ) {
+        String normalized = sourceType.trim().replace("...", "[]");
+        int arrayStart = normalized.indexOf('[');
+        String raw = arrayStart < 0 ? normalized : normalized.substring(0, arrayStart).trim();
+        String suffix = arrayStart < 0 ? "" : normalized.substring(arrayStart).replaceAll("\\s+", "");
+        String bound = typeBounds.get(raw);
+        if (bound != null) return bound + suffix;
+        return SpecDiscovery.resolveTypeName(normalized, imports, packageName);
     }
 
     private static ClassTree topLevelType(CompilationUnitTree unit, String simpleName) {

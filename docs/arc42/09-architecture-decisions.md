@@ -46,11 +46,16 @@ Architecture decisions are recorded as ADRs in `docs/adr/`.
   correction: resolve deferred known limitations
 - **[ADR 0024](../adr/0024-standalone-optional-bytecode-doubles-adapter.md)**: Standalone optional
   bytecode doubles adapter
+- **[ADR 0025](../adr/0025-course-correction-gradle-plugin-test-and-example-version-mismatch.md)**:
+  Course correction for Gradle plugin test/example version mismatch
+- **[ADR 0026](../adr/0026-internal-language-seams-before-1.0.md)**: Internal language-neutral
+  spec-frontend/production-backend seams before 1.0
 
 ## 9.1 Decision Coverage by Architecture Area
 
 - **Compatibility and target profiles**: ADR 0001
 - **Dependency policy**: ADR 0002
+- **Internal language-neutral discovery/generation boundary**: ADR 0026
 - **PHPSpec-style describe/run generation split**: ADR 0003
 - **Construction semantics, typed proxies, and method generation foundation**: ADR 0004
 - **Configuration and suite naming**: ADR 0005

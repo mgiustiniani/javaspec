@@ -435,6 +435,13 @@ simple names.
 - `ConfigurationException` carries parse and validation diagnostics, including line numbers where
   available.
 
+The pre-1.0 internal language seam is implemented under `io.github.jvmspec.internal.language`.
+`JavaSpecLanguageFrontend` delegates canonical Java spec discovery, `BehaviorContract` carries the
+current immutable behavior description without changing public descriptors, and
+`JavaProductionLanguageBackend` plans constructor-then-method synchronization entirely in memory.
+Only Java is registered; selection is not exposed as public API, SPI, CLI, or configuration before
+1.0. The CLI continues to own authorization and atomic application of every planned source write.
+
 The naming/discovery boundary is implemented by `SpecNamingConvention`, `SpecDiscoveryRequest`, and
 `SpecExample`:
 

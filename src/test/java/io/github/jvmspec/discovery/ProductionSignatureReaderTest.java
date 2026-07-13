@@ -282,6 +282,24 @@ public class ProductionSignatureReaderTest {
     }
 
     @Test
+    public void refinesPackagePrivateAndGenericConstructorsByErasedBound() throws Exception {
+        File sourceRoot = writeProductionSource("com/example/Key.java",
+                "package com.example;\n\n" +
+                "public class Key {\n" +
+                "    <T extends Number> Key(T number) { }\n" +
+                "}\n");
+        DescribedType described = describedKey(
+                Arrays.asList(ConstructorDescriptor.of(
+                        Arrays.asList("Object"), Arrays.asList("arg0"), "")),
+                Collections.<MethodDescriptor>emptyList());
+
+        DescribedType refined = ProductionSignatureReader.refine(described, sourceRoot);
+
+        assertEquals(Arrays.asList("Number"), refined.constructors().get(0).parameterTypes());
+        assertEquals(Arrays.asList("number"), refined.constructors().get(0).parameterNames());
+    }
+
+    @Test
     public void doesNotRefineWhenArityDiffers() throws Exception {
         File sourceRoot = writeProductionSource("com/example/Key.java",
                 "package com.example;\n\n" +

@@ -89,6 +89,40 @@ else
   pass "obsolete 0.1.1 release-notes file is absent"
 fi
 
+versioned_user_docs=(
+  README.md
+  docs/CAPABILITIES.md
+  docs/usermanual/Home.md
+  docs/migration-guide-1.0.md
+  docs/bytecode-doubles.md
+  javaspec-gradle-plugin/README.md
+  javaspec-junit-platform-engine/README.md
+)
+if [[ "$root_version" == 1.0.0-RC* ]]; then
+  stale_rc_hits="$(grep -n -H -E '1\.0\.0-RC[0-9]+' "${versioned_user_docs[@]}" \
+    | grep -v "1.0.0-RC${root_version##*RC}" || true)"
+  if [ -n "$stale_rc_hits" ]; then
+    printf '%s\n' "$stale_rc_hits"
+    fail "current user documentation contains release candidates other than $root_version"
+  else
+    pass "current user documentation uses release candidate $root_version"
+  fi
+fi
+
+for required_token in '--generation-report' 'PROPOSED' 'appliedWrites'; do
+  if grep -q -- "$required_token" README.md docs/usermanual/Home.md; then
+    pass "current user documentation contains $required_token"
+  else
+    fail "current user documentation is missing $required_token"
+  fi
+done
+
+if grep -q '(migration-guide.md)' docs/bytecode-doubles.md; then
+  fail "docs/bytecode-doubles.md links to obsolete migration-guide.md"
+else
+  pass "bytecode doubles guide links to the current migration guide"
+fi
+
 current_paths=(
   PLAN.md
   README.md

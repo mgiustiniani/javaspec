@@ -3,6 +3,7 @@ package io.github.jvmspec.discovery;
 import io.github.jvmspec.internal.type.ConstructorDiscoveryException;
 import io.github.jvmspec.internal.type.ConstructorSignature;
 import io.github.jvmspec.internal.type.JavaTypeRef;
+import io.github.jvmspec.internal.type.JavaTypeResolutionContext;
 import io.github.jvmspec.model.ConstructorDescriptor;
 import io.github.jvmspec.model.DescribedClass;
 import io.github.jvmspec.model.DescribedType;
@@ -160,7 +161,8 @@ public final class SpecDiscovery {
             if (kind.equals(JavaTypeKind.ENUM) && !enumConstants.isEmpty()) {
                 List<ConstructorDescriptor> enumConstructors = enumConstructorsFromConstants(enumConstants);
                 constructors = combineConstructors(
-                        constructors, enumConstructors, describedQualifiedName);
+                        constructors, enumConstructors, describedQualifiedName,
+                        JavaTypeResolutionContext.fromSource(source));
             }
             specs.add(DiscoveredSpec.of(
                     specFile,
@@ -200,6 +202,7 @@ public final class SpecDiscovery {
             boolean recordSubject
     ) {
         Map<String, String> imports = importsBySimpleName(source);
+        JavaTypeResolutionContext typeResolution = JavaTypeResolutionContext.fromSource(source);
         List<ConstructorDescriptor> constructors = new ArrayList<ConstructorDescriptor>();
 
         if (scan != null) {
@@ -215,7 +218,8 @@ public final class SpecDiscovery {
                 }
                 ConstructorDescriptor cd = ConstructorDescriptor.of(
                         arguments.parameterTypes, arguments.parameterNames, "");
-                addConstructorBySignature(constructors, cd, describedQualifiedName);
+                addConstructorBySignature(
+                        constructors, cd, describedQualifiedName, typeResolution);
             }
             return constructors;
         }
@@ -228,7 +232,8 @@ public final class SpecDiscovery {
             ConstructionArguments arguments = inferConstructionArguments(argNames, source, withMatcher.start(), methods, imports, describedPackageName);
             ConstructorDescriptor cd = ConstructorDescriptor.of(
                     arguments.parameterTypes, arguments.parameterNames, "");
-            addConstructorBySignature(constructors, cd, describedQualifiedName);
+            addConstructorBySignature(
+                    constructors, cd, describedQualifiedName, typeResolution);
         }
 
         return constructors;
@@ -237,14 +242,17 @@ public final class SpecDiscovery {
     private static void addConstructorBySignature(
             List<ConstructorDescriptor> constructors,
             ConstructorDescriptor candidate,
-            String describedQualifiedName
+            String describedQualifiedName,
+            JavaTypeResolutionContext typeResolution
     ) {
-        ConstructorSignature candidateSignature =
-                ConstructorSignature.of(describedQualifiedName, candidate);
+        ConstructorSignature candidateSignature = ConstructorSignature.of(
+                describedQualifiedName,
+                resolvedErasedTypes(candidate.parameterTypes(), typeResolution));
         for (int i = 0; i < constructors.size(); i++) {
             ConstructorDescriptor existing = constructors.get(i);
-            if (!candidateSignature.equals(
-                    ConstructorSignature.of(describedQualifiedName, existing))) {
+            if (!candidateSignature.equals(ConstructorSignature.of(
+                    describedQualifiedName,
+                    resolvedErasedTypes(existing.parameterTypes(), typeResolution)))) {
                 continue;
             }
             if (sameStructuredParameterTypes(
@@ -259,6 +267,17 @@ public final class SpecDiscovery {
             );
         }
         constructors.add(candidate);
+    }
+
+    private static List<String> resolvedErasedTypes(
+            List<String> parameterTypes,
+            JavaTypeResolutionContext typeResolution
+    ) {
+        List<String> result = new ArrayList<String>();
+        for (int i = 0; i < parameterTypes.size(); i++) {
+            result.add(typeResolution.resolveErased(parameterTypes.get(i)));
+        }
+        return result;
     }
 
     private static boolean sameStructuredParameterTypes(List<String> left, List<String> right) {
@@ -1653,11 +1672,13 @@ public final class SpecDiscovery {
     private static List<ConstructorDescriptor> combineConstructors(
             List<ConstructorDescriptor> existing,
             List<ConstructorDescriptor> additional,
-            String describedQualifiedName
+            String describedQualifiedName,
+            JavaTypeResolutionContext typeResolution
     ) {
         List<ConstructorDescriptor> result = new ArrayList<ConstructorDescriptor>(existing);
         for (int i = 0; i < additional.size(); i++) {
-            addConstructorBySignature(result, additional.get(i), describedQualifiedName);
+            addConstructorBySignature(
+                    result, additional.get(i), describedQualifiedName, typeResolution);
         }
         return result;
     }

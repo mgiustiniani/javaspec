@@ -26,6 +26,14 @@ All notable changes to this project will be documented in this file.
   `--generate`/interactive authorization gate; non-interactive and dry-run commands are read-only.
 - Generation reports now distinguish proposed actions from actual applied writes and derive
   `appliedWrites`/`NO_CHANGES` from recorded changed-file writes.
+- Constructor synchronization now recognizes package-private and generic constructors, resolves
+  type-variable erasure in source context, and preserves legal overloads whose parameter types have
+  the same simple name in different packages.
+- Added an internal Java-only `SpecLanguageFrontend -> BehaviorContract ->
+  ProductionLanguageBackend` seam to prepare post-1.0 language adapters without adding a public
+  language SPI or changing Java generation behavior.
+- Added JaCoCo HTML/XML/CSV coverage reporting and an opt-in OWASP Dependency-Check security profile
+  with official NVD feeds and a CVSS 7.0 failure threshold.
 
 ## 1.0.0-RC4 — 2026-07-11
 

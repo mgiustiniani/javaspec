@@ -36,8 +36,17 @@ written to stderr, including early generation stops and compilation failures.
 - Generation writes only mechanical source shapes: specs, support classes, subject skeletons, constructors, factories, methods, record components/accessors, prophecy wrappers, and support helpers.
 - Generated production method bodies carry `// javaspec:stub` until the user implements domain logic.
 - Existing records are preserved as records; record headers/components are the semantic source for record evolution.
+- Existing constructors are identified by canonical declaring type plus ordered erased parameter types; parameter names and bodies are not identity, varargs normalize to arrays, and package qualification is preserved so legal overloads from distinct namespaces do not collide.
+- Package-private and generic constructors are existing production declarations and must be preserved/matched with the same safety rules as public, protected, and private constructors.
 - Ambiguous or unsupported source updates fail closed instead of guessing.
 - Generated-source artifacts such as `*SpecSupport` and `*Prophecy` are derived artifacts and may be fully regenerated.
+
+## Internal language boundary
+
+Before 1.0, Java specification discovery and Java production synchronization pass through an
+internal `SpecLanguageFrontend -> BehaviorContract -> ProductionLanguageBackend` seam. Only Java is
+registered. This is an implementation boundary for safe restructuring, not a public language SPI or
+a 1.0 promise of Kotlin/other-language generation; see ADR 0026.
 
 ## Atomic write policy
 

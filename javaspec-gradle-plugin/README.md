@@ -32,7 +32,7 @@ The plugin id is `io.github.jvmspec`. The plugin is published on the Gradle Plug
 ```groovy
 plugins {
     id 'java'
-    id 'io.github.jvmspec' version '1.0.0-RC1'
+    id 'io.github.jvmspec' version '1.0.0-RC4'
 }
 
 javaspec {

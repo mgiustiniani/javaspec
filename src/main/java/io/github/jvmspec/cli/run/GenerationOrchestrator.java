@@ -1,13 +1,11 @@
 package io.github.jvmspec.cli.run;
 
 import io.github.jvmspec.discovery.DiscoveredSpec;
-import io.github.jvmspec.discovery.ProductionSignatureReader;
 import io.github.jvmspec.discovery.SpecNamingConvention;
 import io.github.jvmspec.discovery.TypeCheckResult;
 import io.github.jvmspec.discovery.TypeExistenceChecker;
 import io.github.jvmspec.generation.AtomicFileWriter;
 import io.github.jvmspec.generation.ClassConstructorUpdater;
-import io.github.jvmspec.generation.ClassMethodUpdater;
 import io.github.jvmspec.generation.ConstructorPolicy;
 import io.github.jvmspec.generation.SpecFileGenerator;
 import io.github.jvmspec.generation.SpecGenerationPlan;
@@ -20,8 +18,11 @@ import io.github.jvmspec.generation.ProphecyExistenceChecker;
 import io.github.jvmspec.generation.ProphecyFileGenerator;
 import io.github.jvmspec.generation.ProphecyGenerationPlan;
 import io.github.jvmspec.generation.ProphecySkeletonGenerator;
-import io.github.jvmspec.generation.SpecSupportFileGenerator;
 import io.github.jvmspec.generation.parser.JavaSourceParserLoader;
+import io.github.jvmspec.internal.language.BehaviorContract;
+import io.github.jvmspec.internal.language.LanguageRuntime;
+import io.github.jvmspec.internal.language.ProductionLanguageBackend;
+import io.github.jvmspec.internal.language.SourceSynchronizationPlan;
 import io.github.jvmspec.model.DescribedType;
 import io.github.jvmspec.model.JavaTypeKind;
 import io.github.jvmspec.model.MethodDescriptor;
@@ -141,12 +142,16 @@ public final class GenerationOrchestrator {
     ) {
         int missingWithoutGeneration = 0;
         int dryRunPendingChanges = 0;
+        ProductionLanguageBackend productionBackend =
+                LanguageRuntime.javaProductionBackend();
 
         for (int i = 0; i < specs.size(); i++) {
             DiscoveredSpec spec = specs.get(i);
             // Production truth wins over spec inference: when the production source already
             // exists, adopt its declared signatures before generating support or skeletons.
-            DescribedType describedType = ProductionSignatureReader.refine(spec.describedType(), sourceRoot);
+            BehaviorContract behaviorContract = productionBackend.refine(
+                    BehaviorContract.from(spec.describedType()), sourceRoot);
+            DescribedType describedType = behaviorContract.describedType();
             GenerationOrchestratorResult functionalTargetFailure = validateFunctionalTargets(
                     describedType, spec, err);
             if (functionalTargetFailure != null) {
@@ -249,22 +254,13 @@ public final class GenerationOrchestrator {
                     try {
                         String existingSource = new String(
                                 Files.readAllBytes(sourceFile.toPath()), StandardCharsets.UTF_8);
-                        String proposedSource = existingSource;
-                        boolean constructorChange = false;
-                        boolean methodChange = false;
-                        if (describedType.hasConstructors()) {
-                            String constructorSource = ClassConstructorUpdater.updateSource(
-                                    proposedSource, describedType, constructorPolicy);
-                            constructorChange = !proposedSource.equals(constructorSource);
-                            proposedSource = constructorSource;
-                        }
-                        if (describedType.hasMethods()) {
-                            String methodSource = ClassMethodUpdater.updateSource(
-                                    proposedSource, describedType);
-                            methodChange = !proposedSource.equals(methodSource);
-                            proposedSource = methodSource;
-                        }
-                        int proposedChanges = (constructorChange ? 1 : 0) + (methodChange ? 1 : 0);
+                        SourceSynchronizationPlan synchronization =
+                                productionBackend.planSynchronization(
+                                        existingSource, behaviorContract, constructorPolicy);
+                        String proposedSource = synchronization.proposedSource();
+                        boolean constructorChange = synchronization.constructorChange();
+                        boolean methodChange = synchronization.methodChange();
+                        int proposedChanges = synchronization.proposedChangeCount();
                         if (proposedChanges > 0) {
                             if (dryRun) {
                                 if (constructorChange) activity.proposed("CONSTRUCTOR_SYNCHRONIZATION", sourceFile);

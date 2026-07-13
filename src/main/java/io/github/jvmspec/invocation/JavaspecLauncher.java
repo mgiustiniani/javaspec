@@ -7,7 +7,7 @@ import io.github.jvmspec.compilation.SourceCompiler;
 import io.github.jvmspec.discovery.DiscoveredSpec;
 import io.github.jvmspec.extension.JavaspecExtensionLoader;
 import io.github.jvmspec.formatter.RunFormatterRegistry;
-import io.github.jvmspec.discovery.SpecDiscovery;
+import io.github.jvmspec.internal.language.LanguageRuntime;
 import io.github.jvmspec.discovery.SpecDiscoveryRequest;
 import io.github.jvmspec.runner.RunResult;
 import io.github.jvmspec.runner.SpecRunner;
@@ -65,7 +65,7 @@ public final class JavaspecLauncher {
         RunFormatterRegistry runFormatterRegistry = activateConfiguredExtensions(invocation);
         List<DiscoveredSpec> specs = invocation.hasDiscoveredSpecs()
                 ? invocation.discoveredSpecs()
-                : SpecDiscovery.discover(invocation.discoveryRequest());
+                : LanguageRuntime.javaSpecFrontend().discover(invocation.discoveryRequest());
         SourceCompilationResult sourceCompilationResult = compileSourcesIfRequested(invocation, specs);
         URLClassLoader temporaryClassLoader = temporaryRunClassLoader(invocation, sourceCompilationResult);
         ClassLoader runClassLoader = temporaryClassLoader == null ? invocation.classLoader() : temporaryClassLoader;

@@ -80,14 +80,14 @@ Verification status:
   `examples/bytecode-agent-basic/` demonstrates final-class and static-method doubles.
 - Repository-root `mvn verify` remains core-only. `scripts/verify-all.sh` is the aggregate local
   check for core, standalone adapters, and examples.
-- `1.0.0-RC1` artifacts are available on Maven Central under `io.github.jvmspec`, including signed
+- `1.0.0-RC4` artifacts are available on Maven Central under `io.github.jvmspec`, including signed
   main/source/Javadoc artifacts for core and all optional Maven adapters. The Gradle plugin id is
   `io.github.jvmspec`; the corrected RC1 submission succeeded in workflow run 29148854181 and is
   awaiting first-publication approval.
 
 ## Quick start
 
-The commands and dependency declarations in this manual target `1.0.0-RC1`, available from Maven
+The commands and dependency declarations in this manual target `1.0.0-RC4`, available from Maven
 Central. A repository checkout can still install the same version locally when developing javaspec.
 
 From the repository root, core verification remains:
@@ -149,13 +149,13 @@ committed.
 Run the CLI:
 
 ```sh
-java -jar target/javaspec-1.0.0-RC1.jar --help
+java -jar target/javaspec-1.0.0-RC4.jar --help
 ```
 
 Short form used in the examples below:
 
 ```sh
-javaspec='java -jar target/javaspec-1.0.0-RC1.jar'
+javaspec='java -jar target/javaspec-1.0.0-RC4.jar'
 ```
 
 ## Release and CI verification
@@ -233,7 +233,7 @@ gradle -p javaspec-gradle-plugin clean test build
 
 These checks do not sign, stage, deploy, or publish artifacts. The MIT license and maintainer
 metadata are resolved. Maven coordinates use group `io.github.jvmspec`, and Maven Central
-availability and signatures for `1.0.0-RC1` are confirmed. The Gradle plugin id is
+availability and signatures for `1.0.0-RC4` are confirmed. The Gradle plugin id is
 `io.github.jvmspec`; Plugin Portal availability remains pending first-publication approval.
 
 The GitHub Actions workflow at `.github/workflows/ci.yml` triggers on `push`, `pull_request`, and
@@ -305,9 +305,10 @@ $javaspec run \
   [--classpath <path-list>] [--classpath-file <file>] \
   [--resolve-pom <pom.xml>] \
   [--compile] [--compile-output <dir>] [--release <N>] [--generate] [--dry-run] \
-  [--stop-on-failure] [--formatter <progress|pretty|custom>] \
+  [--stop-on-failure] [--auto-check-predictions|--no-auto-check-predictions] \
+  [--formatter <progress|pretty|json|custom>] \
   [--profile <java8|java11|java17|java21|java25>] [--verbose] \
-  [--report <file>] [--report-file <file>] \
+  [--report <file>] [--report-file <file>] [--generation-report <file>] \
   [--junit-xml <file>] [--junit-xml-file <file>] \
   [--constructor-policy <delete|preserve|comment>] [--class <name>] [--example <name>]
 $javaspec list-extensions
@@ -374,7 +375,7 @@ Aliases and defaults:
   - Alias: n/a
   - Default: `false`
   - Command: `run`
-- **`--formatter <progress\|pretty\|custom>`**
+- **`--formatter <progress\|pretty\|json\|custom>`**
   - Alias: n/a
   - Default: configuration `formatter` (`progress` with inferred defaults)
   - Command: `run`
@@ -390,6 +391,13 @@ Aliases and defaults:
   - Alias: `--report-file <file>`
   - Default: config JSON report destination, otherwise no JSON report
   - Command: `run`
+- **`--generation-report <file>`**
+  - Alias: n/a
+  - Default: no generation report
+  - Command: `run`
+  - Notes: always writes deterministic schema version 1 generation state when requested, including
+    dry-run, stopped, failed, and successful pipelines. Actions distinguish `PROPOSED` from
+    `APPLIED`; `appliedWrites` counts only files whose content actually changed.
 - **`--junit-xml <file>`**
   - Alias: `--junit-xml-file <file>`
   - Default: config JUnit XML-compatible destination, otherwise no JUnit XML-compatible report
@@ -446,7 +454,7 @@ hook/spec classes are available on the effective, selected explicit, or compile-
 classloader. `describe` rejects command-line `--source-dir`/`--source-root` and all run-only
 controls (`--classpath`, `--classpath-file`, `--compile`, `--compile-output`, `--generate`,
 `--dry-run`, `--stop-on-failure`, `--formatter`, `--profile`, `--verbose`, `--report`,
-`--report-file`, `--junit-xml`, `--junit-xml-file`, `--constructor-policy`, `--class`, and
+`--report-file`, `--generation-report`, `--junit-xml`, `--junit-xml-file`, `--constructor-policy`, `--class`, and
 `--example`); a `sourceDir`, `profile`, bootstrap hook, or report destination present in a selected
 config file is accepted because `describe` ignores source roots, does not enforce profiles, does not
 execute hooks, and does not write reports.
@@ -472,8 +480,8 @@ dependency-free:
   `junit-xml-report-file`). There are no configuration keys for CLI compilation; use `run --compile`
   or `--compile-output <dir>` per run.
 - Valid `profile` values are `java8`, `java11`, `java17`, `java21`, and `java25`; `run` enforces the
-  effective profile before generation/update writes. Built-in `formatter` values are `progress` and
-  `pretty`; ServiceLoader-discovered formatter names are also valid at run time when their providers
+  effective profile before generation/update writes. Built-in `formatter` values are `progress`,
+  `pretty`, and `json`; ServiceLoader-discovered formatter names are also valid at run time when their providers
   are on the effective run classloader; valid constructor policies are `delete`, `preserve`, and
   `comment`.
 - Suite keys use `suite.<name>.<property>` with properties `specDir`/`spec-dir`,
@@ -744,8 +752,24 @@ Dry-run exit behavior:
 | No pending generation/update work but executable examples fail or break | `1` |
 
 `--dry-run` is useful in CI when pending generated work should fail the build without modifying the
-workspace. If profile enforcement fails, dry-run exits before any file or report writes. If dry-run
-reaches example execution and a configured bootstrap hook fails, it exits before reports.
+workspace. If profile enforcement fails, dry-run exits before production or generated-source writes.
+A requested `--generation-report` is still written with the deterministic failed/planned outcome;
+ordinary run-result JSON/JUnit reports remain subject to their documented pipeline boundary. If
+example execution is reached and a configured bootstrap hook fails, execution reports are not written.
+
+### Deterministic generation reports
+
+Use `--generation-report <file>` when automation needs generation state without parsing prose:
+
+```sh
+$javaspec run --dry-run --generation-report target/javaspec-generation.json
+```
+
+The schema-version-1 document contains no timestamp, uses sorted source-relative paths, and exposes
+`outcome`, `exitCode`, `proceed`, `pendingGenerationWork`, `pendingStubs`, `actions`, and
+`appliedWrites`. `PROPOSED` means a write was required but not authorized or was only planned;
+`APPLIED` means the corresponding file was actually changed. Repeating an already satisfied
+`--generate` run therefore reports `appliedWrites: 0` and `NO_CHANGES`.
 
 ### Stop on failure
 
@@ -1170,7 +1194,7 @@ is additive and does not require invoking the CLI.
 ## Optional Maven plugin
 
 The standalone optional Maven plugin is published as
-`io.github.jvmspec:javaspec-maven-plugin:1.0.0-RC1`. It is intentionally not registered as a root
+`io.github.jvmspec:javaspec-maven-plugin:1.0.0-RC4`. It is intentionally not registered as a root
 module, so repository-root `mvn verify` continues to build and audit only the zero-runtime-dependency
 core artifact. Consuming projects resolve it directly from Maven Central; repository contributors
 can use this local verification sequence:
@@ -1180,7 +1204,7 @@ mvn -q -DskipTests install
 mvn -q -f javaspec-maven-plugin/pom.xml verify
 ```
 
-The plugin packages `io.github.jvmspec:javaspec-maven-plugin:1.0.0-RC1` as `maven-plugin`, uses Java
+The plugin packages `io.github.jvmspec:javaspec-maven-plugin:1.0.0-RC4` as `maven-plugin`, uses Java
 source/target `1.8`, goal prefix `javaspec`, Maven API baseline `3.6.3`, Maven API and plugin
 annotations in `provided` scope, JUnit in `test` scope, and a compile-scope dependency on core
 `io.github.jvmspec:javaspec`.
@@ -1191,12 +1215,16 @@ A consuming Maven build can declare the plugin as optional project tooling:
 <plugin>
   <groupId>io.github.jvmspec</groupId>
   <artifactId>javaspec-maven-plugin</artifactId>
-  <version>1.0.0-RC1</version>
+  <version>1.0.0-RC4</version>
 </plugin>
 ```
 
-The `JavaspecRunMojo` goal `javaspec:run` is bound to Maven's `verify` phase by default, requires
-test dependency resolution, and uses Maven's test classpath. It supports config, suite,
+The source-first `javaspec:generate` goal is intended for `generate-test-sources`: it discovers
+specification source before test compilation, generates or refreshes `*SpecSupport` under
+`target/generated-sources/javaspec`, and registers that directory as a Maven test source root. The
+`javaspec:run` goal remains bound to `verify` by default, requires test dependency resolution, and
+uses Maven's test classpath. A clean consumer should bind both goals to their respective lifecycle
+phases rather than track generated support files. The run goal supports config, suite,
 `specDir`/`specRoot` selection, top-level plus selected-suite bootstrap hooks, class/example
 filters, `stopOnFailure`, `skip`, `failOnFailure`, JSON reports, JUnit XML-compatible reports, and
 Maven logging with pending counts. Configured report destinations are used as defaults when explicit
@@ -1234,7 +1262,7 @@ use the included build in `examples/gradle-basic/settings.gradle`. After approva
 ```groovy
 plugins {
     id 'java'
-    id 'io.github.jvmspec' version '1.0.0-RC1'
+    id 'io.github.jvmspec' version '1.0.0-RC4'
 }
 
 javaspec {
@@ -1280,7 +1308,7 @@ No JUnit is required in projects under test; JUnit is only a plugin test depende
 ## Optional JUnit Platform engine
 
 The standalone optional JUnit Platform engine is available from Maven Central as
-`io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-RC1`. It is intentionally not registered as
+`io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-RC4`. It is intentionally not registered as
 a root Maven module and remains outside the zero-runtime-dependency core artifact. Repository
 contributors can use this local verification sequence:
 
@@ -1289,7 +1317,7 @@ mvn -q -DskipTests install
 mvn -q -f javaspec-junit-platform-engine/pom.xml verify
 ```
 
-The engine artifact is `io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-RC1`, packaging
+The engine artifact is `io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-RC4`, packaging
 `jar`, Java source/target `1.8`, and uses Java 8-compatible JUnit Platform `1.10.2` rather than
 JUnit Platform 6/JUnit 6. Runtime dependencies are isolated to the optional engine artifact: core
 `io.github.jvmspec:javaspec`, `org.junit.platform:junit-platform-engine`, and transitives `opentest4j`,
@@ -1886,7 +1914,11 @@ Static factory descriptors are skipped when generated typed support is updated, 
 construction methods rather than instance subject proxy methods.
 
 When the production source file already exists and `--generate` is not used, javaspec prompts before
-adding supported missing method skeletons, declarations, or elements:
+adding supported missing method skeletons, declarations, elements, or constructor synchronization.
+Constructor identity uses the declaring type and ordered canonical erased parameter types; names and
+bodies are not identity, varargs normalize to arrays, package-private/generic declarations are
+recognized, and equal simple names from different packages remain distinct. The complete source
+change is planned in memory before one authorized atomic write:
 
 ```text
 Do you want me to add missing method skeletons to org.example.Book in src/main/java/org/example/Book.java? [Y/n]
@@ -2438,7 +2470,7 @@ Add the standalone adapter when a spec needs a non-final concrete collaborator d
 <dependency>
   <groupId>io.github.jvmspec</groupId>
   <artifactId>javaspec-bytecode-doubles</artifactId>
-  <version>1.0.0-RC1</version>
+  <version>1.0.0-RC4</version>
   <scope>test</scope>
 </dependency>
 ```
@@ -2862,7 +2894,7 @@ artifact with Maven API/plugin annotations in `provided` scope, JUnit only in pl
 and a runtime tree containing the plugin plus compile-scope core `io.github.jvmspec:javaspec` only. The
 Phase 16 Gradle plugin is a separate optional artifact with JUnit/TestKit only as plugin test
 dependencies; its verified runtimeClasspath contains only core
-`io.github.jvmspec:javaspec:1.0.0-RC1`. The Phase 17 JUnit Platform engine is a separate optional
+`io.github.jvmspec:javaspec:1.0.0-RC4`. The Phase 17 JUnit Platform engine is a separate optional
 artifact over the canonical javaspec runner; its runtime dependencies are isolated to the engine
 artifact and do not enter the core runtime dependency tree. Projects that do not opt into the engine
 keep the no-JUnit CLI/programmatic/Maven/Gradle execution paths. Bootstrap hooks are explicit
@@ -2883,7 +2915,7 @@ mvn dependency:tree -Dscope=runtime
 Expected root output contains only the project artifact:
 
 ```text
-io.github.jvmspec:javaspec:jar:1.0.0-RC1
+io.github.jvmspec:javaspec:jar:1.0.0-RC4
 ```
 
 Check the standalone optional adapters through the aggregate script or separately when needed:
@@ -2897,7 +2929,7 @@ mvn -f javaspec-junit-platform-engine/pom.xml dependency:tree -Dscope=runtime
 
 Expected Maven plugin runtime scope contains the plugin plus compile-scope core
 `io.github.jvmspec:javaspec` only. Expected Gradle plugin runtimeClasspath contains only core
-`io.github.jvmspec:javaspec:1.0.0-RC1`. Expected JUnit Platform engine runtime scope contains core
+`io.github.jvmspec:javaspec:1.0.0-RC4`. Expected JUnit Platform engine runtime scope contains core
 `io.github.jvmspec:javaspec`, `org.junit.platform:junit-platform-engine`, `opentest4j`,
 `junit-platform-commons`, and `apiguardian-api`, with no runtime `junit-jupiter`,
 `junit-platform-launcher`, or `junit-platform-testkit`.
@@ -2911,7 +2943,7 @@ Current verification after Phase 22:
 - `bash -n scripts/check-version-alignment.sh`, `bash -n scripts/verify-all.sh`, and `bash -n
   scripts/verify-examples.sh` passed; all three scripts are executable.
 - `bash scripts/check-version-alignment.sh` passed with all checked versions aligned at
-  `1.0.0-RC1`.
+  `1.0.0-RC4`.
 - `git diff --check`, `git diff --cached --check`, and untracked whitespace checks passed.
 - Effective POM generation passed for root, Maven plugin, and JUnit engine.
 - Maven POM metadata checks for root, Maven plugin, and JUnit engine passed: MIT License, URL
@@ -2931,7 +2963,7 @@ Current verification after Phase 22:
   `mvn -q verify` passed with 12 tests.
 - Gradle plugin publication POM generation passed; Gradle plugin `clean test build` passed with 11
   tests and produced non-empty main/sources/javadoc jars; Gradle runtime dependencies contained only
-  `io.github.jvmspec:javaspec:1.0.0-RC1`.
+  `io.github.jvmspec:javaspec:1.0.0-RC4`.
 - Full aggregate `JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-all.sh` passed,
   covering version alignment, core verify, root audit, local install, Maven plugin verify/audit,
   JUnit engine verify/audit, Gradle plugin build/audit, and standalone examples verification.
@@ -2953,7 +2985,7 @@ Current verification after Phase 22:
   reports, Gradle plugin reports, and the optional JUnit Platform adapter are covered by regression
   tests.
 - Cross-JDK and adapter verification should be read from the latest CI/local verification output.
-- Maven artifacts use group `io.github.jvmspec`; `1.0.0-RC1` is available from Maven Central. The
+- Maven artifacts use group `io.github.jvmspec`; `1.0.0-RC4` is available from Maven Central. The
   Gradle Plugin Portal id is `io.github.jvmspec`; corrected RC1 submission succeeded in workflow run
   29148854181 and is awaiting first-publication approval.
 

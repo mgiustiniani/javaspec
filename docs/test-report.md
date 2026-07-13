@@ -1,5 +1,32 @@
 # Test and Quality Report
 
+## Post-RC4 constructor-safe restructuring verification
+
+Date: 2026-07-13
+
+The current `develop` restructuring preserves Java behavior while adding canonical constructor type
+resolution and an internal Java-only spec-frontend/production-backend seam. Regression coverage now
+freezes package-private constructors, generic constructor erasure (including bounded type variables
+and compact source), distinct qualified overloads, generation-report no-change behavior, and direct
+Java adapter parity.
+
+Verification summary:
+
+- `mvn -q clean verify`: PASS — 843 tests, 0 failures, 0 errors, 0 skipped.
+- `scripts/check-version-alignment.sh`: PASS for the RC4 artifact set.
+- `scripts/check-current-docs.sh`: PASS with RC-version, generation-report, and migration-link guards.
+- `scripts/check-api-surface.sh`: PASS; `io.github.jvmspec.internal.language` remains `INTERNAL`.
+- Fedora-container `scripts/verify-all.sh`: PASS including Maven, Gradle 9.6.1, optional adapters,
+  dependency audits, and standalone examples.
+- Fedora-container `scripts/verify-release-dry-run.sh`: PASS for the aligned RC4 artifact set and
+  all external consumer examples.
+- Fedora-container `mvn clean verify -Psecurity`: PASS; JaCoCo reported 78.44% lines, 65.58%
+  branches, and 95.37% classes; OWASP Dependency-Check 12.2.2 scanned JUnit/Hamcrest with zero
+  vulnerabilities and zero scan errors.
+
+No Kotlin or other language implementation, CLI option, configuration key, dependency, or public SPI
+is introduced before 1.0; ADR 0026 records the post-1.0 boundary.
+
 ## Phase 47 example-data API verification update
 
 Date: 2026-07-09

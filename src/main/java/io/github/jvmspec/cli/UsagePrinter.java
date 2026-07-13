@@ -17,7 +17,7 @@ final class UsagePrinter {
         stream.println("Usage:");
         stream.println("  javaspec describe <ClassName> [--config <file>] [--suite <name>] [--spec-dir <dir>]");
         stream.println("  javaspec desc <ClassName> [--config <file>] [--suite <name>] [--spec-root <dir>]");
-        stream.println("  javaspec run [--config <file>] [--suite <name>] [--spec-dir <dir>] [--source-dir <dir>] [--classpath <path-list>] [--classpath-file <file>] [--compile] [--compile-output <dir>] [--generate] [--dry-run] [--stop-on-failure] [--formatter <progress|pretty>] [--profile <java8|java11|java17|java21|java25>] [--verbose] [--report <file>] [--generation-report <file>] [--junit-xml <file>] [--constructor-policy <delete|preserve|comment>] [--class <name>] [--example <name>]");
+        stream.println("  javaspec run [--config <file>] [--suite <name>] [--spec-dir <dir>] [--source-dir <dir>] [--classpath <path-list>] [--classpath-file <file>] [--compile] [--compile-output <dir>] [--generate] [--dry-run] [--stop-on-failure] [--auto-check-predictions|--no-auto-check-predictions] [--formatter <progress|pretty|json|custom>] [--profile <java8|java11|java17|java21|java25>] [--verbose] [--report <file>] [--generation-report <file>] [--junit-xml <file>] [--constructor-policy <delete|preserve|comment>] [--class <name>] [--example <name>]");
         stream.println();
         stream.println("Commands:");
         stream.println("  describe <ClassName>  Create a PHPSpec-style specification skeleton; never creates production code.");
@@ -41,7 +41,7 @@ final class UsagePrinter {
         stream.println("  --stop-on-failure     With run, stop after the first failed or broken executable example.");
         stream.println("  --auto-check-predictions With run, automatically verify prophecy predictions after each example (default: true).");
         stream.println("  --no-auto-check-predictions With run, disable automatic prophecy prediction verification.");
-        stream.println("  --formatter <value>   With run, choose example output formatter. Valid values: progress, pretty.");
+        stream.println("  --formatter <value>   With run, choose progress, pretty, json, or a discovered formatter.");
         stream.println("  --profile <value>     With run, override target profile. Valid values: java8, java11, java17, java21, java25.");
         stream.println("  --verbose             With run, print effective run configuration before discovery.");
         stream.println("  --report <file>       With run, write a UTF-8 JSON runner report.");

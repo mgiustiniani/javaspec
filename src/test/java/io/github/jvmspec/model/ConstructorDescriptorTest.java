@@ -1,6 +1,7 @@
 package io.github.jvmspec.model;
 
 import io.github.jvmspec.internal.type.ConstructorSignature;
+import io.github.jvmspec.internal.type.JavaTypeResolutionContext;
 
 import org.junit.Test;
 
@@ -123,13 +124,29 @@ public class ConstructorDescriptorTest {
     }
 
     @Test
-    public void constructorSignatureNormalizesVarargsArraysAndGenericErasure() {
+    public void constructorSignatureNormalizesVarargsArraysAndGenericErasureAfterResolution() {
+        JavaTypeResolutionContext context = JavaTypeResolutionContext.fromSource(
+                "package com.example;\nimport java.util.Map;\n");
         ConstructorSignature strings = ConstructorSignature.of(
-                "com.example.Subject", Arrays.asList("java.util.Map<String, String>", "String..."));
+                "com.example.Subject", Arrays.asList(
+                        context.resolveErased("java.util.Map<String, String>"),
+                        context.resolveErased("String...")));
         ConstructorSignature integers = ConstructorSignature.of(
-                "com.example.Subject", Arrays.asList("Map<String, Integer>", "java.lang.String[]"));
+                "com.example.Subject", Arrays.asList(
+                        context.resolveErased("Map<String, Integer>"),
+                        context.resolveErased("java.lang.String[]")));
 
         assertEquals(strings, integers);
+    }
+
+    @Test
+    public void constructorSignaturePreservesDistinctQualifiedTypeIdentity() {
+        ConstructorSignature first = ConstructorSignature.of(
+                "com.example.Subject", Arrays.asList("a.Token"));
+        ConstructorSignature second = ConstructorSignature.of(
+                "com.example.Subject", Arrays.asList("b.Token"));
+
+        assertFalse(first.equals(second));
     }
 
     @Test

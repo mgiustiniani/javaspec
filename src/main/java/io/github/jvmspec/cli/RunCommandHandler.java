@@ -14,7 +14,7 @@ import io.github.jvmspec.resolver.DependencyResolver;
 import io.github.jvmspec.resolver.DependencyResolverLoader;
 import io.github.jvmspec.internal.type.ConstructorDiscoveryException;
 import io.github.jvmspec.discovery.DiscoveredSpec;
-import io.github.jvmspec.discovery.SpecDiscovery;
+import io.github.jvmspec.internal.language.LanguageRuntime;
 import io.github.jvmspec.discovery.SpecDiscoveryRequest;
 import io.github.jvmspec.formatter.JsonRunFormatter;
 import io.github.jvmspec.formatter.RunFormatterRegistry;
@@ -162,7 +162,7 @@ final class RunCommandHandler implements CommandHandler {
 
         List<DiscoveredSpec> specs;
         try {
-            specs = SpecDiscovery.discover(discoveryRequest);
+            specs = LanguageRuntime.javaSpecFrontend().discover(discoveryRequest);
         } catch (ConstructorDiscoveryException ex) {
             err.println(ex.getMessage());
             return Main.EXIT_MISSING_NOT_GENERATED;

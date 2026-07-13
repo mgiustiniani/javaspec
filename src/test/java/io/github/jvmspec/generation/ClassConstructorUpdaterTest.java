@@ -692,6 +692,108 @@ public class ClassConstructorUpdaterTest {
         assertTrue(updated.contains("this.name = name;"));
     }
 
+    @Test
+    public void preservesMatchingPackagePrivateConstructorWithoutAddingDuplicate() {
+        String source =
+                "package com.example;\n\npublic class Service {\n" +
+                "    Service(String name) {\n" +
+                "        this.name = name;\n" +
+                "    }\n" +
+                "    private final String name;\n" +
+                "}\n";
+        DescribedType type = DescribedType.of(
+                "com.example.Service",
+                JavaTypeKind.CLASS,
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Arrays.asList(ConstructorDescriptor.of(
+                        Arrays.asList("java.lang.String"),
+                        Arrays.asList("value"), ""))
+        );
+
+        String updated = ClassConstructorUpdater.updateSource(
+                source, type, ConstructorPolicy.PRESERVE);
+
+        assertEquals(source, updated);
+        assertEquals(1, countOccurrences(updated, "Service(String name)"));
+    }
+
+    @Test
+    public void preservesMatchingGenericConstructorByItsErasedBound() {
+        String source =
+                "package com.example;\n\npublic class Service {\n" +
+                "    public <T> Service(T value) {\n" +
+                "        this.value = value;\n" +
+                "    }\n" +
+                "    private final Object value;\n" +
+                "}\n";
+        DescribedType type = DescribedType.of(
+                "com.example.Service",
+                JavaTypeKind.CLASS,
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Arrays.asList(ConstructorDescriptor.of(
+                        Arrays.asList("java.lang.Object"),
+                        Arrays.asList("value"), ""))
+        );
+
+        String updated = ClassConstructorUpdater.updateSource(
+                source, type, ConstructorPolicy.PRESERVE);
+
+        assertEquals(source, updated);
+        assertEquals(1, countOccurrences(updated, "Service("));
+    }
+
+    @Test
+    public void preservesMatchingGenericConstructorInCompactSource() {
+        String source = "package com.example; public class Service { public <T extends Number> " +
+                "Service(T value) { this.value = value; } private final Number value; }";
+        DescribedType type = DescribedType.of(
+                "com.example.Service",
+                JavaTypeKind.CLASS,
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Arrays.asList(ConstructorDescriptor.of(
+                        Arrays.asList("java.lang.Number"),
+                        Arrays.asList("value"), ""))
+        );
+
+        String updated = ClassConstructorUpdater.updateSource(
+                source, type, ConstructorPolicy.PRESERVE);
+
+        assertEquals(source, updated);
+    }
+
+    @Test
+    public void preservesLegalOverloadsWithDistinctQualifiedParameterTypes() {
+        String source =
+                "package com.example;\n\npublic class Service {\n" +
+                "    public Service(a.Token first) { }\n" +
+                "    public Service(b.Token second) { }\n" +
+                "}\n";
+        DescribedType type = DescribedType.of(
+                "com.example.Service",
+                JavaTypeKind.CLASS,
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Arrays.asList(
+                        ConstructorDescriptor.of(
+                                Arrays.asList("a.Token"), Arrays.asList("first"), ""),
+                        ConstructorDescriptor.of(
+                                Arrays.asList("b.Token"), Arrays.asList("second"), ""))
+        );
+
+        String updated = ClassConstructorUpdater.updateSource(
+                source, type, ConstructorPolicy.PRESERVE);
+
+        assertEquals(source, updated);
+        assertEquals(2, countOccurrences(updated, "public Service("));
+    }
+
     private static int countOccurrences(String value, String token) {
         int count = 0;
         int index = 0;

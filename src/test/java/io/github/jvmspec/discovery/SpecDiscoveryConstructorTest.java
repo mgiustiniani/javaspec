@@ -101,6 +101,31 @@ public class SpecDiscoveryConstructorTest {
     }
 
     @Test
+    public void preservesLegalOverloadsWithDistinctQualifiedTypes() throws Exception {
+        File specRoot = temporaryFolder.newFolder("qualified-overload-spec-root");
+        File specDir = new File(specRoot, "spec/com/example");
+        assertTrue(specDir.mkdirs());
+        File specFile = new File(specDir, "SubjectSpec.java");
+        Files.write(specFile.toPath(), (
+                "package spec.com.example;\n" +
+                "import io.github.jvmspec.api.ObjectBehavior;\n" +
+                "public class SubjectSpec extends ObjectBehavior<Subject> {\n" +
+                "  public void it_supports_first_namespace(a.Token token) {\n" +
+                "    beConstructedWith(token);\n" +
+                "  }\n" +
+                "  public void it_supports_second_namespace(b.Token token) {\n" +
+                "    beConstructedWith(token);\n" +
+                "  }\n" +
+                "}\n").getBytes(StandardCharsets.UTF_8));
+
+        DescribedType type = SpecDiscovery.discover(specRoot).get(0).describedType();
+
+        assertEquals(2, type.constructors().size());
+        assertEquals(Arrays.asList("a.Token"), type.constructors().get(0).parameterTypes());
+        assertEquals(Arrays.asList("b.Token"), type.constructors().get(1).parameterTypes());
+    }
+
+    @Test
     public void rejectsIncompatibleGenericRequestsWithTheSameErasedSignature() throws Exception {
         File specRoot = temporaryFolder.newFolder("erasure-conflict-spec-root");
         File specDir = new File(specRoot, "spec/com/example");

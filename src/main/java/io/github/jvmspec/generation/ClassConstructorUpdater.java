@@ -2,6 +2,7 @@ package io.github.jvmspec.generation;
 
 import io.github.jvmspec.internal.type.ConstructorSignature;
 import io.github.jvmspec.internal.type.JavaSyntaxSplitter;
+import io.github.jvmspec.internal.type.JavaTypeResolutionContext;
 import io.github.jvmspec.model.ConstructorDescriptor;
 import io.github.jvmspec.model.DescribedType;
 import io.github.jvmspec.model.JavaTypeKind;
@@ -43,11 +44,9 @@ import java.util.regex.Pattern;
  * class's opening brace without touching anything already present.
  */
 public final class ClassConstructorUpdater {
-    private static final Pattern CONSTRUCTOR_HEADER_PATTERN = Pattern.compile(
-            "\\b(public|protected|private)\\s+" +
-            "([A-Za-z_$][A-Za-z0-9_$]*)\\s*\\(",
-            Pattern.DOTALL
-    );
+    private static final String CONSTRUCTOR_MODIFIER =
+            "(?:public|protected|private|@[A-Za-z_$][A-Za-z0-9_$.]*"
+                    + "(?:[ \\t]*\\([^\\r\\n]*\\))?)";
     private static final Pattern PARAMETER_NAME_PATTERN = Pattern.compile(
             "([A-Za-z_$][A-Za-z0-9_$]*)\\s*((?:\\[\\s*\\]\\s*)*)$");
 
@@ -67,10 +66,15 @@ public final class ClassConstructorUpdater {
             return RecordComponentPlanner.updateRecordHeader(existingSource, describedType);
         }
 
-        List<ParsedConstructor> existingConstructors = parseConstructors(existingSource, describedType.simpleName());
+        JavaTypeResolutionContext typeResolution =
+                JavaTypeResolutionContext.fromSource(existingSource);
+        List<ParsedConstructor> existingConstructors = parseConstructors(
+                existingSource, describedType.simpleName(), typeResolution);
         List<ConstructorDescriptor> specConstructors = describedType.constructors();
 
-        return applyConstructorChanges(existingSource, existingConstructors, specConstructors, describedType, policy);
+        return applyConstructorChanges(
+                existingSource, existingConstructors, specConstructors,
+                describedType, policy, typeResolution);
     }
 
     public static String updateFile(
@@ -115,12 +119,15 @@ public final class ClassConstructorUpdater {
         return true;
     }
 
-    private static List<ParsedConstructor> parseConstructors(String source, String className) {
+    private static List<ParsedConstructor> parseConstructors(
+            String source,
+            String className,
+            JavaTypeResolutionContext typeResolution
+    ) {
         List<ParsedConstructor> constructors = new ArrayList<ParsedConstructor>();
         String masked = NonCodeSourceMasker.mask(source);
-        Matcher matcher = CONSTRUCTOR_HEADER_PATTERN.matcher(masked);
+        Matcher matcher = constructorHeaderPattern(className).matcher(masked);
         while (matcher.find()) {
-            if (!className.equals(matcher.group(2))) continue;
             int openParen = matcher.end() - 1;
             int closeParen = findMatching(masked, openParen, '(', ')');
             if (closeParen < 0) continue;
@@ -130,7 +137,10 @@ public final class ClassConstructorUpdater {
             if (bodyClose < 0) continue;
 
             List<String> paramTypes = new ArrayList<String>();
+            List<String> signatureParamTypes = new ArrayList<String>();
             List<String> paramNames = new ArrayList<String>();
+            JavaTypeResolutionContext constructorTypeResolution =
+                    typeResolution.withTypeParameters(matcher.group(4));
             String paramsGroup = source.substring(openParen + 1, closeParen);
             List<String> params = JavaSyntaxSplitter.splitTopLevel(paramsGroup, ',');
             for (int i = 0; i < params.size(); i++) {
@@ -143,15 +153,31 @@ public final class ClassConstructorUpdater {
                 String type = parameter.substring(0, parameterMatcher.start(1)).trim()
                         + trailingArrays;
                 paramTypes.add(type.trim());
+                signatureParamTypes.add(constructorTypeResolution.resolveErased(type.trim()));
                 paramNames.add(name);
             }
 
             String body = source.substring(bodyOpen + 1, bodyClose).trim();
+            int editStart = matcher.start(2);
+            int declarationStart = editStart;
+            while (declarationStart < matcher.start(5)
+                    && Character.isWhitespace(source.charAt(declarationStart))) {
+                declarationStart++;
+            }
+            String declarationPrefix = source.substring(declarationStart, matcher.start(5));
             constructors.add(new ParsedConstructor(
-                    matcher.group(1), paramTypes, paramNames, body, body.length() == 0,
-                    matcher.start(), bodyClose + 1));
+                    declarationPrefix, paramTypes, signatureParamTypes, paramNames,
+                    body, body.length() == 0, editStart, bodyClose + 1));
         }
         return constructors;
+    }
+
+    private static Pattern constructorHeaderPattern(String className) {
+        return Pattern.compile(
+                "(?m)(^|[;{}])([\\s]*)"
+                        + "((?:(?:" + CONSTRUCTOR_MODIFIER + ")[\\s]+)*)"
+                        + "(<[^{};]+>[\\s]+)?"
+                        + "(" + Pattern.quote(className) + ")\\s*\\(");
     }
 
     private static int findConstructorBodyOpen(String masked, int start) {
@@ -178,7 +204,8 @@ public final class ClassConstructorUpdater {
             List<ParsedConstructor> existingConstructors,
             List<ConstructorDescriptor> specConstructors,
             DescribedType describedType,
-            ConstructorPolicy policy
+            ConstructorPolicy policy,
+            JavaTypeResolutionContext typeResolution
     ) {
         // Categorize existing constructors
         List<ParsedConstructor> specMatched = new ArrayList<ParsedConstructor>();
@@ -188,7 +215,7 @@ public final class ClassConstructorUpdater {
             ParsedConstructor existing = existingConstructors.get(ei);
             boolean matched = false;
             for (int si = 0; si < specConstructors.size(); si++) {
-                if (constructorsMatch(existing, specConstructors.get(si))) {
+                if (constructorsMatch(existing, specConstructors.get(si), typeResolution)) {
                     matched = true;
                     break;
                 }
@@ -216,7 +243,7 @@ public final class ClassConstructorUpdater {
                 boolean extended = false;
                 for (int si = 0; si < specConstructors.size(); si++) {
                     ConstructorDescriptor spec = specConstructors.get(si);
-                    if (canExtend(existing, spec)) {
+                    if (canExtend(existing, spec, typeResolution)) {
                         toExtend.add(existing);
                         extended = true;
                         break;
@@ -257,14 +284,14 @@ public final class ClassConstructorUpdater {
             ConstructorDescriptor spec = specConstructors.get(si);
             boolean satisfied = false;
             for (int ei = 0; ei < specMatched.size(); ei++) {
-                if (constructorsMatch(specMatched.get(ei), spec)) {
+                if (constructorsMatch(specMatched.get(ei), spec, typeResolution)) {
                     satisfied = true;
                     break;
                 }
             }
             if (!satisfied) {
                 for (int ei = 0; ei < toExtend.size(); ei++) {
-                    if (canExtend(toExtend.get(ei), spec)) {
+                    if (canExtend(toExtend.get(ei), spec, typeResolution)) {
                         satisfied = true;
                         break;
                     }
@@ -285,7 +312,7 @@ public final class ClassConstructorUpdater {
             ParsedConstructor existing = toExtend.get(ei);
             ConstructorDescriptor matchedSpec = null;
             for (int si = 0; si < specConstructors.size(); si++) {
-                if (canExtend(existing, specConstructors.get(si))) {
+                if (canExtend(existing, specConstructors.get(si), typeResolution)) {
                     matchedSpec = specConstructors.get(si);
                     break;
                 }
@@ -370,7 +397,8 @@ public final class ClassConstructorUpdater {
             newNames.add(spec.parameterNames().get(pi));
         }
         StringBuilder builder = new StringBuilder();
-        builder.append("public ").append(describedType.simpleName()).append("(");
+        builder.append(existing.declarationPrefix)
+                .append(describedType.simpleName()).append("(");
         appendParameters(builder, existing.paramTypes, existing.paramNames);
         if (newParams.size() > 0) {
             builder.append(", ");
@@ -390,7 +418,7 @@ public final class ClassConstructorUpdater {
     private static String renderCommentedConstructor(ParsedConstructor existing, DescribedType describedType) {
         StringBuilder builder = new StringBuilder();
         builder.append("/*\n");
-        builder.append("    ").append(existing.accessModifier).append(" ")
+        builder.append("    ").append(existing.declarationPrefix)
                 .append(describedType.simpleName()).append("(");
         appendParameters(builder, existing.paramTypes, existing.paramNames);
         builder.append(") {\n");
@@ -432,7 +460,11 @@ public final class ClassConstructorUpdater {
      * The existing constructor must have all its parameters present in the spec constructor,
      * and the spec constructor must have additional parameters not present in the existing one.
      */
-    private static boolean canExtend(ParsedConstructor existing, ConstructorDescriptor spec) {
+    private static boolean canExtend(
+            ParsedConstructor existing,
+            ConstructorDescriptor spec,
+            JavaTypeResolutionContext typeResolution
+    ) {
         if (existing.paramTypes.size() >= spec.parameterTypes().size()) {
             return false;
         }
@@ -440,23 +472,27 @@ public final class ClassConstructorUpdater {
         // implementation can be extended only when its erased parameter sequence is a prefix of
         // the requested signature; its body and meaningful existing parameter names are retained.
         for (int i = 0; i < existing.paramTypes.size(); i++) {
-            if (!sameErasedType(existing.paramTypes.get(i), spec.parameterTypes().get(i))) {
+            if (!existing.signatureParamTypes.get(i).equals(
+                    typeResolution.resolveErased(spec.parameterTypes().get(i)))) {
                 return false;
             }
         }
         return true;
     }
 
-    private static boolean constructorsMatch(ParsedConstructor existing, ConstructorDescriptor spec) {
-        // Java constructor identity uses ordered erased parameter types. Parameter names,
-        // annotations, source qualification, and generic arguments cannot define overloads.
-        return ConstructorSignature.of("", existing.paramTypes).equals(
-                ConstructorSignature.of("", spec.parameterTypes()));
-    }
-
-    private static boolean sameErasedType(String left, String right) {
-        return ConstructorSignature.of("", Collections.singletonList(left)).equals(
-                ConstructorSignature.of("", Collections.singletonList(right)));
+    private static boolean constructorsMatch(
+            ParsedConstructor existing,
+            ConstructorDescriptor spec,
+            JavaTypeResolutionContext typeResolution
+    ) {
+        // Java constructor identity uses canonical ordered erased parameter types. Parameter
+        // names, bodies, source qualification, and generic arguments cannot define overloads.
+        List<String> requestedTypes = new ArrayList<String>();
+        for (int i = 0; i < spec.parameterTypes().size(); i++) {
+            requestedTypes.add(typeResolution.resolveErased(spec.parameterTypes().get(i)));
+        }
+        return ConstructorSignature.of("", existing.signatureParamTypes).equals(
+                ConstructorSignature.of("", requestedTypes));
     }
 
     private static void appendParameters(StringBuilder builder, List<String> types, List<String> names) {
@@ -469,8 +505,9 @@ public final class ClassConstructorUpdater {
     }
 
     private static final class ParsedConstructor {
-        final String accessModifier;
+        final String declarationPrefix;
         final List<String> paramTypes;
+        final List<String> signatureParamTypes;
         final List<String> paramNames;
         final String body;
         final boolean isEmpty;
@@ -478,16 +515,18 @@ public final class ClassConstructorUpdater {
         final int end;
 
         ParsedConstructor(
-                String accessModifier,
+                String declarationPrefix,
                 List<String> paramTypes,
+                List<String> signatureParamTypes,
                 List<String> paramNames,
                 String body,
                 boolean isEmpty,
                 int start,
                 int end
         ) {
-            this.accessModifier = accessModifier;
+            this.declarationPrefix = declarationPrefix;
             this.paramTypes = paramTypes;
+            this.signatureParamTypes = signatureParamTypes;
             this.paramNames = paramNames;
             this.body = body;
             this.isEmpty = isEmpty;

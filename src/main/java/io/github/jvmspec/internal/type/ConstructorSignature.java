@@ -66,12 +66,7 @@ public final class ConstructorSignature {
             }
         }
         String normalized = erased.toString();
-        int array = normalized.indexOf('[');
-        String suffix = array < 0 ? "" : normalized.substring(array);
-        String raw = array < 0 ? normalized : normalized.substring(0, array);
-        int lastDot = raw.lastIndexOf('.');
-        if (lastDot >= 0) raw = raw.substring(lastDot + 1);
-        return raw + suffix;
+        return normalized;
     }
 
     private static String stripAnnotations(String source) {
