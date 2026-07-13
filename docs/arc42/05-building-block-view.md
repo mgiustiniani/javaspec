@@ -443,8 +443,9 @@ are isolated in package-private components. Java inference further separates lit
 classification, expression-argument splitting, generic-aware source method/import context parsing,
 and orchestration. The facade owns only deterministic traversal, filtering, and orchestration.
 Method synchronization separately selects Java type-kind eligibility, inventories existing direct
-members, and renders deterministic class, interface, annotation, and factory skeletons before the
-source-preserving insertion step.
+members, renders deterministic class, interface, annotation, and factory skeletons, performs
+offset-preserving source edits, and handles sealed roots/nested permitted types. `ClassMethodUpdater`
+remains the stable source/file facade over those package-private components.
 `BehaviorContract` retains the current immutable Java descriptor as a compatibility bridge while
 separately exposing portable subject shape, relationships, structured type references, construction signatures, callable
 signatures, invocation kind, and unknown-type evidence. `JavaProductionLanguageBackend` plans

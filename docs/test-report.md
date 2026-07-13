@@ -12,7 +12,7 @@ Java adapter parity.
 
 Verification summary:
 
-- `mvn -q clean verify`: PASS — 862 tests, 0 failures, 0 errors, 0 skipped.
+- `mvn -q clean verify`: PASS — 865 tests, 0 failures, 0 errors, 0 skipped.
 - `scripts/check-version-alignment.sh`: PASS for the RC4 artifact set.
 - `scripts/check-current-docs.sh`: PASS with RC-version, generation-report, and migration-link guards.
 - `scripts/check-api-surface.sh`: PASS; `io.github.jvmspec.internal.language` remains `INTERNAL`.
@@ -34,8 +34,11 @@ split between literal/factory classification, expression-argument splitting, sou
 context, and orchestration; direct tests freeze the deliberate difference between relational angle
 brackets in expressions and generic angle brackets in declarations. Method synchronization now
 separates Java type-kind eligibility and deterministic method/factory rendering from the
-source-preserving updater; direct tests freeze enum, interface, annotation, factory, stub-marker,
-and Unicode identifier behavior.
+source-preserving updater. Existing-member inventory, offset-preserving source editing, and sealed
+root/nested-permitted synchronization are also isolated, reducing `ClassMethodUpdater` from roughly
+1,200 lines to under 100 facade lines. Direct tests freeze enum, interface, annotation, factory,
+stub-marker, nested-member, record-accessor, CRLF, sealed idempotence, and Unicode identifier
+behavior.
 
 The internal behavior contract now projects portable subject shape, relationships, structured types,
 construction/callable signatures, invocation kind, unknown-type evidence, and semantic equivalence

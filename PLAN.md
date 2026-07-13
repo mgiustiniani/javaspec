@@ -363,8 +363,9 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
     construction-argument, callable, subject-declaration, and example-discovery components;
   - separate Java inference orchestration from literal/factory inference, expression-argument
     splitting, and source method/import context parsing;
-  - reduce `ClassMethodUpdater` by extracting Java type-kind eligibility, method/factory rendering,
-    and shared identifier validation without changing source insertion behavior;
+  - reduce `ClassMethodUpdater` to a stable facade by extracting Java type-kind eligibility,
+    existing-member inventory, method/factory rendering, offset-preserving source editing,
+    sealed-interface synchronization, and shared identifier validation;
   - project subject shape, relationships, structured types, construction/callable signatures,
     invocation kind, and unknown-type evidence through the internal `BehaviorContract` while
     retaining `DescribedType` as the Java compatibility bridge;
