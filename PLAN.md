@@ -360,8 +360,9 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
   - canonicalize source names before JVM constructor-signature comparison;
   - route Java discovery through `JavaSpecLanguageFrontend`;
   - keep the public `SpecDiscovery` facade while extracting focused Java construction,
-    construction-argument, expression/type-inference, callable, subject-declaration, and
-    example-discovery components;
+    construction-argument, callable, subject-declaration, and example-discovery components;
+  - separate Java inference orchestration from literal/factory inference, expression-argument
+    splitting, and source method/import context parsing;
   - project subject shape, relationships, structured types, construction/callable signatures,
     invocation kind, and unknown-type evidence through the internal `BehaviorContract` while
     retaining `DescribedType` as the Java compatibility bridge;

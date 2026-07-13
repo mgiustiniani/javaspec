@@ -38,6 +38,9 @@ All notable changes to this project will be documented in this file.
   expression/type inference, callable discovery, subject declaration discovery, and example
   discovery from the public `SpecDiscovery` facade; the facade now contains only deterministic file
   traversal and component orchestration while preserving its API and generated output.
+- Split Java inference into focused literal/factory inference, expression-argument splitting, source
+  context parsing, and orchestration components. Expression commas deliberately ignore relational
+  angle brackets while declaration parameters use the balanced generic-aware syntax splitter.
 - Reused the balanced syntax splitter for generic method-parameter parsing as well as method and
   record-component source parsing, including generic types whose arguments contain commas.
 - Added JaCoCo HTML/XML/CSV coverage reporting and an opt-in OWASP Dependency-Check security profile

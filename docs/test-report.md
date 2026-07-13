@@ -12,7 +12,7 @@ Java adapter parity.
 
 Verification summary:
 
-- `mvn -q clean verify`: PASS — 856 tests, 0 failures, 0 errors, 0 skipped.
+- `mvn -q clean verify`: PASS — 859 tests, 0 failures, 0 errors, 0 skipped.
 - `scripts/check-version-alignment.sh`: PASS for the RC4 artifact set.
 - `scripts/check-current-docs.sh`: PASS with RC-version, generation-report, and migration-link guards.
 - `scripts/check-api-surface.sh`: PASS; `io.github.jvmspec.internal.language` remains `INTERNAL`.
@@ -29,7 +29,10 @@ observations and identity, construction-argument inference, Java expression/type
 discovery, subject declaration discovery, and example discovery. `SpecDiscovery` is reduced from
 roughly 1,700 lines to about 150 lines of deterministic traversal, filtering, and orchestration. The
 extraction added direct AST/fallback and declaration tests and corrected legacy generic
-method-parameter splitting for types whose generic arguments contain commas.
+method-parameter splitting for types whose generic arguments contain commas. Java inference is now
+split between literal/factory classification, expression-argument splitting, source method/import
+context, and orchestration; direct tests freeze the deliberate difference between relational angle
+brackets in expressions and generic angle brackets in declarations.
 
 The internal behavior contract now projects portable subject shape, relationships, structured types,
 construction/callable signatures, invocation kind, unknown-type evidence, and semantic equivalence
