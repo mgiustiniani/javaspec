@@ -359,6 +359,8 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
   - preserve package-private and generic constructors and distinct qualified overloads;
   - canonicalize source names before JVM constructor-signature comparison;
   - route Java discovery through `JavaSpecLanguageFrontend`;
+  - keep the public `SpecDiscovery` facade while extracting focused Java construction,
+    construction-argument, expression/type-inference, and example-discovery components;
   - project subject shape, relationships, structured types, construction/callable signatures,
     invocation kind, and unknown-type evidence through the internal `BehaviorContract` while
     retaining `DescribedType` as the Java compatibility bridge;

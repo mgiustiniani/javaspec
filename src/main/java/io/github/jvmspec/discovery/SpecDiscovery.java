@@ -1,7 +1,21 @@
 package io.github.jvmspec.discovery;
 
-import io.github.jvmspec.internal.type.ConstructorDiscoveryException;
-import io.github.jvmspec.internal.type.JavaTypeRef;
+import static io.github.jvmspec.discovery.JavaExpressionTypeInference.InferredArguments;
+import static io.github.jvmspec.discovery.JavaExpressionTypeInference.InferredType;
+import static io.github.jvmspec.discovery.JavaExpressionTypeInference.MethodParameterInfo;
+import static io.github.jvmspec.discovery.JavaExpressionTypeInference.decapitalize;
+import static io.github.jvmspec.discovery.JavaExpressionTypeInference.importsBySimpleName;
+import static io.github.jvmspec.discovery.JavaExpressionTypeInference.inferArgumentTypes;
+import static io.github.jvmspec.discovery.JavaExpressionTypeInference.inferArgumentTypesCore;
+import static io.github.jvmspec.discovery.JavaExpressionTypeInference.inferLiteralType;
+import static io.github.jvmspec.discovery.JavaExpressionTypeInference.inferReturnType;
+import static io.github.jvmspec.discovery.JavaExpressionTypeInference.isJavaIdentifier;
+import static io.github.jvmspec.discovery.JavaExpressionTypeInference.isStringLiteral;
+import static io.github.jvmspec.discovery.JavaExpressionTypeInference.methodInfoFromScan;
+import static io.github.jvmspec.discovery.JavaExpressionTypeInference.parameterNamesFor;
+import static io.github.jvmspec.discovery.JavaExpressionTypeInference.parseMethods;
+import static io.github.jvmspec.discovery.JavaExpressionTypeInference.splitArguments;
+
 import io.github.jvmspec.internal.type.JavaTypeResolutionContext;
 import io.github.jvmspec.model.ConstructorDescriptor;
 import io.github.jvmspec.model.DescribedClass;
@@ -30,23 +44,12 @@ import java.util.regex.Pattern;
 public final class SpecDiscovery {
     private static final String JAVA_SUFFIX = SpecNamingConvention.JAVA_SUFFIX;
     private static final String UNRESOLVED_FUNCTIONAL_PARAMETER_PREFIX = "__javaspecFunctionalArg";
-    private static final List<String> RESERVED_IDENTIFIERS = Collections.unmodifiableList(Arrays.asList(
-            "_", "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char", "class",
-            "const", "continue", "default", "do", "double", "else", "enum", "extends", "false", "final",
-            "finally", "float", "for", "goto", "if", "implements", "import", "instanceof", "int", "interface",
-            "long", "native", "new", "null", "package", "private", "protected", "public", "return", "short",
-            "static", "strictfp", "super", "switch", "synchronized", "this", "throw", "throws", "transient",
-            "true", "try", "void", "volatile", "while"
-    ));
-    private static final Pattern IMPORT_PATTERN = Pattern.compile("(?m)^\\s*import\\s+([A-Za-z_$][A-Za-z0-9_$.]*)\\s*;");
     private static final Pattern SHOULD_EXTEND_PATTERN = Pattern.compile("(?<!\\.)\\bshouldExtend\\s*\\(([^)]*)\\)", Pattern.DOTALL);
     private static final Pattern SHOULD_IMPLEMENT_PATTERN = Pattern.compile("(?<!\\.)\\bshouldImplement\\s*\\(([^)]*)\\)", Pattern.DOTALL);
     private static final Pattern SHOULD_PERMIT_PATTERN = Pattern.compile("(?<!\\.)\\bshouldPermit\\s*\\(([^)]*)\\)", Pattern.DOTALL);
     private static final Pattern CLASS_LITERAL_PATTERN = Pattern.compile("([A-Za-z_$][A-Za-z0-9_$.]*)\\s*\\.\\s*class");
-    private static final Pattern BE_CONSTRUCTED_WITH_PATTERN = Pattern.compile("beConstructedWith\\s*\\(([^)]*)\\)", Pattern.DOTALL);
     private static final Pattern FACTORY_CONSTRUCTION_PATTERN = Pattern.compile("beConstructed(?:ThroughNamed|Through|Named)\\s*\\(([^)]*)\\)", Pattern.DOTALL);
     private static final Pattern SHOULD_HAVE_CONSTANT_PATTERN = Pattern.compile("shouldHaveConstant\\s*\\(([^)]*)\\)", Pattern.DOTALL);
-    private static final Pattern METHOD_PATTERN = Pattern.compile("public\\s+void\\s+([A-Za-z_$][A-Za-z0-9_$]*)\\s*\\(([^)]*)\\)\\s*(?:throws\\s+[^\\{]+)?\\{", Pattern.DOTALL);
     private static final Pattern PROXY_EXPECTATION_PATTERN = Pattern.compile(
             "\\b([a-z][A-Za-z0-9_$]*)\\s*\\(([^;{}]*)\\)\\s*\\.\\s*"
                     + "(shouldReturn|shouldNotReturn|shouldBe|shouldNotBe|shouldEqual|shouldNotEqual|shouldBeLike|shouldNotBeLike|shouldBeEqualTo|shouldNotBeEqualTo|shouldBeApproximately|shouldReturnApproximately|shouldNotBeApproximately|shouldNotReturnApproximately|shouldHaveType|shouldBeAnInstanceOf|shouldReturnAnInstanceOf|shouldImplement|shouldContain|shouldNotContain|shouldStartWith|shouldNotStartWith|shouldEndWith|shouldNotEndWith|shouldMatchPattern|shouldNotMatchPattern|shouldHaveCount|shouldBeEmpty|shouldNotBeEmpty|shouldHaveKey|shouldNotHaveKey|shouldHaveValue|shouldNotHaveValue)"
@@ -145,13 +148,13 @@ public final class SpecDiscovery {
             String describedPackageName = describedClass.packageName();
             String describedQualifiedName = describedClass.qualifiedName();
             String source = sourceOf(specFile);
-            List<SpecExample> examples = request.filterExamples(extractExamples(source));
+            List<SpecExample> examples = request.filterExamples(ExampleDiscovery.discover(source));
             if (request.hasExampleFilters() && examples.isEmpty()) {
                 return;
             }
             SpecCallScanner.ScanResult scan = scanSpecCalls(source);
             JavaTypeKind kind = describedKind(source);
-            List<ConstructorDescriptor> constructors = extractConstructors(
+            List<ConstructorDescriptor> constructors = ConstructionDiscovery.discover(
                     source, describedPackageName, describedQualifiedName, scan,
                     JavaTypeKind.RECORD.equals(kind));
             List<MethodDescriptor> methods = extractMethods(source, describedPackageName, describedQualifiedName, scan);
@@ -193,209 +196,12 @@ public final class SpecDiscovery {
         }
     }
 
-    private static List<ConstructorDescriptor> extractConstructors(
-            String source,
-            String describedPackageName,
-            String describedQualifiedName,
-            SpecCallScanner.ScanResult scan,
-            boolean recordSubject
-    ) {
-        Map<String, String> imports = importsBySimpleName(source);
-        JavaTypeResolutionContext typeResolution = JavaTypeResolutionContext.fromSource(source);
-        List<ConstructorDescriptor> constructors = new ArrayList<ConstructorDescriptor>();
 
-        if (scan != null) {
-            Map<String, MethodParameterInfo> methods = methodInfoFromScan(scan, imports, describedPackageName);
-            for (int i = 0; i < scan.constructionCalls.size(); i++) {
-                SpecCallScanner.Call call = scan.constructionCalls.get(i);
-                MethodParameterInfo methodInfo = methods.get(call.enclosingMethod);
-                ConstructionArguments arguments = inferConstructionArgumentsCore(
-                        call.argumentTexts, methodInfo, imports, describedPackageName);
-                if (recordSubject) {
-                    arguments = applyAccessorNamingEvidence(
-                            arguments, call, scan, methodInfo, imports, describedPackageName);
-                }
-                ConstructorDescriptor cd = ConstructorDescriptor.of(
-                        arguments.parameterTypes, arguments.parameterNames, "");
-                ConstructionDiscovery.addBySignature(
-                        constructors, cd, describedQualifiedName, typeResolution);
-            }
-            return constructors;
-        }
 
-        Map<String, MethodParameterInfo> methods = parseMethods(source, imports, describedPackageName);
 
-        Matcher withMatcher = BE_CONSTRUCTED_WITH_PATTERN.matcher(source);
-        while (withMatcher.find()) {
-            List<String> argNames = splitArguments(withMatcher.group(1).trim());
-            ConstructionArguments arguments = inferConstructionArguments(argNames, source, withMatcher.start(), methods, imports, describedPackageName);
-            ConstructorDescriptor cd = ConstructorDescriptor.of(
-                    arguments.parameterTypes, arguments.parameterNames, "");
-            ConstructionDiscovery.addBySignature(
-                    constructors, cd, describedQualifiedName, typeResolution);
-        }
 
-        return constructors;
-    }
 
-    private static ConstructionArguments applyAccessorNamingEvidence(
-            ConstructionArguments arguments,
-            SpecCallScanner.Call constructionCall,
-            SpecCallScanner.ScanResult scan,
-            MethodParameterInfo methodInfo,
-            Map<String, String> imports,
-            String describedPackageName
-    ) {
-        List<String> names = new ArrayList<String>(arguments.parameterNames);
-        for (int i = 0; i < constructionCall.argumentTexts.size(); i++) {
-            String argumentText = constructionCall.argumentTexts.get(i).trim();
-            String accessorName = uniqueAccessorForExampleValue(
-                    argumentText,
-                    arguments.parameterTypes.get(i),
-                    arguments.parameterTypes,
-                    constructionCall.enclosingMethod,
-                    scan,
-                    methodInfo,
-                    imports,
-                    describedPackageName
-            );
-            if (accessorName != null) {
-                names.set(i, accessorName);
-            }
-        }
-        return new ConstructionArguments(arguments.parameterTypes, names);
-    }
 
-    private static String uniqueAccessorForExampleValue(
-            String argumentText,
-            String argumentType,
-            List<String> constructionTypes,
-            String enclosingMethod,
-            SpecCallScanner.ScanResult scan,
-            MethodParameterInfo methodInfo,
-            Map<String, String> imports,
-            String describedPackageName
-    ) {
-        List<SpecCallScanner.Expectation> expectations = new ArrayList<SpecCallScanner.Expectation>();
-        expectations.addAll(scan.proxyExpectations);
-        expectations.addAll(scan.matchSubjectExpectations);
-        String exactCandidate = null;
-        String typedCandidate = null;
-        for (int i = 0; i < expectations.size(); i++) {
-            SpecCallScanner.Expectation expectation = expectations.get(i);
-            if (!Objects.equals(enclosingMethod, expectation.enclosingMethod)
-                    || !expectation.argumentTexts.isEmpty()
-                    || !"shouldReturn".equals(expectation.matcherName)
-                    || expectation.expectationTexts.size() != 1
-                    || !isLegalJavaIdentifier(expectation.name)) {
-                continue;
-            }
-            String expectationText = expectation.expectationTexts.get(0).trim();
-            String expectationType = inferredExpressionType(
-                    expectationText, methodInfo, imports, describedPackageName);
-            if (!sameInferredType(argumentType, expectationType)) {
-                continue;
-            }
-            if (typedCandidate != null && !typedCandidate.equals(expectation.name)) {
-                typedCandidate = "";
-            } else if (typedCandidate == null) {
-                typedCandidate = expectation.name;
-            }
-            if (!argumentText.equals(expectationText)) {
-                continue;
-            }
-            if (exactCandidate != null && !exactCandidate.equals(expectation.name)) {
-                return null;
-            }
-            exactCandidate = expectation.name;
-        }
-        if (exactCandidate != null) {
-            return exactCandidate;
-        }
-        int compatibleConstructionSlots = 0;
-        for (int i = 0; i < constructionTypes.size(); i++) {
-            if (sameInferredType(argumentType, constructionTypes.get(i))) {
-                compatibleConstructionSlots++;
-            }
-        }
-        return compatibleConstructionSlots == 1 && typedCandidate != null && typedCandidate.length() > 0
-                ? typedCandidate
-                : null;
-    }
-
-    private static String inferredExpressionType(
-            String expression,
-            MethodParameterInfo methodInfo,
-            Map<String, String> imports,
-            String describedPackageName
-    ) {
-        String value = expression.trim();
-        if (methodInfo != null) {
-            int localIndex = methodInfo.names.indexOf(value);
-            if (localIndex >= 0) {
-                return methodInfo.types.get(localIndex);
-            }
-        }
-        return inferLiteralType(value, imports, describedPackageName).typeName;
-    }
-
-    private static boolean sameInferredType(String left, String right) {
-        return left.equals(right)
-                || ("String".equals(left) && "java.lang.String".equals(right))
-                || ("java.lang.String".equals(left) && "String".equals(right));
-    }
-
-    private static ConstructionArguments inferConstructionArguments(
-            List<String> argumentValues,
-            String source,
-            int position,
-            Map<String, MethodParameterInfo> methods,
-            Map<String, String> imports,
-            String describedPackageName
-    ) {
-        MethodParameterInfo info = null;
-        String methodName = findEnclosingMethod(source, position, methods);
-        if (methodName != null && methods.containsKey(methodName)) {
-            info = methods.get(methodName);
-        }
-        return inferConstructionArgumentsCore(argumentValues, info, imports, describedPackageName);
-    }
-
-    private static ConstructionArguments inferConstructionArgumentsCore(
-            List<String> argumentValues,
-            MethodParameterInfo info,
-            Map<String, String> imports,
-            String describedPackageName
-    ) {
-        List<String> paramTypes = new ArrayList<String>();
-        List<String> paramNames = new ArrayList<String>();
-        for (int i = 0; i < argumentValues.size(); i++) {
-            String argName = argumentValues.get(i).trim();
-            if (info != null) {
-                int parameterIndex = info.names.indexOf(argName);
-                if (parameterIndex >= 0) {
-                    paramTypes.add(info.types.get(parameterIndex));
-                    paramNames.add(info.names.get(parameterIndex));
-                    continue;
-                }
-                if (i < info.formalParameterCount) {
-                    paramTypes.add(info.types.get(i));
-                    paramNames.add(info.names.get(i));
-                    continue;
-                }
-            }
-            paramTypes.add(inferLiteralType(argName, imports, describedPackageName).typeName);
-            String parameterName = parameterNameForArgument(argName, i);
-            if (parameterName.equals("arg" + i)) {
-                String derivedName = typeDerivedParameterName(argName);
-                if (derivedName != null && !paramNames.contains(derivedName)) {
-                    parameterName = derivedName;
-                }
-            }
-            paramNames.add(parameterName);
-        }
-        return new ConstructionArguments(paramTypes, paramNames);
-    }
 
     private static List<MethodDescriptor> extractMethods(String source, String describedPackageName, String describedQualifiedName, SpecCallScanner.ScanResult scan) {
         Map<String, String> imports = importsBySimpleName(source);
@@ -521,7 +327,7 @@ public final class SpecDiscovery {
             for (int j = 1; j < call.argumentTexts.size(); j++) {
                 factoryArguments.add(call.argumentTexts.get(j));
             }
-            ConstructionArguments arguments = inferConstructionArgumentsCore(
+            ConstructionArgumentInference.Arguments arguments = ConstructionArgumentInference.infer(
                     factoryArguments, specMethods.get(call.enclosingMethod), imports, describedPackageName);
             addMethod(discovered, MethodDescriptor.staticMethod(
                     methodName,
@@ -772,29 +578,6 @@ public final class SpecDiscovery {
         return builder.toString();
     }
 
-    private static Map<String, MethodParameterInfo> methodInfoFromScan(
-            SpecCallScanner.ScanResult scan,
-            Map<String, String> imports,
-            String describedPackageName
-    ) {
-        Map<String, MethodParameterInfo> methods = new LinkedHashMap<String, MethodParameterInfo>();
-        for (Map.Entry<String, SpecCallScanner.SpecMethodParams> entry : scan.specMethods.entrySet()) {
-            SpecCallScanner.SpecMethodParams params = entry.getValue();
-            List<String> types = new ArrayList<String>();
-            for (int i = 0; i < params.typeTexts.size(); i++) {
-                String typeText = params.typeTexts.get(i);
-                String initializerText = i < params.initializerTexts.size() ? params.initializerTexts.get(i) : null;
-                if ("var".equals(typeText) && initializerText != null) {
-                    types.add(inferLiteralType(initializerText, imports, describedPackageName).typeName);
-                } else {
-                    types.add(resolveTypeName(typeText, imports, describedPackageName));
-                }
-            }
-            methods.put(entry.getKey(), new MethodParameterInfo(
-                    types, params.names, params.formalParameterCount));
-        }
-        return methods;
-    }
 
     private static void addFactoryMethodDescriptors(
             String source,
@@ -818,7 +601,8 @@ public final class SpecDiscovery {
             for (int i = 1; i < markerArguments.size(); i++) {
                 factoryArguments.add(markerArguments.get(i));
             }
-            ConstructionArguments arguments = inferConstructionArguments(factoryArguments, source, matcher.start(), specMethods, imports, describedPackageName);
+            ConstructionArgumentInference.Arguments arguments = ConstructionArgumentInference.infer(
+                    factoryArguments, source, matcher.start(), specMethods, imports, describedPackageName);
             addMethod(discovered, MethodDescriptor.staticMethod(
                     methodName,
                     describedQualifiedName,
@@ -927,107 +711,9 @@ public final class SpecDiscovery {
         return lessSpecific;
     }
 
-    private static String inferReturnType(
-            String matcherName,
-            String expectationSource,
-            Map<String, String> imports,
-            String describedPackageName
-    ) {
-        List<String> expectationArgs = splitArguments(expectationSource);
-        if ("shouldContain".equals(matcherName)
-                || "shouldNotContain".equals(matcherName)
-                || "shouldStartWith".equals(matcherName)
-                || "shouldNotStartWith".equals(matcherName)
-                || "shouldEndWith".equals(matcherName)
-                || "shouldNotEndWith".equals(matcherName)
-                || "shouldMatchPattern".equals(matcherName)
-                || "shouldNotMatchPattern".equals(matcherName)) {
-            if (!expectationArgs.isEmpty() && isStringLiteral(expectationArgs.get(0))) {
-                return "String";
-            }
-            return "Object";
-        }
-        if ("shouldBeApproximately".equals(matcherName)
-                || "shouldReturnApproximately".equals(matcherName)
-                || "shouldNotBeApproximately".equals(matcherName)
-                || "shouldNotReturnApproximately".equals(matcherName)) {
-            return "Number";
-        }
-        if ("shouldHaveType".equals(matcherName)
-                || "shouldBeAnInstanceOf".equals(matcherName)
-                || "shouldReturnAnInstanceOf".equals(matcherName)
-                || "shouldImplement".equals(matcherName)
-                || "shouldHaveCount".equals(matcherName)
-                || "shouldBeEmpty".equals(matcherName)
-                || "shouldNotBeEmpty".equals(matcherName)
-                || "shouldHaveKey".equals(matcherName)
-                || "shouldNotHaveKey".equals(matcherName)
-                || "shouldHaveValue".equals(matcherName)
-                || "shouldNotHaveValue".equals(matcherName)) {
-            return "Object";
-        }
-        if (expectationArgs.isEmpty()) {
-            return "Object";
-        }
-        return inferLiteralType(expectationArgs.get(0), imports, describedPackageName).typeName;
-    }
 
-    private static InferredArguments inferArgumentTypes(
-            String argumentSource,
-            String source,
-            int position,
-            Map<String, MethodParameterInfo> specMethods,
-            Map<String, String> imports,
-            String describedPackageName
-    ) {
-        MethodParameterInfo enclosingInfo = null;
-        String enclosingMethod = findEnclosingMethod(source, position, specMethods);
-        if (enclosingMethod != null) {
-            enclosingInfo = specMethods.get(enclosingMethod);
-        }
-        return inferArgumentTypesCore(splitArguments(argumentSource), enclosingInfo, imports, describedPackageName);
-    }
 
-    private static InferredArguments inferArgumentTypesCore(
-            List<String> argumentValues,
-            MethodParameterInfo enclosingInfo,
-            Map<String, String> imports,
-            String describedPackageName
-    ) {
-        List<String> types = new ArrayList<String>();
-        List<Boolean> unknowns = new ArrayList<Boolean>();
-        for (int i = 0; i < argumentValues.size(); i++) {
-            String argument = argumentValues.get(i).trim();
-            String type = null;
-            if (enclosingInfo != null) {
-                int parameterIndex = enclosingInfo.names.indexOf(argument);
-                if (parameterIndex >= 0) {
-                    type = enclosingInfo.types.get(parameterIndex);
-                }
-            }
-            if (type != null) {
-                types.add(type);
-                unknowns.add(Boolean.FALSE);
-            } else {
-                InferredType inferred = inferLiteralType(argument, imports, describedPackageName);
-                types.add(inferred.typeName);
-                unknowns.add(Boolean.valueOf(inferred.unknown));
-            }
-        }
-        return new InferredArguments(types, unknowns);
-    }
 
-    private static List<String> parameterNamesFor(String methodName, int count) {
-        List<String> names = new ArrayList<String>();
-        if (count == 1 && methodName.startsWith("set") && methodName.length() > 3) {
-            names.add(decapitalize(methodName.substring(3)));
-            return names;
-        }
-        for (int i = 0; i < count; i++) {
-            names.add("arg" + i);
-        }
-        return names;
-    }
 
     /**
      * Derives an idiomatic parameter name from a qualified constant argument: for
@@ -1035,282 +721,18 @@ public final class SpecDiscovery {
      * Returns {@code null} when the argument is not a qualified constant reference, so callers
      * keep the positional {@code argN} fallback.
      */
-    private static String typeDerivedParameterName(String argument) {
-        String qualifier = qualifiedConstantReferenceType(argument.trim());
-        if (qualifier == null) {
-            return null;
-        }
-        int lastDot = qualifier.lastIndexOf('.');
-        String simpleTypeName = lastDot < 0 ? qualifier : qualifier.substring(lastDot + 1);
-        String derived = decapitalize(simpleTypeName);
-        if (!isJavaIdentifier(derived) || derived.equals(simpleTypeName)) {
-            return null;
-        }
-        return derived;
-    }
 
-    private static String parameterNameForArgument(String argument, int index) {
-        if (isLegalJavaIdentifier(argument)) {
-            return argument;
-        }
-        return "arg" + index;
-    }
 
-    private static boolean isLegalJavaIdentifier(String value) {
-        return isJavaIdentifier(value) && !RESERVED_IDENTIFIERS.contains(value);
-    }
 
-    private static InferredType inferLiteralType(String expression, Map<String, String> imports, String describedPackageName) {
-        String value = expression.trim();
-        if (value.length() == 0) {
-            return InferredType.unknownObject();
-        }
-        String castType = castType(value);
-        if (castType != null) {
-            return InferredType.known(resolveTypeName(castType, imports, describedPackageName));
-        }
-        if (isStringLiteral(value)) {
-            return InferredType.known("String");
-        }
-        if (isCharLiteral(value)) {
-            return InferredType.known("char");
-        }
-        if ("true".equals(value) || "false".equals(value)) {
-            return InferredType.known("boolean");
-        }
-        if ("null".equals(value)) {
-            return InferredType.unknownObject();
-        }
-        if (isClassLiteral(value)) {
-            return InferredType.known("Class");
-        }
-        String arrayCreationType = arrayCreationType(value);
-        if (arrayCreationType != null) {
-            return InferredType.known(resolveTypeName(arrayCreationType, imports, describedPackageName));
-        }
-        String constructedType = constructedType(value);
-        if (constructedType != null) {
-            return InferredType.known(resolveTypeName(constructedType, imports, describedPackageName));
-        }
-        String parameterizedFactoryType = parameterizedCollectionFactoryType(
-                value, imports, describedPackageName);
-        if (parameterizedFactoryType != null) {
-            return InferredType.known(parameterizedFactoryType);
-        }
-        String staticFactoryType = staticFactoryReceiverType(value);
-        if (staticFactoryType != null) {
-            return InferredType.known(resolveTypeName(staticFactoryType, imports, describedPackageName));
-        }
-        if (value.matches("[-+]?\\d+[lL]")) {
-            return InferredType.known("long");
-        }
-        if (value.matches("[-+]?\\d+[dDfF]")) {
-            return InferredType.known("double");
-        }
-        if (value.matches("[-+]?(?:\\d+\\.\\d*|\\d*\\.\\d+)(?:[eE][-+]?\\d+)?[dDfF]?")) {
-            return InferredType.known("double");
-        }
-        if (value.matches("[-+]?\\d+(?:[eE][-+]?\\d+)[dDfF]?")) {
-            return InferredType.known("double");
-        }
-        if (value.matches("[-+]?\\d+")) {
-            return InferredType.known("int");
-        }
-        String qualifiedConstantType = qualifiedConstantReferenceType(value);
-        if (qualifiedConstantType != null) {
-            return InferredType.known(resolveTypeName(qualifiedConstantType, imports, describedPackageName));
-        }
-        return InferredType.unknownObject();
-    }
 
-    private static String arrayCreationType(String value) {
-        String trimmed = value.trim();
-        if (!trimmed.startsWith("new ")) {
-            return null;
-        }
-        int firstBracket = trimmed.indexOf('[', 4);
-        if (firstBracket < 0) {
-            return null;
-        }
-        int constructorOpen = trimmed.indexOf('(', 4);
-        if (constructorOpen >= 0 && constructorOpen < firstBracket) {
-            return null;
-        }
-        String componentType = trimmed.substring(4, firstBracket).trim();
-        if (!isLikelyTypeName(componentType)) {
-            return null;
-        }
-        int dimensions = 0;
-        int index = firstBracket;
-        while (index < trimmed.length() && trimmed.charAt(index) == '[') {
-            int close = trimmed.indexOf(']', index + 1);
-            if (close < 0) {
-                return null;
-            }
-            dimensions++;
-            index = close + 1;
-            while (index < trimmed.length() && Character.isWhitespace(trimmed.charAt(index))) {
-                index++;
-            }
-        }
-        if (dimensions == 0) {
-            return null;
-        }
-        StringBuilder typeName = new StringBuilder(componentType);
-        for (int i = 0; i < dimensions; i++) {
-            typeName.append("[]");
-        }
-        return typeName.toString();
-    }
 
-    private static String constructedType(String value) {
-        String trimmed = value.trim();
-        if (!trimmed.startsWith("new ")) {
-            return null;
-        }
-        int open = trimmed.indexOf('(');
-        if (open < 0) {
-            return null;
-        }
-        String typeName = trimmed.substring(4, open).trim();
-        int genericStart = typeName.indexOf('<');
-        if (genericStart >= 0) {
-            typeName = typeName.substring(0, genericStart).trim();
-        }
-        if (!isLikelyTypeName(typeName)) {
-            return null;
-        }
-        return typeName;
-    }
 
-    private static String parameterizedCollectionFactoryType(
-            String value,
-            Map<String, String> imports,
-            String describedPackageName
-    ) {
-        String trimmed = value.trim();
-        int open = trimmed.indexOf('(');
-        int close = trimmed.lastIndexOf(')');
-        if (open < 0 || close != trimmed.length() - 1 || close <= open) {
-            return null;
-        }
-        String invocation = trimmed.substring(0, open).trim();
-        int methodSeparator = invocation.lastIndexOf('.');
-        if (methodSeparator < 0 || !"of".equals(invocation.substring(methodSeparator + 1))) {
-            return null;
-        }
-        String receiver = invocation.substring(0, methodSeparator);
-        String resolvedReceiver = resolveTypeName(receiver, imports, describedPackageName);
-        if (!"java.util.List".equals(resolvedReceiver)) {
-            return null;
-        }
-        List<String> elements = splitArguments(trimmed.substring(open + 1, close));
-        if (elements.isEmpty()) {
-            return null;
-        }
-        String elementType = null;
-        for (int i = 0; i < elements.size(); i++) {
-            InferredType inferred = inferLiteralType(elements.get(i), imports, describedPackageName);
-            if (inferred.unknown || "Object".equals(inferred.typeName)) {
-                return null;
-            }
-            if (elementType == null) {
-                elementType = inferred.typeName;
-            } else if (!sameInferredType(elementType, inferred.typeName)) {
-                return null;
-            }
-        }
-        return resolvedReceiver + "<" + elementType + ">";
-    }
 
-    private static String staticFactoryReceiverType(String value) {
-        Matcher matcher = Pattern.compile("^([A-Za-z_$][A-Za-z0-9_$]*(?:\\.[A-Za-z_$][A-Za-z0-9_$]*)*)\\.([A-Za-z_$][A-Za-z0-9_$]*)\\s*\\(.*\\)$").matcher(value.trim());
-        if (!matcher.matches()) {
-            return null;
-        }
-        String receiver = matcher.group(1);
-        String methodName = matcher.group(2);
-        if (!isLikelyStaticFactoryMethod(methodName)) {
-            return null;
-        }
-        String simpleReceiver = simpleName(receiver);
-        if (simpleReceiver.length() == 0 || !Character.isUpperCase(simpleReceiver.charAt(0))) {
-            return null;
-        }
-        return receiver;
-    }
 
-    private static String simpleName(String qualifiedName) {
-        int lastDot = qualifiedName.lastIndexOf('.');
-        return lastDot < 0 ? qualifiedName : qualifiedName.substring(lastDot + 1);
-    }
 
-    private static boolean isLikelyStaticFactoryMethod(String methodName) {
-        return "of".equals(methodName)
-                || "ofNullable".equals(methodName)
-                || "from".equals(methodName)
-                || "fromString".equals(methodName)
-                || "fromValue".equals(methodName)
-                || "parse".equals(methodName)
-                || "valueOf".equals(methodName)
-                || "create".equals(methodName)
-                || "named".equals(methodName);
-    }
 
-    private static String castType(String value) {
-        if (!value.startsWith("(")) {
-            return null;
-        }
-        int close = value.indexOf(')');
-        if (close <= 1 || close == value.length() - 1) {
-            return null;
-        }
-        String typeName = value.substring(1, close).trim();
-        String expression = value.substring(close + 1).trim();
-        if (!isLikelyTypeName(typeName)) {
-            return null;
-        }
-        if (expression.length() == 0) {
-            return null;
-        }
-        return typeName;
-    }
 
-    private static boolean isLikelyTypeName(String value) {
-        String trimmed = value.trim();
-        String erased = eraseGenericArguments(trimmed);
-        if (erased == null) {
-            return false;
-        }
-        if (erased.matches("(?:byte|short|int|long|float|double|boolean|char)(?:\\s*\\[\\s*\\])*")) {
-            return true;
-        }
-        return erased.matches("[A-Z_$][A-Za-z0-9_$]*(?:\\s*\\[\\s*\\])*")
-                || erased.matches("[A-Za-z_$][A-Za-z0-9_$]*(?:\\.[A-Za-z_$][A-Za-z0-9_$]*)+(?:\\s*\\[\\s*\\])*");
-    }
 
-    private static String eraseGenericArguments(String typeName) {
-        StringBuilder erased = new StringBuilder();
-        int depth = 0;
-        for (int i = 0; i < typeName.length(); i++) {
-            char current = typeName.charAt(i);
-            if (current == '<') {
-                depth++;
-                continue;
-            }
-            if (current == '>') {
-                depth--;
-                if (depth < 0) {
-                    return null;
-                }
-                continue;
-            }
-            if (depth == 0) {
-                erased.append(current);
-            }
-        }
-        return depth == 0 ? erased.toString().trim() : null;
-    }
 
     /**
      * Recognizes a qualified constant reference such as {@code Algorithm.EC_P256} or
@@ -1319,209 +741,16 @@ public final class SpecDiscovery {
      * inferred type, e.g. {@code Algorithm} or {@code com.example.Algorithm}. Returns {@code null}
      * when the expression does not match this shape, so callers fall back to {@code Object}.
      */
-    private static String qualifiedConstantReferenceType(String value) {
-        if (!value.matches("[A-Za-z_$][A-Za-z0-9_$]*(?:\\.[A-Za-z_$][A-Za-z0-9_$]*)+")) {
-            return null;
-        }
-        int lastDot = value.lastIndexOf('.');
-        return value.substring(0, lastDot);
-    }
 
-    private static boolean isClassLiteral(String value) {
-        String trimmed = value.trim();
-        if (!trimmed.endsWith(".class")) {
-            return false;
-        }
-        String target = trimmed.substring(0, trimmed.length() - ".class".length()).trim();
-        return isLikelyTypeName(target);
-    }
 
-    private static boolean isStringLiteral(String value) {
-        String trimmed = value.trim();
-        return trimmed.length() >= 2 && trimmed.charAt(0) == '"' && trimmed.charAt(trimmed.length() - 1) == '"';
-    }
 
-    private static boolean isCharLiteral(String value) {
-        String trimmed = value.trim();
-        return trimmed.length() >= 3 && trimmed.charAt(0) == '\'' && trimmed.charAt(trimmed.length() - 1) == '\'';
-    }
 
-    private static List<String> splitArguments(String arguments) {
-        List<String> result = new ArrayList<String>();
-        if (arguments == null || arguments.trim().length() == 0) {
-            return result;
-        }
-        StringBuilder current = new StringBuilder();
-        int nesting = 0;
-        boolean inString = false;
-        boolean inChar = false;
-        boolean escaped = false;
-        for (int i = 0; i < arguments.length(); i++) {
-            char c = arguments.charAt(i);
-            if (escaped) {
-                current.append(c);
-                escaped = false;
-                continue;
-            }
-            if (c == '\\' && (inString || inChar)) {
-                current.append(c);
-                escaped = true;
-                continue;
-            }
-            if (c == '"' && !inChar) {
-                inString = !inString;
-                current.append(c);
-                continue;
-            }
-            if (c == '\'' && !inString) {
-                inChar = !inChar;
-                current.append(c);
-                continue;
-            }
-            if (!inString && !inChar) {
-                if (c == '(' || c == '[' || c == '{') {
-                    nesting++;
-                } else if (c == ')' || c == ']' || c == '}') {
-                    if (nesting > 0) {
-                        nesting--;
-                    }
-                } else if (c == ',' && nesting == 0) {
-                    result.add(current.toString().trim());
-                    current.setLength(0);
-                    continue;
-                }
-            }
-            current.append(c);
-        }
-        if (current.length() > 0) {
-            result.add(current.toString().trim());
-        }
-        return result;
-    }
 
-    private static List<SpecExample> extractExamples(String source) {
-        List<SpecExample> examples = new ArrayList<SpecExample>();
-        Matcher methodMatcher = METHOD_PATTERN.matcher(source);
-        int orderIndex = 0;
-        while (methodMatcher.find()) {
-            String methodName = methodMatcher.group(1);
-            String paramsGroup = methodMatcher.group(2).trim();
-            if (SpecExample.isExampleMethodName(methodName)) {
-                examples.add(SpecExample.of(methodName, orderIndex, lineNumberAt(source, methodMatcher.start())));
-                orderIndex++;
-            }
-        }
-        return examples;
-    }
 
-    private static int lineNumberAt(String source, int position) {
-        int safePosition = Math.max(0, Math.min(position, source.length()));
-        int lineNumber = 1;
-        for (int i = 0; i < safePosition; i++) {
-            char character = source.charAt(i);
-            if (character == '\n') {
-                lineNumber++;
-            } else if (character == '\r') {
-                lineNumber++;
-                if (i + 1 < safePosition && source.charAt(i + 1) == '\n') {
-                    i++;
-                }
-            }
-        }
-        return lineNumber;
-    }
 
-    private static Map<String, MethodParameterInfo> parseMethods(String source, Map<String, String> imports, String describedPackageName) {
-        Map<String, MethodParameterInfo> methods = new LinkedHashMap<String, MethodParameterInfo>();
-        Matcher methodMatcher = METHOD_PATTERN.matcher(source);
-        while (methodMatcher.find()) {
-            String methodName = methodMatcher.group(1);
-            String paramsGroup = methodMatcher.group(2).trim();
-            List<String> types = new ArrayList<String>();
-            List<String> names = new ArrayList<String>();
-            if (paramsGroup.length() > 0) {
-                List<String> params = splitArguments(paramsGroup);
-                for (int i = 0; i < params.size(); i++) {
-                    String param = params.get(i).trim();
-                    if (param.length() > 0) {
-                        int lastSpace = param.lastIndexOf(' ');
-                        if (lastSpace >= 0) {
-                            String typeName = param.substring(0, lastSpace).trim();
-                            String varName = param.substring(lastSpace + 1).trim();
-                            typeName = resolveTypeName(typeName, imports, describedPackageName);
-                            types.add(typeName);
-                            names.add(varName);
-                        }
-                    }
-                }
-            }
-            methods.put(methodName, new MethodParameterInfo(types, names, types.size()));
-        }
-        return methods;
-    }
 
-    private static String findEnclosingMethod(String source, int position, Map<String, MethodParameterInfo> methods) {
-        Matcher matcher = METHOD_PATTERN.matcher(source);
-        String lastMethod = null;
-        while (matcher.find() && matcher.start() < position) {
-            lastMethod = matcher.group(1);
-        }
-        return lastMethod;
-    }
 
-    private static final class ConstructionArguments {
-        final List<String> parameterTypes;
-        final List<String> parameterNames;
 
-        ConstructionArguments(List<String> parameterTypes, List<String> parameterNames) {
-            this.parameterTypes = parameterTypes;
-            this.parameterNames = parameterNames;
-        }
-    }
-
-    private static final class InferredArguments {
-        final List<String> types;
-        final List<Boolean> unknowns;
-
-        InferredArguments(List<String> types, List<Boolean> unknowns) {
-            this.types = types;
-            this.unknowns = unknowns;
-        }
-
-        int size() {
-            return types.size();
-        }
-    }
-
-    private static final class InferredType {
-        final String typeName;
-        final boolean unknown;
-
-        private InferredType(String typeName, boolean unknown) {
-            this.typeName = typeName;
-            this.unknown = unknown;
-        }
-
-        static InferredType known(String typeName) {
-            return new InferredType(typeName, false);
-        }
-
-        static InferredType unknownObject() {
-            return new InferredType("Object", true);
-        }
-    }
-
-    private static final class MethodParameterInfo {
-        final List<String> types;
-        final List<String> names;
-        final int formalParameterCount;
-
-        MethodParameterInfo(List<String> types, List<String> names, int formalParameterCount) {
-            this.types = types;
-            this.names = names;
-            this.formalParameterCount = formalParameterCount;
-        }
-    }
 
     private static JavaTypeKind describedKind(String source) {
         if (source.contains("shouldBeAFinalClass(")) {
@@ -1612,77 +841,9 @@ public final class SpecDiscovery {
         return Collections.emptyList();
     }
 
-    private static Map<String, String> importsBySimpleName(String source) {
-        Map<String, String> imports = new LinkedHashMap<String, String>();
-        Matcher matcher = IMPORT_PATTERN.matcher(source);
-        while (matcher.find()) {
-            String qualifiedName = matcher.group(1);
-            int lastDot = qualifiedName.lastIndexOf('.');
-            if (lastDot >= 0) {
-                imports.put(qualifiedName.substring(lastDot + 1), qualifiedName);
-            }
-        }
-        return imports;
-    }
 
     static String resolveTypeName(String typeName, Map<String, String> imports, String describedPackageName) {
-        return JavaTypeRef.resolve(typeName, imports, describedPackageName).canonicalName();
-    }
-
-    private static boolean isPrimitiveOrVoid(String typeName) {
-        return "boolean".equals(typeName)
-                || "byte".equals(typeName)
-                || "short".equals(typeName)
-                || "int".equals(typeName)
-                || "long".equals(typeName)
-                || "float".equals(typeName)
-                || "double".equals(typeName)
-                || "char".equals(typeName)
-                || "void".equals(typeName);
-    }
-
-    private static boolean isJavaLangType(String typeName) {
-        return "String".equals(typeName)
-                || "Object".equals(typeName)
-                || "Boolean".equals(typeName)
-                || "Byte".equals(typeName)
-                || "Short".equals(typeName)
-                || "Integer".equals(typeName)
-                || "Long".equals(typeName)
-                || "Float".equals(typeName)
-                || "Double".equals(typeName)
-                || "Character".equals(typeName)
-                || "Class".equals(typeName);
-    }
-
-    private static boolean isJavaIdentifier(String value) {
-        if (value == null || value.length() == 0) {
-            return false;
-        }
-        int index = 0;
-        int firstCodePoint = value.codePointAt(index);
-        if (!Character.isJavaIdentifierStart(firstCodePoint)) {
-            return false;
-        }
-        index += Character.charCount(firstCodePoint);
-        while (index < value.length()) {
-            int currentCodePoint = value.codePointAt(index);
-            if (!Character.isJavaIdentifierPart(currentCodePoint)) {
-                return false;
-            }
-            index += Character.charCount(currentCodePoint);
-        }
-        return true;
-    }
-
-    private static String decapitalize(String value) {
-        if (value.length() == 0) {
-            return value;
-        }
-        if (value.length() > 1 && Character.isUpperCase(value.charAt(0)) && Character.isUpperCase(value.charAt(1))) {
-            return value;
-        }
-        return Character.toLowerCase(value.charAt(0)) + value.substring(1);
+        return JavaExpressionTypeInference.resolveTypeName(typeName, imports, describedPackageName);
     }
 
     private static String sourceOf(File specFile) {

@@ -34,8 +34,11 @@ All notable changes to this project will be documented in this file.
   language SPI or changing Java generation behavior. The contract now exposes portable subject
   shape, relationships, structured types, construction/callable signatures, invocation kind, and
   unknown-type evidence while retaining `DescribedType` as the Java compatibility bridge.
-- Extracted constructor identity/conflict handling from the public discovery facade and reused the
-  balanced syntax splitter in method and record-component source parsing.
+- Extracted constructor observation/identity handling, construction-argument inference, Java
+  expression/type inference, and example discovery from the public `SpecDiscovery` facade; the
+  facade is now roughly half its former size while preserving its API and generated output.
+- Reused the balanced syntax splitter for generic method-parameter parsing as well as method and
+  record-component source parsing, including generic types whose arguments contain commas.
 - Added JaCoCo HTML/XML/CSV coverage reporting and an opt-in OWASP Dependency-Check security profile
   with official NVD feeds and a CVSS 7.0 failure threshold.
 

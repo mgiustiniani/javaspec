@@ -436,9 +436,11 @@ simple names.
   available.
 
 The pre-1.0 internal language seam is implemented under `io.github.jvmspec.internal.language`.
-`JavaSpecLanguageFrontend` delegates canonical Java spec discovery. `BehaviorContract` retains the
-current immutable Java descriptor as a compatibility bridge while separately exposing portable
-subject shape, relationships, structured type references, construction signatures, callable
+`JavaSpecLanguageFrontend` delegates canonical Java spec discovery. Behind the stable
+`SpecDiscovery` facade, constructor observation and identity, construction-argument inference, Java
+expression/type inference, and example discovery are isolated in package-private components.
+`BehaviorContract` retains the current immutable Java descriptor as a compatibility bridge while
+separately exposing portable subject shape, relationships, structured type references, construction signatures, callable
 signatures, invocation kind, and unknown-type evidence. `JavaProductionLanguageBackend` plans
 constructor-then-method synchronization entirely in memory.
 Only Java is registered; selection is not exposed as public API, SPI, CLI, or configuration before
