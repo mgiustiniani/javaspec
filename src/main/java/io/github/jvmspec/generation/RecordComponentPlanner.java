@@ -1,5 +1,6 @@
 package io.github.jvmspec.generation;
 
+import io.github.jvmspec.internal.type.JavaIdentifiers;
 import io.github.jvmspec.internal.type.JavaSyntaxSplitter;
 import io.github.jvmspec.internal.type.JavaTypeRef;
 import io.github.jvmspec.model.ConstructorDescriptor;
@@ -278,7 +279,7 @@ final class RecordComponentPlanner {
     }
 
     private static boolean isLegalJavaIdentifier(String value) {
-        return isJavaIdentifier(value) && !RESERVED_IDENTIFIERS.contains(value);
+        return JavaIdentifiers.isIdentifier(value) && !RESERVED_IDENTIFIERS.contains(value);
     }
 
     private static boolean isTypeDerivedName(String type, String name) {
@@ -364,7 +365,7 @@ final class RecordComponentPlanner {
                 name = name.substring(0, name.length() - 2).trim();
                 type = type + "[]";
             }
-            if (type.length() > 0 && isJavaIdentifier(name)) {
+            if (type.length() > 0 && JavaIdentifiers.isIdentifier(name)) {
                 result.add(new ParsedComponent(original, type, name));
             }
         }
@@ -446,26 +447,6 @@ final class RecordComponentPlanner {
             return typeName.substring("java.lang.".length());
         }
         return typeName;
-    }
-
-    private static boolean isJavaIdentifier(String value) {
-        if (value == null || value.length() == 0) {
-            return false;
-        }
-        int index = 0;
-        int firstCodePoint = value.codePointAt(index);
-        if (!Character.isJavaIdentifierStart(firstCodePoint)) {
-            return false;
-        }
-        index += Character.charCount(firstCodePoint);
-        while (index < value.length()) {
-            int currentCodePoint = value.codePointAt(index);
-            if (!Character.isJavaIdentifierPart(currentCodePoint)) {
-                return false;
-            }
-            index += Character.charCount(currentCodePoint);
-        }
-        return true;
     }
 
     static final class Component {

@@ -41,6 +41,8 @@ All notable changes to this project will be documented in this file.
 - Split Java inference into focused literal/factory inference, expression-argument splitting, source
   context parsing, and orchestration components. Expression commas deliberately ignore relational
   angle brackets while declaration parameters use the balanced generic-aware syntax splitter.
+- Extracted method eligibility and deterministic method/factory rendering from `ClassMethodUpdater`,
+  and consolidated internal Unicode-aware Java identifier checks for discovery and generation.
 - Reused the balanced syntax splitter for generic method-parameter parsing as well as method and
   record-component source parsing, including generic types whose arguments contain commas.
 - Added JaCoCo HTML/XML/CSV coverage reporting and an opt-in OWASP Dependency-Check security profile

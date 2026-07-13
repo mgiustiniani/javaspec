@@ -1,5 +1,6 @@
 package io.github.jvmspec.discovery;
 
+import io.github.jvmspec.internal.type.JavaIdentifiers;
 import io.github.jvmspec.internal.type.JavaSyntaxSplitter;
 import io.github.jvmspec.internal.type.JavaTypeRef;
 
@@ -116,17 +117,7 @@ final class JavaSourceContext {
     }
 
     static boolean isJavaIdentifier(String value) {
-        if (value == null || value.length() == 0) return false;
-        int index = 0;
-        int firstCodePoint = value.codePointAt(index);
-        if (!Character.isJavaIdentifierStart(firstCodePoint)) return false;
-        index += Character.charCount(firstCodePoint);
-        while (index < value.length()) {
-            int codePoint = value.codePointAt(index);
-            if (!Character.isJavaIdentifierPart(codePoint)) return false;
-            index += Character.charCount(codePoint);
-        }
-        return true;
+        return JavaIdentifiers.isIdentifier(value);
     }
 
     static String decapitalize(String value) {

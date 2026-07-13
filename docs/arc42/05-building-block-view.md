@@ -442,6 +442,9 @@ expression/type inference, callable discovery, subject declaration discovery, an
 are isolated in package-private components. Java inference further separates literal/factory
 classification, expression-argument splitting, generic-aware source method/import context parsing,
 and orchestration. The facade owns only deterministic traversal, filtering, and orchestration.
+Method synchronization separately selects Java type-kind eligibility, inventories existing direct
+members, and renders deterministic class, interface, annotation, and factory skeletons before the
+source-preserving insertion step.
 `BehaviorContract` retains the current immutable Java descriptor as a compatibility bridge while
 separately exposing portable subject shape, relationships, structured type references, construction signatures, callable
 signatures, invocation kind, and unknown-type evidence. `JavaProductionLanguageBackend` plans

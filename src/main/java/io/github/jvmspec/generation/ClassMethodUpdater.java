@@ -1,12 +1,12 @@
 package io.github.jvmspec.generation;
 
-import io.github.jvmspec.model.ConstructorDescriptor;
 import io.github.jvmspec.model.DescribedType;
 import io.github.jvmspec.model.JavaTypeKind;
 import io.github.jvmspec.model.MethodDescriptor;
 
 import io.github.jvmspec.generation.parser.JavaSourceParserLoader;
 import io.github.jvmspec.generation.parser.ParsedSource;
+import io.github.jvmspec.internal.type.JavaIdentifiers;
 import io.github.jvmspec.internal.type.JavaSyntaxSplitter;
 
 import java.io.File;
@@ -75,7 +75,7 @@ public final class ClassMethodUpdater {
         }
 
         String indent = memberIndentationBefore(existingSource, closingBrace);
-        String insertion = renderMissingMethods(missingMethods, describedType, indent);
+        String insertion = JavaMethodRenderer.renderMissingMethods(missingMethods, describedType, indent);
         if (insertion.length() == 0) {
             return existingSource;
         }
@@ -115,7 +115,7 @@ public final class ClassMethodUpdater {
      * scope and deliberately left untouched.</p>
      */
     private static String updateSealedInterfaceSource(String existingSource, DescribedType describedType) {
-        List<MethodDescriptor> methods = interfaceMethods(describedType);
+        List<MethodDescriptor> methods = JavaMethodEligibility.interfaceMethods(describedType);
         if (methods.isEmpty()) {
             return existingSource;
         }
@@ -139,7 +139,7 @@ public final class ClassMethodUpdater {
                 rootScopeText(masked, rootOpenBrace, rootClosingBrace, nestedRegions), methods);
         if (!rootMissing.isEmpty()) {
             String indent = memberIndentationBefore(existingSource, rootClosingBrace);
-            String insertion = renderInterfaceDeclarations(rootMissing, describedType, indent);
+            String insertion = JavaMethodRenderer.renderInterfaceDeclarations(rootMissing, describedType, indent);
             result = insertBeforeClosingBraceKeepingIndent(result, rootClosingBrace, insertion);
         }
         for (int i = nestedRegions.size() - 1; i >= 0; i--) {
@@ -154,8 +154,8 @@ public final class ClassMethodUpdater {
             }
             String indent = memberIndentationBefore(existingSource, region.closingBrace);
             String insertion = "interface".equals(region.keyword)
-                    ? renderInterfaceDeclarations(nestedMissing, describedType, indent)
-                    : renderMethods(nestedMissing, describedType, indent);
+                    ? JavaMethodRenderer.renderInterfaceDeclarations(nestedMissing, describedType, indent)
+                    : JavaMethodRenderer.renderMethods(nestedMissing, describedType, indent);
             result = insertBeforeClosingBraceKeepingIndent(result, region.closingBrace, insertion);
         }
         return result;
@@ -306,22 +306,6 @@ public final class ClassMethodUpdater {
         return builder.toString();
     }
 
-    private static boolean supportsMethodBodies(JavaTypeKind kind) {
-        return JavaTypeKind.CLASS.equals(kind)
-                || JavaTypeKind.FINAL_CLASS.equals(kind)
-                || JavaTypeKind.SEALED_CLASS.equals(kind)
-                || JavaTypeKind.ENUM.equals(kind)
-                || JavaTypeKind.RECORD.equals(kind);
-    }
-
-    private static boolean supportsInterfaceDeclarations(JavaTypeKind kind) {
-        return JavaTypeKind.INTERFACE.equals(kind);
-    }
-
-    private static boolean supportsAnnotationElements(JavaTypeKind kind) {
-        return JavaTypeKind.ANNOTATION.equals(kind);
-    }
-
     private static List<MethodDescriptor> missingMethods(String source, DescribedType describedType) {
         String recordSimpleName = JavaTypeKind.RECORD.equals(describedType.kind())
                 ? describedType.simpleName()
@@ -331,7 +315,7 @@ public final class ClassMethodUpdater {
                 : RecordComponentPlanner.updateRecordHeader(source, describedType);
         return missingMethodsInScope(
                 sourceWithPlannedComponents,
-                eligibleMethods(describedType),
+                JavaMethodEligibility.eligibleMethods(describedType),
                 recordSimpleName,
                 describedType.simpleName()
         );
@@ -371,184 +355,6 @@ public final class ClassMethodUpdater {
         return missing;
     }
 
-    private static List<MethodDescriptor> eligibleMethods(DescribedType describedType) {
-        JavaTypeKind kind = describedType.kind();
-        if (supportsMethodBodies(kind)) {
-            if (JavaTypeKind.ENUM.equals(kind)) {
-                return nonImplicitEnumMethods(describedType.methods());
-            }
-            return describedType.methods();
-        }
-        if (supportsInterfaceDeclarations(kind)) {
-            return interfaceMethods(describedType);
-        }
-        if (supportsAnnotationElements(kind)) {
-            return annotationElementMethods(describedType);
-        }
-        return new ArrayList<MethodDescriptor>();
-    }
-
-    /**
-     * Filters out methods that are implicitly defined on all enum types (values(), valueOf(String), name(), ordinal())
-     * to prevent javaspec from inserting redundant stubs.
-     */
-    private static List<MethodDescriptor> nonImplicitEnumMethods(List<MethodDescriptor> methods) {
-        List<MethodDescriptor> result = new ArrayList<MethodDescriptor>();
-        for (int i = 0; i < methods.size(); i++) {
-            MethodDescriptor m = methods.get(i);
-            if (isImplicitEnumMethod(m)) {
-                continue;
-            }
-            result.add(m);
-        }
-        return result;
-    }
-
-    private static boolean isImplicitEnumMethod(MethodDescriptor m) {
-        // valueOf(String) is implicitly defined on every enum
-        if ("valueOf".equals(m.methodName()) && m.parameterTypes().size() == 1
-                && "String".equals(m.parameterTypes().get(0))) {
-            return true;
-        }
-        // values() is implicitly defined on every enum
-        if ("values".equals(m.methodName()) && m.parameterTypes().isEmpty()) {
-            return true;
-        }
-        // name() and ordinal() are inherited from Enum
-        if (("name".equals(m.methodName()) || "ordinal".equals(m.methodName()))
-                && m.parameterTypes().isEmpty()) {
-            return true;
-        }
-        return false;
-    }
-
-    private static List<MethodDescriptor> interfaceMethods(DescribedType describedType) {
-        List<MethodDescriptor> result = new ArrayList<MethodDescriptor>();
-        List<MethodDescriptor> methods = describedType.methods();
-        for (int i = 0; i < methods.size(); i++) {
-            MethodDescriptor method = methods.get(i);
-            if (!method.isStatic()) {
-                result.add(method);
-            }
-        }
-        return result;
-    }
-
-    private static List<MethodDescriptor> annotationElementMethods(DescribedType describedType) {
-        List<MethodDescriptor> result = new ArrayList<MethodDescriptor>();
-        List<MethodDescriptor> methods = describedType.methods();
-        for (int i = 0; i < methods.size(); i++) {
-            MethodDescriptor method = methods.get(i);
-            if (isCompatibleAnnotationElement(method)) {
-                result.add(method);
-            }
-        }
-        return result;
-    }
-
-    private static boolean isCompatibleAnnotationElement(MethodDescriptor method) {
-        return !method.isStatic()
-                && !method.hasParameters()
-                && isCompatibleAnnotationElementReturnType(method.returnType());
-    }
-
-    private static boolean isCompatibleAnnotationElementReturnType(String returnType) {
-        String normalized = returnType.trim().replace(" ", "");
-        int arrayDimensions = 0;
-        while (normalized.endsWith("[]")) {
-            arrayDimensions++;
-            normalized = normalized.substring(0, normalized.length() - 2);
-        }
-        if (arrayDimensions > 1
-                || "void".equals(normalized)
-                || isKnownInvalidAnnotationElementType(normalized)) {
-            return false;
-        }
-        if (isPrimitiveType(normalized)
-                || "String".equals(normalized)
-                || "java.lang.String".equals(normalized)
-                || "Class".equals(normalized)
-                || "java.lang.Class".equals(normalized)
-                || isClassElementType(normalized)) {
-            return true;
-        }
-        if (normalized.indexOf('<') >= 0 || normalized.indexOf('?') >= 0) {
-            return false;
-        }
-        return isQualifiedTypeName(normalized);
-    }
-
-    private static boolean isPrimitiveType(String typeName) {
-        return "boolean".equals(typeName)
-                || "byte".equals(typeName)
-                || "short".equals(typeName)
-                || "int".equals(typeName)
-                || "long".equals(typeName)
-                || "float".equals(typeName)
-                || "double".equals(typeName)
-                || "char".equals(typeName);
-    }
-
-    private static boolean isKnownInvalidAnnotationElementType(String typeName) {
-        return "Object".equals(typeName)
-                || "java.lang.Object".equals(typeName)
-                || "Void".equals(typeName)
-                || "java.lang.Void".equals(typeName)
-                || "Boolean".equals(typeName)
-                || "java.lang.Boolean".equals(typeName)
-                || "Byte".equals(typeName)
-                || "java.lang.Byte".equals(typeName)
-                || "Short".equals(typeName)
-                || "java.lang.Short".equals(typeName)
-                || "Integer".equals(typeName)
-                || "java.lang.Integer".equals(typeName)
-                || "Long".equals(typeName)
-                || "java.lang.Long".equals(typeName)
-                || "Float".equals(typeName)
-                || "java.lang.Float".equals(typeName)
-                || "Double".equals(typeName)
-                || "java.lang.Double".equals(typeName)
-                || "Character".equals(typeName)
-                || "java.lang.Character".equals(typeName);
-    }
-
-    private static boolean isClassElementType(String typeName) {
-        return (typeName.startsWith("Class<") || typeName.startsWith("java.lang.Class<"))
-                && typeName.endsWith(">");
-    }
-
-    private static boolean isQualifiedTypeName(String typeName) {
-        if (typeName.length() == 0) {
-            return false;
-        }
-        String[] parts = typeName.split("\\.");
-        for (int i = 0; i < parts.length; i++) {
-            if (!isJavaIdentifier(parts[i])) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private static boolean isJavaIdentifier(String value) {
-        if (value.length() == 0) {
-            return false;
-        }
-        int index = 0;
-        int firstCodePoint = value.codePointAt(index);
-        if (!Character.isJavaIdentifierStart(firstCodePoint)) {
-            return false;
-        }
-        index += Character.charCount(firstCodePoint);
-        while (index < value.length()) {
-            int currentCodePoint = value.codePointAt(index);
-            if (!Character.isJavaIdentifierPart(currentCodePoint)) {
-                return false;
-            }
-            index += Character.charCount(currentCodePoint);
-        }
-        return true;
-    }
 
     private static String directMemberSource(String source, String primaryTypeSimpleName) {
         String masked = maskNonCode(source);
@@ -630,7 +436,7 @@ public final class ClassMethodUpdater {
             if (componentName.endsWith("[]")) {
                 componentName = componentName.substring(0, componentName.length() - 2).trim();
             }
-            if (isJavaIdentifier(componentName)) {
+            if (JavaIdentifiers.isIdentifier(componentName)) {
                 signatures.add(signatureKey(componentName, new ArrayList<String>()));
             }
         }
@@ -978,194 +784,6 @@ public final class ClassMethodUpdater {
         return previous >= 0 && builder.charAt(previous) == '\n';
     }
 
-    private static String renderMissingMethods(List<MethodDescriptor> methods, DescribedType owner, String indent) {
-        JavaTypeKind kind = owner.kind();
-        if (supportsMethodBodies(kind)) {
-            return renderMethods(methods, owner, indent);
-        }
-        if (supportsInterfaceDeclarations(kind)) {
-            return renderInterfaceDeclarations(methods, owner, indent);
-        }
-        if (supportsAnnotationElements(kind)) {
-            return renderAnnotationElements(methods, owner, indent);
-        }
-        return "";
-    }
-
-    private static String renderMethods(List<MethodDescriptor> methods, DescribedType owner, String indent) {
-        StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < methods.size(); i++) {
-            MethodDescriptor method = methods.get(i);
-            appendMethod(builder, owner, method, indent);
-            if (i < methods.size() - 1) {
-                builder.append("\n");
-            }
-        }
-        return builder.toString();
-    }
-
-    private static String renderInterfaceDeclarations(List<MethodDescriptor> methods, DescribedType owner, String indent) {
-        StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < methods.size(); i++) {
-            MethodDescriptor method = methods.get(i);
-            appendInterfaceDeclaration(builder, owner, method, indent);
-            if (i < methods.size() - 1) {
-                builder.append("\n");
-            }
-        }
-        return builder.toString();
-    }
-
-    private static String renderAnnotationElements(List<MethodDescriptor> methods, DescribedType owner, String indent) {
-        StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < methods.size(); i++) {
-            MethodDescriptor method = methods.get(i);
-            builder.append(indent).append(sourceTypeName(owner, method.returnType())).append(" ")
-                    .append(method.methodName()).append("();\n");
-            if (i < methods.size() - 1) {
-                builder.append("\n");
-            }
-        }
-        return builder.toString();
-    }
-
-    private static void appendInterfaceDeclaration(StringBuilder builder, DescribedType owner, MethodDescriptor method, String indent) {
-        builder.append(indent).append(sourceTypeName(owner, method.returnType())).append(" ")
-                .append(method.methodName()).append("(");
-        appendParameters(builder, method.parameterTypes(), method.parameterNames());
-        builder.append(");\n");
-    }
-
-    private static void appendMethod(StringBuilder builder, DescribedType owner, MethodDescriptor method, String indent) {
-        builder.append(indent).append("public ");
-        if (method.isStatic()) {
-            builder.append("static ");
-        }
-        builder.append(sourceTypeName(owner, method.returnType())).append(" ")
-                .append(method.methodName()).append("(");
-        appendParameters(builder, method.parameterTypes(), method.parameterNames());
-        builder.append(") {\n");
-        builder.append(indent).append("    ").append(StubMarkerScanner.STUB_MARKER).append("\n");
-        if (!method.isVoid()) {
-            builder.append(indent).append("    ").append(defaultReturnStatement(owner, method)).append("\n");
-        }
-        builder.append(indent).append("}\n");
-    }
-
-    private static String defaultReturnStatement(DescribedType owner, MethodDescriptor method) {
-        if (method.isStatic() && returnsOwnerType(owner, method) && canInstantiateOwner(owner)) {
-            return "return " + factoryReturnExpression(owner, method) + ";";
-        }
-        return method.defaultReturnStatement();
-    }
-
-    private static String factoryReturnExpression(DescribedType owner, MethodDescriptor method) {
-        ConstructorDescriptor matchingConstructor = matchingConstructor(owner, method.parameterTypes());
-        if (matchingConstructor != null) {
-            return "new " + owner.simpleName() + "(" + joined(method.parameterNames()) + ")";
-        }
-        if (!owner.hasConstructors() || hasNoArgConstructor(owner)) {
-            return "new " + owner.simpleName() + "()";
-        }
-        ConstructorDescriptor fallbackConstructor = owner.constructors().get(0);
-        return "new " + owner.simpleName() + "(" + defaultArguments(fallbackConstructor.parameterTypes()) + ")";
-    }
-
-    private static ConstructorDescriptor matchingConstructor(DescribedType owner, List<String> parameterTypes) {
-        List<ConstructorDescriptor> constructors = owner.constructors();
-        for (int i = 0; i < constructors.size(); i++) {
-            ConstructorDescriptor constructor = constructors.get(i);
-            if (constructor.parameterTypes().equals(parameterTypes)) {
-                return constructor;
-            }
-        }
-        return null;
-    }
-
-    private static boolean hasNoArgConstructor(DescribedType owner) {
-        List<ConstructorDescriptor> constructors = owner.constructors();
-        for (int i = 0; i < constructors.size(); i++) {
-            if (!constructors.get(i).hasParameters()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static String defaultArguments(List<String> parameterTypes) {
-        StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < parameterTypes.size(); i++) {
-            if (i > 0) {
-                builder.append(", ");
-            }
-            builder.append(defaultExpressionForType(parameterTypes.get(i)));
-        }
-        return builder.toString();
-    }
-
-    private static String defaultExpressionForType(String typeName) {
-        String normalized = typeName.trim();
-        if ("boolean".equals(normalized)) {
-            return "false";
-        }
-        if ("long".equals(normalized)) {
-            return "0L";
-        }
-        if ("float".equals(normalized)) {
-            return "0.0f";
-        }
-        if ("double".equals(normalized)) {
-            return "0.0d";
-        }
-        if ("char".equals(normalized)) {
-            return "'\\0'";
-        }
-        if ("byte".equals(normalized) || "short".equals(normalized) || "int".equals(normalized)) {
-            return "0";
-        }
-        return "null";
-    }
-
-    private static String joined(List<String> values) {
-        StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < values.size(); i++) {
-            if (i > 0) {
-                builder.append(", ");
-            }
-            builder.append(values.get(i));
-        }
-        return builder.toString();
-    }
-
-    private static boolean returnsOwnerType(DescribedType owner, MethodDescriptor method) {
-        String returnType = method.returnType();
-        return owner.qualifiedName().equals(returnType) || owner.simpleName().equals(returnType);
-    }
-
-    private static boolean canInstantiateOwner(DescribedType owner) {
-        JavaTypeKind kind = owner.kind();
-        return JavaTypeKind.CLASS.equals(kind)
-                || JavaTypeKind.FINAL_CLASS.equals(kind)
-                || JavaTypeKind.SEALED_CLASS.equals(kind)
-                || JavaTypeKind.RECORD.equals(kind);
-    }
-
-    private static void appendParameters(StringBuilder builder, List<String> types, List<String> names) {
-        for (int i = 0; i < types.size(); i++) {
-            if (i > 0) {
-                builder.append(", ");
-            }
-            builder.append(types.get(i)).append(" ").append(names.get(i));
-        }
-    }
-
-    private static String sourceTypeName(DescribedType owner, String typeName) {
-        String packageName = owner.packageName();
-        if (packageName.length() > 0 && typeName.startsWith(packageName + ".")) {
-            return typeName.substring(packageName.length() + 1);
-        }
-        return typeName;
-    }
 
     /**
      * Region of a nested type declaration found inside the sealed root body.
