@@ -366,6 +366,8 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
   - reduce `ClassMethodUpdater` to a stable facade by extracting Java type-kind eligibility,
     existing-member inventory, method/factory rendering, offset-preserving source editing,
     sealed-interface synchronization, and shared identifier validation;
+  - reduce `GenerationOrchestrator` by extracting preflight validation, centralized CLI write
+    authorization, dry-run detection, related-spec generation, and prophecy generation;
   - project subject shape, relationships, structured types, construction/callable signatures,
     invocation kind, and unknown-type evidence through the internal `BehaviorContract` while
     retaining `DescribedType` as the Java compatibility bridge;

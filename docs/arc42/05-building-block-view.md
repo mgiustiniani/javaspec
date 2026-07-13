@@ -446,6 +446,11 @@ Method synchronization separately selects Java type-kind eligibility, inventorie
 members, renders deterministic class, interface, annotation, and factory skeletons, performs
 offset-preserving source edits, and handles sealed roots/nested permitted types. `ClassMethodUpdater`
 remains the stable source/file facade over those package-private components.
+
+The generation workflow keeps the public orchestration entry point while package-private components
+own fail-closed preflight checks, dry-run detection, related-spec generation, and prophecy wrapper
+updates. `GenerationAuthorization` remains the single CLI-side authority for source writes;
+language backends continue to return in-memory synchronization plans only.
 `BehaviorContract` retains the current immutable Java descriptor as a compatibility bridge while
 separately exposing portable subject shape, relationships, structured type references, construction signatures, callable
 signatures, invocation kind, and unknown-type evidence. `JavaProductionLanguageBackend` plans
