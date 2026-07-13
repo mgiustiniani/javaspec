@@ -85,6 +85,75 @@ public class JavaLanguageAdaptersTest {
         BehaviorContract contract = BehaviorContract.from(type);
 
         assertSame(type, contract.describedType());
+        assertEquals("com.example.Subject", contract.subjectQualifiedName());
+        assertEquals(BehaviorTypeShape.REFERENCE_CLASS, contract.subjectShape());
+        assertTrue(contract.isPortable());
         assertFalse(LanguageRuntime.javaProductionBackend().language().id().isEmpty());
+    }
+
+    @Test
+    public void behaviorContractCarriesStructuredPortableConstructionAndCallables() {
+        DescribedType type = DescribedType.of(
+                "com.example.Subject",
+                JavaTypeKind.RECORD,
+                Arrays.asList("com.example.Base"),
+                Arrays.asList("java.lang.Comparable"),
+                Collections.<String>emptyList(),
+                Arrays.asList(ConstructorDescriptor.of(
+                        Arrays.asList("java.util.List<java.lang.String>[]"),
+                        Arrays.asList("values"), "")),
+                Arrays.asList(MethodDescriptor.staticMethod(
+                        "create", "com.example.Subject",
+                        Arrays.asList("java.util.List<? extends java.lang.Number>"),
+                        Arrays.asList("numbers")))
+        );
+
+        BehaviorContract contract = BehaviorContract.from(type);
+
+        assertEquals(BehaviorTypeShape.PRODUCT_TYPE, contract.subjectShape());
+        assertEquals("com.example.Base", contract.extendedTypes().get(0).jvmName());
+        BehaviorTypeRef constructorType = contract.constructions().get(0).parameters().get(0).type();
+        assertEquals(BehaviorTypeRef.Kind.ARRAY, constructorType.kind());
+        assertEquals("java.util.List", constructorType.component().jvmName());
+        assertEquals("java.lang.String",
+                constructorType.component().arguments().get(0).jvmName());
+        CallableContract callable = contract.callables().get(0);
+        assertEquals(CallableContract.InvocationKind.TYPE, callable.invocationKind());
+        assertEquals(BehaviorTypeRef.Variance.EXTENDS,
+                callable.parameters().get(0).type().arguments().get(0).variance());
+        assertTrue(contract.isPortable());
+    }
+
+    @Test
+    public void portableEquivalenceIgnoresJavaSpellingAndConstructorBodies() {
+        DescribedType first = DescribedType.of(
+                "com.example.Subject",
+                JavaTypeKind.CLASS,
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Arrays.asList(ConstructorDescriptor.of(
+                        Arrays.asList("String"), Arrays.asList("name"), "first body"))
+        );
+        DescribedType second = DescribedType.of(
+                "com.example.Subject",
+                JavaTypeKind.CLASS,
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Arrays.asList(ConstructorDescriptor.of(
+                        Arrays.asList("java.lang.String"), Arrays.asList("name"), "second body"))
+        );
+
+        assertTrue(BehaviorContract.from(first).portableEquivalent(BehaviorContract.from(second)));
+    }
+
+    @Test
+    public void behaviorTypeRetainsOpaqueEvidenceWhenJavaSyntaxCannotBeResolved() {
+        BehaviorTypeRef type = BehaviorTypeRef.fromJava("not a valid type");
+
+        assertEquals(BehaviorTypeRef.Kind.UNKNOWN, type.kind());
+        assertEquals("not a valid type", type.sourceEvidence());
+        assertFalse(type.isPortable());
     }
 }

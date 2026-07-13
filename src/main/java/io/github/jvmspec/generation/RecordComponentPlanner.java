@@ -1,5 +1,6 @@
 package io.github.jvmspec.generation;
 
+import io.github.jvmspec.internal.type.JavaSyntaxSplitter;
 import io.github.jvmspec.internal.type.JavaTypeRef;
 import io.github.jvmspec.model.ConstructorDescriptor;
 import io.github.jvmspec.model.DescribedType;
@@ -403,35 +404,7 @@ final class RecordComponentPlanner {
     }
 
     private static List<String> splitArguments(String text) {
-        List<String> result = new ArrayList<String>();
-        int start = 0;
-        int angleDepth = 0;
-        int parenDepth = 0;
-        int bracketDepth = 0;
-        for (int i = 0; i < text.length(); i++) {
-            char c = text.charAt(i);
-            if (c == '<') {
-                angleDepth++;
-            } else if (c == '>' && angleDepth > 0) {
-                angleDepth--;
-            } else if (c == '(') {
-                parenDepth++;
-            } else if (c == ')' && parenDepth > 0) {
-                parenDepth--;
-            } else if (c == '[') {
-                bracketDepth++;
-            } else if (c == ']' && bracketDepth > 0) {
-                bracketDepth--;
-            } else if (c == ',' && angleDepth == 0 && parenDepth == 0 && bracketDepth == 0) {
-                result.add(text.substring(start, i));
-                start = i + 1;
-            }
-        }
-        String tail = text.substring(start);
-        if (tail.trim().length() > 0 || text.trim().length() > 0) {
-            result.add(tail);
-        }
-        return result;
+        return JavaSyntaxSplitter.splitTopLevel(text, ',');
     }
 
     private static int findMatchingParenthesis(String source, int openParen) {

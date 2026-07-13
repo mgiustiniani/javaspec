@@ -45,6 +45,26 @@ public final class JavaTypeRef {
         return new Parser(source, Collections.<String, String>emptyMap(), "").parse();
     }
 
+    public Kind kind() {
+        return kind;
+    }
+
+    public String declaredName() {
+        return name;
+    }
+
+    public List<JavaTypeRef> arguments() {
+        return arguments;
+    }
+
+    public JavaTypeRef component() {
+        return component;
+    }
+
+    public String wildcardBoundKind() {
+        return wildcardBoundKind;
+    }
+
     public boolean structurallyEquivalent(JavaTypeRef other) {
         if (other == null || !kind.equals(other.kind)) {
             return false;

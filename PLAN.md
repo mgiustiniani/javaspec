@@ -359,6 +359,9 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
   - preserve package-private and generic constructors and distinct qualified overloads;
   - canonicalize source names before JVM constructor-signature comparison;
   - route Java discovery through `JavaSpecLanguageFrontend`;
+  - project subject shape, relationships, structured types, construction/callable signatures,
+    invocation kind, and unknown-type evidence through the internal `BehaviorContract` while
+    retaining `DescribedType` as the Java compatibility bridge;
   - route in-memory production synchronization through `JavaProductionLanguageBackend` and
     `BehaviorContract`;
   - keep the language seam internal, Java-only, dependency-free, and absent from CLI/config/SPI;

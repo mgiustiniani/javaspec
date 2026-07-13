@@ -23,9 +23,11 @@ SpecLanguageFrontend -> BehaviorContract -> ProductionLanguageBackend
 ```
 
 Only `JavaSpecLanguageFrontend` and `JavaProductionLanguageBackend` are registered. The existing
-public `DescribedType` model remains unchanged and is temporarily wrapped by the internal
-`BehaviorContract`; portable type/value semantics can evolve internally without changing the frozen
-public API.
+public `DescribedType` model remains unchanged and is retained as a Java compatibility bridge by the
+internal `BehaviorContract`. The contract separately projects portable subject shape, relationships,
+structured types, construction signatures, callable signatures, invocation kind, and unknown-type
+evidence without changing the frozen public API. Language-specific values/bodies remain deferred
+until a real post-1.0 adapter proves the required representation.
 
 Production synchronization is planned entirely in memory by the selected backend and still passes
 through the single CLI authorization and atomic-write boundary. Language selection is not exposed

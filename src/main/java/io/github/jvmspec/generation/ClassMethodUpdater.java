@@ -7,6 +7,7 @@ import io.github.jvmspec.model.MethodDescriptor;
 
 import io.github.jvmspec.generation.parser.JavaSourceParserLoader;
 import io.github.jvmspec.generation.parser.ParsedSource;
+import io.github.jvmspec.internal.type.JavaSyntaxSplitter;
 
 import java.io.File;
 import java.io.IOException;
@@ -740,53 +741,7 @@ public final class ClassMethodUpdater {
     }
 
     private static List<String> splitArguments(String arguments) {
-        List<String> result = new ArrayList<String>();
-        StringBuilder current = new StringBuilder();
-        int nesting = 0;
-        boolean inString = false;
-        boolean inChar = false;
-        boolean escaped = false;
-        for (int i = 0; i < arguments.length(); i++) {
-            char c = arguments.charAt(i);
-            if (escaped) {
-                current.append(c);
-                escaped = false;
-                continue;
-            }
-            if (c == '\\' && (inString || inChar)) {
-                current.append(c);
-                escaped = true;
-                continue;
-            }
-            if (c == '"' && !inChar) {
-                inString = !inString;
-                current.append(c);
-                continue;
-            }
-            if (c == '\'' && !inString) {
-                inChar = !inChar;
-                current.append(c);
-                continue;
-            }
-            if (!inString && !inChar) {
-                if (c == '(' || c == '[' || c == '<') {
-                    nesting++;
-                } else if (c == ')' || c == ']' || c == '>') {
-                    if (nesting > 0) {
-                        nesting--;
-                    }
-                } else if (c == ',' && nesting == 0) {
-                    result.add(current.toString().trim());
-                    current.setLength(0);
-                    continue;
-                }
-            }
-            current.append(c);
-        }
-        if (current.length() > 0 || arguments.length() > 0) {
-            result.add(current.toString().trim());
-        }
-        return result;
+        return JavaSyntaxSplitter.splitTopLevel(arguments, ',');
     }
 
     private static String signatureKey(String methodName, List<String> parameterTypes) {

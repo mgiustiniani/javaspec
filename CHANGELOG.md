@@ -31,7 +31,11 @@ All notable changes to this project will be documented in this file.
   the same simple name in different packages.
 - Added an internal Java-only `SpecLanguageFrontend -> BehaviorContract ->
   ProductionLanguageBackend` seam to prepare post-1.0 language adapters without adding a public
-  language SPI or changing Java generation behavior.
+  language SPI or changing Java generation behavior. The contract now exposes portable subject
+  shape, relationships, structured types, construction/callable signatures, invocation kind, and
+  unknown-type evidence while retaining `DescribedType` as the Java compatibility bridge.
+- Extracted constructor identity/conflict handling from the public discovery facade and reused the
+  balanced syntax splitter in method and record-component source parsing.
 - Added JaCoCo HTML/XML/CSV coverage reporting and an opt-in OWASP Dependency-Check security profile
   with official NVD feeds and a CVSS 7.0 failure threshold.
 
