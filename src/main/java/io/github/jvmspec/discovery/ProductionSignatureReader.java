@@ -99,7 +99,8 @@ public final class ProductionSignatureReader {
             return JavaTypeKind.ENUM;
         }
         if (Tree.Kind.INTERFACE.name().equals(kindName)) {
-            return hasModifier(classTree, "SEALED")
+            return JavaTypeKind.SEALED_INTERFACE.equals(fallback)
+                    || hasModifier(classTree, "SEALED")
                     ? JavaTypeKind.SEALED_INTERFACE
                     : JavaTypeKind.INTERFACE;
         }
