@@ -12,7 +12,7 @@ Java adapter parity.
 
 Verification summary:
 
-- `mvn -q clean verify`: PASS — 865 tests, 0 failures, 0 errors, 0 skipped.
+- `mvn -q clean verify`: PASS — 866 tests, 0 failures, 0 errors, 0 skipped.
 - `scripts/check-version-alignment.sh`: PASS for the RC4 artifact set.
 - `scripts/check-current-docs.sh`: PASS with RC-version, generation-report, and migration-link guards.
 - `scripts/check-api-surface.sh`: PASS; `io.github.jvmspec.internal.language` remains `INTERNAL`.
@@ -38,7 +38,9 @@ source-preserving updater. Existing-member inventory, offset-preserving source e
 root/nested-permitted synchronization are also isolated, reducing `ClassMethodUpdater` from roughly
 1,200 lines to under 100 facade lines. Direct tests freeze enum, interface, annotation, factory,
 stub-marker, nested-member, record-accessor, CRLF, sealed idempotence, and Unicode identifier
-behavior.
+behavior. Production refinement now also preserves the sealed-interface kind; an integration
+regression verifies that both the root declaration and nested permitted implementation receive the
+required method idempotently.
 
 The internal behavior contract now projects portable subject shape, relationships, structured types,
 construction/callable signatures, invocation kind, unknown-type evidence, and semantic equivalence

@@ -1,11 +1,15 @@
 package io.github.jvmspec.generation;
 
+import io.github.jvmspec.discovery.ProductionSignatureReader;
 import io.github.jvmspec.model.DescribedClass;
 import io.github.jvmspec.model.DescribedType;
 import io.github.jvmspec.model.JavaTypeKind;
 import io.github.jvmspec.model.MethodDescriptor;
 import org.junit.Test;
 
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -53,28 +57,54 @@ public class JavaMethodSourceComponentsTest {
     }
 
     @Test
+    public void productionRefinementPreservesNestedSealedSynchronization() throws Exception {
+        MethodDescriptor area = MethodDescriptor.of("area", "double");
+        DescribedType type = sealedShape(area);
+        String source = sealedShapeSource();
+        File sourceRoot = Files.createTempDirectory("javaspec-sealed-refinement").toFile();
+        File sourceFile = new File(sourceRoot, "com/example/Shape.java");
+        assertTrue(sourceFile.getParentFile().mkdirs());
+        Files.write(sourceFile.toPath(), source.getBytes(StandardCharsets.UTF_8));
+
+        DescribedType refined = ProductionSignatureReader.refine(type, sourceRoot);
+        String updated = SealedInterfaceMethodSynchronizer.updateSource(source, refined);
+
+        assertEquals(JavaTypeKind.SEALED_INTERFACE, refined.kind());
+        assertTrue(updated.contains("double area();"));
+        assertTrue(updated.contains("public double area()"));
+    }
+
+    @Test
     public void sealedSynchronizerUpdatesRootAndNestedPermittedTypeIdempotently() {
         MethodDescriptor area = MethodDescriptor.of("area", "double");
-        DescribedType type = DescribedType.of(
-                DescribedClass.of("com.example.Shape"),
-                JavaTypeKind.SEALED_INTERFACE,
-                Collections.<String>emptyList(),
-                Collections.<String>emptyList(),
-                Arrays.asList("com.example.Shape.Circle"),
-                Collections.emptyList(),
-                Arrays.asList(area),
-                Collections.<DescribedType.EnumConstantInfo>emptyList()
-        );
-        String source = "package com.example;\n"
-                + "public sealed interface Shape permits Shape.Circle {\n"
-                + "    final class Circle implements Shape { }\n"
-                + "}\n";
+        DescribedType type = sealedShape(area);
+        String source = sealedShapeSource();
 
         String updated = SealedInterfaceMethodSynchronizer.updateSource(source, type);
 
         assertTrue(updated.contains("double area();"));
         assertTrue(updated.contains("public double area()"));
         assertEquals(updated, SealedInterfaceMethodSynchronizer.updateSource(updated, type));
+    }
+
+    private static DescribedType sealedShape(MethodDescriptor method) {
+        return DescribedType.of(
+                DescribedClass.of("com.example.Shape"),
+                JavaTypeKind.SEALED_INTERFACE,
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.emptyList(),
+                Arrays.asList(method),
+                Collections.<DescribedType.EnumConstantInfo>emptyList()
+        );
+    }
+
+    private static String sealedShapeSource() {
+        return "package com.example;\n"
+                + "public sealed interface Shape permits Shape.Circle {\n"
+                + "    final class Circle implements Shape { }\n"
+                + "}\n";
     }
 
     private static DescribedType type(JavaTypeKind kind, List<MethodDescriptor> methods) {

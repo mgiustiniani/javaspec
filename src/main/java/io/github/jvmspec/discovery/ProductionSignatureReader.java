@@ -99,12 +99,23 @@ public final class ProductionSignatureReader {
             return JavaTypeKind.ENUM;
         }
         if (Tree.Kind.INTERFACE.name().equals(kindName)) {
-            return JavaTypeKind.INTERFACE;
+            return hasModifier(classTree, "SEALED")
+                    ? JavaTypeKind.SEALED_INTERFACE
+                    : JavaTypeKind.INTERFACE;
         }
         if (Tree.Kind.ANNOTATION_TYPE.name().equals(kindName)) {
             return JavaTypeKind.ANNOTATION;
         }
         return fallback;
+    }
+
+    private static boolean hasModifier(ClassTree classTree, String modifierName) {
+        for (Modifier modifier : classTree.getModifiers().getFlags()) {
+            if (modifierName.equals(modifier.name())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static MethodDescriptor refineMethod(MethodDescriptor descriptor, List<ProductionMethod> productionMethods) {

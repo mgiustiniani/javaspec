@@ -45,6 +45,9 @@ All notable changes to this project will be documented in this file.
   existing-member inventory, deterministic method/factory rendering, offset-preserving source
   editing, and sealed-interface synchronization.
 - Consolidated internal Unicode-aware Java identifier checks for discovery and generation.
+- Preserved `SEALED_INTERFACE` during production-signature refinement so CLI synchronization updates
+  both sealed roots and in-file nested permitted implementations instead of degrading to a plain
+  interface plan.
 - Reused the balanced syntax splitter for generic method-parameter parsing as well as method and
   record-component source parsing, including generic types whose arguments contain commas.
 - Added JaCoCo HTML/XML/CSV coverage reporting and an opt-in OWASP Dependency-Check security profile
