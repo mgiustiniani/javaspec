@@ -350,7 +350,7 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
 - Macro-area: B/C — Safe generation and internal architecture
 - Priority: P0 for constructor correctness and documentation; P1 for behavior-preserving extraction
 - Disposition: REQUIRED_FOR_1_0, without adding another language
-- Status: IN PROGRESS
+- Status: COMPLETED
 - Motivation: post-RC4 constructor fixes exposed unrecognized package-private/generic constructors,
   qualified-type identity collisions, duplicated Java lexical/type normalization, and concentrated
   orchestration. The same restructuring can establish a private frontend/backend seam for future
@@ -388,7 +388,8 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
   - constructor regressions cover package-private, generic-bound, and qualified-name overloads;
   - all core, adapter, language-manifest, example, and release dry-run gates pass.
 - Decision: [`ADR 0026`](docs/adr/0026-internal-language-seams-before-1.0.md).
-- Completion commit: pending.
+- Completion commits: `28ba661` through `e62cb32`; reusable CLI/source/report/hash/authorization
+  fixture extraction continued in `c6c13fd` without changing production behavior.
 
 ## Deferred or rejected for 1.0
 

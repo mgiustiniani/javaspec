@@ -53,6 +53,12 @@ All notable changes to this project will be documented in this file.
   retaining atomic activity accounting and authorization outside language backends.
 - Reused the balanced syntax splitter for generic method-parameter parsing as well as method and
   record-component source parsing, including generic types whose arguments contain commas.
+- Excluded framework lifecycle calls from production-method discovery, resolved nested production
+  member types ahead of colliding imports, and rejected unsafe owner-return inference from arbitrary
+  local helper assignments; focused JUnit fixtures cover the corrected behavior without introducing
+  Cucumber/Gherkin tooling.
+- Added reusable test-only CLI project fixtures for source/spec trees, authorization input,
+  compilation output, reports, and byte/SHA-256/mtime preservation assertions.
 - Added JaCoCo HTML/XML/CSV coverage reporting and an opt-in OWASP Dependency-Check security profile
   with official NVD feeds and a CVSS 7.0 failure threshold.
 

@@ -12,7 +12,7 @@ Java adapter parity.
 
 Verification summary:
 
-- `mvn -q clean verify`: PASS — 870 tests, 0 failures, 0 errors, 0 skipped.
+- `mvn -q clean verify`: PASS — 873 tests, 0 failures, 0 errors, 0 skipped.
 - `scripts/check-version-alignment.sh`: PASS for the RC4 artifact set.
 - `scripts/check-current-docs.sh`: PASS with RC-version, generation-report, and migration-link guards.
 - `scripts/check-api-surface.sh`: PASS; `io.github.jvmspec.internal.language` remains `INTERNAL`.
@@ -43,7 +43,16 @@ regression verifies that both the root declaration and nested permitted implemen
 required method idempotently. Generation orchestration now isolates preflight validation, dry-run
 change detection, related-spec generation, prophecy generation, and centralized CLI authorization;
 direct tests freeze EOF denial, explicit generation authorization, functional-target refusal,
-read-only related-spec planning, and unchanged support detection.
+read-only related-spec planning, and unchanged support detection. Final discovery hardening excludes
+framework lifecycle calls such as `setSubject` and `setMatcherRegistry` from both AST and legacy
+production-method discovery, resolves nested production member types ahead of colliding imports,
+and deliberately does not infer production methods from arbitrary local `var value = helper()`
+assignments. These regressions are covered by focused JUnit tests without Cucumber/Gherkin tooling.
+
+Reusable test-only `CliProjectFixture` support now centralizes conventional production/spec/generated
+source trees, CLI authorization input, compilation output, reports, UTF-8 source writing, and
+byte/SHA-256/mtime snapshots. JSON stdout, authorization, and read-only generation-report tests use
+this fixture without changing production dependencies or runtime behavior.
 
 The internal behavior contract now projects portable subject shape, relationships, structured types,
 construction/callable signatures, invocation kind, unknown-type evidence, and semantic equivalence

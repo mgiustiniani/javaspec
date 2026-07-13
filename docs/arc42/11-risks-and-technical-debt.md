@@ -77,6 +77,16 @@ Current risks and mitigations:
   - Current impact: Java profile metadata can become stale as docs or JDK releases evolve.
   - Mitigation / next action: Maintain research notes and re-run runtime probes in compatibility
     matrix work, especially for Java 25 stream gatherers and later profiles.
+- **Frozen compatibility signatures retain a package-level cycle**
+  - Current impact: `config` exposes the existing `generation.ConstructorPolicy` type, `discovery`
+    retains suite-configuration factories, and the public generation facade accepts the established
+    `discovery.SpecNamingConvention` type. Together these frozen descriptors form the physical
+    `config -> generation -> discovery -> config` package cycle even though the M12 internal
+    discovery/backend flow is separated.
+  - Mitigation / next action: Do not break 1.0 source or binary compatibility merely to satisfy a
+    package metric. Keep new implementation dependencies behind neutral internal seams, prevent the
+    compatibility cycle from spreading to additional classes, and evaluate a versioned post-1.0
+    migration to canonical naming/configuration types before removing bridge signatures.
 - **Invocation API compatibility pressure**
   - Current impact: The optional Maven and Gradle plugins now depend on `io.github.jvmspec.invocation`
     and `RunResult` semantics; future adapters may also depend on them.
