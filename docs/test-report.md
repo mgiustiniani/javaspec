@@ -49,6 +49,14 @@ Commit-qualified downstream replay used `1.0.0-RC4-dev-28ba661` (JAR SHA-256
   and mtime; authorized synchronization preserved the hand-written body, and its repeat was a
   byte-for-byte and mtime-preserving no-op.
 
+The discovery-component extraction was replayed with `1.0.0-RC4-dev-39fefdd` (JAR SHA-256
+`72366df20b1070fdc778fb6c80f73ddcb82292e766609f753d6c17edbab2ebbe`) in the same Fedora
+container. Duplicate generic construction evidence again produced exactly one constructor and a
+zero-write stable-hash repeat with meaningful RED/BROKEN results. The current Magrathea generic
+constructor and qualified overload fixtures passed with zero writes and stable source hashes; the
+write-authorization scenario again produced `STOPPED` before authorization, `APPLIED` after explicit
+authorization, and an mtime-preserving `NO_CHANGES` repeat.
+
 ## Phase 47 example-data API verification update
 
 Date: 2026-07-09
