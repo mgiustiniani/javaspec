@@ -59,6 +59,14 @@ constructor and qualified overload fixtures passed with zero writes and stable s
 write-authorization scenario again produced `STOPPED` before authorization, `APPLIED` after explicit
 authorization, and an mtime-preserving `NO_CHANGES` repeat.
 
+Callable and subject-declaration extraction was replayed with `1.0.0-RC4-dev-8ac362f` (JAR SHA-256
+`b2a66e7d528bbbb8c2dfe759b9597cf898ff943789932cf70f3d48da3b5de110`). A workflow fixture
+covering factory construction, proxy return inference, throw targets, subject void calls, setters,
+and state expectations generated production and support sources byte-for-byte identical to
+`39fefdd`, followed by the expected meaningful RED and pending-stub BROKEN results. Generic
+constructor, qualified-overload, authorization, hash, mtime, and zero-write replays also remained
+unchanged.
+
 ## Phase 47 example-data API verification update
 
 Date: 2026-07-09
