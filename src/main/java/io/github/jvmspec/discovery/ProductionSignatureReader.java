@@ -285,7 +285,7 @@ public final class ProductionSignatureReader {
             if (returnTypeTree == null) {
                 continue;
             }
-            String returnType = SpecDiscovery.resolveTypeName(
+            String returnType = JavaExpressionTypeInference.resolveTypeName(
                     returnTypeTree.toString(), imports, packageName);
             boolean isStatic = methodTree.getModifiers().getFlags().contains(Modifier.STATIC);
             methods.add(new ProductionMethod(
@@ -304,7 +304,7 @@ public final class ProductionSignatureReader {
             TypeParameterTree parameter = parameters.get(i);
             String bound = "java.lang.Object";
             if (!parameter.getBounds().isEmpty()) {
-                bound = SpecDiscovery.resolveTypeName(
+                bound = JavaExpressionTypeInference.resolveTypeName(
                         parameter.getBounds().get(0).toString(), imports, packageName);
             }
             result.put(parameter.getName().toString(), bound);
@@ -324,7 +324,7 @@ public final class ProductionSignatureReader {
         String suffix = arrayStart < 0 ? "" : normalized.substring(arrayStart).replaceAll("\\s+", "");
         String bound = typeBounds.get(raw);
         if (bound != null) return bound + suffix;
-        return SpecDiscovery.resolveTypeName(normalized, imports, packageName);
+        return JavaExpressionTypeInference.resolveTypeName(normalized, imports, packageName);
     }
 
     private static ClassTree topLevelType(CompilationUnitTree unit, String simpleName) {

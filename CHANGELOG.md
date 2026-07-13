@@ -35,8 +35,9 @@ All notable changes to this project will be documented in this file.
   shape, relationships, structured types, construction/callable signatures, invocation kind, and
   unknown-type evidence while retaining `DescribedType` as the Java compatibility bridge.
 - Extracted constructor observation/identity handling, construction-argument inference, Java
-  expression/type inference, and example discovery from the public `SpecDiscovery` facade; the
-  facade is now roughly half its former size while preserving its API and generated output.
+  expression/type inference, callable discovery, subject declaration discovery, and example
+  discovery from the public `SpecDiscovery` facade; the facade now contains only deterministic file
+  traversal and component orchestration while preserving its API and generated output.
 - Reused the balanced syntax splitter for generic method-parameter parsing as well as method and
   record-component source parsing, including generic types whose arguments contain commas.
 - Added JaCoCo HTML/XML/CSV coverage reporting and an opt-in OWASP Dependency-Check security profile

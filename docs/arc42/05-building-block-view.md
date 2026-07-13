@@ -438,7 +438,9 @@ simple names.
 The pre-1.0 internal language seam is implemented under `io.github.jvmspec.internal.language`.
 `JavaSpecLanguageFrontend` delegates canonical Java spec discovery. Behind the stable
 `SpecDiscovery` facade, constructor observation and identity, construction-argument inference, Java
-expression/type inference, and example discovery are isolated in package-private components.
+expression/type inference, callable discovery, subject declaration discovery, and example discovery
+are isolated in package-private components. The facade owns only deterministic traversal, filtering,
+and orchestration.
 `BehaviorContract` retains the current immutable Java descriptor as a compatibility bridge while
 separately exposing portable subject shape, relationships, structured type references, construction signatures, callable
 signatures, invocation kind, and unknown-type evidence. `JavaProductionLanguageBackend` plans
