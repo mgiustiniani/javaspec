@@ -102,6 +102,13 @@ now preserved `SEALED_INTERFACE`, inserted the root declaration and nested permi
 compiled successfully, and reported the nested pending stub instead of failing compilation. Generic
 constructor, overload, authorization, hash, mtime, and no-op evidence remained unchanged.
 
+Generation-workflow extraction was replayed with `1.0.0-RC4-dev-ff2096e` (JAR SHA-256
+`51eea0f089859cece12bdca82766ce867f1a437b7c2fdfd93d396dcffe9c565c`). Callable and sealed
+production/support outputs remained byte-for-byte identical to `38670d9`, including nested sealed
+synchronization and successful compilation. Generic construction, hand-written generic sources,
+qualified overloads, denial before authorization, authorized body preservation, hashes, mtimes, and
+zero-write repeats also remained unchanged.
+
 ## Phase 47 example-data API verification update
 
 Date: 2026-07-09
