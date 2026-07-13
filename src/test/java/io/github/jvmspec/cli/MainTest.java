@@ -1,5 +1,7 @@
 package io.github.jvmspec.cli;
 
+import io.github.jvmspec.testing.CliProjectFixture;
+import io.github.jvmspec.testing.CliProjectFixture.RunResult;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -7,19 +9,18 @@ import org.junit.rules.TemporaryFolder;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.io.IOException;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class MainTest {
 
@@ -285,56 +286,56 @@ public class MainTest {
 
     @Test
     public void runMissingClassAsksAndDoesNotWriteWhenUserDeclines() throws Exception {
-        File specRoot = temporaryFolder.newFolder("missing-spec-root");
-        File sourceRoot = temporaryFolder.newFolder("missing-source-root");
-        File specFile = writeSpec(specRoot, "spec.com.example.MissingSpec");
-        File targetFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "Missing.java");
+        CliProjectFixture project = CliProjectFixture.create(temporaryFolder.newFolder("missing-project"));
+        File specFile = project.spec("spec.com.example.MissingSpec", "public class MissingSpec {\n}\n");
+        File targetFile = new File(project.sourceRoot(),
+                "com" + File.separator + "example" + File.separator + "Missing.java");
 
-        CommandResult result = runWithInput("n\n", "run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath());
+        RunResult result = project.runDenied("run");
 
-        assertEquals(1, result.exitCode);
-        assertTrue(result.out.contains("Found 1 specification(s)"));
-        assertTrue(result.out.contains("spec.com.example.MissingSpec describes missing class com.example.Missing."));
-        assertTrue(result.out.contains("Spec file: " + specFile.getPath()));
-        assertTrue(result.out.contains("Target path: " + targetFile.getPath()));
-        assertTrue(result.out.contains("Do you want me to create com.example.Missing for you? [Y/n]"));
-        assertTrue(result.out.contains("No production files were written."));
-        assertEquals("", result.err);
+        assertEquals(1, result.exitCode());
+        assertTrue(result.stdout().contains("Found 1 specification(s)"));
+        assertTrue(result.stdout().contains("spec.com.example.MissingSpec describes missing class com.example.Missing."));
+        assertTrue(result.stdout().contains("Spec file: " + specFile.getPath()));
+        assertTrue(result.stdout().contains("Target path: " + targetFile.getPath()));
+        assertTrue(result.stdout().contains("Do you want me to create com.example.Missing for you? [Y/n]"));
+        assertTrue(result.stdout().contains("No production files were written."));
+        assertEquals("", result.stderr());
         assertFalse(targetFile.exists());
-        assertEquals(0, countFiles(sourceRoot));
+        assertEquals(0, countFiles(project.sourceRoot()));
     }
 
     @Test
     public void runMissingClassGeneratesWhenUserAcceptsPrompt() throws Exception {
-        File specRoot = temporaryFolder.newFolder("accept-spec-root");
-        File sourceRoot = temporaryFolder.newFolder("accept-source-root");
-        writeSpec(specRoot, "spec.com.example.AcceptedSpec");
-        File targetFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "Accepted.java");
+        CliProjectFixture project = CliProjectFixture.create(temporaryFolder.newFolder("accept-project"));
+        project.spec("spec.com.example.AcceptedSpec", "public class AcceptedSpec {\n}\n");
+        File targetFile = new File(project.sourceRoot(),
+                "com" + File.separator + "example" + File.separator + "Accepted.java");
 
-        CommandResult result = runWithInput("y\n", "run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath());
+        RunResult result = project.runAuthorized("run");
 
-        assertEquals(0, result.exitCode);
-        assertTrue(result.out.contains("spec.com.example.AcceptedSpec describes missing class com.example.Accepted."));
-        assertTrue(result.out.contains("Do you want me to create com.example.Accepted for you? [Y/n]"));
-        assertTrue(result.out.contains("Generated class skeleton: " + targetFile.getPath()));
-        assertEquals("", result.err);
+        assertEquals(0, result.exitCode());
+        assertTrue(result.stdout().contains("spec.com.example.AcceptedSpec describes missing class com.example.Accepted."));
+        assertTrue(result.stdout().contains("Do you want me to create com.example.Accepted for you? [Y/n]"));
+        assertTrue(result.stdout().contains("Generated class skeleton: " + targetFile.getPath()));
+        assertEquals("", result.stderr());
         assertTrue(targetFile.isFile());
-        assertEquals("package com.example;\n\npublic class Accepted { }\n", readFile(targetFile));
-        assertEquals(1, countFiles(sourceRoot));
+        assertEquals("package com.example;\n\npublic class Accepted { }\n", project.read(targetFile));
+        assertEquals(1, countFiles(project.sourceRoot()));
     }
 
     @Test
     public void runMissingClassGeneratesWhenUserAcceptsDefaultPrompt() throws Exception {
-        File specRoot = temporaryFolder.newFolder("default-accept-spec-root");
-        File sourceRoot = temporaryFolder.newFolder("default-accept-source-root");
-        writeSpec(specRoot, "spec.com.example.DefaultAcceptedSpec");
-        File targetFile = new File(sourceRoot, "com" + File.separator + "example" + File.separator + "DefaultAccepted.java");
+        CliProjectFixture project = CliProjectFixture.create(temporaryFolder.newFolder("default-accept-project"));
+        project.spec("spec.com.example.DefaultAcceptedSpec", "public class DefaultAcceptedSpec {\n}\n");
+        File targetFile = new File(project.sourceRoot(),
+                "com" + File.separator + "example" + File.separator + "DefaultAccepted.java");
 
-        CommandResult result = runWithInput("\n", "run", "--spec-dir", specRoot.getAbsolutePath(), "--source-dir", sourceRoot.getAbsolutePath());
+        RunResult result = project.runWithInput("\n", "run");
 
-        assertEquals(0, result.exitCode);
-        assertTrue(result.out.contains("Generated class skeleton: " + targetFile.getPath()));
-        assertEquals("", result.err);
+        assertEquals(0, result.exitCode());
+        assertTrue(result.stdout().contains("Generated class skeleton: " + targetFile.getPath()));
+        assertEquals("", result.stderr());
         assertTrue(targetFile.isFile());
     }
 

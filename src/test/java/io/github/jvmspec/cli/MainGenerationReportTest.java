@@ -1,5 +1,8 @@
 package io.github.jvmspec.cli;
 
+import io.github.jvmspec.testing.CliProjectFixture;
+import io.github.jvmspec.testing.CliProjectFixture.RunResult;
+import io.github.jvmspec.testing.CliProjectFixture.SourceSnapshot;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -149,18 +152,16 @@ public class MainGenerationReportTest {
     @Test
     public void nonGenerativeCompileLeavesRequiredClassConstructorSynchronizationByteIdentical() throws Exception {
         assumeTrue(ToolProvider.getSystemJavaCompiler() != null);
-        File sourceRoot = temporaryFolder.newFolder("readonly-class-source");
-        File specRoot = temporaryFolder.newFolder("readonly-class-spec");
-        File classes = temporaryFolder.newFolder("readonly-class-classes");
-        File report = new File(temporaryFolder.getRoot(), "readonly-class-report.json");
-        File source = writeSource(sourceRoot, "com.example.Service",
+        CliProjectFixture project = CliProjectFixture.create(temporaryFolder.newFolder("readonly-class-project"));
+        File report = project.report("readonly-class-report.json");
+        File source = project.source("com.example.Service",
                 "public class Service {\n" +
                         "  public Service(String normalizedFields) {\n" +
                         "    this.value = normalizedFields;\n" +
                         "  }\n" +
                         "  private String value;\n" +
                         "}\n");
-        writeSource(specRoot, "spec.com.example.ServiceSpec",
+        project.spec("spec.com.example.ServiceSpec",
                 "import io.github.jvmspec.api.ObjectBehavior;\n" +
                         "public class ServiceSpec extends ObjectBehavior<com.example.Service> {\n" +
                         "  public ServiceSpec() { super(com.example.Service.class); }\n" +
@@ -168,23 +169,18 @@ public class MainGenerationReportTest {
                         "    beConstructedWith(\"value\", 7);\n" +
                         "  }\n" +
                         "}\n");
-        byte[] before = Files.readAllBytes(source.toPath());
-        long modifiedBefore = source.lastModified();
+        SourceSnapshot before = project.snapshot(source);
 
-        CommandResult result = run("run", "--compile", "--constructor-policy", "preserve",
-                "--compile-output", classes.getAbsolutePath(),
-                "--generation-report", report.getAbsolutePath(),
-                "--spec-dir", specRoot.getAbsolutePath(),
-                "--source-dir", sourceRoot.getAbsolutePath());
+        RunResult result = project.run("run", "--compile", "--constructor-policy", "preserve",
+                "--compile-output", project.classesRoot().getAbsolutePath(),
+                "--generation-report", report.getAbsolutePath());
 
-        assertEquals(1, result.exitCode);
-        assertEquals(new String(before, StandardCharsets.UTF_8),
-                new String(Files.readAllBytes(source.toPath()), StandardCharsets.UTF_8));
-        assertEquals(modifiedBefore, source.lastModified());
-        String json = new String(Files.readAllBytes(report.toPath()), StandardCharsets.UTF_8);
+        assertEquals(1, result.exitCode());
+        assertTrue("Source bytes, SHA-256, and mtime must be unchanged", before.isUnchanged());
+        String json = project.read(report);
         assertTrue(json, json.contains("\"status\": \"PROPOSED\""));
         assertTrue(json, json.contains("\"appliedWrites\": 0"));
-        assertTrue(result.out, result.out.contains("No production files were written."));
+        assertTrue(result.stdout(), result.stdout().contains("No production files were written."));
     }
 
     @Test

@@ -1,15 +1,10 @@
 package io.github.jvmspec.cli;
 
+import io.github.jvmspec.testing.CliProjectFixture;
+import io.github.jvmspec.testing.CliProjectFixture.RunResult;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 
 import javax.tools.ToolProvider;
 
@@ -24,29 +19,24 @@ public class MainJsonStdoutContractTest {
     @Test
     public void successfulRunWritesExactlyOneJsonDocumentToStdout() throws Exception {
         assumeTrue(ToolProvider.getSystemJavaCompiler() != null);
-        File sourceRoot = temporaryFolder.newFolder("json-success-source");
-        File specRoot = temporaryFolder.newFolder("json-success-spec");
-        File classes = temporaryFolder.newFolder("json-success-classes");
-        writeSource(sourceRoot, "com.example.Subject", "public class Subject { }\n");
-        writeSource(specRoot, "spec.com.example.SubjectSpec",
+        CliProjectFixture project = CliProjectFixture.create(temporaryFolder.newFolder("json-success"));
+        project.source("com.example.Subject", "public class Subject { }\n");
+        project.spec("spec.com.example.SubjectSpec",
                 "public class SubjectSpec { public void it_passes() { } }\n");
 
-        CommandResult result = run("run", "--formatter", "json", "--compile",
-                "--compile-output", classes.getAbsolutePath(),
-                "--spec-dir", specRoot.getAbsolutePath(),
-                "--source-dir", sourceRoot.getAbsolutePath());
+        RunResult result = project.run("run", "--formatter", "json", "--compile",
+                "--compile-output", project.classesRoot().getAbsolutePath());
 
-        assertEquals(0, result.exitCode);
-        parseWholeJsonObject(result.out);
-        assertTrue(result.out.contains("\"success\": true"));
-        assertTrue(result.err.contains("Found 1 specification(s)"));
+        assertEquals(0, result.exitCode());
+        parseWholeJsonObject(result.stdout());
+        assertTrue(result.stdout().contains("\"success\": true"));
+        assertTrue(result.stderr().contains("Found 1 specification(s)"));
     }
 
     @Test
     public void generationStopStillWritesExactlyOneJsonDocumentToStdout() throws Exception {
-        File sourceRoot = temporaryFolder.newFolder("json-generation-stop-source");
-        File specRoot = temporaryFolder.newFolder("json-generation-stop-spec");
-        writeSource(specRoot, "spec.com.example.SubjectSpec",
+        CliProjectFixture project = CliProjectFixture.create(temporaryFolder.newFolder("json-generation-stop"));
+        project.spec("spec.com.example.SubjectSpec",
                 "public class SubjectSpec extends SubjectSpecSupport {\n" +
                         "  public void it_describes_an_ambiguous_record() {\n" +
                         "    shouldBeARecord();\n" +
@@ -54,38 +44,32 @@ public class MainJsonStdoutContractTest {
                         "  }\n" +
                         "}\n");
 
-        CommandResult result = run("run", "--formatter", "json", "--generate",
-                "--profile", "java17",
-                "--spec-dir", specRoot.getAbsolutePath(),
-                "--source-dir", sourceRoot.getAbsolutePath());
+        RunResult result = project.run("run", "--formatter", "json", "--generate",
+                "--profile", "java17");
 
-        assertTrue("stdout:\n" + result.out + "\nstderr:\n" + result.err,
-                result.exitCode != 0);
-        parseWholeJsonObject(result.out);
-        assertTrue(result.out.contains("\"success\": false"));
-        assertTrue("stderr:\n" + result.err,
-                result.err.contains("AMBIGUOUS_RECORD_COMPONENT_NAME"));
+        assertTrue("stdout:\n" + result.stdout() + "\nstderr:\n" + result.stderr(),
+                result.exitCode() != 0);
+        parseWholeJsonObject(result.stdout());
+        assertTrue(result.stdout().contains("\"success\": false"));
+        assertTrue("stderr:\n" + result.stderr(),
+                result.stderr().contains("AMBIGUOUS_RECORD_COMPONENT_NAME"));
     }
 
     @Test
     public void compileFailureStillWritesExactlyOneJsonDocumentToStdout() throws Exception {
         assumeTrue(ToolProvider.getSystemJavaCompiler() != null);
-        File sourceRoot = temporaryFolder.newFolder("json-compile-failure-source");
-        File specRoot = temporaryFolder.newFolder("json-compile-failure-spec");
-        File classes = temporaryFolder.newFolder("json-compile-failure-classes");
-        writeSource(sourceRoot, "com.example.Broken", "public class Broken { invalid }\n");
-        writeSource(specRoot, "spec.com.example.BrokenSpec",
+        CliProjectFixture project = CliProjectFixture.create(temporaryFolder.newFolder("json-compile-failure"));
+        project.source("com.example.Broken", "public class Broken { invalid }\n");
+        project.spec("spec.com.example.BrokenSpec",
                 "public class BrokenSpec { public void it_is_discovered() { } }\n");
 
-        CommandResult result = run("run", "--formatter", "json", "--compile",
-                "--compile-output", classes.getAbsolutePath(),
-                "--spec-dir", specRoot.getAbsolutePath(),
-                "--source-dir", sourceRoot.getAbsolutePath());
+        RunResult result = project.run("run", "--formatter", "json", "--compile",
+                "--compile-output", project.classesRoot().getAbsolutePath());
 
-        assertEquals(1, result.exitCode);
-        parseWholeJsonObject(result.out);
-        assertTrue(result.out.contains("\"success\": false"));
-        assertTrue(result.err.contains("Compilation failed"));
+        assertEquals(1, result.exitCode());
+        parseWholeJsonObject(result.stdout());
+        assertTrue(result.stdout().contains("\"success\": false"));
+        assertTrue(result.stderr().contains("Compilation failed"));
     }
 
     private static void parseWholeJsonObject(String value) {
@@ -119,34 +103,4 @@ public class MainJsonStdoutContractTest {
         assertEquals("Unbalanced JSON array", 0, arrayDepth);
     }
 
-    private static void writeSource(File root, String qualifiedName, String body) throws Exception {
-        File file = new File(root, qualifiedName.replace('.', File.separatorChar) + ".java");
-        assertTrue(file.getParentFile().mkdirs() || file.getParentFile().isDirectory());
-        int packageEnd = qualifiedName.lastIndexOf('.');
-        String packageName = packageEnd < 0 ? "" : qualifiedName.substring(0, packageEnd);
-        Files.write(file.toPath(), ("package " + packageName + ";\n" + body)
-                .getBytes(StandardCharsets.UTF_8));
-    }
-
-    private static CommandResult run(String... args) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        ByteArrayOutputStream err = new ByteArrayOutputStream();
-        int exitCode = Main.run(args, new ByteArrayInputStream(new byte[0]),
-                new PrintStream(out), new PrintStream(err));
-        return new CommandResult(exitCode,
-                new String(out.toByteArray(), StandardCharsets.UTF_8),
-                new String(err.toByteArray(), StandardCharsets.UTF_8));
-    }
-
-    private static final class CommandResult {
-        private final int exitCode;
-        private final String out;
-        private final String err;
-
-        private CommandResult(int exitCode, String out, String err) {
-            this.exitCode = exitCode;
-            this.out = out;
-            this.err = err;
-        }
-    }
 }
