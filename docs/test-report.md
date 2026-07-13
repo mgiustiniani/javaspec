@@ -30,6 +30,20 @@ independently of Java body text while retaining the frozen descriptor bridge. No
 language implementation, CLI option, configuration key, dependency, or public SPI is introduced
 before 1.0; ADR 0026 records the post-1.0 boundary.
 
+Commit-qualified downstream replay used `1.0.0-RC4-dev-28ba661` (JAR SHA-256
+`751a944f8a2c38936e34685426837d34bc4ab5a1374c2414773dbe00ef976d8c`) in
+`localhost/magrathea-build:fedora42`:
+
+- a Magrathea `SemanticPolicyHash(Map<String, String>)` generation fixture with two identical
+  construction observations generated one constructor, produced the expected meaningful RED and
+  pending-stub BROKEN results, then repeated with zero writes and an unchanged source hash;
+- the current hand-written Magrathea `SemanticPolicyHash` passed its behavior with zero writes and
+  unchanged source hash and mtime;
+- `a.Token`/`b.Token` overloads both compiled and passed with zero writes;
+- unauthorized constructor synchronization stopped with `PROPOSED`, zero writes, and unchanged hash
+  and mtime; authorized synchronization preserved the hand-written body, and its repeat was a
+  byte-for-byte and mtime-preserving no-op.
+
 ## Phase 47 example-data API verification update
 
 Date: 2026-07-09
