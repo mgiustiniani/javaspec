@@ -20,6 +20,9 @@ Verification summary:
   dependency audits, and standalone examples.
 - Fedora-container `scripts/verify-release-dry-run.sh`: PASS for the aligned RC4 artifact set and
   all external consumer examples.
+- Sequential local `scripts/verify-all.sh` followed by `scripts/verify-release-dry-run.sh`: PASS;
+  Gradle aggregate invocations now use `--no-daemon` so reinstalling the same RC coordinate between
+  gates cannot reuse a stale transformed core artifact.
 - Fedora-container `mvn clean verify -Psecurity`: PASS; JaCoCo reported 78.44% lines, 65.58%
   branches, and 95.37% classes; OWASP Dependency-Check 12.2.2 scanned JUnit/Hamcrest with zero
   vulnerabilities and zero scan errors.

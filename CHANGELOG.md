@@ -59,6 +59,8 @@ All notable changes to this project will be documented in this file.
   Cucumber/Gherkin tooling.
 - Added reusable test-only CLI project fixtures for source/spec trees, authorization input,
   compilation output, reports, and byte/SHA-256/mtime preservation assertions.
+- Run aggregate Gradle verification without a persistent daemon so sequential Maven reinstalls of
+  the same RC coordinate cannot leave Gradle tests using stale transformed core artifacts.
 - Added JaCoCo HTML/XML/CSV coverage reporting and an opt-in OWASP Dependency-Check security profile
   with official NVD feeds and a CVSS 7.0 failure threshold.
 

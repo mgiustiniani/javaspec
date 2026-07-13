@@ -104,7 +104,7 @@ rm -f "$manifest"
 pass "bytecode agent manifest entries present"
 
 section "Build Gradle plugin release artifacts"
-(cd javaspec-gradle-plugin && "${gradle_cmd[@]}" clean test build)
+(cd javaspec-gradle-plugin && "${gradle_cmd[@]}" --no-daemon clean test build)
 require_file "javaspec-gradle-plugin/build/libs/javaspec-gradle-plugin-${version}.jar"
 require_file "javaspec-gradle-plugin/build/libs/javaspec-gradle-plugin-${version}-sources.jar"
 require_file "javaspec-gradle-plugin/build/libs/javaspec-gradle-plugin-${version}-javadoc.jar"

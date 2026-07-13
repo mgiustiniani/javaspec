@@ -185,7 +185,7 @@ if [ "${JAVASPEC_SKIP_GRADLE_EXAMPLE:-0}" = "1" ]; then
 else
   resolve_gradle_cmd
   remove_path "Clean previous Gradle example reports" examples/gradle-basic/build/reports/javaspec
-  run_at_root "Verify Gradle plugin basic example" "${gradle_cmd[@]}" -p examples/gradle-basic clean javaspecRun
+  run_at_root "Verify Gradle plugin basic example" "${gradle_cmd[@]}" --no-daemon -p examples/gradle-basic clean javaspecRun
   gradle_json="${repo_root}/examples/gradle-basic/build/reports/javaspec/run-report.json"
   gradle_xml="${repo_root}/examples/gradle-basic/build/reports/javaspec/junit-report.xml"
   assert_file_exists "Gradle JSON report" "$gradle_json"
