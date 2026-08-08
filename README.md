@@ -8,14 +8,14 @@ javaspec is a spec-first BDD tool for Java, inspired by PHPSpec. You write subje
 
 The core is Java 8-compatible and has no third-party runtime dependencies. It can be used directly from the CLI, embedded through a no-`System.exit` launcher, or adopted through optional Maven, Gradle, and JUnit Platform adapters.
 
-Artifacts use the Maven Central group `io.github.jvmspec`. The active `1.0.0-RC1` release candidate
+Artifacts use the Maven Central group `io.github.jvmspec`. The active `1.0.0-RC5` release candidate
 is available from Maven Central:
 
 ```xml
 <dependency>
     <groupId>io.github.jvmspec</groupId>
     <artifactId>javaspec</artifactId>
-    <version>1.0.0-RC1</version>
+    <version>1.0.0-RC5</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -24,7 +24,7 @@ For snapshots, use the Central Portal Snapshots repository.
 
 The Gradle plugin id is `io.github.jvmspec`. RC1 was submitted successfully with description
 "Optional Gradle adapter for the javaspec runner" and is awaiting first-publication approval; use
-the included build until `1.0.0-RC1` appears on the Gradle Plugin Portal.
+the included build until `1.0.0-RC5` appears on the Gradle Plugin Portal.
 
 ## Highlights
 
@@ -174,9 +174,9 @@ Common authoring concepts:
 After building from the repository root:
 
 ```sh
-java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main --help
-java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main describe com.example.Calculator
-java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main run --compile --generate
+java -cp target/javaspec-1.0.0-RC5.jar io.github.jvmspec.cli.Main --help
+java -cp target/javaspec-1.0.0-RC5.jar io.github.jvmspec.cli.Main describe com.example.Calculator
+java -cp target/javaspec-1.0.0-RC5.jar io.github.jvmspec.cli.Main run --compile --generate
 ```
 
 Useful `run` options:
@@ -195,9 +195,10 @@ Useful `run` options:
 --generate                   # apply generation/update prompts non-interactively
 --dry-run                    # plan generation/update work without writes
 --stop-on-failure            # stop after first failed or broken example
---formatter progress|pretty  # select built-in output format
+--formatter progress|pretty|json # select built-in output format; json owns stdout exclusively
 --profile java8|java11|java17|java21|java25
---report <file>              # JSON report
+--report <file>              # executable-example JSON report
+--generation-report <file>   # deterministic generation outcome report, including failures
 --junit-xml <file>           # JUnit XML-compatible report
 --class <name>               # filter described/spec class
 --example <name>             # filter example method/display name/order index
@@ -212,6 +213,22 @@ javaspec prophesize <Class>  # generate typed Prophecy wrapper for an interface 
 
 Exit codes are stable: `0` for success, `1` for failed/broken examples or declined/pending generation work, `64` for usage/profile/compiler/bootstrap errors, and `70` for I/O failures.
 
+### Manual pages
+
+Initial section 1 manual pages are maintained under [`docs/man/`](docs/man/README.md) in English,
+Italian, Spanish, German, French, and Simplified Chinese. Preview one without installing it:
+
+```sh
+man -l docs/man/en/man1/javaspec.1
+man -l docs/man/it/man1/javaspec.1
+```
+
+Validate every translation and its shared command-contract tokens with:
+
+```sh
+scripts/check-man-pages.sh
+```
+
 ### Maven
 
 Core and the Maven plugin are available directly from Maven Central. No local javaspec installation
@@ -219,7 +236,7 @@ is required for a consuming project. Consumer `pom.xml` example:
 
 ```xml
 <properties>
-  <javaspec.version>1.0.0-RC4</javaspec.version>
+  <javaspec.version>1.0.0-RC5</javaspec.version>
 </properties>
 
 <dependencies>
@@ -307,7 +324,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation 'io.github.jvmspec:javaspec:1.0.0-RC1'
+    testImplementation 'io.github.jvmspec:javaspec:1.0.0-RC5'
 }
 
 javaspec {
@@ -332,7 +349,7 @@ After Portal approval, an external consumer can remove `includeBuild(...)` and u
 ```groovy
 plugins {
     id 'java'
-    id 'io.github.jvmspec' version '1.0.0-RC1'
+    id 'io.github.jvmspec' version '1.0.0-RC5'
 }
 ```
 
@@ -344,13 +361,13 @@ The optional JUnit Platform engine is available from Maven Central. Consumer Mav
 <dependency>
   <groupId>io.github.jvmspec</groupId>
   <artifactId>javaspec</artifactId>
-  <version>1.0.0-RC1</version>
+  <version>1.0.0-RC5</version>
   <scope>test</scope>
 </dependency>
 <dependency>
   <groupId>io.github.jvmspec</groupId>
   <artifactId>javaspec-junit-platform-engine</artifactId>
-  <version>1.0.0-RC1</version>
+  <version>1.0.0-RC5</version>
   <scope>test</scope>
 </dependency>
 <dependency>
@@ -430,7 +447,7 @@ public void it_uses_a_factory() {
 }
 ```
 
-Generation can preserve, comment, or delete constructor-related skeleton code according to the selected constructor policy.
+Generation can preserve, comment, or delete constructor-related skeleton code according to the selected constructor policy. Constructor identity follows Java overload rules: declaring type plus ordered canonical erased parameter types, with varargs normalized to arrays; parameter names and bodies are not identity. Package-private and generic constructors are preserved, and types with the same simple name in different packages remain distinct. Updates to existing production source are planned in memory and require `--generate` or affirmative interactive authorization before the single atomic write.
 
 ## PHPSpec-style example data
 
@@ -520,7 +537,7 @@ mvn -q -f javaspec-bytecode-doubles/pom.xml -DskipTests install
 <dependency>
   <groupId>io.github.jvmspec</groupId>
   <artifactId>javaspec-bytecode-doubles</artifactId>
-  <version>1.0.0-RC1</version>
+  <version>1.0.0-RC5</version>
   <scope>test</scope>
 </dependency>
 ```
@@ -552,7 +569,7 @@ mvn -q -f javaspec-bytecode-agent/pom.xml -DskipTests install
 <dependency>
   <groupId>io.github.jvmspec</groupId>
   <artifactId>javaspec-bytecode-agent</artifactId>
-  <version>1.0.0-RC1</version>
+  <version>1.0.0-RC5</version>
   <scope>test</scope>
 </dependency>
 ```
@@ -779,18 +796,20 @@ form, and a standalone verification test.
 
 ## Reports
 
-The CLI and adapters can write both JSON and JUnit XML-compatible reports:
+The CLI and adapters can write executable-example JSON, deterministic generation JSON, and JUnit XML-compatible reports. With `--formatter json`, stdout contains exactly one JSON document; discovery, generation, compilation, and execution diagnostics are written to stderr.
 
 ```sh
-java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main run \
+java -cp target/javaspec-1.0.0-RC5.jar io.github.jvmspec.cli.Main run \
   --compile \
   --report target/javaspec-report.json \
+  --generation-report target/javaspec-generation-report.json \
   --junit-xml target/javaspec-report.xml
 ```
 
 Notes:
 
-- JSON reports use `schemaVersion: 1` and include stable ids, status counts, pending counts, source metadata where available, and optional run metadata/properties.
+- Executable-example JSON reports use `schemaVersion: 1` and include stable ids, status counts, pending counts, source metadata where available, and optional run metadata/properties.
+- Generation reports are written for success, dry-run, generation stop, and later pipeline failures. They contain no timestamp, sort paths deterministically, distinguish `PROPOSED` from `APPLIED` actions, count actual changed-file writes in `appliedWrites`, and expose `outcome`, `exitCode`, `proceed`, `pendingGenerationWork`, and `pendingStubs` without requiring prose parsing.
 - JUnit XML-compatible reports map skipped and pending examples to `<skipped>` elements.
 - Report write failures exit with code `70`.
 - Schema and golden examples: [`docs/schemas/run-report-v1.schema.json`](docs/schemas/run-report-v1.schema.json), [`docs/examples/reports/`](docs/examples/reports/).
@@ -827,7 +846,7 @@ suite.domain.bootstrap=com.example.SpecBootstrap
 Use it with:
 
 ```sh
-java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main run --config javaspec.conf --suite domain
+java -cp target/javaspec-1.0.0-RC5.jar io.github.jvmspec.cli.Main run --config javaspec.conf --suite domain
 ```
 
 CLI options override matching config values where an override exists.
@@ -837,10 +856,10 @@ CLI options override matching config values where an override exists.
 javaspec is classpath/reflection based by default. Source/spec compilation is explicit:
 
 ```sh
-java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main run --compile
-java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main run --compile-output target/javaspec-classes
-java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main run --compile --release 8
-java -cp target/javaspec-1.0.0-RC1.jar io.github.jvmspec.cli.Main run --compile --resolve-pom pom.xml
+java -cp target/javaspec-1.0.0-RC5.jar io.github.jvmspec.cli.Main run --compile
+java -cp target/javaspec-1.0.0-RC5.jar io.github.jvmspec.cli.Main run --compile-output target/javaspec-classes
+java -cp target/javaspec-1.0.0-RC5.jar io.github.jvmspec.cli.Main run --compile --release 8
+java -cp target/javaspec-1.0.0-RC5.jar io.github.jvmspec.cli.Main run --compile --resolve-pom pom.xml
 ```
 
 Compilation uses the current JDK `javax.tools.JavaCompiler` API. It can use `--release <N>` on
@@ -852,7 +871,7 @@ javaspec adapter settings opt into javaspec compilation.
 ## Compatibility and boundaries
 
 - The core artifact remains Java 8-compatible and zero-runtime-dependency.
-- Maven artifacts use group `io.github.jvmspec`; `1.0.0-RC1` is available from Maven Central. The
+- Maven artifacts use group `io.github.jvmspec`; `1.0.0-RC5` is available from Maven Central. The
   Gradle Plugin Portal id is `io.github.jvmspec`; corrected RC1 submission succeeded in workflow run
   29148854181 and is awaiting first-publication approval.
 - The Maven plugin, Gradle plugin, JUnit Platform engine, bytecode doubles adapter, and bytecode agent adapter are standalone optional artifacts outside the root Maven reactor.
@@ -877,6 +896,14 @@ For aggregate local verification of core, standalone adapters, and examples:
 ```sh
 scripts/verify-all.sh
 ```
+
+Core verification generates JaCoCo coverage in `target/site/jacoco/` (HTML, XML, and CSV). To also run OWASP Dependency-Check against runtime and test dependencies:
+
+```sh
+mvn clean verify -Psecurity
+```
+
+The security profile writes HTML and JSON reports to `target/dependency-check/`, uses the official NVD JSON feeds, and fails the build for findings with CVSS 7.0 or higher. The first scan downloads the local vulnerability database; later scans reuse it.
 
 For release dry-run verification of packaged artifacts and consumer examples:
 

@@ -74,6 +74,7 @@ required_current_docs=(
   docs/troubleshooting.md
   docs/compatibility-policy-1.0.md
   docs/release-1.0-rc-evidence.md
+  docs/man/README.md
 )
 for required_doc in "${required_current_docs[@]}"; do
   if [ -f "$required_doc" ]; then
@@ -87,6 +88,40 @@ if [ -e docs/release-notes-0.1.1-SNAPSHOT.md ]; then
   fail "obsolete docs/release-notes-0.1.1-SNAPSHOT.md still exists"
 else
   pass "obsolete 0.1.1 release-notes file is absent"
+fi
+
+versioned_user_docs=(
+  README.md
+  docs/CAPABILITIES.md
+  docs/usermanual/Home.md
+  docs/migration-guide-1.0.md
+  docs/bytecode-doubles.md
+  javaspec-gradle-plugin/README.md
+  javaspec-junit-platform-engine/README.md
+)
+if [[ "$root_version" == 1.0.0-RC* ]]; then
+  stale_rc_hits="$(grep -n -H -E '1\.0\.0-RC[0-9]+' "${versioned_user_docs[@]}" \
+    | grep -v "1.0.0-RC${root_version##*RC}" || true)"
+  if [ -n "$stale_rc_hits" ]; then
+    printf '%s\n' "$stale_rc_hits"
+    fail "current user documentation contains release candidates other than $root_version"
+  else
+    pass "current user documentation uses release candidate $root_version"
+  fi
+fi
+
+for required_token in '--generation-report' 'PROPOSED' 'appliedWrites'; do
+  if grep -q -- "$required_token" README.md docs/usermanual/Home.md; then
+    pass "current user documentation contains $required_token"
+  else
+    fail "current user documentation is missing $required_token"
+  fi
+done
+
+if grep -q '(migration-guide.md)' docs/bytecode-doubles.md; then
+  fail "docs/bytecode-doubles.md links to obsolete migration-guide.md"
+else
+  pass "bytecode doubles guide links to the current migration guide"
 fi
 
 current_paths=(
@@ -109,6 +144,7 @@ current_paths=(
   docs/compatibility-policy-1.0.md
   docs/release-1.0-rc-evidence.md
   docs/usermanual
+  docs/man
   docs/arc42
   docs/bytecode-doubles.md
   examples
@@ -140,6 +176,12 @@ if [ -n "$obsolete_package_hits" ]; then
   fail "current docs/config still contain obsolete org.javaspec references"
 else
   pass "no obsolete org.javaspec references in current docs/config"
+fi
+
+if scripts/check-man-pages.sh; then
+  pass "multilingual manual-page guard passed"
+else
+  fail "multilingual manual-page guard failed"
 fi
 
 if [ -f docs/phpspec-compatibility-matrix.md ]; then

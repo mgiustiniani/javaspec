@@ -435,6 +435,29 @@ simple names.
 - `ConfigurationException` carries parse and validation diagnostics, including line numbers where
   available.
 
+The pre-1.0 internal language seam is implemented under `io.github.jvmspec.internal.language`.
+`JavaSpecLanguageFrontend` delegates canonical Java spec discovery. Behind the stable
+`SpecDiscovery` facade, constructor observation and identity, construction-argument inference, Java
+expression/type inference, callable discovery, subject declaration discovery, and example discovery
+are isolated in package-private components. Java inference further separates literal/factory
+classification, expression-argument splitting, generic-aware source method/import context parsing,
+and orchestration. The facade owns only deterministic traversal, filtering, and orchestration.
+Method synchronization separately selects Java type-kind eligibility, inventories existing direct
+members, renders deterministic class, interface, annotation, and factory skeletons, performs
+offset-preserving source edits, and handles sealed roots/nested permitted types. `ClassMethodUpdater`
+remains the stable source/file facade over those package-private components.
+
+The generation workflow keeps the public orchestration entry point while package-private components
+own fail-closed preflight checks, dry-run detection, related-spec generation, and prophecy wrapper
+updates. `GenerationAuthorization` remains the single CLI-side authority for source writes;
+language backends continue to return in-memory synchronization plans only.
+`BehaviorContract` retains the current immutable Java descriptor as a compatibility bridge while
+separately exposing portable subject shape, relationships, structured type references, construction signatures, callable
+signatures, invocation kind, and unknown-type evidence. `JavaProductionLanguageBackend` plans
+constructor-then-method synchronization entirely in memory.
+Only Java is registered; selection is not exposed as public API, SPI, CLI, or configuration before
+1.0. The CLI continues to own authorization and atomic application of every planned source write.
+
 The naming/discovery boundary is implemented by `SpecNamingConvention`, `SpecDiscoveryRequest`, and
 `SpecExample`:
 

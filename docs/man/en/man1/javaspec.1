@@ -1,0 +1,241 @@
+.TH JAVASPEC 1 "July 2026" "javaspec" "User Commands"
+.SH NAME
+javaspec \- subject-centric SpecBDD for Java inspired by PHPSpec
+.SH SYNOPSIS
+.B javaspec describe
+.I ClassName
+.RI [ options ]
+.br
+.B javaspec desc
+.I ClassName
+.RI [ options ]
+.br
+.B javaspec run
+.RI [ options ]
+.br
+.B javaspec prophesize
+.I FQCN
+.RI [ options ]
+.br
+.B javaspec list-extensions
+.br
+.B javaspec
+.RB [ \-h | \-\-help ]
+.SH DESCRIPTION
+.B javaspec
+is a PHPSpec-inspired, subject-centric specification tool for Java. Specifications use public
+.B it_*
+or
+.B its_*
+examples, lifecycle methods such as
+.B let
+and
+.BR letGo ,
+construction helpers,
+.B subject(),
+and fluent
+.B should*
+expectations.
+.PP
+The core runs on Java 8 and has no third-party runtime dependencies. Optional Maven, Gradle, JUnit Platform, bytecode-doubles, and bytecode-agent adapters are distributed separately.
+.PP
+.B describe
+creates specification and generated support skeletons only. It never creates production code.
+.B run
+discovers specifications, plans or applies authorized generation, optionally compiles sources, executes examples, and writes reports.
+.SH COMMANDS
+.TP
+.B describe, desc
+Create a PHPSpec-style specification skeleton for
+.IR ClassName .
+The
+.B desc
+form is an alias.
+.TP
+.B run
+Discover and execute specifications. Generation writes require an affirmative prompt or
+.BR \-\-generate .
+.TP
+.B prophesize
+Generate a typed
+.B *Prophecy
+wrapper for an interface or concrete class.
+.TP
+.B list-extensions
+List built-in and ServiceLoader-discovered formatters and extensions, followed by classpath repair hints.
+.SH COMMON OPTIONS
+.TP
+.BR \-h , " " \-\-help
+Show command help.
+.TP
+.BI \-\-config " file"
+Load the line-based javaspec configuration file.
+.TP
+.BI \-\-suite " name"
+Select a configured suite.
+.TP
+.BI \-\-spec-dir " dir"
+Use the given specification source root. The default is
+.BR src/test/java .
+.B \-\-spec-root
+is an alias.
+.SH RUN OPTIONS
+.TP
+.BI \-\-source-dir " dir"
+Use the given production source root. The default is
+.BR src/main/java .
+.B \-\-source-root
+is an alias.
+.TP
+.BI \-\-classpath " paths"
+Add explicit classpath entries separated by the platform path separator.
+.TP
+.BI \-\-classpath-file " file"
+Read UTF-8 classpath entries, one per non-empty, non-comment line.
+.TP
+.BI \-\-resolve-pom " pom.xml"
+Resolve runtime dependencies from the local Maven repository or a configured dependency resolver.
+.TP
+.B \-\-compile
+Compile production and specification source trees before execution.
+.TP
+.BI \-\-compile-output " dir"
+Write compiled classes to
+.IR dir ;
+implies
+.BR \-\-compile .
+The default is
+.BR target/javaspec-classes .
+.TP
+.BI \-\-release " N"
+Compile for Java release
+.IR N .
+Requires compilation.
+.TP
+.B \-\-generate
+Authorize non-interactive production and generated-support writes.
+.TP
+.B \-\-dry-run
+Plan generation and updates without writing, prompting, or compiling.
+.TP
+.B \-\-stop-on-failure
+Stop after the first failed or broken executable example.
+.TP
+.BR \-\-auto-check-predictions , " " \-\-no-auto-check-predictions
+Enable or disable automatic Prophecy prediction verification. It is enabled by default.
+.TP
+.BI \-\-formatter " name"
+Select
+.BR progress ,
+.BR pretty ,
+.BR json ,
+or a discovered formatter. JSON reserves standard output for one JSON document.
+.TP
+.BI \-\-profile " profile"
+Select
+.BR java8 ,
+.BR java11 ,
+.BR java17 ,
+.BR java21 ,
+or
+.BR java25 .
+.TP
+.B \-\-verbose
+Print the effective run configuration before discovery.
+.TP
+.BI \-\-report " file"
+Write a UTF-8 JSON example-run report.
+.B \-\-report-file
+is an alias.
+.TP
+.BI \-\-generation-report " file"
+Always write a deterministic UTF-8 generation outcome report, including dry-run and failed pipelines.
+.TP
+.BI \-\-junit-xml " file"
+Write a UTF-8 JUnit XML-compatible report.
+.B \-\-junit-xml-file
+is an alias.
+.TP
+.BI \-\-constructor-policy " policy"
+Choose
+.BR delete ,
+.BR preserve ,
+or
+.BR comment .
+The default is
+.BR comment .
+.TP
+.BI \-\-class " name"
+Filter by described or specification class. Repeatable.
+.TP
+.BI \-\-example " name"
+Filter by example method, display name, or source-order index. Repeatable.
+.SH PROPHESIZE OPTIONS
+.TP
+.BI \-\-output " dir"
+Generated wrapper destination. The default is
+.BR target/generated-sources/javaspec .
+.TP
+.BI \-\-package " name"
+Set the generated wrapper package.
+.TP
+.B \-\-overwrite
+Replace an existing generated wrapper.
+.TP
+.B \-\-dry-run
+Print generated source without writing it.
+.SH GENERATION SAFETY
+Generation is mechanical and fail-closed. Production writes require explicit authorization and are atomic where the filesystem supports it. Generated method bodies contain a
+.B // javaspec:stub
+marker; a compiled run remains BROKEN until those stubs are implemented. Ambiguous source or type evidence is refused before writes.
+.SH EXIT STATUS
+.TP
+.B 0
+Successful run, including skipped-only or pending-only examples when no generation work remains.
+.TP
+.B 1
+Failed or broken examples, declined or pending generation work, or compilation failure.
+.TP
+.B 64
+Usage, profile, compiler availability, bootstrap, or compatibility error.
+.TP
+.B 70
+Input/output or security-related file error.
+.SH FILES
+.TP
+.B src/test/java
+Default specification root.
+.TP
+.B src/main/java
+Default production source root.
+.TP
+.B target/generated-sources/javaspec
+Default generated support and Prophecy wrapper root.
+.TP
+.B target/javaspec-classes
+Default CLI compilation output.
+.SH EXAMPLES
+Create a specification, generate missing mechanical scaffolding, compile, and run:
+.PP
+.nf
+javaspec describe com.example.PriceCalculator
+javaspec run --generate --compile --formatter pretty
+.fi
+.PP
+Check generation without changing the workspace:
+.PP
+.nf
+javaspec run --dry-run \
+  --generation-report target/javaspec-generation.json
+.fi
+.PP
+Run one example under the Java 21 profile:
+.PP
+.nf
+javaspec run --profile java21 --class PriceCalculator \
+  --example it_calculates_total --compile
+.fi
+.SH SEE ALSO
+README.md, docs/usermanual/Home.md, docs/generation-contract-1.0.md, docs/result-contract-1.0.md, docs/troubleshooting.md
+.SH BUGS
+Report issues at https://github.com/mgiustiniani/javaspec/issues

@@ -104,6 +104,49 @@ public class JavaspecGenerateMojoTest {
         assertNoStub(recordSource, enumSource, recordSupport, enumSupport);
     }
 
+    @Test
+    public void cleanGenerationPreservesNestedRecordComponentOwnerQualification() throws Exception {
+        assumeTrue(javaSpecificationVersion() >= 21);
+        File basedir = temporaryFolder.newFolder("nested-state-consumer");
+        File sourceRoot = new File(basedir, "src/main/java");
+        File specRoot = new File(basedir, "src/test/java");
+        File generatedRoot = new File(basedir, "target/generated-sources/javaspec");
+        File subject = write(sourceRoot, "com/example/NestedStateRecord.java",
+                "package com.example;\n\n" +
+                "public record NestedStateRecord(NestedStateRecord.State state) {\n" +
+                "    public enum State { OPEN, CLOSED }\n" +
+                "}\n");
+        File spec = write(specRoot, "spec/com/example/NestedStateRecordSpec.java",
+                "package spec.com.example;\n\n" +
+                "import com.example.NestedStateRecord;\n" +
+                "import com.example.NestedStateRecord.State;\n\n" +
+                "public class NestedStateRecordSpec extends NestedStateRecordSpecSupport {\n" +
+                "    public void it_preserves_nested_state() {\n" +
+                "        State state = State.OPEN;\n" +
+                "        shouldBeARecord();\n" +
+                "        beConstructedWith(state);\n" +
+                "        state().shouldReturn(state);\n" +
+                "    }\n" +
+                "}\n");
+        MavenProject project = new MavenProject();
+        JavaspecGenerateMojo mojo = mojo(basedir, sourceRoot, specRoot, generatedRoot, project);
+
+        mojo.execute();
+
+        File support = new File(generatedRoot, "spec/com/example/NestedStateRecordSpecSupport.java");
+        assertTrue(support.isFile());
+        String generated = new String(Files.readAllBytes(support.toPath()), StandardCharsets.UTF_8);
+        assertTrue(generated, generated.contains("beConstructedWith((NestedStateRecord.State) null);"));
+        assertTrue(generated, generated.contains("Matchable<NestedStateRecord.State> state()"));
+        assertFalse(generated, generated.contains("com.example.State"));
+        compileAndRunNestedState(subject, support, spec);
+
+        String firstHash = sha256(support);
+        mojo.execute();
+        assertEquals(firstHash, sha256(support));
+        assertTrue(project.getTestCompileSourceRoots().contains(generatedRoot.getAbsolutePath()));
+    }
+
     private JavaspecGenerateMojo mojo(
             File basedir,
             File sourceRoot,
@@ -145,6 +188,22 @@ public class JavaspecGenerateMojoTest {
         try {
             runExample(loader, "spec.com.example.CertificateProfileIdSpec", "it_exposes_the_complete_identifier");
             runExample(loader, "spec.com.example.SubjectPublicKeyProfileSpec", "it_preserves_the_enriched_enum_contract");
+        } finally {
+            loader.close();
+        }
+    }
+
+    private void compileAndRunNestedState(File... sources) throws Exception {
+        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+        File outputDirectory = temporaryFolder.newFolder("nested-state-green-classes");
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        List<String> arguments = compilerArguments(outputDirectory, sources);
+        int exit = compiler.run(null, output, output, arguments.toArray(new String[arguments.size()]));
+        assertEquals(new String(output.toByteArray(), StandardCharsets.UTF_8), 0, exit);
+        URLClassLoader loader = new URLClassLoader(
+                new URL[] {outputDirectory.toURI().toURL()}, getClass().getClassLoader());
+        try {
+            runExample(loader, "spec.com.example.NestedStateRecordSpec", "it_preserves_nested_state");
         } finally {
             loader.close();
         }

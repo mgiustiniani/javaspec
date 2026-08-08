@@ -1,0 +1,238 @@
+.TH JAVASPEC 1 "Juli 2026" "javaspec" "Benutzerbefehle"
+.SH NAME
+javaspec \- subjektzentriertes, von PHPSpec inspiriertes SpecBDD für Java
+.SH ÜBERSICHT
+.B javaspec describe
+.I Klassenname
+.RI [ Optionen ]
+.br
+.B javaspec desc
+.I Klassenname
+.RI [ Optionen ]
+.br
+.B javaspec run
+.RI [ Optionen ]
+.br
+.B javaspec prophesize
+.I FQCN
+.RI [ Optionen ]
+.br
+.B javaspec list-extensions
+.br
+.B javaspec
+.RB [ \-h | \-\-help ]
+.SH BESCHREIBUNG
+.B javaspec
+ist ein subjektzentriertes, von PHPSpec inspiriertes Spezifikationswerkzeug für Java. Spezifikationen verwenden öffentliche
+.B it_*
+oder
+.B its_*
+Beispiele, Lebenszyklusmethoden wie
+.B let
+und
+.BR letGo ,
+Konstruktionshilfen,
+.B subject()
+und fließende
+.B should*
+Erwartungen.
+.PP
+Der Kern läuft unter Java 8 und besitzt keine Laufzeitabhängigkeiten von Drittanbietern. Optionale Adapter für Maven, Gradle, JUnit Platform, bytecode-doubles und bytecode-agent werden separat ausgeliefert.
+.PP
+.B describe
+erzeugt nur Gerüste für Spezifikation und generierte Unterstützung, niemals Produktionscode.
+.B run
+findet Spezifikationen, plant oder übernimmt autorisierte Generierung, kann Quellen kompilieren, führt Beispiele aus und schreibt Berichte.
+.SH BEFEHLE
+.TP
+.B describe, desc
+Erzeugt ein PHPSpec-artiges Spezifikationsgerüst für
+.IR Klassenname .
+.B desc
+ist ein Alias.
+.TP
+.B run
+Findet und führt Spezifikationen aus. Schreibvorgänge benötigen eine Bestätigung oder
+.BR \-\-generate .
+.TP
+.B prophesize
+Erzeugt einen typisierten
+.B *Prophecy
+Wrapper für eine Schnittstelle oder konkrete Klasse.
+.TP
+.B list-extensions
+Listet eingebaute und über ServiceLoader gefundene Formatierer und Erweiterungen sowie Hinweise zur Classpath-Reparatur auf.
+.SH ALLGEMEINE OPTIONEN
+.TP
+.BR \-h , " " \-\-help
+Zeigt die Hilfe an.
+.TP
+.BI \-\-config " Datei"
+Lädt die zeilenbasierte javaspec-Konfiguration.
+.TP
+.BI \-\-suite " Name"
+Wählt eine konfigurierte Suite.
+.TP
+.BI \-\-spec-dir " Verzeichnis"
+Verwendet das angegebene Wurzelverzeichnis der Spezifikationsquellen. Standard ist
+.BR src/test/java .
+.B \-\-spec-root
+ist ein Alias.
+.SH RUN-OPTIONEN
+.TP
+.BI \-\-source-dir " Verzeichnis"
+Verwendet das angegebene Wurzelverzeichnis der Produktionsquellen. Standard ist
+.BR src/main/java .
+.B \-\-source-root
+ist ein Alias.
+.TP
+.BI \-\-classpath " Pfade"
+Fügt explizite Classpath-Einträge hinzu, getrennt durch das plattformspezifische Trennzeichen.
+.TP
+.BI \-\-classpath-file " Datei"
+Liest UTF-8-Classpath-Einträge, einen pro nicht leerer und nicht auskommentierter Zeile.
+.TP
+.BI \-\-resolve-pom " pom.xml"
+Löst Laufzeitabhängigkeiten aus dem lokalen Maven-Repository oder über einen konfigurierten Resolver auf.
+.TP
+.B \-\-compile
+Kompiliert Produktions- und Spezifikationsquellen vor der Ausführung.
+.TP
+.BI \-\-compile-output " Verzeichnis"
+Schreibt kompilierte Klassen in das angegebene Verzeichnis und impliziert
+.BR \-\-compile .
+Standard ist
+.BR target/javaspec-classes .
+.TP
+.BI \-\-release " N"
+Kompiliert für Java-Release
+.IR N .
+Erfordert Kompilierung.
+.TP
+.B \-\-generate
+Autorisiert nichtinteraktiv Schreibvorgänge an Produktions- und generiertem Unterstützungscode.
+.TP
+.B \-\-dry-run
+Plant Generierung und Aktualisierungen, ohne zu schreiben, nachzufragen oder zu kompilieren.
+.TP
+.B \-\-stop-on-failure
+Beendet nach dem ersten fehlgeschlagenen oder defekten ausführbaren Beispiel.
+.TP
+.BR \-\-auto-check-predictions , " " \-\-no-auto-check-predictions
+Aktiviert oder deaktiviert die automatische Prüfung von Prophecy-Vorhersagen. Standardmäßig aktiviert.
+.TP
+.BI \-\-formatter " Name"
+Wählt
+.BR progress ,
+.BR pretty ,
+.BR json
+oder einen gefundenen Formatierer. JSON reserviert die Standardausgabe für genau ein JSON-Dokument.
+.TP
+.BI \-\-profile " Profil"
+Wählt
+.BR java8 ,
+.BR java11 ,
+.BR java17 ,
+.BR java21
+oder
+.BR java25 .
+.TP
+.B \-\-verbose
+Zeigt die effektive Konfiguration vor der Erkennung an.
+.TP
+.BI \-\-report " Datei"
+Schreibt einen UTF-8-JSON-Ausführungsbericht.
+.B \-\-report-file
+ist ein Alias.
+.TP
+.BI \-\-generation-report " Datei"
+Schreibt immer einen deterministischen UTF-8-Generierungsbericht, auch für Dry-Runs und fehlgeschlagene Abläufe.
+.TP
+.BI \-\-junit-xml " Datei"
+Schreibt einen UTF-8-Bericht im JUnit-XML-kompatiblen Format.
+.B \-\-junit-xml-file
+ist ein Alias.
+.TP
+.BI \-\-constructor-policy " Regel"
+Wählt
+.BR delete ,
+.BR preserve
+oder
+.BR comment .
+Standard ist
+.BR comment .
+.TP
+.BI \-\-class " Name"
+Filtert nach beschriebener oder Spezifikationsklasse. Wiederholbar.
+.TP
+.BI \-\-example " Name"
+Filtert nach Beispielmethode, Anzeigename oder Quellreihenfolge. Wiederholbar.
+.SH PROPHESIZE-OPTIONEN
+.TP
+.BI \-\-output " Verzeichnis"
+Ziel des generierten Wrappers. Standard ist
+.BR target/generated-sources/javaspec .
+.TP
+.BI \-\-package " Name"
+Legt das Paket des generierten Wrappers fest.
+.TP
+.B \-\-overwrite
+Ersetzt einen vorhandenen generierten Wrapper.
+.TP
+.B \-\-dry-run
+Gibt den generierten Quelltext aus, ohne ihn zu schreiben.
+.SH GENERIERUNGSSICHERHEIT
+Die Generierung ist mechanisch und fail-closed. Schreibvorgänge im Produktionscode erfordern eine ausdrückliche Autorisierung und erfolgen atomar, soweit das Dateisystem dies unterstützt. Generierte Methodenkörper enthalten die Markierung
+.B // javaspec:stub
+und ein kompilierter Lauf bleibt BROKEN, bis die Stubs implementiert sind. Mehrdeutige Quell- oder Typinformationen werden vor Schreibvorgängen abgelehnt.
+.SH BEENDIGUNGSSTATUS
+.TP
+.B 0
+Erfolgreicher Lauf, einschließlich ausschließlich übersprungener oder ausstehender Beispiele, wenn keine Generierung offen ist.
+.TP
+.B 1
+Fehlgeschlagene oder defekte Beispiele, abgelehnte oder ausstehende Generierung oder Kompilierungsfehler.
+.TP
+.B 64
+Fehler bei Verwendung, Profil, Compilerverfügbarkeit, Bootstrap oder Kompatibilität.
+.TP
+.B 70
+Ein-/Ausgabe- oder sicherheitsbezogener Dateifehler.
+.SH DATEIEN
+.TP
+.B src/test/java
+Standardwurzel der Spezifikationen.
+.TP
+.B src/main/java
+Standardwurzel der Produktionsquellen.
+.TP
+.B target/generated-sources/javaspec
+Standardwurzel für generierte Unterstützung und Prophecy-Wrapper.
+.TP
+.B target/javaspec-classes
+Standardausgabe der CLI-Kompilierung.
+.SH BEISPIELE
+Eine Spezifikation erstellen, Gerüste generieren, kompilieren und ausführen:
+.PP
+.nf
+javaspec describe com.example.PriceCalculator
+javaspec run --generate --compile --formatter pretty
+.fi
+.PP
+Generierung prüfen, ohne den Arbeitsbereich zu ändern:
+.PP
+.nf
+javaspec run --dry-run \
+  --generation-report target/javaspec-generation.json
+.fi
+.PP
+Ein Beispiel unter dem Java-21-Profil ausführen:
+.PP
+.nf
+javaspec run --profile java21 --class PriceCalculator \
+  --example it_calculates_total --compile
+.fi
+.SH SIEHE AUCH
+README.md, docs/usermanual/Home.md, docs/generation-contract-1.0.md, docs/result-contract-1.0.md, docs/troubleshooting.md
+.SH FEHLER
+Probleme melden unter https://github.com/mgiustiniani/javaspec/issues

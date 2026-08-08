@@ -3,11 +3,13 @@ package io.github.jvmspec.generation;
 import io.github.jvmspec.cli.run.GenerationOrchestrator;
 import io.github.jvmspec.cli.run.GenerationOrchestratorResult;
 import io.github.jvmspec.discovery.DiscoveredSpec;
+import io.github.jvmspec.discovery.ProductionSignatureReader;
 import io.github.jvmspec.discovery.SpecNamingConvention;
 import io.github.jvmspec.discovery.SpecDiscovery;
 import io.github.jvmspec.model.ConstructorDescriptor;
 import io.github.jvmspec.model.DescribedType;
 import io.github.jvmspec.model.JavaTypeKind;
+import io.github.jvmspec.model.MethodDescriptor;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -17,16 +19,23 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.PrintStream;
 import java.io.StringReader;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
+
+import javax.tools.JavaCompiler;
+import javax.tools.ToolProvider;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 public class RecordComponentInferenceTest {
     @Rule
@@ -85,6 +94,190 @@ public class RecordComponentInferenceTest {
         assertFalse(generated.contains(" serverAuth"));
         assertFalse(generated.contains(" ACTIVE"));
         assertFalse(generated.contains(" -2"));
+    }
+
+    @Test
+    public void accessorEvidenceOverridesSixLocalNamesAndPreservesGenericTypes() throws Exception {
+        File specRoot = temporaryFolder.newFolder("aggregate-spec");
+        File specFile = new File(specRoot, "spec/com/example/CertificateProfileSpec.java");
+        assertTrue(specFile.getParentFile().mkdirs());
+        String source = "package spec.com.example;\n" +
+                "import com.example.BasicConstraints;\n" +
+                "import com.example.ExtendedKeyUsage;\n" +
+                "import com.example.KeyUsage;\n" +
+                "import com.example.SubjectPublicKeyProfile;\n" +
+                "import com.example.SubjectTemplate;\n" +
+                "import com.example.ValidityDays;\n" +
+                "import java.util.List;\n" +
+                "public class CertificateProfileSpec extends CertificateProfileSpecSupport {\n" +
+                "    public void it_forms_the_profile() {\n" +
+                "        SubjectTemplate subject = null;\n" +
+                "        List<SubjectPublicKeyProfile> publicKeys = List." +
+                "of(SubjectPublicKeyProfile.RSA_3072);\n" +
+                "        ValidityDays validity = null;\n" +
+                "        List<KeyUsage> keyUsages = null;\n" +
+                "        List<ExtendedKeyUsage> extendedKeyUsages = null;\n" +
+                "        BasicConstraints constraints = null;\n" +
+                "        shouldBeARecord();\n" +
+                "        beConstructedWith(subject, publicKeys, validity, keyUsages, extendedKeyUsages, constraints);\n" +
+                "        subjectTemplate().shouldReturn(subject);\n" +
+                "        publicKeyAlgorithms().shouldReturn(List." +
+                "of(SubjectPublicKeyProfile.RSA_3072));\n" +
+                "        validityDays().shouldReturn(validity);\n" +
+                "        keyUsages().shouldReturn(keyUsages);\n" +
+                "        extendedKeyUsages().shouldReturn(extendedKeyUsages);\n" +
+                "        basicConstraints().shouldReturn(constraints);\n" +
+                "    }\n" +
+                "}\n";
+        Files.write(specFile.toPath(), source.getBytes(StandardCharsets.UTF_8));
+
+        DescribedType type = SpecDiscovery.discover(specRoot).get(0).describedType();
+
+        assertEquals(Arrays.asList(
+                "subjectTemplate", "publicKeyAlgorithms", "validityDays",
+                "keyUsages", "extendedKeyUsages", "basicConstraints"),
+                constructor(type).parameterNames());
+        assertEquals(Arrays.asList(
+                "com.example.SubjectTemplate",
+                "java.util.List<com.example.SubjectPublicKeyProfile>",
+                "com.example.ValidityDays",
+                "java.util.List<com.example.KeyUsage>",
+                "java.util.List<com.example.ExtendedKeyUsage>",
+                "com.example.BasicConstraints"), constructor(type).parameterTypes());
+        String skeleton = TypeSkeletonGenerator.render(type);
+        assertTrue(skeleton, skeleton.contains("SubjectTemplate subjectTemplate"));
+        assertTrue(skeleton, skeleton.contains("List<SubjectPublicKeyProfile> publicKeyAlgorithms"));
+        assertFalse(skeleton, skeleton.contains("javaspec:stub"));
+        String support = SpecSkeletonGenerator.renderSupport(type);
+        assertTrue(support, support.contains("import com.example.SubjectPublicKeyProfile;"));
+        assertTrue(support, support.contains("import com.example.KeyUsage;"));
+        assertTrue(support, support.contains("import com.example.ExtendedKeyUsage;"));
+        assertTrue(support, support.contains("Matchable<List<SubjectPublicKeyProfile>> publicKeyAlgorithms()"));
+        assertFalse(support, support.contains("Matchable<List>"));
+        assertFalse(support, support.contains("javaspec:stub"));
+        File supportRoot = temporaryFolder.newFolder("aggregate-support");
+        SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(
+                type, specRoot, supportRoot, SpecNamingConvention.defaults());
+        SpecSupportFileGenerator.SupportWriteResult firstWrite =
+                SpecSupportFileGenerator.writeOrUpdateResult(supportPlan);
+        String firstSupport = new String(Files.readAllBytes(firstWrite.file().toPath()), StandardCharsets.UTF_8);
+        SpecSupportFileGenerator.SupportWriteResult secondWrite =
+                SpecSupportFileGenerator.writeOrUpdateResult(supportPlan);
+        assertTrue(firstWrite.changed());
+        assertFalse(secondWrite.changed());
+        assertEquals(firstSupport,
+                new String(Files.readAllBytes(secondWrite.file().toPath()), StandardCharsets.UTF_8));
+        if (javaSpecificationVersion() >= 17) {
+            compileAndRunAggregate(specFile, skeleton, support);
+        }
+    }
+
+    @Test
+    public void accessorValueExpressionMayDifferWhenItsStructuredGenericTypeUniquelyIdentifiesTheComponent() throws Exception {
+        File specRoot = temporaryFolder.newFolder("aggregate-value-expression-spec");
+        File specFile = new File(specRoot, "spec/com/example/CertificateProfileSpec.java");
+        assertTrue(specFile.getParentFile().mkdirs());
+        String source = "package spec.com.example;\n" +
+                "import com.example.ExtendedKeyUsage;\n" +
+                "import com.example.KeyUsage;\n" +
+                "import com.example.SubjectPublicKeyProfile;\n" +
+                "import java.util.List;\n" +
+                "public class CertificateProfileSpec extends CertificateProfileSpecSupport {\n" +
+                "    public void it_forms_the_profile() {\n" +
+                "        List<SubjectPublicKeyProfile> publicKeys = List." +
+                "of(SubjectPublicKeyProfile.RSA_3072);\n" +
+                "        List<KeyUsage> keyUsages = List." +
+                "of(KeyUsage.digitalSignature);\n" +
+                "        List<ExtendedKeyUsage> extendedKeyUsages = List." +
+                "of(ExtendedKeyUsage.serverAuth);\n" +
+                "        shouldBeARecord();\n" +
+                "        beConstructedWith(publicKeys, keyUsages, extendedKeyUsages);\n" +
+                "        publicKeyAlgorithms().shouldReturn(List." +
+                "of(SubjectPublicKeyProfile.EC_P256));\n" +
+                "        keyUsages().shouldReturn(List." +
+                "of(KeyUsage.keyEncipherment));\n" +
+                "        extendedKeyUsages().shouldReturn(List." +
+                "of(ExtendedKeyUsage.clientAuth));\n" +
+                "    }\n" +
+                "}\n";
+        Files.write(specFile.toPath(), source.getBytes(StandardCharsets.UTF_8));
+
+        DescribedType type = SpecDiscovery.discover(specRoot).get(0).describedType();
+
+        assertEquals(Arrays.asList("publicKeyAlgorithms", "keyUsages", "extendedKeyUsages"),
+                constructor(type).parameterNames());
+        assertEquals(Arrays.asList(
+                "java.util.List<com.example.SubjectPublicKeyProfile>",
+                "java.util.List<com.example.KeyUsage>",
+                "java.util.List<com.example.ExtendedKeyUsage>"), constructor(type).parameterTypes());
+        String skeleton = TypeSkeletonGenerator.render(type);
+        assertTrue(skeleton, skeleton.contains("List<SubjectPublicKeyProfile> publicKeyAlgorithms"));
+        assertFalse(skeleton, skeleton.contains("publicKeys"));
+        assertFalse(skeleton, skeleton.contains("javaspec:stub"));
+    }
+
+    @Test
+    public void nestedRecordComponentTypeRemainsOwnerQualifiedInFreshGeneratedSupport() throws Exception {
+        assumeTrue(javaSpecificationVersion() >= 17);
+        File sourceRoot = temporaryFolder.newFolder("nested-state-production");
+        File specRoot = temporaryFolder.newFolder("nested-state-spec");
+        File generatedRoot = temporaryFolder.newFolder("nested-state-generated");
+        File classes = temporaryFolder.newFolder("nested-state-fresh-classes");
+        File subjectFile = writeSource(sourceRoot, "com/example/NestedStateRecord.java",
+                "package com.example;\n\n" +
+                "public record NestedStateRecord(NestedStateRecord.State state) {\n" +
+                "    public enum State { OPEN, CLOSED }\n" +
+                "}\n");
+        File specFile = writeSource(specRoot, "spec/com/example/NestedStateRecordSpec.java",
+                "package spec.com.example;\n\n" +
+                "import com.example.NestedStateRecord;\n" +
+                "import com.example.NestedStateRecord.State;\n\n" +
+                "public class NestedStateRecordSpec extends NestedStateRecordSpecSupport {\n" +
+                "    public void it_preserves_nested_state_type() {\n" +
+                "        State state = State.OPEN;\n" +
+                "        shouldBeARecord();\n" +
+                "        beConstructedWith(state);\n" +
+                "        state().shouldReturn(state);\n" +
+                "    }\n" +
+                "}\n");
+
+        DescribedType discovered = SpecDiscovery.discover(specRoot).get(0).describedType();
+        DescribedType refined = ProductionSignatureReader.refine(discovered, sourceRoot);
+        assertEquals(Arrays.asList("com.example.NestedStateRecord.State"),
+                constructor(refined).parameterTypes());
+        assertEquals(Arrays.asList(MethodDescriptor.of(
+                "state", "com.example.NestedStateRecord.State")), refined.methods());
+
+        SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(
+                refined, specRoot, generatedRoot, SpecNamingConvention.defaults());
+        File supportFile = SpecSupportFileGenerator.writeOrUpdateResult(supportPlan).file();
+        String support = new String(Files.readAllBytes(supportFile.toPath()), StandardCharsets.UTF_8);
+        assertTrue(support, support.contains("import com.example.NestedStateRecord;"));
+        assertFalse(support, support.contains("import com.example.NestedStateRecord.State;"));
+        assertTrue(support, support.contains(
+                "beConstructedWith((NestedStateRecord.State) null);"));
+        assertTrue(support, support.contains(
+                "Matchable<NestedStateRecord.State> state()"));
+        assertTrue(support, support.contains(
+                "shouldHaveState(NestedStateRecord.State expected)"));
+        assertTrue(support, support.contains(
+                "shouldNotHaveState(NestedStateRecord.State unexpected)"));
+        assertFalse(support, support.contains("com.example.State"));
+
+        compileFresh(classes, subjectFile, supportFile, specFile);
+    }
+
+    @Test
+    public void recordAccessorMatchingNeverErasesGenericArguments() {
+        RecordComponentPlanner.Component publicKeys = new RecordComponentPlanner.Component(
+                "java.util.List<com.example.SubjectPublicKeyProfile>", "publicKeyAlgorithms");
+        MethodDescriptor wrongGenericAccessor = MethodDescriptor.of(
+                "publicKeyAlgorithms", "java.util.List<com.example.KeyUsage>");
+        MethodDescriptor exactGenericAccessor = MethodDescriptor.of(
+                "publicKeyAlgorithms", "java.util.List<com.example.SubjectPublicKeyProfile>");
+
+        assertFalse(RecordComponentPlanner.isImplicitAccessor(publicKeys, wrongGenericAccessor));
+        assertTrue(RecordComponentPlanner.isImplicitAccessor(publicKeys, exactGenericAccessor));
     }
 
     @Test
@@ -155,6 +348,80 @@ public class RecordComponentInferenceTest {
         );
 
         assertAmbiguousName(type, 0, "boolean", "illegal Java identifier");
+    }
+
+    private void compileAndRunAggregate(File specFile, String subjectSource, String supportSource) throws Exception {
+        File sourceRoot = temporaryFolder.newFolder("aggregate-production");
+        File generatedRoot = temporaryFolder.newFolder("aggregate-generated");
+        List<File> sources = new ArrayList<File>();
+        sources.add(writeSource(sourceRoot, "com/example/CertificateProfile.java", subjectSource));
+        sources.add(writeSource(generatedRoot, "spec/com/example/CertificateProfileSpecSupport.java", supportSource));
+        sources.add(specFile);
+        String[] names = {
+                "SubjectTemplate", "SubjectPublicKeyProfile", "ValidityDays",
+                "KeyUsage", "ExtendedKeyUsage", "BasicConstraints"
+        };
+        for (int i = 0; i < names.length; i++) {
+            String declaration = "SubjectPublicKeyProfile".equals(names[i])
+                    ? "public enum SubjectPublicKeyProfile { RSA_3072, EC_P256 }"
+                    : "public final class " + names[i] + " { }";
+            sources.add(writeSource(sourceRoot, "com/example/" + names[i] + ".java",
+                    "package com.example; " + declaration + "\n"));
+        }
+        File classes = temporaryFolder.newFolder("aggregate-classes");
+        List<String> arguments = new ArrayList<String>();
+        arguments.add("--release");
+        arguments.add("17");
+        arguments.add("-classpath");
+        arguments.add(System.getProperty("java.class.path"));
+        arguments.add("-d");
+        arguments.add(classes.getAbsolutePath());
+        for (int i = 0; i < sources.size(); i++) arguments.add(sources.get(i).getAbsolutePath());
+        ByteArrayOutputStream compilerOutput = new ByteArrayOutputStream();
+        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+        int exit = compiler.run(null, compilerOutput, compilerOutput,
+                arguments.toArray(new String[arguments.size()]));
+        assertEquals(new String(compilerOutput.toByteArray(), StandardCharsets.UTF_8), 0, exit);
+        URLClassLoader loader = new URLClassLoader(new URL[] {classes.toURI().toURL()}, getClass().getClassLoader());
+        try {
+            Class<?> specClass = Class.forName("spec.com.example.CertificateProfileSpec", true, loader);
+            Object spec = specClass.newInstance();
+            specClass.getMethod("it_forms_the_profile").invoke(spec);
+        } finally {
+            loader.close();
+        }
+    }
+
+    private static void compileFresh(File classes, File... sources) throws Exception {
+        List<String> arguments = new ArrayList<String>();
+        arguments.add("--release");
+        arguments.add("17");
+        arguments.add("-classpath");
+        arguments.add(System.getProperty("java.class.path"));
+        arguments.add("-d");
+        arguments.add(classes.getAbsolutePath());
+        for (int i = 0; i < sources.length; i++) {
+            arguments.add(sources[i].getAbsolutePath());
+        }
+        ByteArrayOutputStream compilerOutput = new ByteArrayOutputStream();
+        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+        int exit = compiler.run(null, compilerOutput, compilerOutput,
+                arguments.toArray(new String[arguments.size()]));
+        assertEquals(new String(compilerOutput.toByteArray(), StandardCharsets.UTF_8), 0, exit);
+    }
+
+    private static File writeSource(File root, String relativePath, String source) throws Exception {
+        File file = new File(root, relativePath);
+        assertTrue(file.getParentFile().mkdirs() || file.getParentFile().isDirectory());
+        Files.write(file.toPath(), source.getBytes(StandardCharsets.UTF_8));
+        return file;
+    }
+
+    private static int javaSpecificationVersion() {
+        String value = System.getProperty("java.specification.version", "8");
+        if (value.startsWith("1.")) value = value.substring(2);
+        int dot = value.indexOf('.');
+        return Integer.parseInt(dot < 0 ? value : value.substring(0, dot));
     }
 
     private void assertAmbiguousName(DescribedType type, int index, String componentType, String reason) {

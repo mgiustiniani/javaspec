@@ -1,5 +1,8 @@
 package io.github.jvmspec.model;
 
+import io.github.jvmspec.internal.type.ConstructorSignature;
+import io.github.jvmspec.internal.type.JavaTypeResolutionContext;
+
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -103,6 +106,47 @@ public class ConstructorDescriptorTest {
         assertFalse(a.equals(c));
         assertFalse(a.equals(null));
         assertFalse(a.equals("string"));
+    }
+
+    @Test
+    public void signatureIdentityIgnoresNamesAndBodiesWithoutChangingStructuralEquality() {
+        ConstructorDescriptor first = ConstructorDescriptor.of(
+                Arrays.asList("java.util.Map<String, String>"),
+                Arrays.asList("firstMap"), "this.value = firstMap;");
+        ConstructorDescriptor second = ConstructorDescriptor.of(
+                Arrays.asList("java.util.Map<String, String>"),
+                Arrays.asList("secondMap"), "");
+
+        assertFalse("descriptor structural equality must remain unchanged", first.equals(second));
+        assertEquals(
+                ConstructorSignature.of("com.example.Subject", first),
+                ConstructorSignature.of("com.example.Subject", second));
+    }
+
+    @Test
+    public void constructorSignatureNormalizesVarargsArraysAndGenericErasureAfterResolution() {
+        JavaTypeResolutionContext context = JavaTypeResolutionContext.fromSource(
+                "package com.example;\nimport java.util.Map;\n");
+        ConstructorSignature strings = ConstructorSignature.of(
+                "com.example.Subject", Arrays.asList(
+                        context.resolveErased("java.util.Map<String, String>"),
+                        context.resolveErased("String...")));
+        ConstructorSignature integers = ConstructorSignature.of(
+                "com.example.Subject", Arrays.asList(
+                        context.resolveErased("Map<String, Integer>"),
+                        context.resolveErased("java.lang.String[]")));
+
+        assertEquals(strings, integers);
+    }
+
+    @Test
+    public void constructorSignaturePreservesDistinctQualifiedTypeIdentity() {
+        ConstructorSignature first = ConstructorSignature.of(
+                "com.example.Subject", Arrays.asList("a.Token"));
+        ConstructorSignature second = ConstructorSignature.of(
+                "com.example.Subject", Arrays.asList("b.Token"));
+
+        assertFalse(first.equals(second));
     }
 
     @Test

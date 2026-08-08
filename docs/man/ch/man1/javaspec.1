@@ -1,0 +1,250 @@
+.TH JAVASPEC 1 "2026年7月" "javaspec" "用户命令"
+.na
+.SH 名称
+javaspec \- 受 PHPSpec 启发、以被测对象为中心的 Java SpecBDD 工具
+.SH 用法
+.B javaspec describe
+.I 类名
+.RI [ 选项 ]
+.br
+.B javaspec desc
+.I 类名
+.RI [ 选项 ]
+.br
+.B javaspec run
+.RI [ 选项 ]
+.br
+.B javaspec prophesize
+.I 完全限定类名
+.RI [ 选项 ]
+.br
+.B javaspec list-extensions
+.br
+.B javaspec
+.RB [ \-h | \-\-help ]
+.SH 描述
+.B javaspec
+是一个受 PHPSpec 启发、以被测对象为中心的 Java 规格工具。规格使用公开的
+.B it_*
+或
+.B its_*
+示例、
+.B let
+和
+.B letGo
+等生命周期方法、构造辅助方法、
+.B subject()
+以及流式
+.B should*
+断言。
+.PP
+核心兼容 Java 8，并且没有第三方运行时依赖。可选的 Maven、Gradle、JUnit Platform、bytecode-doubles 和 bytecode-agent 适配器单独发布。
+.PP
+.B describe
+只创建规格和生成支持代码的骨架，绝不创建生产代码。
+.B run
+发现规格、规划或应用已授权的生成操作、按需编译源代码、执行示例并写出报告。
+.SH 命令
+.TP
+.B describe, desc
+为
+.I 类名
+创建 PHPSpec 风格的规格骨架。
+.B desc
+是别名。
+.TP
+.B run
+发现并执行规格。写操作需要交互确认或使用
+.BR \-\-generate 。
+.TP
+.B prophesize
+为接口或具体类生成类型安全的
+.B *Prophecy
+包装器。
+.TP
+.B list-extensions
+列出内置以及通过 ServiceLoader 发现的格式化器和扩展，并显示 classpath 修复提示。
+.SH 通用选项
+.TP
+.BR \-h , " " \-\-help
+显示帮助。
+.TP
+.BI \-\-config " 文件"
+加载基于行的 javaspec 配置文件。
+.TP
+.BI \-\-suite " 名称"
+选择已配置的套件。
+.TP
+.BI \-\-spec-dir " 目录"
+使用指定的规格源码根目录。默认值是
+.BR src/test/java 。
+.B \-\-spec-root
+是别名。
+.SH RUN 选项
+.TP
+.BI \-\-source-dir " 目录"
+使用指定的生产源码根目录。默认值是
+.BR src/main/java 。
+.B \-\-source-root
+是别名。
+.TP
+.BI \-\-classpath " 路径"
+添加显式 classpath 项，各项使用平台路径分隔符分隔。
+.TP
+.BI \-\-classpath-file " 文件"
+读取 UTF-8 classpath 项；每个非空、非注释行一项。
+.TP
+.BI \-\-resolve-pom " pom.xml"
+从本地 Maven 仓库或已配置的依赖解析器解析运行时依赖。
+.TP
+.B \-\-compile
+在执行前编译生产源码和规格源码。
+.TP
+.BI \-\-compile-output " 目录"
+把编译后的类写入指定目录，并隐含
+.BR \-\-compile 。
+默认值是
+.BR target/javaspec-classes 。
+.TP
+.BI \-\-release " N"
+针对 Java 版本
+.I N
+进行编译。需要启用编译。
+.TP
+.B \-\-generate
+以非交互方式授权生产代码和生成支持代码的写操作。
+.TP
+.B \-\-dry-run
+只规划生成和更新，不写文件、不询问也不编译。
+.TP
+.B \-\-stop-on-failure
+在第一个失败或损坏的可执行示例后停止。
+.TP
+.BR \-\-auto-check-predictions , " " \-\-no-auto-check-predictions
+启用或禁用 Prophecy 预测的自动验证。默认启用。
+.TP
+.BI \-\-formatter " 名称"
+选择
+.BR progress 、
+.BR pretty 、
+.BR json
+或发现的格式化器。JSON 模式独占标准输出并只输出一个 JSON 文档。
+.TP
+.BI \-\-profile " 配置档"
+选择
+.BR java8 、
+.BR java11 、
+.BR java17 、
+.BR java21
+或
+.BR java25 。
+.TP
+.B \-\-verbose
+在发现规格前显示实际运行配置。
+.TP
+.BI \-\-report " 文件"
+写出 UTF-8 JSON 示例运行报告。
+.B \-\-report-file
+是别名。
+.TP
+.BI \-\-generation-report " 文件"
+始终写出确定性的 UTF-8 生成结果报告，包括 dry-run 和失败的处理流程。
+.TP
+.BI \-\-junit-xml " 文件"
+写出兼容 JUnit XML 的 UTF-8 报告。
+.B \-\-junit-xml-file
+是别名。
+.TP
+.BI \-\-constructor-policy " 策略"
+选择
+.BR delete 、
+.BR preserve
+或
+.BR comment 。
+默认值是
+.BR comment 。
+.TP
+.BI \-\-class " 名称"
+按被描述类或规格类过滤。可重复使用。
+.TP
+.BI \-\-example " 名称"
+按示例方法、显示名称或源码顺序索引过滤。可重复使用。
+.SH PROPHESIZE 选项
+.TP
+.BI \-\-output " 目录"
+生成包装器的目标目录。默认值是
+.BR target/generated-sources/javaspec 。
+.TP
+.BI \-\-package " 名称"
+设置生成包装器的包名。
+.TP
+.B \-\-overwrite
+替换已有的生成包装器。
+.TP
+.B \-\-dry-run
+打印生成的源码但不写入文件。
+.SH 生成安全
+生成操作是机械式且默认关闭失败（fail-closed）的。
+.br
+生产代码写操作需要明确授权，并在文件系统支持时采用原子写入。
+.br
+生成的方法体包含
+.B // javaspec:stub
+标记；在这些桩代码被实现之前，编译运行保持 BROKEN 状态。
+.br
+含糊的源码或类型证据会在写入前被拒绝。
+.SH 退出状态
+.TP
+.B 0
+运行成功；当没有待处理生成工作时，也包括只有 skipped 或 pending 示例的情况。
+.TP
+.B 1
+示例 failed 或 broken、生成被拒绝或仍待处理，或者编译失败。
+.TP
+.B 64
+用法、配置档、编译器可用性、bootstrap 或兼容性错误。
+.TP
+.B 70
+文件输入/输出或安全相关错误。
+.SH 文件
+.TP
+.B src/test/java
+默认规格根目录。
+.TP
+.B src/main/java
+默认生产源码根目录。
+.TP
+.B target/generated-sources/javaspec
+默认生成支持代码和 Prophecy 包装器根目录。
+.TP
+.B target/javaspec-classes
+默认 CLI 编译输出目录。
+.SH 示例
+创建规格、生成机械骨架、编译并运行：
+.PP
+.nf
+javaspec describe com.example.PriceCalculator
+javaspec run --generate --compile --formatter pretty
+.fi
+.PP
+在不修改工作区的情况下检查生成计划：
+.PP
+.nf
+javaspec run --dry-run \
+  --generation-report target/javaspec-generation.json
+.fi
+.PP
+使用 Java 21 配置档运行一个示例：
+.PP
+.nf
+javaspec run --profile java21 --class PriceCalculator \
+  --example it_calculates_total --compile
+.fi
+.SH 另请参阅
+README.md、docs/usermanual/Home.md、
+.br
+docs/generation-contract-1.0.md、
+.br
+docs/result-contract-1.0.md、docs/troubleshooting.md
+.SH 缺陷
+请在 https://github.com/mgiustiniani/javaspec/issues 报告问题

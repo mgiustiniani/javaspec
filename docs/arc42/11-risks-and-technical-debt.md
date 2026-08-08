@@ -46,6 +46,12 @@ Current risks and mitigations:
   - Mitigation / next action: Keep generation deterministic and conservative; skip unsupported
     updates instead of corrupting source; consider parser strategy only if compatible with
     zero-runtime-dependency policy.
+- **Internal language seam could be mistaken for language support**
+  - Current impact: Java discovery and production planning now pass through internal frontend/backend
+    abstractions, but only Java is implemented and registered.
+  - Mitigation / next action: Keep the seam classified `INTERNAL`, expose no language CLI/config or
+    ServiceLoader SPI before 1.0, and defer Kotlin/other adapters until a post-1.0 vertical slice
+    validates portable behavior modeling and fail-closed source ownership.
 - **Generated post-Java-8 source requires newer JDKs**
   - Current impact: Records and sealed types can be emitted by a Java 8-compatible binary but cannot
     be compiled by Java 8 projects.
@@ -71,6 +77,16 @@ Current risks and mitigations:
   - Current impact: Java profile metadata can become stale as docs or JDK releases evolve.
   - Mitigation / next action: Maintain research notes and re-run runtime probes in compatibility
     matrix work, especially for Java 25 stream gatherers and later profiles.
+- **Frozen compatibility signatures retain a package-level cycle**
+  - Current impact: `config` exposes the existing `generation.ConstructorPolicy` type, `discovery`
+    retains suite-configuration factories, and the public generation facade accepts the established
+    `discovery.SpecNamingConvention` type. Together these frozen descriptors form the physical
+    `config -> generation -> discovery -> config` package cycle even though the M12 internal
+    discovery/backend flow is separated.
+  - Mitigation / next action: Do not break 1.0 source or binary compatibility merely to satisfy a
+    package metric. Keep new implementation dependencies behind neutral internal seams, prevent the
+    compatibility cycle from spreading to additional classes, and evaluate a versioned post-1.0
+    migration to canonical naming/configuration types before removing bridge signatures.
 - **Invocation API compatibility pressure**
   - Current impact: The optional Maven and Gradle plugins now depend on `io.github.jvmspec.invocation`
     and `RunResult` semantics; future adapters may also depend on them.
@@ -88,9 +104,10 @@ Current risks and mitigations:
   - Current impact: A Gradle executable compatible with the installed JDK is required for local
     Gradle plugin verification; `scripts/verify-all.sh` also requires a compatible Gradle
     executable unless `JAVASPEC_SKIP_GRADLE=1` is intentionally set.
-  - Mitigation / next action: Use a JDK-compatible Gradle executable such as the verified
-    `/tmp/gradle-8.8` download, set `JAVASPEC_GRADLE_BIN`, or explicitly choose
-    `JAVASPEC_SKIP_GRADLE=1` when Gradle verification is intentionally out of scope.
+  - Mitigation / next action: Use a JDK-compatible Gradle executable such as the verified system
+    Gradle 9.6.1, set `JAVASPEC_GRADLE_BIN`, or explicitly choose `JAVASPEC_SKIP_GRADLE=1` only when
+    Gradle verification is intentionally out of scope. The supported Fedora build image includes
+    Gradle and runs the unmodified aggregate verification script.
 - **Optional JUnit Platform engine can be mistaken for required execution**
   - Current impact: Users may assume javaspec specs require JUnit Platform once the optional engine
     exists, or that Phase 29 CLI compilation changes the engine.
@@ -121,11 +138,11 @@ Current risks and mitigations:
   - Current impact: Local sources/javadocs, safe URL/SCM/issues metadata, confirmed MIT
     license/maintainer metadata, release checklists, schema docs, and standalone examples can be
     mistaken for a complete Maven Central or Gradle Plugin Portal publication flow.
-  - Mitigation / next action: ADR 0013, ADR 0014, and `RELEASING.md` state that publication remains
-    resolved. Artifacts are published on Maven Central under `io.github.jvmspec`. The Gradle
-    plugin is published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. Do not
-    claim signing, staging, deployment, publication, or public artifact availability from local
-    artifact or example checks.
+  - Mitigation / next action: ADR 0013, ADR 0014, and `RELEASING.md` distinguish independently
+    verified channels. RC4 Maven artifacts are published under `io.github.jvmspec`; the Gradle
+    plugin id remains `io.github.jvmspec`, but Plugin Portal marker availability must be verified
+    separately and is not implied by Maven publication or a successful local included build. Do not
+    claim signing, staging, deployment, or public availability from local checks alone.
 
 ## 11.1 Resolved or Controlled Risks
 

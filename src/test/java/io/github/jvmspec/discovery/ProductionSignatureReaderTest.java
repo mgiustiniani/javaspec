@@ -89,6 +89,55 @@ public class ProductionSignatureReaderTest {
     }
 
     @Test
+    public void nestedProductionTypesShadowImportsDuringRefinement() throws Exception {
+        File sourceRoot = writeProductionSource("com/example/Key.java",
+                "package com.example;\n\n" +
+                "import other.Status;\n\n" +
+                "public class Key {\n" +
+                "    public enum Status { ACTIVE }\n\n" +
+                "    public Status status() {\n" +
+                "        return Status.ACTIVE;\n" +
+                "    }\n" +
+                "}\n");
+        DescribedType described = describedKey(
+                Collections.<ConstructorDescriptor>emptyList(),
+                Arrays.asList(MethodDescriptor.of("status", "Object")));
+
+        DescribedType refined = ProductionSignatureReader.refine(described, sourceRoot);
+
+        assertEquals(Arrays.asList(MethodDescriptor.of("status", "com.example.Key.Status")),
+                refined.methods());
+    }
+
+    @Test
+    public void refinesImplicitRecordConstructorWithNestedComponentType() throws Exception {
+        assumeTrue(supportsJavaSpecificationVersion(17));
+        File sourceRoot = writeProductionSource("com/example/Key.java",
+                "package com.example;\n\n" +
+                "public record Key(Key.Status status) {\n" +
+                "    public enum Status { ACTIVE, INACTIVE }\n" +
+                "}\n");
+        DescribedType described = DescribedType.of(
+                "com.example.Key",
+                JavaTypeKind.RECORD,
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Arrays.asList(ConstructorDescriptor.of(
+                        Arrays.asList("com.example.Status"), Arrays.asList("status"), "")),
+                Arrays.asList(MethodDescriptor.of("status", "Object"))
+        );
+
+        DescribedType refined = ProductionSignatureReader.refine(described, sourceRoot);
+
+        assertEquals(Arrays.asList("com.example.Key.Status"),
+                refined.constructors().get(0).parameterTypes());
+        assertEquals(Arrays.asList("status"), refined.constructors().get(0).parameterNames());
+        assertEquals(Arrays.asList(MethodDescriptor.of("status", "com.example.Key.Status")),
+                refined.methods());
+    }
+
+    @Test
     public void refinesConstructorParameterTypesAndNames() throws Exception {
         File sourceRoot = writeProductionSource("com/example/Key.java",
                 "package com.example;\n\n" +
@@ -279,6 +328,24 @@ public class ProductionSignatureReaderTest {
 
         assertEquals(Arrays.asList("String"), refined.constructors().get(0).parameterTypes());
         assertEquals(Arrays.asList("title"), refined.constructors().get(0).parameterNames());
+    }
+
+    @Test
+    public void refinesPackagePrivateAndGenericConstructorsByErasedBound() throws Exception {
+        File sourceRoot = writeProductionSource("com/example/Key.java",
+                "package com.example;\n\n" +
+                "public class Key {\n" +
+                "    <T extends Number> Key(T number) { }\n" +
+                "}\n");
+        DescribedType described = describedKey(
+                Arrays.asList(ConstructorDescriptor.of(
+                        Arrays.asList("Object"), Arrays.asList("arg0"), "")),
+                Collections.<MethodDescriptor>emptyList());
+
+        DescribedType refined = ProductionSignatureReader.refine(described, sourceRoot);
+
+        assertEquals(Arrays.asList("Number"), refined.constructors().get(0).parameterTypes());
+        assertEquals(Arrays.asList("number"), refined.constructors().get(0).parameterNames());
     }
 
     @Test

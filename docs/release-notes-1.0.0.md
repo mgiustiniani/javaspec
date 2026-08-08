@@ -1,4 +1,4 @@
-# Release notes — 1.0.0 / RC1
+# Release notes — 1.0.0 release-candidate line
 
 This development line keeps the core artifact Java 8-compatible and zero-runtime-dependency while
 moving dependency-heavy behavior into optional artifacts.
@@ -119,6 +119,9 @@ moving dependency-heavy behavior into optional artifacts.
 
 ## Verification and release notes
 
+- Initial section 1 CLI manual pages are available under `docs/man/` in English, Italian, Spanish,
+  German, French, and Simplified Chinese. `scripts/check-man-pages.sh` validates UTF-8 roff rendering
+  and shared command-contract tokens.
 - Version alignment checks cover core, Maven plugin, Gradle plugin, JUnit Platform engine,
   `javaspec-bytecode-doubles`, and `javaspec-bytecode-agent`.
 - `scripts/verify-examples.sh` verifies Maven, Prophecy, bytecode-doubles, bytecode-agent,
@@ -129,7 +132,8 @@ moving dependency-heavy behavior into optional artifacts.
   executable or `JAVASPEC_SKIP_GRADLE=1` when verifying without Gradle.
 - `scripts/verify-release-dry-run.sh` packages and verifies core, Maven plugin, JUnit Platform
   engine, bytecode doubles, bytecode agent, and Gradle plugin artifacts, including source/Javadoc
-  jars, bytecode-agent manifest entries, SHA-256 checksums, and external consumer examples.
+  jars, bytecode-agent manifest entries, SHA-256 checksums, a same-source reproducibility rebuild,
+  and external consumer examples.
 - `scripts/check-release-preflight.sh` fails RC/final publication unless the release version, tag,
   and absence of `SNAPSHOT` build-file references are aligned.
 - `scripts/generate-api-baseline.sh` creates the deterministic public/protected JVM signature
@@ -148,6 +152,18 @@ moving dependency-heavy behavior into optional artifacts.
 - RC4 prevents constructor example literals from becoming record-component identifiers, maps exact
   accessor expectations to constructor positions, and refuses ambiguous/illegal/duplicate names
   before writes with `AMBIGUOUS_RECORD_COMPONENT_NAME` evidence.
+- RC5 candidate hardening deduplicates constructors by canonical ordered erased types,
+  recognizes package-private and generic production constructors, preserves distinct qualified
+  overloads, centralizes authorized source synchronization, and introduces a Java-only internal
+  frontend/backend seam. It restores type-evidenced owner-return discovery with exact specification-
+  helper signature suppression and owning-type traversal, and fixes incident-0007 by refining
+  implicit record constructors and accessors from production components while retaining owner-
+  qualified nested types across generated constructor casts, proxies, state expectations, and throw
+  helpers. These changes are included in the aligned RC5 candidate and are not part of the immutable
+  RC4 artifacts. Release-branch run
+  [31261952121](https://github.com/mgiustiniani/javaspec/actions/runs/31261952121) passed the Java
+  8/11/17/21/25 matrix and full Java 21 verification with zero annotations; tag, publication, and
+  immutable remote-consumer replay remain.
 - RC3 adds a source-first Maven `generate` goal for `generate-test-sources`; it regenerates and
   registers base typed support before `testCompile`, including matcher-only specs, without tracked
   generated sources or consumer-specific execution-plugin workarounds.

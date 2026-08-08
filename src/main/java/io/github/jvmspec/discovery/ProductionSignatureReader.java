@@ -5,6 +5,7 @@ import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.ImportTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
+import com.sun.source.tree.TypeParameterTree;
 import com.sun.source.tree.VariableTree;
 import io.github.jvmspec.model.ConstructorDescriptor;
 import io.github.jvmspec.model.DescribedType;
@@ -71,9 +72,18 @@ public final class ProductionSignatureReader {
 
         String packageName = packageNameOf(unit);
         Map<String, String> imports = importsBySimpleName(unit);
+        addNestedTypesBySimpleName(
+                classTree,
+                describedType.qualifiedName(),
+                imports
+        );
         List<ProductionMethod> productionMethods = new ArrayList<ProductionMethod>();
         List<ProductionMethod> productionConstructors = new ArrayList<ProductionMethod>();
         collectMembers(classTree, packageName, imports, productionMethods, productionConstructors);
+        if (JavaTypeKind.RECORD.equals(sourceKindOf(classTree, describedType.kind()))) {
+            collectImplicitRecordMembers(
+                    classTree, packageName, imports, productionMethods, productionConstructors);
+        }
 
         List<MethodDescriptor> refinedMethods = new ArrayList<MethodDescriptor>();
         for (int i = 0; i < describedType.methods().size(); i++) {
@@ -98,12 +108,24 @@ public final class ProductionSignatureReader {
             return JavaTypeKind.ENUM;
         }
         if (Tree.Kind.INTERFACE.name().equals(kindName)) {
-            return JavaTypeKind.INTERFACE;
+            return JavaTypeKind.SEALED_INTERFACE.equals(fallback)
+                    || hasModifier(classTree, "SEALED")
+                    ? JavaTypeKind.SEALED_INTERFACE
+                    : JavaTypeKind.INTERFACE;
         }
         if (Tree.Kind.ANNOTATION_TYPE.name().equals(kindName)) {
             return JavaTypeKind.ANNOTATION;
         }
         return fallback;
+    }
+
+    private static boolean hasModifier(ClassTree classTree, String modifierName) {
+        for (Modifier modifier : classTree.getModifiers().getFlags()) {
+            if (modifierName.equals(modifier.name())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static MethodDescriptor refineMethod(MethodDescriptor descriptor, List<ProductionMethod> productionMethods) {
@@ -248,6 +270,9 @@ public final class ProductionSignatureReader {
             List<ProductionMethod> methods,
             List<ProductionMethod> constructors
     ) {
+        Map<String, String> classTypeBounds = typeVariableBounds(
+                classTree.getTypeParameters(), imports, packageName,
+                new LinkedHashMap<String, String>());
         List<? extends Tree> members = classTree.getMembers();
         for (int i = 0; i < members.size(); i++) {
             Tree member = members.get(i);
@@ -255,20 +280,24 @@ public final class ProductionSignatureReader {
                 continue;
             }
             MethodTree methodTree = (MethodTree) member;
-            if (!methodTree.getModifiers().getFlags().contains(Modifier.PUBLIC)) {
+            String methodName = methodTree.getName().toString();
+            boolean constructor = "<init>".equals(methodName);
+            if (!constructor
+                    && !methodTree.getModifiers().getFlags().contains(Modifier.PUBLIC)) {
                 continue;
             }
+            Map<String, String> typeBounds = typeVariableBounds(
+                    methodTree.getTypeParameters(), imports, packageName, classTypeBounds);
             List<String> parameterTypes = new ArrayList<String>();
             List<String> parameterNames = new ArrayList<String>();
             List<? extends VariableTree> parameters = methodTree.getParameters();
             for (int j = 0; j < parameters.size(); j++) {
                 VariableTree parameter = parameters.get(j);
-                parameterTypes.add(SpecDiscovery.resolveTypeName(
-                        parameter.getType().toString(), imports, packageName));
+                parameterTypes.add(resolveProductionType(
+                        parameter.getType().toString(), typeBounds, imports, packageName));
                 parameterNames.add(parameter.getName().toString());
             }
-            String methodName = methodTree.getName().toString();
-            if ("<init>".equals(methodName)) {
+            if (constructor) {
                 constructors.add(new ProductionMethod(
                         methodName, "void", false, parameterTypes, parameterNames));
                 continue;
@@ -277,12 +306,116 @@ public final class ProductionSignatureReader {
             if (returnTypeTree == null) {
                 continue;
             }
-            String returnType = SpecDiscovery.resolveTypeName(
+            String returnType = JavaExpressionTypeInference.resolveTypeName(
                     returnTypeTree.toString(), imports, packageName);
             boolean isStatic = methodTree.getModifiers().getFlags().contains(Modifier.STATIC);
             methods.add(new ProductionMethod(
                     methodName, returnType, isStatic, parameterTypes, parameterNames));
         }
+    }
+
+    private static void collectImplicitRecordMembers(
+            ClassTree classTree,
+            String packageName,
+            Map<String, String> imports,
+            List<ProductionMethod> methods,
+            List<ProductionMethod> constructors
+    ) {
+        Map<String, String> typeBounds = typeVariableBounds(
+                classTree.getTypeParameters(), imports, packageName,
+                new LinkedHashMap<String, String>());
+        List<String> componentTypes = new ArrayList<String>();
+        List<String> componentNames = new ArrayList<String>();
+        List<? extends Tree> members = classTree.getMembers();
+        for (int i = 0; i < members.size(); i++) {
+            Tree member = members.get(i);
+            if (!(member instanceof VariableTree)) {
+                continue;
+            }
+            VariableTree variable = (VariableTree) member;
+            if (!isRecordComponentField(variable)) {
+                continue;
+            }
+            String type = resolveProductionType(
+                    variable.getType().toString(), typeBounds, imports, packageName);
+            String name = variable.getName().toString();
+            componentTypes.add(type);
+            componentNames.add(name);
+            addProductionMethodIfAbsent(methods, new ProductionMethod(
+                    name, type, false,
+                    new ArrayList<String>(), new ArrayList<String>()));
+        }
+        if (!componentTypes.isEmpty()) {
+            addProductionConstructorIfAbsent(constructors, new ProductionMethod(
+                    "<init>", "void", false, componentTypes, componentNames));
+        }
+    }
+
+    private static boolean isRecordComponentField(VariableTree variable) {
+        return variable.getModifiers().getFlags().contains(Modifier.PRIVATE)
+                && variable.getModifiers().getFlags().contains(Modifier.FINAL)
+                && !variable.getModifiers().getFlags().contains(Modifier.STATIC);
+    }
+
+    private static void addProductionMethodIfAbsent(
+            List<ProductionMethod> methods,
+            ProductionMethod candidate
+    ) {
+        for (int i = 0; i < methods.size(); i++) {
+            ProductionMethod existing = methods.get(i);
+            if (existing.name.equals(candidate.name)
+                    && existing.isStatic == candidate.isStatic
+                    && existing.parameterTypes.equals(candidate.parameterTypes)) {
+                return;
+            }
+        }
+        methods.add(candidate);
+    }
+
+    private static void addProductionConstructorIfAbsent(
+            List<ProductionMethod> constructors,
+            ProductionMethod candidate
+    ) {
+        for (int i = 0; i < constructors.size(); i++) {
+            if (constructors.get(i).parameterTypes.equals(candidate.parameterTypes)) {
+                return;
+            }
+        }
+        constructors.add(candidate);
+    }
+
+    private static Map<String, String> typeVariableBounds(
+            List<? extends TypeParameterTree> parameters,
+            Map<String, String> imports,
+            String packageName,
+            Map<String, String> inherited
+    ) {
+        Map<String, String> result = new LinkedHashMap<String, String>(inherited);
+        for (int i = 0; i < parameters.size(); i++) {
+            TypeParameterTree parameter = parameters.get(i);
+            String bound = "java.lang.Object";
+            if (!parameter.getBounds().isEmpty()) {
+                bound = JavaExpressionTypeInference.resolveTypeName(
+                        parameter.getBounds().get(0).toString(), imports, packageName);
+            }
+            result.put(parameter.getName().toString(), bound);
+        }
+        return result;
+    }
+
+    private static String resolveProductionType(
+            String sourceType,
+            Map<String, String> typeBounds,
+            Map<String, String> imports,
+            String packageName
+    ) {
+        String normalized = sourceType.trim().replace("...", "[]");
+        int arrayStart = normalized.indexOf('[');
+        String raw = arrayStart < 0 ? normalized : normalized.substring(0, arrayStart).trim();
+        String suffix = arrayStart < 0 ? "" : normalized.substring(arrayStart).replaceAll("\\s+", "");
+        String bound = typeBounds.get(raw);
+        if (bound != null) return bound + suffix;
+        return JavaExpressionTypeInference.resolveTypeName(normalized, imports, packageName);
     }
 
     private static ClassTree topLevelType(CompilationUnitTree unit, String simpleName) {
@@ -299,6 +432,25 @@ public final class ProductionSignatureReader {
 
     private static String packageNameOf(CompilationUnitTree unit) {
         return unit.getPackageName() == null ? "" : unit.getPackageName().toString();
+    }
+
+    private static void addNestedTypesBySimpleName(
+            ClassTree owner,
+            String ownerQualifiedName,
+            Map<String, String> typesBySimpleName
+    ) {
+        List<? extends Tree> members = owner.getMembers();
+        for (int i = 0; i < members.size(); i++) {
+            Tree member = members.get(i);
+            if (!(member instanceof ClassTree)) {
+                continue;
+            }
+            ClassTree nestedType = (ClassTree) member;
+            String simpleName = nestedType.getSimpleName().toString();
+            String qualifiedName = ownerQualifiedName + "." + simpleName;
+            typesBySimpleName.put(simpleName, qualifiedName);
+            addNestedTypesBySimpleName(nestedType, qualifiedName, typesBySimpleName);
+        }
     }
 
     private static Map<String, String> importsBySimpleName(CompilationUnitTree unit) {

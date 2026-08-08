@@ -73,8 +73,8 @@ if [ "${JAVASPEC_SKIP_GRADLE:-0}" = "1" ]; then
   printf '\nWARNING: Skipping Gradle adapter verification because JAVASPEC_SKIP_GRADLE=1.\n'
 else
   resolve_gradle_cmd
-  run_gradle_plugin "Gradle plugin clean test build" clean test build
-  run_gradle_plugin "Gradle plugin runtime dependency tree audit" dependencies --configuration runtimeClasspath
+  run_gradle_plugin "Gradle plugin clean test build" --no-daemon clean test build
+  run_gradle_plugin "Gradle plugin runtime dependency tree audit" --no-daemon dependencies --configuration runtimeClasspath
 fi
 
 if [ "${JAVASPEC_SKIP_EXAMPLES:-0}" = "1" ]; then

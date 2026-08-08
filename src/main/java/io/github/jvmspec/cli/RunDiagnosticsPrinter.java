@@ -87,6 +87,9 @@ final class RunDiagnosticsPrinter {
         if (parsed.reportPath != null) {
             out.println("  Report path: " + parsed.reportPath);
         }
+        if (parsed.generationReportPath != null) {
+            out.println("  Generation report path: " + parsed.generationReportPath);
+        }
         if (parsed.junitXmlPath != null) {
             out.println("  JUnit XML path: " + parsed.junitXmlPath);
         }

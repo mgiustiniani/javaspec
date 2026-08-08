@@ -141,10 +141,11 @@ completed successfully:
   adapter for the javaspec runner." The plugin marker remains externally unavailable while
   first-publication approval completes.
 
-Remaining RC evidence:
+Remaining stable-release evidence:
 
-- Gradle Plugin Portal page and RC1 marker become publicly resolvable after external review.
-- External consumers validate the corrected published RC3 from remote repositories rather than local staging.
+- The Gradle Plugin Portal page and plugin marker become publicly resolvable after external review.
+- JLC-8 completes one coherent Java 21 real-project milestone from a clean environment against the
+  published RC4 correction and the next approved remote release candidate.
 
 ## 2026-07-11 — JLC-8 remote-RC dogfooding blocker and RC2 preparation
 
@@ -183,8 +184,8 @@ verify/run` from `mvn clean verify` without build-helper or tracked generated su
 
 Local RC3 CLI replay against `magrathea-pki` generated both support classes from an empty directory,
 compiled four source files, passed all four examples with zero pending, emitted no stubs, and was
-hash-idempotent. Final JLC-8 evidence still requires the immutable published RC3 and a clean isolated
-Maven repository/container replay.
+hash-idempotent. This result established the acceptance protocol that the following published-RC3
+remote replay then executed from an isolated Maven repository.
 
 ## 2026-07-11 — RC3 remote replay and RC4 boolean-record correction
 
@@ -201,3 +202,167 @@ unique, stable, and mapped once. Missing or conflicting evidence produces a deta
 `AMBIGUOUS_RECORD_COMPONENT_NAME` refusal before production or support writes. Focused RED/GREEN
 coverage includes true/false, multiple booleans, integer/string/enum/negative/null-like literals,
 missing evidence, keywords, existing record-prefix preservation, and idempotent skeleton rendering.
+
+## 2026-07-18 — synchronized develop documentation audit
+
+Audit base: `3790931` (`build: isolate sequential Gradle verification`). RC5 release work remains
+intentionally paused while additional issues are collected; no RC5 version, tag, or publication is
+claimed by this audit.
+
+Local commands passed:
+
+```sh
+git diff --check
+scripts/check-version-alignment.sh
+scripts/check-current-docs.sh
+scripts/check-api-surface.sh
+mvn -q verify
+mvn -q -Djavaspec.language.matrix.strict=true -Dtest=JavaLanguageCoverageManifestTest test
+scripts/verify-all.sh
+scripts/verify-release-dry-run.sh
+```
+
+Evidence:
+
+- The strict language manifest reported 50 covered rows and zero planned rows.
+- Surefire reports contained 967 tests with zero failures, errors, or skips; Gradle plugin tests and
+  consumer examples also passed through aggregate verification.
+- The RC1-to-current API inventory still contained no removed public/protected declaration.
+- Maven Central resolved the published `1.0.0-RC4` core POM, while Gradle Plugin Portal marker POMs
+  for RC1 through RC4 remained externally unavailable. Portal approval therefore remains an
+  external distribution gate.
+- The local checkout retained version alignment at `1.0.0-RC4`, but its post-RC4 implementation is
+  development input for RC5 and must not be treated as byte-identical to the immutable published RC4.
+
+## 2026-07-18 — incident-0007 nested record component correction
+
+Magrathea evidence commit `6f8e361` records incident-0007: Maven source-first regeneration and a
+fresh JavaSpec compile rejected generated support that cast
+`MagnonceAuthorityStateBasename.State` to nonexistent package-level
+`com.magrathea.trustengine.kms.encryption.State`. The original acceptance RED remains at `c3c6974`;
+runner removal `dbe308d` keeps the consumer reactor green, and `REQ-KMS-ENCRYPTION-005` remains
+not implemented. No package-level domain enum or generated-support edit was accepted.
+
+The JavaSpec correction on `develop`:
+
+- derives implicit record canonical constructor and accessor signatures from javac record component
+  fields when production source is the truth;
+- renders a referenced nested type through its imported owner, for example
+  `NestedStateRecord.State`, rather than importing or inventing a package-level `State`;
+- uses one import plan for constructor defaults, typed proxies, generated state expectations, and
+  throw-helper parameters;
+- adds focused RED/GREEN tests for production refinement and nested import rendering;
+- adds an isolated fresh-output CLI fixture and a Maven `generate-test-sources` fixture that both
+  regenerate, compile, execute, and repeat idempotently;
+- passes core verify, the strict 50-row language manifest, aggregate adapter/example verification,
+  and the release dry-run; the resulting Surefire reports contain 972 tests with zero failures,
+  errors, or skips.
+
+This correction was committed as `114c832` and remains local release-candidate input only. The
+blocked consumer slice must remain closed until a new immutable JavaSpec artifact and launcher
+fingerprint are available, after which a new sealed RED-to-GREEN trajectory can start from the
+approved clean consumer base.
+
+## 2026-08-08 — post-issue pre-RC5 qualification
+
+Qualification base: `34e692b` (`docs(cli): add multilingual manual pages`). The approved post-RC4
+stabilization sequence now includes:
+
+- `008d254`, which restores type-evidenced owner-return operation discovery while excluding exact
+  top-level specification helpers, unknown argument types, and evidence inside nested types;
+- `662f6f7`, which adds direct upstream unit coverage for the owner-return discovery boundary;
+- `114c832`, which fixes incident-0007 nested record-component refinement and generated type
+  rendering; and
+- `34e692b`, which aligns CLI help and adds guarded section 1 manual pages in six languages.
+
+Local commands passed sequentially:
+
+```sh
+git diff --check
+scripts/check-version-alignment.sh
+scripts/check-current-docs.sh
+scripts/check-man-pages.sh
+scripts/check-api-surface.sh
+mvn -q verify
+JAVA_HOME=/usr/lib/jvm/java-21-openjdk PATH=/usr/lib/jvm/java-21-openjdk/bin:$PATH mvn -q verify
+mvn -q -Djavaspec.language.matrix.strict=true -Dtest=JavaLanguageCoverageManifestTest test
+scripts/verify-all.sh
+scripts/verify-release-dry-run.sh
+mvn -B -ntp clean verify -Psecurity
+scripts/generate-api-baseline.sh /tmp/javaspec-pre-rc5-api-baseline.md
+```
+
+Evidence:
+
+- Core verification passed 884/884 on both Java 21 and Java 25.
+- Aggregate Surefire reports contained 979 tests with zero failures, errors, or skips.
+- The strict language manifest retained 50 covered rows and zero planned rows.
+- The Java 8 bytecode guard inspected 323 core classfiles with maximum major version 52.
+- Aggregate adapter/example verification and the RC4-named release dry-run passed.
+- OWASP Dependency-Check analyzed two dependencies and reported zero vulnerabilities; its OSS Index
+  analyzer remained disabled because that service now requires credentials.
+- The RC1-to-current API inventory retained 172 added public/protected declaration lines and zero
+  removed declaration lines; additions remain classified through `docs/api-surface-1.0.md`.
+
+This is pre-cut evidence only. The repository remains aligned at `1.0.0-RC4`; it does not claim an
+RC5 version, CI run, tag, remote artifact, or publication. Those identities must be generated from
+the clean aligned RC5 commit.
+
+## 2026-08-08 — aligned RC5 clean local qualification
+
+Version-cut commit `4509ebc` aligns every artifact and current consumer document at `1.0.0-RC5` and
+regenerates the API baseline. Release-hardening commit `8f93a46` fixes archive timestamps, configures
+deterministic Gradle archive ordering, and makes the release dry-run rebuild and compare every
+published main/source/Javadoc artifact. The worktree was clean throughout the final qualification.
+
+The complete preflight, Java 21/25, aggregate, reproducibility, security, API, and downstream command
+set passed. Key results are:
+
+- Java 21 and Java 25 core verification: 884/884 each, zero failures/errors/skips.
+- Strict language manifest: 50 covered rows, zero planned rows.
+- Aggregate Java 8 bytecode guard: 323 core classfiles, maximum major version 52.
+- API baseline SHA-256 `7479ac621c1574df519c02b2f606e0d39c105c2d8b7c8385ead8071737a1df1a`;
+  a second generation was byte-identical, with 172 RC1-to-RC5 declaration additions and zero
+  declaration removals.
+- OWASP Dependency-Check: two dependencies analyzed, zero vulnerabilities; retained JSON SHA-256
+  `4631cd6fcb6a95abe3236a90cbd1374789a17bce74e410ba39b7865339594ab4`.
+- `JAVASPEC_RELEASE_TAG=v1.0.0-RC5` preflight: version/tag aligned and no build-file `SNAPSHOT`
+  references.
+
+The reproducible release manifest has SHA-256
+`a584462ac44fb3453e093083755fc29cc5ef7b5baad3fb3c278c1a54ea43a7f0` and binds all 18 archives.
+Main artifact hashes are:
+
+| Artifact | SHA-256 |
+|---|---|
+| Core | `b650e56744ab53979cd93e75d39c8787abe5741d1e7eb6f7a9ab3ab5c1f2bf79` |
+| Maven plugin | `1922c6d38e01683034aa981cc4bb3f3c855d76dcc00c9dc346cb6579e6dba34f` |
+| JUnit Platform engine | `9fdee79f7261794cb060b6eab9e969b4c82c3ac1ffb0e7496c5fd88d8812bcb1` |
+| Bytecode doubles | `c894846e5fa7a7d3208db425cd57b451958d8004704b4f41252f17c0c2e37ff8` |
+| Bytecode agent | `0f5104f0fb5bf68deb42be1d8ff6cb60fad36b1dbd78c15613bff3f54c2782c8` |
+| Gradle plugin | `7ceea4bb466313a9175e86458c846ed0b852d11ad7f399710a1f291a08e3c87b` |
+
+Tasks source-backed qualification consumed clean JavaSpec commit `8f93a46` under Java 21. Both the
+full and explicit isolated builds selected identical core/plugin SHA-256 values
+`d56102c56f825275c8d033e266c03b1ce0ee025ba2c2a08010712c55c84d7b37` and
+`e53685403446fcf8cc8580220d412a6cf172442fcfbc92767ee325c1f1dadf6e`, proving same-environment
+reproducibility for source-manifest SHA-256
+`a19a6a2583d76993651270287c6bb3e039f99f25e6304dfc8bef0f63ffdb941c`. QG-001, core 884/884,
+plugin 33/33, unchanged `TaskSpec` 9/9, direct probe 4/4, explicit Cucumber 1/1, and the full Tasks
+reactor at 66 total / 65 passed / one native-only skip all passed.
+
+The retained local archive is
+`.ide/agent-runs/javaspec-1.0.0-rc5-20260808/local-qualification/`; its `SHA256SUMS` file has SHA-256
+`bec6e44ca1c6ae77abe291b58f08263c8326c651f67d4d3d512706cb505f0566`, and every listed entry
+validates.
+
+The release branch was pushed through evidence commit `424ea11`. Initial remote run
+[`31261275000`](https://github.com/mgiustiniani/javaspec/actions/runs/31261275000) passed all six jobs
+but reported Node 20 deprecations from the workflow actions. Commits `b9ce403` and `4d72aca` upgraded
+checkout, Java, and Gradle setup actions and aligned the manual Gradle publication default. Final run
+[`31261952121`](https://github.com/mgiustiniani/javaspec/actions/runs/31261952121) passed the Java
+8/11/17/21/25 core jobs and full Java 21 verification with zero annotations.
+
+This closes local qualification and release-branch CI. Git Flow merge/tag, Maven Central and Gradle
+Plugin Portal publication, immutable artifact checksum/signature verification, and clean remote-RC
+JLC-8 dogfooding remain mandatory before RC5 or stable 1.0 is declared complete.

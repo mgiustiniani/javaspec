@@ -1,5 +1,126 @@
 # Test and Quality Report
 
+## Post-RC4 constructor-safe restructuring verification
+
+Date: 2026-07-13
+
+The current `develop` restructuring preserves Java behavior while adding canonical constructor type
+resolution and an internal Java-only spec-frontend/production-backend seam. Regression coverage now
+freezes package-private constructors, generic constructor erasure (including bounded type variables
+and compact source), distinct qualified overloads, generation-report no-change behavior, and direct
+Java adapter parity.
+
+Verification summary:
+
+- `mvn -q clean verify`: PASS — 873 tests, 0 failures, 0 errors, 0 skipped.
+- `scripts/check-version-alignment.sh`: PASS for the RC4 artifact set.
+- `scripts/check-current-docs.sh`: PASS with RC-version, generation-report, and migration-link guards.
+- `scripts/check-api-surface.sh`: PASS; `io.github.jvmspec.internal.language` remains `INTERNAL`.
+- Fedora-container `scripts/verify-all.sh`: PASS including Maven, Gradle 9.6.1, optional adapters,
+  dependency audits, and standalone examples.
+- Fedora-container `scripts/verify-release-dry-run.sh`: PASS for the aligned RC4 artifact set and
+  all external consumer examples.
+- Sequential local `scripts/verify-all.sh` followed by `scripts/verify-release-dry-run.sh`: PASS;
+  Gradle aggregate invocations now use `--no-daemon` so reinstalling the same RC coordinate between
+  gates cannot reuse a stale transformed core artifact.
+- Fedora-container `mvn clean verify -Psecurity`: PASS; JaCoCo reported 78.44% lines, 65.58%
+  branches, and 95.37% classes; OWASP Dependency-Check 12.2.2 scanned JUnit/Hamcrest with zero
+  vulnerabilities and zero scan errors.
+
+The public discovery API remains unchanged while package-private components now own constructor
+observations and identity, construction-argument inference, Java expression/type inference, callable
+discovery, subject declaration discovery, and example discovery. `SpecDiscovery` is reduced from
+roughly 1,700 lines to about 150 lines of deterministic traversal, filtering, and orchestration. The
+extraction added direct AST/fallback and declaration tests and corrected legacy generic
+method-parameter splitting for types whose generic arguments contain commas. Java inference is now
+split between literal/factory classification, expression-argument splitting, source method/import
+context, and orchestration; direct tests freeze the deliberate difference between relational angle
+brackets in expressions and generic angle brackets in declarations. Method synchronization now
+separates Java type-kind eligibility and deterministic method/factory rendering from the
+source-preserving updater. Existing-member inventory, offset-preserving source editing, and sealed
+root/nested-permitted synchronization are also isolated, reducing `ClassMethodUpdater` from roughly
+1,200 lines to under 100 facade lines. Direct tests freeze enum, interface, annotation, factory,
+stub-marker, nested-member, record-accessor, CRLF, sealed idempotence, and Unicode identifier
+behavior. Production refinement now also preserves the sealed-interface kind; an integration
+regression verifies that both the root declaration and nested permitted implementation receive the
+required method idempotently. Generation orchestration now isolates preflight validation, dry-run
+change detection, related-spec generation, prophecy generation, and centralized CLI authorization;
+direct tests freeze EOF denial, explicit generation authorization, functional-target refusal,
+read-only related-spec planning, and unchanged support detection. Final discovery hardening excludes
+framework lifecycle calls such as `setSubject` and `setMatcherRegistry` from both AST and legacy
+production-method discovery, resolves nested production member types ahead of colliding imports,
+and deliberately does not infer production methods from arbitrary local `var value = helper()`
+assignments. These regressions are covered by focused JUnit tests without Cucumber/Gherkin tooling.
+
+Reusable test-only `CliProjectFixture` support now centralizes conventional production/spec/generated
+source trees, CLI authorization input, compilation output, reports, UTF-8 source writing, and
+byte/SHA-256/mtime snapshots. JSON stdout, authorization, and read-only generation-report tests use
+this fixture without changing production dependencies or runtime behavior.
+
+The internal behavior contract now projects portable subject shape, relationships, structured types,
+construction/callable signatures, invocation kind, unknown-type evidence, and semantic equivalence
+independently of Java body text while retaining the frozen descriptor bridge. No Kotlin or other
+language implementation, CLI option, configuration key, dependency, or public SPI is introduced
+before 1.0; ADR 0026 records the post-1.0 boundary.
+
+Commit-qualified downstream replay used `1.0.0-RC4-dev-28ba661` (JAR SHA-256
+`751a944f8a2c38936e34685426837d34bc4ab5a1374c2414773dbe00ef976d8c`) in
+`localhost/magrathea-build:fedora42`:
+
+- a Magrathea `SemanticPolicyHash(Map<String, String>)` generation fixture with two identical
+  construction observations generated one constructor, produced the expected meaningful RED and
+  pending-stub BROKEN results, then repeated with zero writes and an unchanged source hash;
+- the current hand-written Magrathea `SemanticPolicyHash` passed its behavior with zero writes and
+  unchanged source hash and mtime;
+- `a.Token`/`b.Token` overloads both compiled and passed with zero writes;
+- unauthorized constructor synchronization stopped with `PROPOSED`, zero writes, and unchanged hash
+  and mtime; authorized synchronization preserved the hand-written body, and its repeat was a
+  byte-for-byte and mtime-preserving no-op.
+
+The discovery-component extraction was replayed with `1.0.0-RC4-dev-39fefdd` (JAR SHA-256
+`72366df20b1070fdc778fb6c80f73ddcb82292e766609f753d6c17edbab2ebbe`) in the same Fedora
+container. Duplicate generic construction evidence again produced exactly one constructor and a
+zero-write stable-hash repeat with meaningful RED/BROKEN results. The current Magrathea generic
+constructor and qualified overload fixtures passed with zero writes and stable source hashes; the
+write-authorization scenario again produced `STOPPED` before authorization, `APPLIED` after explicit
+authorization, and an mtime-preserving `NO_CHANGES` repeat.
+
+Callable and subject-declaration extraction was replayed with `1.0.0-RC4-dev-8ac362f` (JAR SHA-256
+`b2a66e7d528bbbb8c2dfe759b9597cf898ff943789932cf70f3d48da3b5de110`). A workflow fixture
+covering factory construction, proxy return inference, throw targets, subject void calls, setters,
+and state expectations generated production and support sources byte-for-byte identical to
+`39fefdd`, followed by the expected meaningful RED and pending-stub BROKEN results. Generic
+constructor, qualified-overload, authorization, hash, mtime, and zero-write replays also remained
+unchanged.
+
+Inference-component extraction was replayed with `1.0.0-RC4-dev-4394868` (JAR SHA-256
+`d77586c3450c96a964ad70f8b0d166ea8adf7a1034387f3690425755ccbcedf1`). The callable workflow
+fixture again generated production and support sources byte-for-byte identical to `8ac362f`, with
+unchanged meaningful RED and pending-stub BROKEN results. Generic construction, current hand-written
+generic source, qualified overload, write authorization, body preservation, hash, mtime, and
+zero-write repeat evidence also remained unchanged.
+
+Method-rendering extraction was replayed with `1.0.0-RC4-dev-75430b7` (JAR SHA-256
+`8310f20bbb4ad87ec38d9af3590e427b4e31fdc43578c97c3ff60e04ca401c91`). The callable workflow
+fixture again generated byte-for-byte identical production and support sources with unchanged RED and
+BROKEN results. Generic constructors, qualified overloads, denied/authorized synchronization,
+hand-written bodies, hashes, mtimes, and no-op repeats also remained unchanged.
+
+The source-update facade and sealed-kind correction were replayed with
+`1.0.0-RC4-dev-2255d49` (JAR SHA-256
+`bd36f90d36af663fabe359f7e3635472d2967055b69314007c91d56f4a84caa4`). Ordinary callable
+production/support output remained byte-for-byte identical to `75430b7`. A sealed-interface fixture
+now preserved `SEALED_INTERFACE`, inserted the root declaration and nested permitted implementation,
+compiled successfully, and reported the nested pending stub instead of failing compilation. Generic
+constructor, overload, authorization, hash, mtime, and no-op evidence remained unchanged.
+
+Generation-workflow extraction was replayed with `1.0.0-RC4-dev-ff2096e` (JAR SHA-256
+`51eea0f089859cece12bdca82766ce867f1a437b7c2fdfd93d396dcffe9c565c`). Callable and sealed
+production/support outputs remained byte-for-byte identical to `38670d9`, including nested sealed
+synchronization and successful compilation. Generic construction, hand-written generic sources,
+qualified overloads, denial before authorization, authorized body preservation, hashes, mtimes, and
+zero-write repeats also remained unchanged.
+
 ## Phase 47 example-data API verification update
 
 Date: 2026-07-09

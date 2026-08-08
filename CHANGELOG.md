@@ -4,6 +4,82 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 1.0.0-RC5 — 2026-08-08
+
+- Made all published Maven and Gradle archives byte-reproducible through a fixed release timestamp,
+  deterministic Gradle archive ordering, and a release dry-run that rebuilds and compares every
+  main, source, and Javadoc artifact SHA-256.
+- Restored type-evidenced owner-return operation discovery without treating framework lifecycle calls
+  or specification helpers as production behavior. Exact helper signatures suppress discovery,
+  overload and ordered-parameter mismatches do not, unknown argument types fail closed, and evidence
+  inside nested types is ignored.
+- Fixed incident-0007 nested record-component support generation: implicit record constructors and
+  accessors now refine from production component fields, and generated constructor casts, typed
+  proxies, state expectations, and throw helpers retain owner-qualified nested types. Fresh CLI and
+  Maven regeneration fixtures compile and execute without a package-level enum workaround.
+- Added initial section 1 CLI manual pages in English, Italian, Spanish, German, French, and
+  Simplified Chinese, plus rendering and command-contract documentation guards; aligned `--help`
+  with `list-extensions`, `prophesize`, `--resolve-pom`, and `--release`.
+- Reconciled multi-component record constructor slots with stronger accessor evidence before stub
+  planning, so local example names no longer define the record API when accessors differ; typed
+  generic factory expectations can identify the component even when the expected value expression
+  is intentionally different from the constructor expression.
+- Added recursive structured generic type resolution and deterministic import rendering for record
+  skeletons and generated SpecSupport, including nested generics and simple-name collisions.
+- Made `--formatter json` reserve stdout for exactly one JSON document and route operational
+  diagnostics to stderr, including generation-stop and compilation-failure paths.
+- Added deterministic `--generation-report` output for applied, dry-run, stopped, and failed runs,
+  with sorted source-relative pending-stub locations.
+- Pending generated stubs now produce a synthetic BROKEN result independently of `--compile`.
+- Record component/accessor equivalence now preserves all generic arguments, arrays, and wildcard
+  bounds instead of comparing erased raw types.
+- Constructor discovery now deduplicates by declaring type and ordered erased Java parameter
+  signature while retaining full `ConstructorDescriptor` structural equality; incompatible generic
+  requests with the same erasure fail with `CONFLICTING_CONSTRUCTOR_SIGNATURE`.
+- Existing constructor parsing now uses balanced Java parameter/body scanning for nested generics,
+  annotations, arrays, varargs, and multiline signatures without rewriting matched implementations.
+- Class and record source synchronization is planned before mutation and passes through one explicit
+  `--generate`/interactive authorization gate; non-interactive and dry-run commands are read-only.
+- Generation reports now distinguish proposed actions from actual applied writes and derive
+  `appliedWrites`/`NO_CHANGES` from recorded changed-file writes.
+- Constructor synchronization now recognizes package-private and generic constructors, resolves
+  type-variable erasure in source context, and preserves legal overloads whose parameter types have
+  the same simple name in different packages.
+- Added an internal Java-only `SpecLanguageFrontend -> BehaviorContract ->
+  ProductionLanguageBackend` seam to prepare post-1.0 language adapters without adding a public
+  language SPI or changing Java generation behavior. The contract now exposes portable subject
+  shape, relationships, structured types, construction/callable signatures, invocation kind, and
+  unknown-type evidence while retaining `DescribedType` as the Java compatibility bridge.
+- Extracted constructor observation/identity handling, construction-argument inference, Java
+  expression/type inference, callable discovery, subject declaration discovery, and example
+  discovery from the public `SpecDiscovery` facade; the facade now contains only deterministic file
+  traversal and component orchestration while preserving its API and generated output.
+- Split Java inference into focused literal/factory inference, expression-argument splitting, source
+  context parsing, and orchestration components. Expression commas deliberately ignore relational
+  angle brackets while declaration parameters use the balanced generic-aware syntax splitter.
+- Reduced `ClassMethodUpdater` to a stable source/file facade by extracting method eligibility,
+  existing-member inventory, deterministic method/factory rendering, offset-preserving source
+  editing, and sealed-interface synchronization.
+- Consolidated internal Unicode-aware Java identifier checks for discovery and generation.
+- Preserved `SEALED_INTERFACE` during production-signature refinement so CLI synchronization updates
+  both sealed roots and in-file nested permitted implementations instead of degrading to a plain
+  interface plan.
+- Reduced `GenerationOrchestrator` by extracting fail-closed preflight validation, central CLI write
+  authorization, dry-run change detection, related-spec generation, and prophecy generation while
+  retaining atomic activity accounting and authorization outside language backends.
+- Reused the balanced syntax splitter for generic method-parameter parsing as well as method and
+  record-component source parsing, including generic types whose arguments contain commas.
+- Excluded framework lifecycle calls from production-method discovery, resolved nested production
+  member types ahead of colliding imports, and rejected unsafe owner-return inference from arbitrary
+  local helper assignments; focused JUnit fixtures cover the corrected behavior without introducing
+  Cucumber/Gherkin tooling.
+- Added reusable test-only CLI project fixtures for source/spec trees, authorization input,
+  compilation output, reports, and byte/SHA-256/mtime preservation assertions.
+- Run aggregate Gradle verification without a persistent daemon so sequential Maven reinstalls of
+  the same RC coordinate cannot leave Gradle tests using stale transformed core artifacts.
+- Added JaCoCo HTML/XML/CSV coverage reporting and an opt-in OWASP Dependency-Check security profile
+  with official NVD feeds and a CVSS 7.0 failure threshold.
+
 ## 1.0.0-RC4 — 2026-07-11
 
 - Fixed record-component inference so literal constructor examples are never emitted as identifiers;

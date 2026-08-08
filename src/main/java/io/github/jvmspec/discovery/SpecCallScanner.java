@@ -1,5 +1,6 @@
 package io.github.jvmspec.discovery;
 
+import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.ExpressionStatementTree;
 import com.sun.source.tree.ExpressionTree;
@@ -55,6 +56,34 @@ final class SpecCallScanner {
     private SpecCallScanner() {
     }
 
+    static boolean isFrameworkMethodName(String methodName) {
+        return "subject".equals(methodName)
+                || "setSubject".equals(methodName)
+                || "matcherRegistry".equals(methodName)
+                || "setMatcherRegistry".equals(methodName)
+                || "assertions".equals(methodName)
+                || "match".equals(methodName)
+                || "row".equals(methodName)
+                || "examples".equals(methodName)
+                || "doubleFor".equals(methodName)
+                || "interfaceDouble".equals(methodName)
+                || "doubleControl".equals(methodName)
+                || "inspectDouble".equals(methodName)
+                || "doubleCalls".equals(methodName)
+                || "doubleCallCount".equals(methodName)
+                || "doubleCallCountFor".equals(methodName)
+                || "prophesize".equals(methodName)
+                || "prophecy".equals(methodName)
+                || "prophecyRegistry".equals(methodName)
+                || "sharedProphecyRegistry".equals(methodName)
+                || "checkPredictions".equals(methodName)
+                || "setProphecyRegistry".equals(methodName)
+                || "setAutoCheckPredictions".equals(methodName)
+                || "isAutoCheckPredictions".equals(methodName)
+                || "skip".equals(methodName)
+                || "pending".equals(methodName);
+    }
+
     /** A call event: target name, argument expression texts, and the enclosing spec method. */
     static final class Call {
         final String name;
@@ -65,6 +94,39 @@ final class SpecCallScanner {
             this.name = name;
             this.argumentTexts = argumentTexts;
             this.enclosingMethod = enclosingMethod;
+        }
+    }
+
+    /**
+     * An unqualified call assigned to {@code var} and later evidenced as returning an owner type.
+     */
+    static final class OwnerReturnCall {
+        final String name;
+        final List<String> argumentTexts;
+        final String ownerTypeText;
+        final String enclosingMethod;
+
+        OwnerReturnCall(
+                String name,
+                List<String> argumentTexts,
+                String ownerTypeText,
+                String enclosingMethod
+        ) {
+            this.name = name;
+            this.argumentTexts = argumentTexts;
+            this.ownerTypeText = ownerTypeText;
+            this.enclosingMethod = enclosingMethod;
+        }
+    }
+
+    /** A method declared directly by the top-level specification type. */
+    static final class DeclaredCallable {
+        final String name;
+        final List<String> parameterTypeTexts;
+
+        DeclaredCallable(String name, List<String> parameterTypeTexts) {
+            this.name = name;
+            this.parameterTypeTexts = parameterTypeTexts;
         }
     }
 
@@ -130,6 +192,8 @@ final class SpecCallScanner {
         final List<Call> subjectVoidStatements = new ArrayList<Call>();
         final List<Call> setterStatements = new ArrayList<Call>();
         final List<Call> stateExpectationStatements = new ArrayList<Call>();
+        final List<OwnerReturnCall> ownerReturnCalls = new ArrayList<OwnerReturnCall>();
+        final List<DeclaredCallable> topLevelDeclaredCallables = new ArrayList<DeclaredCallable>();
         final Map<String, SpecMethodParams> specMethods = new LinkedHashMap<String, SpecMethodParams>();
     }
 
@@ -143,7 +207,7 @@ final class SpecCallScanner {
             return null;
         }
         ScanResult result = new ScanResult();
-        new CallVisitor(result).scan(unit, null);
+        new CallVisitor(result, findOwningSpecType(unit)).scan(unit, null);
         return result;
     }
 
@@ -174,18 +238,63 @@ final class SpecCallScanner {
         }
     }
 
+    private static ClassTree findOwningSpecType(CompilationUnitTree unit) {
+        ClassTree firstTopLevelType = null;
+        List<? extends Tree> declarations = unit.getTypeDecls();
+        for (int i = 0; i < declarations.size(); i++) {
+            Tree declaration = declarations.get(i);
+            if (!(declaration instanceof ClassTree)) {
+                continue;
+            }
+            ClassTree type = (ClassTree) declaration;
+            if (firstTopLevelType == null) {
+                firstTopLevelType = type;
+            }
+            if (type.getModifiers().getFlags().contains(Modifier.PUBLIC)) {
+                return type;
+            }
+        }
+        return firstTopLevelType;
+    }
+
     private static final class CallVisitor extends TreeScanner<Void, Void> {
         private final ScanResult result;
+        private final ClassTree owningSpecType;
+        private final List<AssignedOwnerReturnCall> ownerReturnAssignments =
+                new ArrayList<AssignedOwnerReturnCall>();
+        private ClassTree currentType;
         private String currentMethod;
+        private int currentMethodId = -1;
+        private int nextMethodId;
 
-        CallVisitor(ScanResult result) {
+        CallVisitor(ScanResult result, ClassTree owningSpecType) {
             this.result = result;
+            this.owningSpecType = owningSpecType;
+        }
+
+        @Override
+        public Void visitClass(ClassTree classTree, Void unused) {
+            if (classTree != owningSpecType) {
+                return null;
+            }
+            ClassTree previousType = currentType;
+            currentType = classTree;
+            try {
+                return super.visitClass(classTree, unused);
+            } finally {
+                currentType = previousType;
+            }
         }
 
         @Override
         public Void visitMethod(MethodTree methodTree, Void unused) {
             String previousMethod = currentMethod;
+            int previousMethodId = currentMethodId;
             currentMethod = methodTree.getName().toString();
+            currentMethodId = nextMethodId++;
+            if (currentType == owningSpecType && methodTree.getReturnType() != null) {
+                recordDeclaredCallable(methodTree);
+            }
             if (isPublicVoid(methodTree)) {
                 List<String> typeTexts = new ArrayList<String>();
                 List<String> names = new ArrayList<String>();
@@ -204,7 +313,18 @@ final class SpecCallScanner {
                 return super.visitMethod(methodTree, unused);
             } finally {
                 currentMethod = previousMethod;
+                currentMethodId = previousMethodId;
             }
+        }
+
+        private void recordDeclaredCallable(MethodTree methodTree) {
+            List<String> parameterTypeTexts = new ArrayList<String>();
+            List<? extends VariableTree> parameters = methodTree.getParameters();
+            for (int i = 0; i < parameters.size(); i++) {
+                parameterTypeTexts.add(parameters.get(i).getType().toString());
+            }
+            result.topLevelDeclaredCallables.add(new DeclaredCallable(
+                    methodTree.getName().toString(), parameterTypeTexts));
         }
 
         @Override
@@ -221,6 +341,7 @@ final class SpecCallScanner {
                                 initializer == null ? null : initializer.toString()
                         );
                     }
+                    recordOwnerReturnAssignment(variableTree);
                 }
             }
             return super.visitVariable(variableTree, unused);
@@ -241,7 +362,7 @@ final class SpecCallScanner {
                     }
                 } else if (select instanceof IdentifierTree) {
                     String name = ((IdentifierTree) select).getName().toString();
-                    if (isSetterName(name)) {
+                    if (isSetterName(name) && !isFrameworkMethodName(name)) {
                         result.setterStatements.add(
                                 new Call(name, argumentTexts(invocation), currentMethod));
                     } else if (isStateExpectationName(name)) {
@@ -271,6 +392,9 @@ final class SpecCallScanner {
                 MemberSelectTree memberSelect = (MemberSelectTree) select;
                 String memberName = memberSelect.getIdentifier().toString();
                 ExpressionTree receiver = memberSelect.getExpression();
+                if ("shouldHaveType".equals(memberName)) {
+                    recordOwnerReturnEvidence(receiver, invocation);
+                }
                 if (MATCHER_NAMES.contains(memberName) && receiver instanceof MethodInvocationTree) {
                     recordExpectation((MethodInvocationTree) receiver, memberName, invocation);
                 } else if (memberName.startsWith("during")
@@ -283,6 +407,62 @@ final class SpecCallScanner {
                 }
             }
             return super.visitMethodInvocation(invocation, unused);
+        }
+
+        private void recordOwnerReturnAssignment(VariableTree variableTree) {
+            Tree type = variableTree.getType();
+            ExpressionTree initializer = variableTree.getInitializer();
+            if ((type != null && !"var".equals(type.toString()))
+                    || !(initializer instanceof MethodInvocationTree)) {
+                return;
+            }
+            MethodInvocationTree invocation = (MethodInvocationTree) initializer;
+            ExpressionTree select = invocation.getMethodSelect();
+            if (!(select instanceof IdentifierTree)) {
+                return;
+            }
+            String name = ((IdentifierTree) select).getName().toString();
+            if (!startsLowerCase(name) || isIgnoredName(name)) {
+                return;
+            }
+            ownerReturnAssignments.add(new AssignedOwnerReturnCall(
+                    variableTree.getName().toString(),
+                    name,
+                    argumentTexts(invocation),
+                    currentMethod,
+                    currentMethodId
+            ));
+        }
+
+        private void recordOwnerReturnEvidence(
+                ExpressionTree receiver,
+                MethodInvocationTree invocation
+        ) {
+            if (!(receiver instanceof IdentifierTree) || invocation.getArguments().size() != 1) {
+                return;
+            }
+            ExpressionTree evidence = invocation.getArguments().get(0);
+            if (!(evidence instanceof MemberSelectTree)) {
+                return;
+            }
+            MemberSelectTree classLiteral = (MemberSelectTree) evidence;
+            if (!"class".equals(classLiteral.getIdentifier().toString())) {
+                return;
+            }
+            String variableName = ((IdentifierTree) receiver).getName().toString();
+            for (int i = ownerReturnAssignments.size() - 1; i >= 0; i--) {
+                AssignedOwnerReturnCall assignment = ownerReturnAssignments.get(i);
+                if (assignment.enclosingMethodId == currentMethodId
+                        && assignment.variableName.equals(variableName)) {
+                    result.ownerReturnCalls.add(new OwnerReturnCall(
+                            assignment.name,
+                            assignment.argumentTexts,
+                            classLiteral.getExpression().toString(),
+                            assignment.enclosingMethod
+                    ));
+                    return;
+                }
+            }
         }
 
         private void recordExpectation(
@@ -396,11 +576,9 @@ final class SpecCallScanner {
         }
 
         private static boolean isIgnoredName(String methodName) {
-            return "match".equals(methodName)
-                    || "subject".equals(methodName)
-                    || methodName.startsWith("should")
+            return methodName.startsWith("should")
                     || methodName.startsWith("beConstructed")
-                    || "matcherRegistry".equals(methodName);
+                    || isFrameworkMethodName(methodName);
         }
 
         private static boolean startsLowerCase(String name) {
@@ -414,6 +592,28 @@ final class SpecCallScanner {
                 texts.add(arguments.get(i).toString());
             }
             return texts;
+        }
+    }
+
+    private static final class AssignedOwnerReturnCall {
+        private final String variableName;
+        private final String name;
+        private final List<String> argumentTexts;
+        private final String enclosingMethod;
+        private final int enclosingMethodId;
+
+        private AssignedOwnerReturnCall(
+                String variableName,
+                String name,
+                List<String> argumentTexts,
+                String enclosingMethod,
+                int enclosingMethodId
+        ) {
+            this.variableName = variableName;
+            this.name = name;
+            this.argumentTexts = argumentTexts;
+            this.enclosingMethod = enclosingMethod;
+            this.enclosingMethodId = enclosingMethodId;
         }
     }
 

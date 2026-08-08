@@ -1,5 +1,8 @@
 package io.github.jvmspec.generation;
 
+import io.github.jvmspec.internal.type.JavaIdentifiers;
+import io.github.jvmspec.internal.type.JavaSyntaxSplitter;
+import io.github.jvmspec.internal.type.JavaTypeRef;
 import io.github.jvmspec.model.ConstructorDescriptor;
 import io.github.jvmspec.model.DescribedType;
 import io.github.jvmspec.model.JavaTypeKind;
@@ -145,8 +148,13 @@ final class RecordComponentPlanner {
         ConstructorDescriptor selected = constructors.get(0);
         for (int i = 1; i < constructors.size(); i++) {
             ConstructorDescriptor candidate = constructors.get(i);
-            if (candidate.parameterTypes().size() > selected.parameterTypes().size()) {
-                selected = candidate;
+            if (!selected.parameterTypes().equals(candidate.parameterTypes())
+                    || !selected.parameterNames().equals(candidate.parameterNames())) {
+                throw new IllegalArgumentException(
+                        "AMBIGUOUS_RECORD_COMPONENT_MAPPING: subject " + describedType.qualifiedName()
+                                + ", constructor evidence conflicts between " + selected + " and " + candidate
+                                + "; a record requires one canonical ordered component mapping."
+                );
             }
         }
         return selected;
@@ -271,7 +279,7 @@ final class RecordComponentPlanner {
     }
 
     private static boolean isLegalJavaIdentifier(String value) {
-        return isJavaIdentifier(value) && !RESERVED_IDENTIFIERS.contains(value);
+        return JavaIdentifiers.isIdentifier(value) && !RESERVED_IDENTIFIERS.contains(value);
     }
 
     private static boolean isTypeDerivedName(String type, String name) {
@@ -357,7 +365,7 @@ final class RecordComponentPlanner {
                 name = name.substring(0, name.length() - 2).trim();
                 type = type + "[]";
             }
-            if (type.length() > 0 && isJavaIdentifier(name)) {
+            if (type.length() > 0 && JavaIdentifiers.isIdentifier(name)) {
                 result.add(new ParsedComponent(original, type, name));
             }
         }
@@ -397,35 +405,7 @@ final class RecordComponentPlanner {
     }
 
     private static List<String> splitArguments(String text) {
-        List<String> result = new ArrayList<String>();
-        int start = 0;
-        int angleDepth = 0;
-        int parenDepth = 0;
-        int bracketDepth = 0;
-        for (int i = 0; i < text.length(); i++) {
-            char c = text.charAt(i);
-            if (c == '<') {
-                angleDepth++;
-            } else if (c == '>' && angleDepth > 0) {
-                angleDepth--;
-            } else if (c == '(') {
-                parenDepth++;
-            } else if (c == ')' && parenDepth > 0) {
-                parenDepth--;
-            } else if (c == '[') {
-                bracketDepth++;
-            } else if (c == ']' && bracketDepth > 0) {
-                bracketDepth--;
-            } else if (c == ',' && angleDepth == 0 && parenDepth == 0 && bracketDepth == 0) {
-                result.add(text.substring(start, i));
-                start = i + 1;
-            }
-        }
-        String tail = text.substring(start);
-        if (tail.trim().length() > 0 || text.trim().length() > 0) {
-            result.add(tail);
-        }
-        return result;
+        return JavaSyntaxSplitter.splitTopLevel(text, ',');
     }
 
     private static int findMatchingParenthesis(String source, int openParen) {
@@ -449,23 +429,13 @@ final class RecordComponentPlanner {
     }
 
     private static boolean sameSourceType(String left, String right) {
-        return normalizedSourceType(left).equals(normalizedSourceType(right));
-    }
-
-    private static String normalizedSourceType(String typeName) {
-        String normalized = typeName.trim().replace("...", "[]").replace(" ", "");
-        if (normalized.startsWith("java.lang.")) {
-            normalized = normalized.substring("java.lang.".length());
+        try {
+            JavaTypeRef leftType = JavaTypeRef.parseCanonical(left.trim().replace("...", "[]"));
+            JavaTypeRef rightType = JavaTypeRef.parseCanonical(right.trim().replace("...", "[]"));
+            return leftType.structurallyEquivalent(rightType);
+        } catch (IllegalArgumentException ex) {
+            return false;
         }
-        int genericStart = normalized.indexOf('<');
-        if (genericStart >= 0) {
-            normalized = normalized.substring(0, genericStart);
-        }
-        int lastDot = normalized.lastIndexOf('.');
-        if (lastDot >= 0) {
-            normalized = normalized.substring(lastDot + 1);
-        }
-        return normalized;
     }
 
     private static String sourceTypeName(DescribedType owner, String typeName) {
@@ -477,26 +447,6 @@ final class RecordComponentPlanner {
             return typeName.substring("java.lang.".length());
         }
         return typeName;
-    }
-
-    private static boolean isJavaIdentifier(String value) {
-        if (value == null || value.length() == 0) {
-            return false;
-        }
-        int index = 0;
-        int firstCodePoint = value.codePointAt(index);
-        if (!Character.isJavaIdentifierStart(firstCodePoint)) {
-            return false;
-        }
-        index += Character.charCount(firstCodePoint);
-        while (index < value.length()) {
-            int currentCodePoint = value.codePointAt(index);
-            if (!Character.isJavaIdentifierPart(currentCodePoint)) {
-                return false;
-            }
-            index += Character.charCount(currentCodePoint);
-        }
-        return true;
     }
 
     static final class Component {

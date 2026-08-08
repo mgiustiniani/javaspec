@@ -16,16 +16,22 @@ Core constraints:
 
 ## Current HEAD and verification baseline
 
-- Baseline named in 1.0 assignment: `e5527b634154cc3156d8e81e6697fab60acaecc3`.
-- HEAD audited for this roadmap: `a71297f1bb234b5faa70eca22abe3a5a3b3d6675`.
-- Baseline is an ancestor of audited HEAD.
-- Working tree at audit start: clean.
-- Existing gates executed at the pre-normalization audited HEAD:
-  - `git diff --check`: PASS
-  - `scripts/check-version-alignment.sh`: PASS, baseline was the previous pre-1.0 snapshot
-  - `mvn -q verify`: PASS for core
-  - `scripts/verify-all.sh`: PASS including Gradle
-- The active release line is now `1.0.0-RC1` after completing the snapshot readiness gates.
+- Original 1.0 assignment baseline: `e5527b634154cc3156d8e81e6697fab60acaecc3`.
+- Constructor-safe restructuring baseline: `7fd7054ba02c0217d1ce3fe783ae5c95c5a5b00a`.
+- Current clean RC5 local-qualification commit: `8f93a46`.
+- The original baseline and restructuring baseline are ancestors of the current qualification base.
+- The current candidate passed `git diff --check`, version/document/API/manual-page guards, Java 21
+  and Java 25 core verification (884/884 each), `mvn clean verify -Psecurity` with zero reported
+  vulnerabilities, `scripts/verify-all.sh`, `scripts/verify-release-dry-run.sh`, and the strict
+  Java-language manifest with 50 covered rows and zero planned rows.
+- The release branch is aligned at `1.0.0-RC5`; `1.0.0-RC4` remains the last published Maven
+  candidate until the RC5 tag workflow succeeds.
+- RC5 local aligned qualification is complete, including reproducible artifacts and Tasks
+  downstream conformance. Remote CI run
+  [`31261952121`](https://github.com/mgiustiniani/javaspec/actions/runs/31261952121) passed the Java
+  8/11/17/21/25 matrix and full Java 21 verification at `4d72aca` with zero annotations.
+  Remote-consumer replay, tag, and publication remain pending; the release-branch build must not be
+  represented as published before those gates complete.
 
 ## Priority definitions
 
@@ -343,6 +349,54 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
   - `scripts/verify-release-dry-run.sh`
 - Completion commit: pending.
 
+### M12 — Constructor-safe restructuring and internal language seams
+
+- Macro-area: B/C — Safe generation and internal architecture
+- Priority: P0 for constructor correctness and documentation; P1 for behavior-preserving extraction
+- Disposition: REQUIRED_FOR_1_0, without adding another language
+- Status: COMPLETED
+- Motivation: post-RC4 constructor fixes exposed unrecognized package-private/generic constructors,
+  qualified-type identity collisions, duplicated Java lexical/type normalization, and concentrated
+  orchestration. The same restructuring can establish a private frontend/backend seam for future
+  language-specific products without expanding the 1.0 feature promise.
+- Scope before 1.0:
+  - preserve package-private and generic constructors and distinct qualified overloads;
+  - canonicalize source names before JVM constructor-signature comparison;
+  - route Java discovery through `JavaSpecLanguageFrontend`;
+  - keep the public `SpecDiscovery` facade while extracting focused Java construction,
+    construction-argument, callable, subject-declaration, and example-discovery components;
+  - separate Java inference orchestration from literal/factory inference, expression-argument
+    splitting, and source method/import context parsing;
+  - reduce `ClassMethodUpdater` to a stable facade by extracting Java type-kind eligibility,
+    existing-member inventory, method/factory rendering, offset-preserving source editing,
+    sealed-interface synchronization, and shared identifier validation;
+  - reduce `GenerationOrchestrator` by extracting preflight validation, centralized CLI write
+    authorization, dry-run detection, related-spec generation, and prophecy generation;
+  - project subject shape, relationships, structured types, construction/callable signatures,
+    invocation kind, and unknown-type evidence through the internal `BehaviorContract` while
+    retaining `DescribedType` as the Java compatibility bridge;
+  - route in-memory production synchronization through `JavaProductionLanguageBackend` and
+    `BehaviorContract`;
+  - keep the language seam internal, Java-only, dependency-free, and absent from CLI/config/SPI;
+  - synchronize README, user manual, architecture decisions, release evidence, and documentation
+    guards with the actual RC4/develop boundary.
+- Explicitly deferred until after 1.0:
+  - Kotlin or other language parsers/generators;
+  - public language registration or ServiceLoader SPI;
+  - `--spec-language` / `--production-language` options;
+  - cross-language generation claims.
+- Acceptance criteria:
+  - supported public API contracts and the runtime dependency tree are unchanged; additive
+    `INTERNAL` inventory entries are allowed before the next RC;
+  - existing Java generated outputs, authorization, dry-run, reports, and idempotence remain stable;
+  - constructor regressions cover package-private, generic-bound, and qualified-name overloads;
+  - all core, adapter, language-manifest, example, and release dry-run gates pass.
+- Decision: [`ADR 0026`](docs/adr/0026-internal-language-seams-before-1.0.md).
+- Completion commits: `28ba661` through `e62cb32`; reusable CLI/source/report/hash/authorization
+  fixture extraction continued in `c6c13fd` without changing production behavior. Post-M12 RC5
+  stabilization commits `008d254`, `662f6f7`, and `114c832` harden owner-return discovery and nested
+  record-component support without adding supported public API.
+
 ## Deferred or rejected for 1.0
 
 - AI/coding-agent integrations: REJECTED_AS_NON_GOAL for javaspec 1.0 core.
@@ -351,6 +405,8 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
 - Mandatory template engine in core: REJECTED_AS_NON_GOAL.
 - Full Phase 51 event model v2: candidate for DEFERRED_WITH_DOCUMENTED_LIMIT unless M8 decides it is required for API freeze.
 - Optional TAP/TeamCity/HTML reporters and Open Test Reporting adapter: P2 unless needed by release consumers.
+- Kotlin or other JVM-language frontends/backends: post-1.0. The internal Java-only seam in M12 must
+  be validated before any public language SPI or language-specific artifact is named or frozen.
 
 ## Definition of done for 1.0.0
 

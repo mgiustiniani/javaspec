@@ -71,6 +71,18 @@ public final class CliArgumentParser {
                     return parsed;
                 }
                 index += 2;
+            } else if ("--generation-report".equals(arg)) {
+                if (index + 1 >= args.length) {
+                    parsed.errorMessage = "Missing value for --generation-report.";
+                    return parsed;
+                }
+                parsed.generationReportPath = args[index + 1];
+                parsed.generationReportSpecified = true;
+                if (parsed.generationReportPath.length() == 0) {
+                    parsed.errorMessage = "Generation report file must not be empty.";
+                    return parsed;
+                }
+                index += 2;
             } else if ("--junit-xml".equals(arg) || "--junit-xml-file".equals(arg)) {
                 if (index + 1 >= args.length) {
                     parsed.errorMessage = "Missing value for " + arg + ".";
@@ -348,6 +360,10 @@ public final class CliArgumentParser {
                 parsed.errorMessage = "The " + parsed.reportOption + " option belongs to run; describe does not execute examples.";
                 return parsed;
             }
+            if (parsed.generationReportSpecified) {
+                parsed.errorMessage = "The --generation-report option belongs to run; describe does not execute examples.";
+                return parsed;
+            }
             if (parsed.junitXmlSpecified) {
                 parsed.errorMessage = "The " + parsed.junitXmlOption + " option belongs to run; describe does not execute examples.";
                 return parsed;
@@ -447,6 +463,10 @@ public final class CliArgumentParser {
             }
             if (parsed.reportSpecified) {
                 parsed.errorMessage = "The " + parsed.reportOption + " option belongs to run.";
+                return parsed;
+            }
+            if (parsed.generationReportSpecified) {
+                parsed.errorMessage = "The --generation-report option belongs to run.";
                 return parsed;
             }
             if (parsed.junitXmlSpecified) {
