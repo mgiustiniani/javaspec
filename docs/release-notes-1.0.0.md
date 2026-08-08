@@ -163,8 +163,10 @@ moving dependency-heavy behavior into optional artifacts.
   `ae9291f` is tagged `v1.0.0-RC5`; release workflow
   [31262851841](https://github.com/mgiustiniani/javaspec/actions/runs/31262851841) published all five
   signed Maven modules and submitted the Gradle plugin for approval. Five clean Maven consumers and
-  `magrathea-pki` Java 21 CLI/Maven replay passed. Gradle first-publication approval and deterministic
-  cross-environment core Javadoc indexing remain before stable 1.0.
+  `magrathea-pki` Java 21 CLI/Maven replay passed. The replay exposed one core Javadoc index mismatch;
+  develop commit `67db10c` fixes its implicit link labels and verifies all 18 archives across two
+  clean worktrees. Gradle first-publication approval and inclusion of that fix remain before stable
+  1.0.
 - RC3 adds a source-first Maven `generate` goal for `generate-test-sources`; it regenerates and
   registers base typed support before `testCompile`, including matcher-only specs, without tracked
   generated sources or consumer-specific execution-plugin workarounds.

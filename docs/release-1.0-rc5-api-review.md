@@ -70,5 +70,7 @@ in the changelog, generation contract, report schema, and regression suite.
 - [x] Add immutable remote artifact replay evidence after publication: five clean Maven consumers
   passed; `magrathea-pki` commit `7c6c41e` passed CLI 4/4 twice and Java 21 Maven domain 4/4 with
   zero pending and no source mutation.
-- [ ] Close the cross-environment core Javadoc index mismatch and obtain Gradle Portal approval
-  before stable 1.0.
+- [x] Close the cross-environment core Javadoc index mismatch on develop at `67db10c`: independent
+  clean worktrees reproduce all 18 archives.
+- [ ] Obtain Gradle Portal approval and include the reproducibility fix in the next candidate before
+  stable 1.0.

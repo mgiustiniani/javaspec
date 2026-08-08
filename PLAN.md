@@ -33,10 +33,11 @@ Core constraints:
 - Clean Maven Central replay passed five standalone consumers. `magrathea-pki` consumer commit
   `7c6c41e` resolved only published RC5 artifacts, ran two idempotent CLI generations at 4/4, and
   passed its Java 21 domain Maven lifecycle at 4/4 with zero pending and no source mutation.
-- RC5 Maven artifacts are immutable and available. Gradle Plugin Portal first-publication approval
-  and cross-environment determinism of the core Javadoc archive remain open before stable 1.0; a
-  clean publisher-equivalent comparison matched 14 of 15 Maven archives, with only
-  `javaspec-1.0.0-RC5-javadoc.jar` differing in `index-all.html` link labels.
+- RC5 Maven artifacts are immutable and available. Its clean publisher-equivalent comparison matched
+  14 of 15 Maven archives, exposing only nondeterministic core Javadoc `index-all.html` labels.
+  Develop commit `67db10c` makes those labels explicit and rebuilds both checksum passes from clean
+  outputs; two independent clean worktrees now match all 18 archives. Gradle Plugin Portal approval
+  remains external, and the reproducibility correction must be included in the next stable candidate.
 
 ## Priority definitions
 

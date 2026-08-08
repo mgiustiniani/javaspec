@@ -410,3 +410,21 @@ first-publication approval; the public marker is not yet resolvable. This is an 
 The retained remote archive is
 `.ide/agent-runs/javaspec-1.0.0-rc5-20260808/remote-publication/`; its 64-file `SHA256SUMS` manifest
 has SHA-256 `b0974ec38b44ce30040d9aea06729bc093b984cefd2824f8404f10b4a17eab94`, and every entry validates.
+
+## 2026-08-08 — post-publication reproducibility correction
+
+Develop commit `67db10c` resolves the one RC5 replay mismatch without changing a supported JVM
+signature. `AssertionDispatcher` alias Javadocs now use explicit link labels, eliminating the
+filesystem-order-dependent qualification in `index-all.html`. The release dry-run now deletes every
+Maven and Gradle output before both checksum passes rather than repackaging an existing Javadoc tree.
+
+The corrected tree passed Java 21 core verification at 884/884 and regenerated an unchanged API
+baseline. The complete release dry-run passed in the original worktree and a fresh detached worktree
+under Temurin 21.0.11+10. Both clean builds reproduced all 18 archives internally and produced the
+same cross-worktree checksum manifest, SHA-256
+`02d9c734fa9712b16222dff9a943e8a84c042dfe55b8cad20f3533cae629e4c7`.
+
+This commit does not and cannot change immutable RC5. It is qualified input for the next stable
+candidate. Evidence is retained at
+`.ide/agent-runs/javaspec-1.0.0-rc5-20260808/post-publication-repro-fix/`; its `SHA256SUMS` manifest
+has SHA-256 `e24742aeeb220bf259ec0787a331ac851c4ec10b22909bf33570182fde96f2cb`.

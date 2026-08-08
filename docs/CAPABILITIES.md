@@ -21,8 +21,9 @@ This document records capabilities verified while preparing the 1.0 roadmap. It 
 - Five clean Maven consumers and the `magrathea-pki` Java 21 domain replay passed against immutable
   RC5 artifacts; the latter ran CLI generation twice and Maven verification at 4/4 with zero pending
   and no source mutation.
-- Post-RC4 hardening is part of immutable RC5. Gradle Portal approval and deterministic
-  cross-environment core Javadoc indexing remain stable-1.0 release gates.
+- Post-RC4 hardening is part of immutable RC5. Develop commit `67db10c` resolves its one observed
+  cross-environment core Javadoc mismatch and passes 18/18 across independent clean worktrees.
+  Gradle Portal approval and inclusion of this fix in the next candidate remain stable-1.0 gates.
 
 ## Artifacts and modules
 
@@ -99,7 +100,7 @@ The API freeze classifies these shipped areas in `docs/api-surface-1.0.md`:
 | P0-API-001 | P0 | Public API/SPI classification was missing. | DONE: `docs/api-surface-1.0.md` classifies packages/contracts and `scripts/check-api-surface.sh` gates unclassified packages. |
 | P0-GEN-001 | P0 | Generation needed frozen structured outcomes and atomic-write audit. | DONE: `docs/generation-contract-1.0.md`, `AtomicFileWriter`, and pending-stub synthetic BROKEN result. |
 | P0-REL-002 | P0 | Release workflow may not publish/verify every real artifact. | DONE: `scripts/verify-release-dry-run.sh`, `RELEASING.md`, and bytecode-agent release metadata/artifacts verify the declared artifact set and consumer examples. |
-| P0-REL-003 | P0 | Clean publisher-equivalent replay found nondeterministic implicit link labels in the core Javadoc index. | OPEN FOR STABLE 1.0: make Javadoc labels deterministic and compare clean builds before the final cut. |
+| P0-REL-003 | P0 | Clean publisher-equivalent replay found nondeterministic implicit link labels in the core Javadoc index. | DONE ON DEVELOP at `67db10c`: explicit labels plus clean-output rebuilds match 18/18 archives across two worktrees; include in the next candidate. |
 | P0-DOC-001 | P0 | Documentation can contradict current capabilities/version. | DONE: `scripts/check-current-docs.sh` and `scripts/check-version-alignment.sh` gate current docs/version/package consistency. |
 | P1-ROW-001 | P1 | Example-data row selector semantics are subtle and could be misrepresented. | DONE: `docs/example-data-contract-1.0.md` documents inline execution vs descriptor/event filtering, with JUnit Platform regression coverage. |
 | P1-PROP-001 | P1 | Generated Prophecy token overloads need edge-case audit. | DONE: `ProphecySkeletonGeneratorTest` covers primitive, array, varargs, bounded generic, bridge/synthetic, duplicate, and mixed exact/token call cases; `docs/prophecy-contract-1.0.md` documents limits. |

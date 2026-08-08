@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Hardened archive reproducibility by rebuilding both checksum passes from clean outputs and using
+  explicit Javadoc alias labels; independent clean worktrees now produce the same 18 archive hashes.
+
 ## 1.0.0-RC5 — 2026-08-08
 
 - Made all published Maven and Gradle archives byte-reproducible through a fixed release timestamp,

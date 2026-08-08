@@ -25,6 +25,8 @@ This checklist is the release gate source for 1.0. It must be updated with comma
 - [ ] RC5 Gradle Plugin Portal first-publication approval and marker availability.
 - [x] Java 8/11/17/21/25 language-coverage closure completed according to
   `docs/java-language-coverage-roadmap.md`, including remote-RC Java 21 dogfooding.
+- [x] Post-publication Javadoc reproducibility correction completed on develop at `67db10c`; two
+  independent clean worktrees reproduce all 18 archives.
 - [ ] Final `1.0.0` prepared from verified RC or documented RC fix commit.
 - [ ] Post-release snapshot bump complete.
 
@@ -65,7 +67,9 @@ Evidence:
 | RC5 Maven Central availability/signatures | `ae9291f` | PASS | Five POM/main/source/Javadoc sets available; all 20 detached signatures validate with key `92EBAB37E11720596CD690CF212398D74CE93120` |
 | Clean Maven Central consumer replay | `ae9291f` | PASS | Maven plugin, Prophecy, JUnit Platform, bytecode-doubles, and bytecode-agent consumers passed 5/5 from an empty repository |
 | `magrathea-pki` remote JLC-8 replay | `7c6c41e` | PASS | CLI 4/4 twice, second generation `NO_CHANGES`; Java 21 Maven domain 4/4, zero pending, no source mutation |
-| Clean publisher-equivalent Maven archive comparison | `ae9291f` | PARTIAL | 14/15 archives match Central; only core Javadoc `index-all.html` has nondeterministic implicit link labels; stable 1.0 gate remains open |
+| Clean publisher-equivalent Maven archive comparison | `ae9291f` | PARTIAL | 14/15 archives match Central; only core Javadoc `index-all.html` has nondeterministic implicit link labels; immutable RC5 is unchanged |
+| Post-publication clean reproducibility fix | `67db10c` | PASS | Explicit Javadoc labels and clean-output rebuilds reproduce 18/18 archives across independent worktrees; Java 21 core 884/884 and API baseline unchanged |
+| Reproducibility-fix evidence archive | `67db10c` | PASS | `.ide/agent-runs/javaspec-1.0.0-rc5-20260808/post-publication-repro-fix/`; `SHA256SUMS` SHA-256 `e24742aeeb220bf259ec0787a331ac851c4ec10b22909bf33570182fde96f2cb` |
 | Remote publication evidence archive | `ae9291f` | PASS | `.ide/agent-runs/javaspec-1.0.0-rc5-20260808/remote-publication/`; `SHA256SUMS` SHA-256 `b0974ec38b44ce30040d9aea06729bc093b984cefd2824f8404f10b4a17eab94` |
 | Gradle Plugin Portal RC5 submission | `ae9291f` | EXTERNAL PENDING | Release run submitted `io.github.jvmspec` for approval; marker POM remains unavailable |
 | Tagged RC1 release workflow and Maven publication | `7bd8ac4` | PASS | [Release run 29146746362](https://github.com/mgiustiniani/javaspec/actions/runs/29146746362); Maven Central deployment succeeded |
@@ -149,8 +153,9 @@ Evidence:
 - [x] Bytecode agent manifest has required `Premain-Class` and `Agent-Class`.
 - [x] Checksums generated/verified by the release dry-run; a second clean build in the same
   environment reproduces every Maven and Gradle main/source/Javadoc archive hash.
-- [ ] Cross-environment clean replay reproduces every published archive. RC5 matched 14/15 Maven
-  archives; deterministic core Javadoc `index-all.html` link labels remain required for stable 1.0.
+- [x] Cross-worktree clean replay reproduces all 18 next-candidate archives at `67db10c`. Immutable
+  RC5 remains 14/15 against its local replay; the corrected source and clean-build guard must be
+  included in the next stable candidate.
 - [x] Signing configured/documented; workflow requires an imported secret key, verifies the
   passphrase with an isolated loopback signing probe, and passes it explicitly to Maven GPG Plugin.
 - [x] Gradle Plugin Portal API key/secret confirmed by successful RC5 `publishPlugins` execution.
