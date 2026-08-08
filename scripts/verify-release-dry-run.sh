@@ -36,6 +36,18 @@ fail() { printf 'FAIL: %s\n' "$1" >&2; exit 1; }
 
 artifact_files=()
 
+clean_release_outputs() {
+  section "Clean release artifact outputs"
+  rm -rf \
+    target \
+    javaspec-maven-plugin/target \
+    javaspec-junit-platform-engine/target \
+    javaspec-bytecode-doubles/target \
+    javaspec-bytecode-agent/target \
+    javaspec-gradle-plugin/build
+  pass "release artifact outputs cleaned"
+}
+
 require_file() {
   if [ ! -f "$1" ]; then
     printf 'Artifact directory contents for diagnostics:\n' >&2
@@ -69,11 +81,15 @@ package_maven_module() {
 }
 
 verify_reproducible_artifacts() {
-  local baseline="target/release-dry-run-checksums.sha256"
+  local published_manifest="target/release-dry-run-checksums.sha256"
+  local baseline
   local second
+  baseline="$(mktemp)"
   second="$(mktemp)"
+  cp "$published_manifest" "$baseline"
 
-  section "Rebuild release artifacts for reproducibility"
+  clean_release_outputs
+  section "Rebuild release artifacts from clean outputs for reproducibility"
   package_maven_module "core" "pom.xml"
   "$MAVEN_BIN" -q -DskipTests install
   package_maven_module "Maven plugin" "javaspec-maven-plugin/pom.xml"
@@ -83,23 +99,27 @@ verify_reproducible_artifacts() {
   (cd javaspec-gradle-plugin && "${gradle_cmd[@]}" --no-daemon clean test build)
 
   local artifact
+  : > "$second"
   for artifact in "${artifact_files[@]}"; do
     sha256sum "$artifact" >> "$second"
   done
   if ! cmp -s "$baseline" "$second"; then
     diff -u "$baseline" "$second" >&2 || true
-    rm -f "$second"
-    fail "same-source release artifact rebuild produced different SHA-256 values"
+    rm -f "$baseline" "$second"
+    fail "clean same-source release artifact rebuild produced different SHA-256 values"
   fi
-  rm -f "$second"
-  sha256sum -c "$baseline"
-  pass "same-source release artifact rebuild is byte-reproducible"
+  mkdir -p "$(dirname "$published_manifest")"
+  cp "$second" "$published_manifest"
+  rm -f "$baseline" "$second"
+  sha256sum -c "$published_manifest"
+  pass "clean same-source release artifact rebuild is byte-reproducible"
 }
 
 scripts/check-version-alignment.sh
 scripts/check-current-docs.sh
 scripts/check-api-surface.sh
 
+clean_release_outputs
 package_maven_module "core" "pom.xml"
 section "Install core release candidate for standalone artifact builds"
 "$MAVEN_BIN" -q -DskipTests install

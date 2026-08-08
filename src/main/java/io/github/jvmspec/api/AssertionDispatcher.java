@@ -64,21 +64,21 @@ public class AssertionDispatcher {
     }
 
     /**
-     * Alias for {@link #shouldEqual(Object, Object)} using PHPSpec return terminology.
+     * Alias for {@link #shouldEqual(Object,Object) shouldEqual(Object, Object)} using PHPSpec return terminology.
      */
     public void shouldReturn(Object actual, Object expected) {
         match(actual).shouldReturn(expected);
     }
 
     /**
-     * Alias for {@link #shouldEqual(Object, Object)}.
+     * Alias for {@link #shouldEqual(Object,Object) shouldEqual(Object, Object)}.
      */
     public void shouldBeLike(Object actual, Object expected) {
         match(actual).shouldBeLike(expected);
     }
 
     /**
-     * Alias for {@link #shouldEqual(Object, Object)}.
+     * Alias for {@link #shouldEqual(Object,Object) shouldEqual(Object, Object)}.
      */
     public void shouldBeEqualTo(Object actual, Object expected) {
         match(actual).shouldBeEqualTo(expected);
@@ -99,21 +99,21 @@ public class AssertionDispatcher {
     }
 
     /**
-     * Alias for {@link #shouldNotEqual(Object, Object)} using PHPSpec return terminology.
+     * Alias for {@link #shouldNotEqual(Object,Object) shouldNotEqual(Object, Object)} using PHPSpec return terminology.
      */
     public void shouldNotReturn(Object actual, Object unexpected) {
         match(actual).shouldNotReturn(unexpected);
     }
 
     /**
-     * Alias for {@link #shouldNotEqual(Object, Object)}.
+     * Alias for {@link #shouldNotEqual(Object,Object) shouldNotEqual(Object, Object)}.
      */
     public void shouldNotBeLike(Object actual, Object unexpected) {
         match(actual).shouldNotBeLike(unexpected);
     }
 
     /**
-     * Alias for {@link #shouldNotEqual(Object, Object)}.
+     * Alias for {@link #shouldNotEqual(Object,Object) shouldNotEqual(Object, Object)}.
      */
     public void shouldNotBeEqualTo(Object actual, Object unexpected) {
         match(actual).shouldNotBeEqualTo(unexpected);
@@ -129,14 +129,14 @@ public class AssertionDispatcher {
     }
 
     /**
-     * Alias for {@link #shouldHaveType(Object, Class)}.
+     * Alias for {@link #shouldHaveType(Object,Class) shouldHaveType(Object, Class)}.
      */
     public void shouldBeAnInstanceOf(Object actual, Class<?> expectedType) {
         match(actual).shouldBeAnInstanceOf(expectedType);
     }
 
     /**
-     * Alias for {@link #shouldHaveType(Object, Class)} using PHPSpec return terminology.
+     * Alias for {@link #shouldHaveType(Object,Class) shouldHaveType(Object, Class)} using PHPSpec return terminology.
      */
     public void shouldReturnAnInstanceOf(Object actual, Class<?> expectedType) {
         match(actual).shouldReturnAnInstanceOf(expectedType);
@@ -159,7 +159,7 @@ public class AssertionDispatcher {
     }
 
     /**
-     * Alias for {@link #shouldBeApproximately(Object, Number, Number)} using PHPSpec return terminology.
+     * Alias for {@link #shouldBeApproximately(Object,Number,Number) shouldBeApproximately(Object, Number, Number)} using PHPSpec return terminology.
      */
     public void shouldReturnApproximately(Object actual, Number expected, Number tolerance) {
         match(actual).shouldReturnApproximately(expected, tolerance);
@@ -173,7 +173,7 @@ public class AssertionDispatcher {
     }
 
     /**
-     * Alias for {@link #shouldNotBeApproximately(Object, Number, Number)} using PHPSpec return terminology.
+     * Alias for {@link #shouldNotBeApproximately(Object,Number,Number) shouldNotBeApproximately(Object, Number, Number)} using PHPSpec return terminology.
      */
     public void shouldNotReturnApproximately(Object actual, Number unexpected, Number tolerance) {
         match(actual).shouldNotReturnApproximately(unexpected, tolerance);
