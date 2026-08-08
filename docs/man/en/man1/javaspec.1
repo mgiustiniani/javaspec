@@ -1,4 +1,4 @@
-.TH JAVASPEC 1 "July 2026" "javaspec" "User Commands"
+.TH JAVASPEC 1 "August 2026" "javaspec" "User Commands"
 .SH NAME
 javaspec \- subject-centric SpecBDD for Java inspired by PHPSpec
 .SH SYNOPSIS
@@ -18,6 +18,10 @@ javaspec \- subject-centric SpecBDD for Java inspired by PHPSpec
 .RI [ options ]
 .br
 .B javaspec list-extensions
+.br
+.B bin/javaspec \-\-launcher-version
+.br
+.B bin/javaspec \-\-launcher-fingerprint
 .br
 .B javaspec
 .RB [ \-h | \-\-help ]
@@ -43,6 +47,18 @@ The core runs on Java 8 and has no third-party runtime dependencies. Optional Ma
 creates specification and generated support skeletons only. It never creates production code.
 .B run
 discovers specifications, plans or applies authorized generation, optionally compiles sources, executes examples, and writes reports.
+.SH LAUNCHER OPTIONS
+The repository
+.B bin/javaspec
+launcher accepts two provenance options before starting the Java CLI.
+.TP
+.B \-\-launcher-version
+Print the POM-aligned launcher version.
+.TP
+.B \-\-launcher-fingerprint
+Print the launcher version, selected JAR path, and JAR SHA-256. Use this before reproducible or agent-driven work. These two options belong to the shell launcher and are not accepted by direct
+.B java \-jar
+invocation.
 .SH COMMANDS
 .TP
 .B describe, desc
@@ -155,6 +171,8 @@ Always write a deterministic UTF-8 generation outcome report, including dry-run 
 Write a UTF-8 JUnit XML-compatible report.
 .B \-\-junit-xml-file
 is an alias.
+.PP
+The parent directory for JSON and JUnit XML reports must already exist; a missing or unwritable parent exits 70. The generation-report writer manages its own atomic destination independently.
 .TP
 .BI \-\-constructor-policy " policy"
 Choose
@@ -215,6 +233,12 @@ Default generated support and Prophecy wrapper root.
 .B target/javaspec-classes
 Default CLI compilation output.
 .SH EXAMPLES
+Record the selected launcher artifact:
+.PP
+.nf
+bin/javaspec \-\-launcher-fingerprint
+.fi
+.PP
 Create a specification, generate missing mechanical scaffolding, compile, and run:
 .PP
 .nf
@@ -236,6 +260,6 @@ javaspec run --profile java21 --class PriceCalculator \
   --example it_calculates_total --compile
 .fi
 .SH SEE ALSO
-README.md, docs/usermanual/Home.md, docs/generation-contract-1.0.md, docs/result-contract-1.0.md, docs/troubleshooting.md
+README.md, docs/usermanual/README.md, docs/usermanual/Home.md, docs/generation-contract-1.0.md, docs/result-contract-1.0.md, docs/troubleshooting.md
 .SH BUGS
 Report issues at https://github.com/mgiustiniani/javaspec/issues

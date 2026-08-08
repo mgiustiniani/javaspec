@@ -1,5 +1,11 @@
 # javaspec User Manual
 
+- [Language editions](README.md)
+  - [Italiano](it/Home.md)
+  - [Español](es/Home.md)
+  - [Deutsch](de/Home.md)
+  - [Français](fr/Home.md)
+  - [简体中文](ch/Home.md)
 - [Home](Home.md)
 - [Quick start](Home.md#quick-start)
 - [Release and CI verification](Home.md#release-and-ci-verification)
@@ -31,6 +37,7 @@
 - [Optional Gradle plugin](Home.md#optional-gradle-plugin)
 - [Optional JUnit Platform engine](Home.md#optional-junit-platform-engine)
 - [Example execution MVP](Home.md#example-execution-mvp)
+- [Spec-driven development agent](Home.md#spec-driven-development-agent)
 - [BDD workflow](Home.md#bdd-workflow)
 - [PHPSpec-to-Java migration notes](Home.md#phpspec-to-java-migration-notes)
 - [Construction semantics](Home.md#construction-semantics)
@@ -59,6 +66,7 @@
   - [Object methods and resets](Home.md#object-methods-and-resets)
   - [Supported targets and limitations](Home.md#supported-targets-and-limitations)
 - [Optional bytecode concrete-class doubles](Home.md#optional-bytecode-concrete-class-doubles)
+- [Optional bytecode agent doubles](Home.md#optional-bytecode-agent-doubles)
 - [Class-like type generation](Home.md#class-like-type-generation)
 - [Extends and implements](Home.md#extends-and-implements)
 - [Custom directories](Home.md#custom-directories)

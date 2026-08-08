@@ -13,6 +13,8 @@ required_tokens=(
   'javaspec run'
   'javaspec prophesize'
   'javaspec list-extensions'
+  '\-\-launcher-version'
+  '\-\-launcher-fingerprint'
   '\-\-resolve-pom'
   '\-\-release'
   '\-\-generation-report'

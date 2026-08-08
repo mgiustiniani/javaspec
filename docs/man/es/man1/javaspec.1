@@ -1,4 +1,4 @@
-.TH JAVASPEC 1 "Julio de 2026" "javaspec" "Comandos de usuario"
+.TH JAVASPEC 1 "Agosto de 2026" "javaspec" "Comandos de usuario"
 .SH NOMBRE
 javaspec \- SpecBDD para Java centrado en el sujeto e inspirado en PHPSpec
 .SH SINOPSIS
@@ -18,6 +18,10 @@ javaspec \- SpecBDD para Java centrado en el sujeto e inspirado en PHPSpec
 .RI [ opciones ]
 .br
 .B javaspec list-extensions
+.br
+.B bin/javaspec \-\-launcher-version
+.br
+.B bin/javaspec \-\-launcher-fingerprint
 .br
 .B javaspec
 .RB [ \-h | \-\-help ]
@@ -42,6 +46,17 @@ El núcleo es compatible con Java 8 y no tiene dependencias de ejecución de ter
 solo crea los esqueletos de especificación y soporte; nunca crea código de producción.
 .B run
 descubre especificaciones, planifica o aplica generación autorizada, puede compilar fuentes, ejecuta ejemplos y escribe informes.
+.SH OPCIONES DEL LANZADOR
+El lanzador
+.B bin/javaspec
+del repositorio acepta dos opciones de procedencia antes de iniciar la CLI Java.
+.TP
+.B \-\-launcher-version
+Muestra la versión alineada con el POM.
+.TP
+.B \-\-launcher-fingerprint
+Muestra la versión, la ruta del JAR seleccionado y su SHA-256. Úsela antes de trabajo reproducible o dirigido por agentes. Estas opciones pertenecen al lanzador shell y no son aceptadas por la invocación directa
+.B java \-jar .
 .SH COMANDOS
 .TP
 .B describe, desc
@@ -151,6 +166,8 @@ Escribe siempre un informe UTF-8 determinista del resultado de generación, tamb
 Escribe un informe UTF-8 compatible con JUnit XML.
 .B \-\-junit-xml-file
 es un alias.
+.PP
+El directorio padre de los informes JSON y JUnit XML debe existir; si falta o no es escribible, el proceso termina con 70. El escritor del informe de generación gestiona por separado su destino atómico.
 .TP
 .BI \-\-constructor-policy " política"
 Elige
@@ -211,6 +228,12 @@ Raíz predeterminada del soporte y los envoltorios Prophecy generados.
 .B target/javaspec-classes
 Salida predeterminada de compilación CLI.
 .SH EJEMPLOS
+Registrar el artefacto seleccionado por el lanzador:
+.PP
+.nf
+bin/javaspec \-\-launcher-fingerprint
+.fi
+.PP
 Crear una especificación, generar el andamiaje, compilar y ejecutar:
 .PP
 .nf
@@ -232,6 +255,6 @@ javaspec run --profile java21 --class PriceCalculator \
   --example it_calculates_total --compile
 .fi
 .SH VÉASE TAMBIÉN
-README.md, docs/usermanual/Home.md, docs/generation-contract-1.0.md, docs/result-contract-1.0.md, docs/troubleshooting.md
+README.md, docs/usermanual/README.md, docs/usermanual/es/Home.md, docs/generation-contract-1.0.md, docs/result-contract-1.0.md, docs/troubleshooting.md
 .SH ERRORES
 Informe de problemas: https://github.com/mgiustiniani/javaspec/issues

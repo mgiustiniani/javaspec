@@ -1,4 +1,4 @@
-.TH JAVASPEC 1 "Luglio 2026" "javaspec" "Comandi utente"
+.TH JAVASPEC 1 "Agosto 2026" "javaspec" "Comandi utente"
 .SH NOME
 javaspec \- SpecBDD per Java centrato sul soggetto e ispirato a PHPSpec
 .SH SINTASSI
@@ -18,6 +18,10 @@ javaspec \- SpecBDD per Java centrato sul soggetto e ispirato a PHPSpec
 .RI [ opzioni ]
 .br
 .B javaspec list-extensions
+.br
+.B bin/javaspec \-\-launcher-version
+.br
+.B bin/javaspec \-\-launcher-fingerprint
 .br
 .B javaspec
 .RB [ \-h | \-\-help ]
@@ -42,6 +46,17 @@ Il core è compatibile con Java 8 e non ha dipendenze runtime di terze parti. Gl
 crea soltanto gli scheletri della specifica e del supporto generato; non crea mai codice di produzione.
 .B run
 scopre le specifiche, pianifica o applica la generazione autorizzata, può compilare i sorgenti, esegue gli esempi e scrive i report.
+.SH OPZIONI DEL LAUNCHER
+Il launcher
+.B bin/javaspec
+del repository accetta due opzioni di provenienza prima di avviare la CLI Java.
+.TP
+.B \-\-launcher-version
+Stampa la versione allineata al POM.
+.TP
+.B \-\-launcher-fingerprint
+Stampa versione, percorso del JAR selezionato e SHA-256. Usarla prima di lavoro riproducibile o guidato da agenti. Queste opzioni appartengono al launcher shell e non sono accettate dall'invocazione diretta
+.B java \-jar .
 .SH COMANDI
 .TP
 .B describe, desc
@@ -151,6 +166,8 @@ Scrive sempre un report UTF-8 deterministico sull'esito della generazione, anche
 Scrive un report UTF-8 compatibile con JUnit XML.
 .B \-\-junit-xml-file
 è un alias.
+.PP
+La directory parent dei report JSON e JUnit XML deve già esistere; una directory mancante o non scrivibile termina con 70. Il writer del report di generazione gestisce separatamente la propria destinazione atomica.
 .TP
 .BI \-\-constructor-policy " criterio"
 Sceglie
@@ -211,6 +228,12 @@ Radice predefinita del supporto e dei wrapper Prophecy generati.
 .B target/javaspec-classes
 Output predefinito della compilazione CLI.
 .SH ESEMPI
+Registrare l'artefatto scelto dal launcher:
+.PP
+.nf
+bin/javaspec \-\-launcher-fingerprint
+.fi
+.PP
 Creare una specifica, generare lo scaffolding, compilare ed eseguire:
 .PP
 .nf
@@ -232,6 +255,6 @@ javaspec run --profile java21 --class PriceCalculator \
   --example it_calculates_total --compile
 .fi
 .SH VEDERE ANCHE
-README.md, docs/usermanual/Home.md, docs/generation-contract-1.0.md, docs/result-contract-1.0.md, docs/troubleshooting.md
+README.md, docs/usermanual/README.md, docs/usermanual/it/Home.md, docs/generation-contract-1.0.md, docs/result-contract-1.0.md, docs/troubleshooting.md
 .SH BUG
 Segnalare i problemi su https://github.com/mgiustiniani/javaspec/issues

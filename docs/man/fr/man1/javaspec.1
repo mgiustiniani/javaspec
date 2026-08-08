@@ -1,4 +1,4 @@
-.TH JAVASPEC 1 "Juillet 2026" "javaspec" "Commandes utilisateur"
+.TH JAVASPEC 1 "Août 2026" "javaspec" "Commandes utilisateur"
 .SH NOM
 javaspec \- SpecBDD Java centré sur le sujet et inspiré de PHPSpec
 .SH SYNOPSIS
@@ -18,6 +18,10 @@ javaspec \- SpecBDD Java centré sur le sujet et inspiré de PHPSpec
 .RI [ options ]
 .br
 .B javaspec list-extensions
+.br
+.B bin/javaspec \-\-launcher-version
+.br
+.B bin/javaspec \-\-launcher-fingerprint
 .br
 .B javaspec
 .RB [ \-h | \-\-help ]
@@ -42,6 +46,17 @@ Le noyau fonctionne avec Java 8 et ne possède aucune dépendance d'exécution t
 crée uniquement les squelettes de spécification et de support généré ; il ne crée jamais de code de production.
 .B run
 découvre les spécifications, planifie ou applique la génération autorisée, peut compiler les sources, exécute les exemples et écrit les rapports.
+.SH OPTIONS DU LANCEUR
+Le lanceur
+.B bin/javaspec
+du dépôt accepte deux options de provenance avant de démarrer la CLI Java.
+.TP
+.B \-\-launcher-version
+Affiche la version alignée sur le POM.
+.TP
+.B \-\-launcher-fingerprint
+Affiche la version, le chemin du JAR sélectionné et son SHA-256. À utiliser avant un travail reproductible ou piloté par agent. Ces options appartiennent au lanceur shell et ne sont pas acceptées par une invocation directe
+.B java \-jar .
 .SH COMMANDES
 .TP
 .B describe, desc
@@ -151,6 +166,8 @@ est un alias.
 Écrit un rapport UTF-8 compatible JUnit XML.
 .B \-\-junit-xml-file
 est un alias.
+.PP
+Le répertoire parent des rapports JSON et JUnit XML doit déjà exister ; s'il manque ou n'est pas accessible en écriture, l'exécution se termine avec 70. Le rapport de génération gère séparément sa destination atomique.
 .TP
 .BI \-\-constructor-policy " politique"
 Choisit
@@ -211,6 +228,12 @@ Racine par défaut du support et des enveloppes Prophecy générés.
 .B target/javaspec-classes
 Sortie par défaut de la compilation CLI.
 .SH EXEMPLES
+Enregistrer l'artefact sélectionné par le lanceur :
+.PP
+.nf
+bin/javaspec \-\-launcher-fingerprint
+.fi
+.PP
 Créer une spécification, générer le squelette, compiler et exécuter :
 .PP
 .nf
@@ -232,6 +255,6 @@ javaspec run --profile java21 --class PriceCalculator \
   --example it_calculates_total --compile
 .fi
 .SH VOIR AUSSI
-README.md, docs/usermanual/Home.md, docs/generation-contract-1.0.md, docs/result-contract-1.0.md, docs/troubleshooting.md
+README.md, docs/usermanual/README.md, docs/usermanual/fr/Home.md, docs/generation-contract-1.0.md, docs/result-contract-1.0.md, docs/troubleshooting.md
 .SH BOGUES
 Signaler les problèmes sur https://github.com/mgiustiniani/javaspec/issues

@@ -1,4 +1,4 @@
-.TH JAVASPEC 1 "Juli 2026" "javaspec" "Benutzerbefehle"
+.TH JAVASPEC 1 "August 2026" "javaspec" "Benutzerbefehle"
 .SH NAME
 javaspec \- subjektzentriertes, von PHPSpec inspiriertes SpecBDD für Java
 .SH ÜBERSICHT
@@ -18,6 +18,10 @@ javaspec \- subjektzentriertes, von PHPSpec inspiriertes SpecBDD für Java
 .RI [ Optionen ]
 .br
 .B javaspec list-extensions
+.br
+.B bin/javaspec \-\-launcher-version
+.br
+.B bin/javaspec \-\-launcher-fingerprint
 .br
 .B javaspec
 .RB [ \-h | \-\-help ]
@@ -43,6 +47,18 @@ Der Kern läuft unter Java 8 und besitzt keine Laufzeitabhängigkeiten von Dritt
 erzeugt nur Gerüste für Spezifikation und generierte Unterstützung, niemals Produktionscode.
 .B run
 findet Spezifikationen, plant oder übernimmt autorisierte Generierung, kann Quellen kompilieren, führt Beispiele aus und schreibt Berichte.
+.SH LAUNCHER-OPTIONEN
+Der Repository-Launcher
+.B bin/javaspec
+akzeptiert vor dem Start der Java-CLI zwei Herkunftsoptionen.
+.TP
+.B \-\-launcher-version
+Gibt die am POM ausgerichtete Version aus.
+.TP
+.B \-\-launcher-fingerprint
+Gibt Version, Pfad des ausgewählten JARs und SHA-256 aus. Vor reproduzierbarer oder agentengesteuerter Arbeit verwenden. Diese Optionen gehören zum Shell-Launcher und werden bei direktem
+.B java \-jar
+Aufruf nicht akzeptiert.
 .SH BEFEHLE
 .TP
 .B describe, desc
@@ -152,6 +168,8 @@ Schreibt immer einen deterministischen UTF-8-Generierungsbericht, auch für Dry-
 Schreibt einen UTF-8-Bericht im JUnit-XML-kompatiblen Format.
 .B \-\-junit-xml-file
 ist ein Alias.
+.PP
+Das übergeordnete Verzeichnis für JSON- und JUnit-XML-Berichte muss existieren; fehlt es oder ist es nicht beschreibbar, endet der Lauf mit 70. Der Generierungsbericht verwaltet sein atomares Ziel separat.
 .TP
 .BI \-\-constructor-policy " Regel"
 Wählt
@@ -212,6 +230,12 @@ Standardwurzel für generierte Unterstützung und Prophecy-Wrapper.
 .B target/javaspec-classes
 Standardausgabe der CLI-Kompilierung.
 .SH BEISPIELE
+Das ausgewählte Launcher-Artefakt erfassen:
+.PP
+.nf
+bin/javaspec \-\-launcher-fingerprint
+.fi
+.PP
 Eine Spezifikation erstellen, Gerüste generieren, kompilieren und ausführen:
 .PP
 .nf
@@ -233,6 +257,6 @@ javaspec run --profile java21 --class PriceCalculator \
   --example it_calculates_total --compile
 .fi
 .SH SIEHE AUCH
-README.md, docs/usermanual/Home.md, docs/generation-contract-1.0.md, docs/result-contract-1.0.md, docs/troubleshooting.md
+README.md, docs/usermanual/README.md, docs/usermanual/de/Home.md, docs/generation-contract-1.0.md, docs/result-contract-1.0.md, docs/troubleshooting.md
 .SH FEHLER
 Probleme melden unter https://github.com/mgiustiniani/javaspec/issues
