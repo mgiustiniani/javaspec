@@ -1,5 +1,6 @@
 package io.github.jvmspec.discovery;
 
+import io.github.jvmspec.internal.type.JavaTypeRef;
 import io.github.jvmspec.model.MethodDescriptor;
 
 import java.util.ArrayList;
@@ -21,6 +22,7 @@ import static io.github.jvmspec.discovery.JavaExpressionTypeInference.isStringLi
 import static io.github.jvmspec.discovery.JavaExpressionTypeInference.methodInfoFromScan;
 import static io.github.jvmspec.discovery.JavaExpressionTypeInference.parameterNamesFor;
 import static io.github.jvmspec.discovery.JavaExpressionTypeInference.parseMethods;
+import static io.github.jvmspec.discovery.JavaExpressionTypeInference.resolveTypeName;
 import static io.github.jvmspec.discovery.JavaExpressionTypeInference.splitArguments;
 
 /** Discovers production callable contracts from Java specification behavior. */
@@ -188,6 +190,39 @@ final class MethodDiscovery {
             ));
         }
 
+        for (int i = 0; i < scan.ownerReturnCalls.size(); i++) {
+            SpecCallScanner.OwnerReturnCall call = scan.ownerReturnCalls.get(i);
+            if (isIgnoredProxyCall(call.name)) {
+                continue;
+            }
+            String evidencedOwner = resolveTypeName(
+                    call.ownerTypeText, imports, describedPackageName);
+            if (!describedQualifiedName.equals(evidencedOwner)) {
+                continue;
+            }
+            InferredArguments arguments = inferArgumentTypesCore(
+                    call.argumentTexts,
+                    specMethods.get(call.enclosingMethod),
+                    imports,
+                    describedPackageName
+            );
+            if (hasUnknownArgumentType(arguments)
+                    || matchesTopLevelDeclaredCallable(
+                            scan.topLevelDeclaredCallables,
+                            call.name,
+                            arguments,
+                            imports,
+                            describedPackageName)) {
+                continue;
+            }
+            addMethod(discovered, methodDescriptor(
+                    call.name,
+                    describedQualifiedName,
+                    arguments,
+                    parameterNamesFor(call.name, arguments.size())
+            ));
+        }
+
         for (int i = 0; i < scan.proxyExpectations.size(); i++) {
             SpecCallScanner.Expectation expectation = scan.proxyExpectations.get(i);
             addExpectationMethod(expectation, specMethods, discovered, imports, describedPackageName);
@@ -232,6 +267,60 @@ final class MethodDiscovery {
                     call.argumentTexts, specMethods.get(call.enclosingMethod), imports, describedPackageName);
             addStateExpectationMethod(call.name, arguments, discovered);
         }
+    }
+
+    private static boolean hasUnknownArgumentType(InferredArguments arguments) {
+        for (int i = 0; i < arguments.unknowns.size(); i++) {
+            if (Boolean.TRUE.equals(arguments.unknowns.get(i))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean matchesTopLevelDeclaredCallable(
+            List<SpecCallScanner.DeclaredCallable> declaredCallables,
+            String methodName,
+            InferredArguments arguments,
+            Map<String, String> imports,
+            String describedPackageName
+    ) {
+        for (int i = 0; i < declaredCallables.size(); i++) {
+            SpecCallScanner.DeclaredCallable declaredCallable = declaredCallables.get(i);
+            if (!methodName.equals(declaredCallable.name)
+                    || arguments.types.size() != declaredCallable.parameterTypeTexts.size()) {
+                continue;
+            }
+            boolean sameOrderedParameterTypes = true;
+            for (int j = 0; j < arguments.types.size(); j++) {
+                if (!sameNormalizedCallableType(
+                        declaredCallable.parameterTypeTexts.get(j),
+                        arguments.types.get(j),
+                        imports,
+                        describedPackageName)) {
+                    sameOrderedParameterTypes = false;
+                    break;
+                }
+            }
+            if (sameOrderedParameterTypes) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean sameNormalizedCallableType(
+            String declaredTypeText,
+            String inferredType,
+            Map<String, String> imports,
+            String describedPackageName
+    ) {
+        String declaredType = resolveTypeName(
+                declaredTypeText, imports, describedPackageName);
+        String argumentType = resolveTypeName(
+                inferredType, imports, describedPackageName);
+        return JavaTypeRef.parseCanonical(declaredType).structurallyEquivalent(
+                JavaTypeRef.parseCanonical(argumentType));
     }
 
     private static void addStateExpectationMethod(
