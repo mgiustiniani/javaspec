@@ -27,6 +27,28 @@ jobs:
       - name: Audit core runtime dependencies
         run: mvn dependency:tree -Dscope=runtime
 
+  native-executable:
+    name: Native executable / GraalVM 25
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: graalvm/setup-graalvm@v1.6.4
+        with:
+          version: '25.0'
+          distribution: graalvm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache: maven
+          native-image-job-reports: 'true'
+      - name: Build and replay project-specific native executable
+        run: bash scripts/verify-native-example.sh
+      - name: Upload native example executable
+        uses: actions/upload-artifact@v7
+        with:
+          name: javaspec-native-basic-linux-x64
+          path: examples/native-basic/target/javaspec-native-basic
+          if-no-files-found: error
+          retention-days: 7
+
   full-verification:
     name: Full verification / Java 21
     runs-on: ubuntu-latest

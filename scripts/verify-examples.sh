@@ -208,4 +208,12 @@ else
   assert_file_contains "Gradle JUnit XML report" "$gradle_xml" 'line="11"'
 fi
 
+if [ "${JAVASPEC_SKIP_NATIVE_EXAMPLE:-0}" = "1" ]; then
+  printf '\nWARNING: Skipping native basic example because JAVASPEC_SKIP_NATIVE_EXAMPLE=1.\n'
+elif command -v native-image >/dev/null 2>&1; then
+  run_at_root "Verify project-specific native executable example" "${repo_root}/scripts/verify-native-example.sh"
+else
+  printf '\nWARNING: native-image is unavailable; the dedicated GraalVM CI job owns the native executable gate.\n'
+fi
+
 printf '\nPASS: standalone examples verification completed.\n'

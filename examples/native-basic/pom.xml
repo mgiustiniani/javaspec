@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example</groupId>
+    <artifactId>javaspec-native-basic-example</artifactId>
+    <version>1.0.0-RC5</version>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <javaspec.version>1.0.0-RC5</javaspec.version>
+        <graalvm.buildtools.version>1.1.8</graalvm.buildtools.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.jvmspec</groupId>
+            <artifactId>javaspec</artifactId>
+            <version>${javaspec.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>io.github.jvmspec</groupId>
+                <artifactId>javaspec-maven-plugin</artifactId>
+                <version>${javaspec.version}</version>
+                <executions>
+                    <execution>
+                        <id>prepare-javaspec-native-image</id>
+                        <phase>generate-test-sources</phase>
+                        <goals>
+                            <goal>generate</goal>
+                            <goal>native-prepare</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>native</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <version>${graalvm.buildtools.version}</version>
+                        <executions>
+                            <execution>
+                                <id>build-javaspec-native-executable</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>compile-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <imageName>javaspec-native-basic</imageName>
+                            <mainClass>io.github.jvmspec.generated.JavaspecNativeMain</mainClass>
+                            <fallback>false</fallback>
+                            <buildArgs>
+                                <buildArg>-O0</buildArg>
+                            </buildArgs>
+                            <classpath>
+                                <param>${project.build.testOutputDirectory}</param>
+                                <param>${project.build.outputDirectory}</param>
+                                <param>${settings.localRepository}/io/github/jvmspec/javaspec/${javaspec.version}/javaspec-${javaspec.version}.jar</param>
+                            </classpath>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>

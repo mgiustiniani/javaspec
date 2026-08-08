@@ -107,6 +107,7 @@ example_junit_basic_pom="${repo_root}/examples/junit-platform-basic/pom.xml"
 example_bytecode_doubles_pom="${repo_root}/examples/bytecode-doubles-basic/pom.xml"
 example_bytecode_agent_pom="${repo_root}/examples/bytecode-agent-basic/pom.xml"
 example_prophecy_pom="${repo_root}/examples/prophecy-basic/pom.xml"
+example_native_basic_pom="${repo_root}/examples/native-basic/pom.xml"
 example_gradle_build="${repo_root}/examples/gradle-basic/build.gradle"
 launcher="${repo_root}/bin/javaspec"
 
@@ -154,6 +155,8 @@ record_result 'examples/bytecode-agent-basic/pom.xml project version' "$(extract
 record_result 'examples/bytecode-agent-basic/pom.xml javaspec.version' "$(extract_maven_property javaspec.version "$example_bytecode_agent_pom")" "$root_version"
 record_result 'examples/prophecy-basic/pom.xml project version' "$(extract_maven_project_version "$example_prophecy_pom")" "$root_version"
 record_result 'examples/prophecy-basic/pom.xml javaspec.version' "$(extract_maven_property javaspec.version "$example_prophecy_pom")" "$root_version"
+record_result 'examples/native-basic/pom.xml project version' "$(extract_maven_project_version "$example_native_basic_pom")" "$root_version"
+record_result 'examples/native-basic/pom.xml javaspec.version' "$(extract_maven_property javaspec.version "$example_native_basic_pom")" "$root_version"
 record_result 'examples/gradle-basic/build.gradle version' "$(extract_gradle_assignment version "$example_gradle_build")" "$root_version"
 record_result 'examples/gradle-basic/build.gradle javaspec dependency' "$(extract_gradle_dependency_version 'io.github.jvmspec:javaspec:' "$example_gradle_build")" "$root_version"
 

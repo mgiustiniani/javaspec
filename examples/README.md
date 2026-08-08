@@ -12,6 +12,9 @@ The Gradle example uses an included build for `javaspec-gradle-plugin` because R
 approval and marker availability are still pending. That plugin build resolves core
 `io.github.jvmspec:javaspec` from Maven local for source-checkout verification.
 
+The native example is a post-RC5 `develop` preview. It requires GraalVM Native Image 25 and locally
+installed current core/Maven-plugin builds; published RC5 does not contain `native-prepare`.
+
 The easiest local check is:
 
 ```sh
@@ -33,6 +36,9 @@ mvn -q -f examples/junit-platform-basic/pom.xml test
 mvn -q -f examples/bytecode-doubles-basic/pom.xml verify
 mvn -q -f examples/bytecode-agent-basic/pom.xml verify
 gradle -p examples/gradle-basic clean javaspecRun
+
+# With GraalVM Native Image 25:
+scripts/verify-native-example.sh
 ```
 
 Outputs:
@@ -48,6 +54,21 @@ Outputs:
 - `examples/bytecode-agent-basic/target/javaspec/junit-report.xml`
 - `examples/prophecy-basic/target/javaspec/run-report.json`
 - `examples/prophecy-basic/target/javaspec/junit-report.xml`
+- `examples/native-basic/target/javaspec-native-basic` (consumer-specific executable; not a release artifact)
+
+## Native Image example
+
+[`examples/native-basic/`](native-basic/) demonstrates the first project-specific native preview:
+
+- `javaspec:generate` creates the typed support class;
+- `javaspec:native-prepare` creates a build-linked main class and reflection metadata;
+- GraalVM Native Build Tools links core, production classes, and test classes at `package`;
+- the executable replays constructor/lifecycle, passing, pending, skipped, pretty, progress, and JSON
+  semantics without starting a JVM process.
+
+The first increment deliberately excludes runtime compilation/generation, classpath mutation,
+extensions, dynamic doubles, reports, and non-Linux qualification. See
+[`docs/native-image.md`](../docs/native-image.md).
 
 ## Prophecy-style doubles example
 
@@ -95,5 +116,7 @@ pending in the testsuite `skipped` attribute.
 - a scoped static-method double through `BytecodeAgentDoubles.staticDouble(StaticFormatter.class)`.
 
 If Gradle is not available locally, set `JAVASPEC_SKIP_GRADLE_EXAMPLE=1` when running
-`scripts/verify-examples.sh`. To skip only bytecode examples, set
+`scripts/verify-examples.sh`. If Native Image is unavailable it is skipped locally and remains owned
+by the dedicated GraalVM CI job; set `JAVASPEC_SKIP_NATIVE_EXAMPLE=1` to skip it explicitly. To skip
+only bytecode examples, set
 `JAVASPEC_SKIP_BYTECODE_DOUBLES_EXAMPLE=1` or `JAVASPEC_SKIP_BYTECODE_AGENT_EXAMPLE=1`.

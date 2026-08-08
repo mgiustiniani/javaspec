@@ -41,6 +41,7 @@ worktrees.
 - JSON and JUnit XML-compatible reports.
 - Recommended PHPSpec-like authoring with `ObjectBehavior<T>`, `it_*` examples, `let`, `beConstructedWith`, `subject()`, and generated typed proxy methods such as `method().shouldReturn(expected)`.
 - Interface doubles in core; optional ByteBuddy-based concrete-class doubles adapter.
+- Post-RC5 project-specific GraalVM Native Image preview on `develop` for build-linked Maven specs.
 
 ## Quick Start
 
@@ -298,6 +299,27 @@ same immutable `${javaspec.version}`; select the project's Java profile explicit
 than Java 8.
 
 See [`examples/maven-basic/`](examples/maven-basic/) for a complete consumer project.
+
+### Native Image preview (`develop` only)
+
+The post-RC5 `javaspec:native-prepare` goal generates a closed-world launcher and reflection metadata
+after source discovery. Official GraalVM Native Build Tools then links JavaSpec,
+`target/classes`, and `target/test-classes` into a project-specific executable:
+
+```sh
+# Requires GraalVM Native Image 25 and a locally installed develop core/plugin.
+mvn -f examples/native-basic/pom.xml -Pnative clean package
+examples/native-basic/target/javaspec-native-basic
+```
+
+The first preview runs named-package, build-linked specs with subject construction, lifecycle,
+built-in matchers, skip/pending, pretty/progress/JSON output, and deterministic exit codes. It does
+not perform runtime discovery, compilation, generation, classpath loading, ServiceLoader activation,
+or bytecode-agent attach. Published Maven Central `1.0.0-RC5` predates this capability.
+
+See [`docs/native-image.md`](docs/native-image.md) and
+[`examples/native-basic/`](examples/native-basic/) for the complete configuration and current
+support boundary.
 
 ### Gradle
 
@@ -885,6 +907,8 @@ javaspec adapter settings opt into javaspec compilation.
   first-publication approval; the marker currently returns HTTP 404. The post-RC5 reproducibility
   correction at `67db10c` must be included in the stable candidate.
 - The Maven plugin, Gradle plugin, JUnit Platform engine, bytecode doubles adapter, and bytecode agent adapter are standalone optional artifacts outside the root Maven reactor.
+- The native preview produces a consumer-specific build output, not another published JavaSpec
+  artifact. It currently requires GraalVM Native Image 25 and is qualified on Linux x86-64 only.
 - Repository-root `mvn verify` is intentionally core-only.
 - `scripts/verify-all.sh` verifies the core, optional adapters, and standalone examples together.
 - Non-final concrete-class doubles require the optional ByteBuddy subclass adapter; final-class, static-method, and construction-aware doubles require the optional bytecode agent adapter.
@@ -927,6 +951,12 @@ For examples only:
 scripts/verify-examples.sh
 ```
 
+For the explicit GraalVM build and JVM-free native replay:
+
+```sh
+scripts/verify-native-example.sh
+```
+
 Version alignment across the root project and standalone adapters:
 
 ```sh
@@ -945,6 +975,8 @@ Start here:
 - [`examples/junit-platform-basic/`](examples/junit-platform-basic/) — JUnit Platform adoption.
 - [`examples/bytecode-doubles-basic/`](examples/bytecode-doubles-basic/) — optional non-final concrete-class doubles.
 - [`examples/bytecode-agent-basic/`](examples/bytecode-agent-basic/) — optional final-class and static-method doubles.
+- [`examples/native-basic/`](examples/native-basic/) — project-specific GraalVM Native Image preview.
+- [`docs/native-image.md`](docs/native-image.md) — native preparation, build, options, and explicit limits.
 - [`docs/README.md`](docs/README.md) — current documentation index and status authority.
 - [`docs/usermanual/README.md`](docs/usermanual/README.md) — multilingual user-manual index.
 - [`docs/usermanual/Home.md`](docs/usermanual/Home.md) — detailed English technical manual.

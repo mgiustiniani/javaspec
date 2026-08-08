@@ -20,6 +20,7 @@ Compatibility policy:
 | `io.github.jvmspec.doubles.prophecy` | `PUBLIC_API` | Prophecy-style collaborator API: `ObjectProphecy`, generated-wrapper target types, argument tokens, promises, predictions, callbacks, and prediction context. |
 | `io.github.jvmspec.runner` | `PUBLIC_API` | Programmatic result model and runner entrypoint: `SpecRunner`, `RunResult`, `SpecResult`, `ExampleResult`, `ExampleStatus`, `FailureDetail`. |
 | `io.github.jvmspec.invocation` | `PUBLIC_API` | Programmatic launcher and exit-code mapping for embedding javaspec. |
+| `io.github.jvmspec.nativeimage` | `PUBLIC_API` | No-exit launcher and exit codes for a project-specific, build-linked Native Image executable. The preview option set is intentionally narrower than the JVM CLI and is documented in `docs/native-image.md`. |
 | `io.github.jvmspec.reporting` | `PUBLIC_API` | JSON and JUnit XML report writers plus report metadata; schemas evolve additively within schemaVersion 1. |
 | `io.github.jvmspec.bootstrap` | `PUBLIC_SPI` | Bootstrap hook SPI and context for project setup before execution; see `docs/extension-spi-1.0.md`. |
 | `io.github.jvmspec.extension` | `PUBLIC_SPI` | ServiceLoader/configured extension SPI and extension activation context; see `docs/extension-spi-1.0.md`. |
@@ -61,6 +62,7 @@ Compatibility policy:
 | JUnit Platform unique IDs | `ADAPTER_API` | Suite/spec/example/row unique-id shape must remain stable or receive documented migration. |
 | Generated `*SpecSupport` source | `GENERATED_API` | Subject proxy, object-state helper, throw proxy, Prophecy helper, and `// javaspec:stub` semantics are part of the PHPSpec workflow contract. |
 | Maven parameters | `ADAPTER_API` | Goal names and documented parameters require deprecation before removal. |
+| Native Image preparation | `ADAPTER_API` / `GENERATED_API` | `javaspec:native-prepare`, generated `JavaspecNativeMain`, reflection metadata, native option/exit-code subset, and closed-world limitations are the preview contract. |
 | Gradle plugin DSL | `ADAPTER_API` | Plugin id, extension properties, task names/properties require deprecation before removal. |
 
 ## 1.0 baseline procedure
