@@ -1,7 +1,7 @@
 # JavaSpec 1.0.0-RC5 API review
 
-Status: aligned RC5 version cut prepared from the post-issue qualification base. Initial aggregate
-and release dry-run gates are green; clean committed qualification and CI remain.
+Status: aligned RC5 version cut and clean local qualification completed at `8f93a46`. CI and remote
+publication/replay remain.
 
 Original reviewed implementation HEAD: `2eb26a7`
 (`docs: complete constructor-safe restructuring milestone`).
@@ -61,7 +61,8 @@ in the changelog, generation contract, report schema, and regression suite.
 - [x] Run initial `scripts/verify-all.sh` and `scripts/verify-release-dry-run.sh` sequentially.
 - [x] Regenerate `docs/history/api-baseline-1.0.0.md` twice from fully built RC5 artifacts.
 - [x] Confirm no supported-surface removal or incompatible descriptor change.
-- [ ] Repeat all release gates from the clean committed RC5 cut and run the Java 8/11/17/21/25 CI
-  matrix. The pre-cut security profile is already green.
-- [ ] Update release evidence with the RC5 commit, final local artifact hashes, and CI run URL before
-  tagging.
+- [x] Repeat all local release gates from clean commit `8f93a46`, including Java 21/25 core,
+  security, byte-reproducible release archives, external consumers, and Tasks downstream conformance.
+- [ ] Run the Java 8/11/17/21/25 CI matrix on the pushed release commit.
+- [x] Update release evidence with the RC5 commit and final local artifact hashes.
+- [ ] Add the CI run URL and remote replay evidence before tagging.

@@ -132,7 +132,8 @@ moving dependency-heavy behavior into optional artifacts.
   executable or `JAVASPEC_SKIP_GRADLE=1` when verifying without Gradle.
 - `scripts/verify-release-dry-run.sh` packages and verifies core, Maven plugin, JUnit Platform
   engine, bytecode doubles, bytecode agent, and Gradle plugin artifacts, including source/Javadoc
-  jars, bytecode-agent manifest entries, SHA-256 checksums, and external consumer examples.
+  jars, bytecode-agent manifest entries, SHA-256 checksums, a same-source reproducibility rebuild,
+  and external consumer examples.
 - `scripts/check-release-preflight.sh` fails RC/final publication unless the release version, tag,
   and absence of `SNAPSHOT` build-file references are aligned.
 - `scripts/generate-api-baseline.sh` creates the deterministic public/protected JVM signature

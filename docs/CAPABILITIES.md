@@ -5,12 +5,13 @@ This document records capabilities verified while preparing the 1.0 roadmap. It 
 ## Snapshot
 
 - Original capability-audit HEAD: `a71297f1bb234b5faa70eca22abe3a5a3b3d6675`.
-- Current pre-RC5 qualification base: `34e692b`.
+- Current clean RC5 local-qualification commit: `8f93a46`.
 - Baseline supplied for the assignment: `e5527b634154cc3156d8e81e6697fab60acaecc3` (ancestor of both audit points).
 - Current local evidence passes `git diff --check`, version/document/API/manual-page guards, Java 21
   and Java 25 core verification (884/884 each), the security profile with zero reported
-  vulnerabilities, `scripts/verify-all.sh`, `scripts/verify-release-dry-run.sh`, and strict
-  language-manifest mode with 50 covered rows and zero planned rows.
+  vulnerabilities, `scripts/verify-all.sh`, a byte-reproducible `scripts/verify-release-dry-run.sh`,
+  strict language-manifest mode with 50 covered rows and zero planned rows, and Tasks downstream
+  conformance.
 - Active aligned release-branch candidate: `1.0.0-RC5`; RC4 remains the latest published artifact
   until the RC5 tag workflow succeeds.
 - Post-RC4 hardening is included in the RC5 candidate but is not part of the immutable RC4 artifacts.

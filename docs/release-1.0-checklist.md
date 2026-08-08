@@ -15,8 +15,10 @@ This checklist is the release gate source for 1.0. It must be updated with comma
   back into `develop`.
 - [x] RC2, RC3, and RC4 stabilization fixes published on the Git Flow release line; Maven Central
   resolves the immutable `1.0.0-RC4` artifacts.
-- [ ] RC5 version cut, CI qualification, remote replay, tag, and publication; preparation resumed
-  after the post-RC4 discovery and nested-record issues were fixed and locally qualified.
+- [x] RC5 aligned version cut and clean local qualification completed at `8f93a46`, including API
+  baseline regeneration, reproducible artifacts, security, external consumers, and Tasks downstream
+  conformance.
+- [ ] RC5 CI qualification, remote replay, tag, and publication.
 - [ ] Java 8/11/17/21/25 language-coverage closure completed according to
   `docs/java-language-coverage-roadmap.md`, including remote-RC Java 21 dogfooding.
 - [ ] Final `1.0.0` prepared from verified RC or documented RC fix commit.
@@ -38,18 +40,21 @@ Evidence:
 
 | Gate | Last verified commit | Result | Notes |
 |---|---|---|---|
-| `git diff --check` | candidate based on `34e692b` | PASS | Post-issue RC5-candidate qualification |
-| `scripts/check-version-alignment.sh` | `34e692b` | PASS | Repository artifacts remain aligned at `1.0.0-RC4` before the RC5 cut |
-| `scripts/check-current-docs.sh` | candidate based on `34e692b` | PASS | Contract docs and multilingual man-page guard green |
-| `scripts/check-man-pages.sh` | `34e692b` | PASS | English, Italian, Spanish, German, French, and Simplified Chinese pages render |
-| `scripts/check-api-surface.sh` | `34e692b` | PASS | API/SPI classification guard green; post-RC4 fixes add no supported public signature |
-| `mvn -q verify` | `34e692b` | PASS | Core 884/884 on Java 25, including owner-return and incident-0007 regressions |
-| strict Java-language manifest | `34e692b` | PASS | 50 covered rows, zero planned rows |
-| `JAVA_HOME=/usr/lib/jvm/java-21-openjdk ... mvn -q verify` | `34e692b` | PASS | Core 884/884 on local Java 21 runtime |
-| `scripts/verify-all.sh` | `34e692b` | PASS | Core, adapters, Gradle, standalone consumers, and examples |
-| `scripts/verify-release-dry-run.sh` | `34e692b` | PASS | RC4-named local artifacts, checksums, and external consumers; not an RC5 publication |
-| `scripts/check-core-java8-bytecode.sh` | `34e692b` | PASS | 323 core classfiles; max major 52 |
-| `mvn clean verify -Psecurity` | `34e692b` | PASS | OWASP Dependency-Check reported zero vulnerabilities; OSS Index remained credential-disabled |
+| `git diff --check` | `8f93a46` | PASS | Clean aligned RC5 checkout |
+| `scripts/check-version-alignment.sh` | `8f93a46` | PASS | Every Maven, Gradle, launcher, consumer, and current-document version is `1.0.0-RC5` |
+| `scripts/check-current-docs.sh` | `8f93a46` | PASS | Contract docs and multilingual man-page guard green |
+| `scripts/check-man-pages.sh` | `8f93a46` | PASS | English, Italian, Spanish, German, French, and Simplified Chinese pages render |
+| `scripts/check-api-surface.sh` | `8f93a46` | PASS | API/SPI classification green; RC1-to-RC5 inventory has 172 additions and zero declaration removals |
+| `mvn -q verify` | `8f93a46` | PASS | Core 884/884 on Java 25, including owner-return and incident-0007 regressions |
+| strict Java-language manifest | `8f93a46` | PASS | 50 covered rows, zero planned rows |
+| `JAVA_HOME=/usr/lib/jvm/java-21-openjdk ... mvn -q verify` | `8f93a46` | PASS | Core 884/884 on Java 21 |
+| `scripts/verify-all.sh` | `8f93a46` | PASS | Core, adapters, Gradle, standalone consumers, and examples |
+| `scripts/verify-release-dry-run.sh` | `8f93a46` | PASS | All 18 RC5 main/source/Javadoc archives reproduced identical SHA-256 values; external consumers passed |
+| `scripts/check-core-java8-bytecode.sh` | `8f93a46` | PASS | 323 core classfiles; max major 52 |
+| `mvn clean verify -Psecurity` | `8f93a46` | PASS | OWASP Dependency-Check reported zero vulnerabilities; OSS Index remained credential-disabled |
+| `JAVASPEC_RELEASE_TAG=v1.0.0-RC5 scripts/check-release-preflight.sh` | `8f93a46` | PASS | Version/tag aligned and no build-file `SNAPSHOT` references |
+| Tasks source-backed downstream gate | `8f93a46` | PASS | QG-001, core 884/884, plugin 33/33, TaskSpec 9/9, direct probe 4/4, Cucumber 1/1, full reactor 66/65/1 |
+| Local qualification archive | `8f93a46` | PASS | `.ide/agent-runs/javaspec-1.0.0-rc5-20260808/local-qualification/`; `SHA256SUMS` SHA-256 `bec6e44ca1c6ae77abe291b58f08263c8326c651f67d4d3d512706cb505f0566` |
 | Tagged RC1 release workflow and Maven publication | `7bd8ac4` | PASS | [Release run 29146746362](https://github.com/mgiustiniani/javaspec/actions/runs/29146746362); Maven Central deployment succeeded |
 | Published RC4 core availability | `891012c` | PASS | Maven Central core POM resolves; complete RC5 publication evidence remains pending |
 | Corrected Gradle Plugin Portal submission | `e797ca0` | EXTERNAL PENDING | [Gradle publish run 29148854181](https://github.com/mgiustiniani/javaspec/actions/runs/29148854181); marker remains unavailable |
@@ -80,9 +85,9 @@ Evidence:
 - [x] API compatibility tool added as test/build tooling.
 - [x] 1.0 API baseline generation procedure documented.
 - [x] RC1 public/protected JVM signature inventory archived in `docs/history/api-baseline-1.0.0.md`.
-- [x] RC5 pre-cut API delta reviewed in `docs/release-1.0-rc5-api-review.md`: additive inventory only,
-  no supported `PUBLIC_API`/`PUBLIC_SPI` removal; committed baseline regeneration remains part of the
-  aligned RC5 version cut.
+- [x] RC5 API delta reviewed in `docs/release-1.0-rc5-api-review.md`: additive inventory only, no
+  supported `PUBLIC_API`/`PUBLIC_SPI` removal; the committed baseline was regenerated twice from
+  aligned RC5 artifacts and matched byte-for-byte.
 
 ## Semantic gates
 
@@ -174,12 +179,15 @@ Evidence:
 
 ## Release candidate rules
 
-After RC1:
+RC2 through RC5 use distinct RC versions for documented P0 compatibility and release-hardening
+changes discovered by real consumers. For the current RC5 stabilization boundary:
 
-- [ ] No new features.
-- [ ] Only bug fixes, compatibility fixes, release hardening, and documentation.
-- [ ] Every breaking change has explicit motivation and triggers a new RC.
-- [ ] Consumer smoke tests rerun from clean staged artifacts.
+- [x] No unreviewed feature addition remains; every additive change is classified in the API review,
+  changelog, capability matrix, or generation/report contract.
+- [x] Changes after the aligned RC5 cut are limited to reproducible-build hardening and evidence.
+- [x] The API inventory has no declaration removal or incompatible supported-surface change; RC5 is a
+  new immutable version boundary.
+- [x] Consumer smokes were rerun from clean staged artifacts, including the Tasks downstream gate.
 
 ## Final release decision
 

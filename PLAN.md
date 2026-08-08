@@ -18,7 +18,7 @@ Core constraints:
 
 - Original 1.0 assignment baseline: `e5527b634154cc3156d8e81e6697fab60acaecc3`.
 - Constructor-safe restructuring baseline: `7fd7054ba02c0217d1ce3fe783ae5c95c5a5b00a`.
-- Current pre-RC5 qualification base: `34e692b`.
+- Current clean RC5 local-qualification commit: `8f93a46`.
 - The original baseline and restructuring baseline are ancestors of the current qualification base.
 - The current candidate passed `git diff --check`, version/document/API/manual-page guards, Java 21
   and Java 25 core verification (884/884 each), `mvn clean verify -Psecurity` with zero reported
@@ -26,9 +26,9 @@ Core constraints:
   Java-language manifest with 50 covered rows and zero planned rows.
 - The release branch is aligned at `1.0.0-RC5`; `1.0.0-RC4` remains the last published Maven
   candidate until the RC5 tag workflow succeeds.
-- RC5 preparation has resumed. Local aligned qualification, CI qualification, remote-consumer
-  replay, tag, and publication remain pending; the release-branch build must not be represented as
-  published before those gates complete.
+- RC5 local aligned qualification is complete, including reproducible artifacts and Tasks
+  downstream conformance. CI qualification, remote-consumer replay, tag, and publication remain
+  pending; the release-branch build must not be represented as published before those gates complete.
 
 ## Priority definitions
 
