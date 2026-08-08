@@ -160,7 +160,10 @@ moving dependency-heavy behavior into optional artifacts.
   implicit record constructors and accessors from production components while retaining owner-
   qualified nested types across generated constructor casts, proxies, state expectations, and throw
   helpers. These changes are included in the aligned RC5 candidate and are not part of the immutable
-  RC4 artifacts; publication still requires local, CI, tag, and remote-consumer qualification.
+  RC4 artifacts. Release-branch run
+  [31261952121](https://github.com/mgiustiniani/javaspec/actions/runs/31261952121) passed the Java
+  8/11/17/21/25 matrix and full Java 21 verification with zero annotations; tag, publication, and
+  immutable remote-consumer replay remain.
 - RC3 adds a source-first Maven `generate` goal for `generate-test-sources`; it regenerates and
   registers base typed support before `testCompile`, including matcher-only specs, without tracked
   generated sources or consumer-specific execution-plugin workarounds.

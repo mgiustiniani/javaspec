@@ -12,6 +12,9 @@ This document records capabilities verified while preparing the 1.0 roadmap. It 
   vulnerabilities, `scripts/verify-all.sh`, a byte-reproducible `scripts/verify-release-dry-run.sh`,
   strict language-manifest mode with 50 covered rows and zero planned rows, and Tasks downstream
   conformance.
+- Remote RC5 branch CI run
+  [`31261952121`](https://github.com/mgiustiniani/javaspec/actions/runs/31261952121) passed the Java
+  8/11/17/21/25 matrix and full Java 21 verification at `4d72aca` with zero annotations.
 - Active aligned release-branch candidate: `1.0.0-RC5`; RC4 remains the latest published artifact
   until the RC5 tag workflow succeeds.
 - Post-RC4 hardening is included in the RC5 candidate but is not part of the immutable RC4 artifacts.

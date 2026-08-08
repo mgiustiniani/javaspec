@@ -27,8 +27,11 @@ Core constraints:
 - The release branch is aligned at `1.0.0-RC5`; `1.0.0-RC4` remains the last published Maven
   candidate until the RC5 tag workflow succeeds.
 - RC5 local aligned qualification is complete, including reproducible artifacts and Tasks
-  downstream conformance. CI qualification, remote-consumer replay, tag, and publication remain
-  pending; the release-branch build must not be represented as published before those gates complete.
+  downstream conformance. Remote CI run
+  [`31261952121`](https://github.com/mgiustiniani/javaspec/actions/runs/31261952121) passed the Java
+  8/11/17/21/25 matrix and full Java 21 verification at `4d72aca` with zero annotations.
+  Remote-consumer replay, tag, and publication remain pending; the release-branch build must not be
+  represented as published before those gates complete.
 
 ## Priority definitions
 

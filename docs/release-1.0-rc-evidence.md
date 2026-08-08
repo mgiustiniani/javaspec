@@ -356,6 +356,13 @@ The retained local archive is
 `bec6e44ca1c6ae77abe291b58f08263c8326c651f67d4d3d512706cb505f0566`, and every listed entry
 validates.
 
-This closes local RC5 qualification only. Java 8/11/17/21/25 CI, release-branch publication review,
-Git Flow merge/tag, Maven Central and Gradle Plugin Portal publication, and clean remote-RC JLC-8
-dogfooding remain mandatory before RC5 or stable 1.0 is declared complete.
+The release branch was pushed through evidence commit `424ea11`. Initial remote run
+[`31261275000`](https://github.com/mgiustiniani/javaspec/actions/runs/31261275000) passed all six jobs
+but reported Node 20 deprecations from the workflow actions. Commits `b9ce403` and `4d72aca` upgraded
+checkout, Java, and Gradle setup actions and aligned the manual Gradle publication default. Final run
+[`31261952121`](https://github.com/mgiustiniani/javaspec/actions/runs/31261952121) passed the Java
+8/11/17/21/25 core jobs and full Java 21 verification with zero annotations.
+
+This closes local qualification and release-branch CI. Git Flow merge/tag, Maven Central and Gradle
+Plugin Portal publication, immutable artifact checksum/signature verification, and clean remote-RC
+JLC-8 dogfooding remain mandatory before RC5 or stable 1.0 is declared complete.

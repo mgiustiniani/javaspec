@@ -1,7 +1,7 @@
 # JavaSpec 1.0.0-RC5 API review
 
-Status: aligned RC5 version cut and clean local qualification completed at `8f93a46`. CI and remote
-publication/replay remain.
+Status: aligned RC5 version cut and clean local qualification completed at `8f93a46`; remote CI
+qualified at `4d72aca`. Publication and remote artifact replay remain.
 
 Original reviewed implementation HEAD: `2eb26a7`
 (`docs: complete constructor-safe restructuring milestone`).
@@ -63,6 +63,8 @@ in the changelog, generation contract, report schema, and regression suite.
 - [x] Confirm no supported-surface removal or incompatible descriptor change.
 - [x] Repeat all local release gates from clean commit `8f93a46`, including Java 21/25 core,
   security, byte-reproducible release archives, external consumers, and Tasks downstream conformance.
-- [ ] Run the Java 8/11/17/21/25 CI matrix on the pushed release commit.
-- [x] Update release evidence with the RC5 commit and final local artifact hashes.
-- [ ] Add the CI run URL and remote replay evidence before tagging.
+- [x] Run the Java 8/11/17/21/25 CI matrix on pushed release commit `4d72aca`: run
+  [`31261952121`](https://github.com/mgiustiniani/javaspec/actions/runs/31261952121) passed all six
+  jobs with zero annotations.
+- [x] Update release evidence with the RC5 commit, final local artifact hashes, and CI run URL.
+- [ ] Add immutable remote artifact replay evidence after publication.

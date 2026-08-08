@@ -18,7 +18,9 @@ This checklist is the release gate source for 1.0. It must be updated with comma
 - [x] RC5 aligned version cut and clean local qualification completed at `8f93a46`, including API
   baseline regeneration, reproducible artifacts, security, external consumers, and Tasks downstream
   conformance.
-- [ ] RC5 CI qualification, remote replay, tag, and publication.
+- [x] RC5 release-branch CI qualification completed at `4d72aca`: Java 8/11/17/21/25 and full
+  Java 21 verification passed with zero annotations.
+- [ ] RC5 Git Flow merge/tag, publication, and immutable remote replay.
 - [ ] Java 8/11/17/21/25 language-coverage closure completed according to
   `docs/java-language-coverage-roadmap.md`, including remote-RC Java 21 dogfooding.
 - [ ] Final `1.0.0` prepared from verified RC or documented RC fix commit.
@@ -55,6 +57,7 @@ Evidence:
 | `JAVASPEC_RELEASE_TAG=v1.0.0-RC5 scripts/check-release-preflight.sh` | `8f93a46` | PASS | Version/tag aligned and no build-file `SNAPSHOT` references |
 | Tasks source-backed downstream gate | `8f93a46` | PASS | QG-001, core 884/884, plugin 33/33, TaskSpec 9/9, direct probe 4/4, Cucumber 1/1, full reactor 66/65/1 |
 | Local qualification archive | `8f93a46` | PASS | `.ide/agent-runs/javaspec-1.0.0-rc5-20260808/local-qualification/`; `SHA256SUMS` SHA-256 `bec6e44ca1c6ae77abe291b58f08263c8326c651f67d4d3d512706cb505f0566` |
+| RC5 Java 8/11/17/21/25 and full Java 21 CI | `4d72aca` | PASS | [CI run 31261952121](https://github.com/mgiustiniani/javaspec/actions/runs/31261952121); six jobs passed with zero annotations |
 | Tagged RC1 release workflow and Maven publication | `7bd8ac4` | PASS | [Release run 29146746362](https://github.com/mgiustiniani/javaspec/actions/runs/29146746362); Maven Central deployment succeeded |
 | Published RC4 core availability | `891012c` | PASS | Maven Central core POM resolves; complete RC5 publication evidence remains pending |
 | Corrected Gradle Plugin Portal submission | `e797ca0` | EXTERNAL PENDING | [Gradle publish run 29148854181](https://github.com/mgiustiniani/javaspec/actions/runs/29148854181); marker remains unavailable |
@@ -142,6 +145,8 @@ Evidence:
 - [x] Gradle Plugin Portal API key/secret confirmed by successful `publishPlugins` execution; public
   RC1 marker visibility remains pending first-publication review.
 - [x] Release workflow requires Maven/GPG secrets, detects optional Gradle credentials, and safely skips an already published Maven version on rerun.
+- [x] CI and publication workflows use Node 24-compatible `checkout`, `setup-java`, and Gradle setup
+  actions; the final RC5 branch run completed with zero deprecation annotations.
 - [x] Release workflow publishes or stages every declared artifact or fails clearly (Maven Central artifacts include core, Maven plugin, JUnit Platform engine, bytecode doubles, and bytecode agent; Gradle Plugin Portal publication uses `publishPlugins`).
 - [x] Release dry-run script green locally and on the GitHub release runner.
 - [x] Git Flow policy documented: release branches start from `develop`, merge with `--no-ff` into
@@ -184,7 +189,8 @@ changes discovered by real consumers. For the current RC5 stabilization boundary
 
 - [x] No unreviewed feature addition remains; every additive change is classified in the API review,
   changelog, capability matrix, or generation/report contract.
-- [x] Changes after the aligned RC5 cut are limited to reproducible-build hardening and evidence.
+- [x] Changes after the aligned RC5 cut are limited to reproducible-build, CI/publication hardening,
+  and evidence.
 - [x] The API inventory has no declaration removal or incompatible supported-surface change; RC5 is a
   new immutable version boundary.
 - [x] Consumer smokes were rerun from clean staged artifacts, including the Tasks downstream gate.

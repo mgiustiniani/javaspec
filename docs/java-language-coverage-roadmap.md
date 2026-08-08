@@ -243,6 +243,9 @@ Acceptance:
 
 ## Stable exit criteria
 
+RC5 branch run [`31261952121`](https://github.com/mgiustiniani/javaspec/actions/runs/31261952121)
+closes the CI portion at `4d72aca`; JLC-8 remains open until published-artifact dogfooding completes.
+
 1. JLC-0 through JLC-7 P0 fixtures pass on Java 8/11/17/21/25 CI.
 2. Every listed construct has a tested disposition; no undocumented “probably supported” state.
 3. Existing core Java 8 bytecode, Animal Sniffer, zero-runtime-dependency, adapter, and release gates remain green.
