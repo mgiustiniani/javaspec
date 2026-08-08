@@ -82,8 +82,9 @@ Verification status:
   check for core, standalone adapters, and examples.
 - `1.0.0-RC5` artifacts are available on Maven Central under `io.github.jvmspec`, including signed
   main/source/Javadoc artifacts for core and all optional Maven adapters. The Gradle plugin id is
-  `io.github.jvmspec`; the corrected RC1 submission succeeded in workflow run 29148854181 and is
-  awaiting first-publication approval.
+  `io.github.jvmspec`; RC5 submission succeeded in workflow run
+  [31262851841](https://github.com/mgiustiniani/javaspec/actions/runs/31262851841) and is awaiting
+  first-publication approval.
 
 ## Quick start
 
@@ -1268,9 +1269,9 @@ mvn -q -DskipTests install
 gradle -p javaspec-gradle-plugin build
 ```
 
-The plugin publication description is "Optional Gradle adapter for the javaspec runner." Corrected
-RC1 submission completed in
-[workflow run 29148854181](https://github.com/mgiustiniani/javaspec/actions/runs/29148854181) and is
+The plugin publication description is "Optional Gradle adapter for the javaspec runner." RC5
+submission completed in
+[workflow run 31262851841](https://github.com/mgiustiniani/javaspec/actions/runs/31262851841) and is
 awaiting first-publication approval. Until the Portal marker resolves, repository consumers should
 use the included build in `examples/gradle-basic/settings.gradle`. After approval, apply plugin id
 `io.github.jvmspec` from the Portal and configure the optional extension/task:
@@ -3002,8 +3003,9 @@ Current verification after Phase 22:
   tests.
 - Cross-JDK and adapter verification should be read from the latest CI/local verification output.
 - Maven artifacts use group `io.github.jvmspec`; `1.0.0-RC5` is available from Maven Central. The
-  Gradle Plugin Portal id is `io.github.jvmspec`; corrected RC1 submission succeeded in workflow run
-  29148854181 and is awaiting first-publication approval.
+  Gradle Plugin Portal id is `io.github.jvmspec`; RC5 submission succeeded in workflow run
+  [31262851841](https://github.com/mgiustiniani/javaspec/actions/runs/31262851841) and is awaiting
+  first-publication approval.
 
 See [`../test-report.md`](../test-report.md) for the consolidated test and quality report.
 

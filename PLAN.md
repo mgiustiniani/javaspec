@@ -24,14 +24,19 @@ Core constraints:
   and Java 25 core verification (884/884 each), `mvn clean verify -Psecurity` with zero reported
   vulnerabilities, `scripts/verify-all.sh`, `scripts/verify-release-dry-run.sh`, and the strict
   Java-language manifest with 50 covered rows and zero planned rows.
-- The release branch is aligned at `1.0.0-RC5`; `1.0.0-RC4` remains the last published Maven
-  candidate until the RC5 tag workflow succeeds.
-- RC5 local aligned qualification is complete, including reproducible artifacts and Tasks
-  downstream conformance. Remote CI run
-  [`31261952121`](https://github.com/mgiustiniani/javaspec/actions/runs/31261952121) passed the Java
-  8/11/17/21/25 matrix and full Java 21 verification at `4d72aca` with zero annotations.
-  Remote-consumer replay, tag, and publication remain pending; the release-branch build must not be
-  represented as published before those gates complete.
+- Production merge `ae9291f` is tagged `v1.0.0-RC5`. Tag workflow
+  [`31262851841`](https://github.com/mgiustiniani/javaspec/actions/runs/31262851841) passed release
+  guards, reproducibility checks, GPG signing, all five Maven Central deployments, and Gradle Portal
+  submission; tag CI run
+  [`31262851868`](https://github.com/mgiustiniani/javaspec/actions/runs/31262851868) passed all six
+  Java jobs.
+- Clean Maven Central replay passed five standalone consumers. `magrathea-pki` consumer commit
+  `7c6c41e` resolved only published RC5 artifacts, ran two idempotent CLI generations at 4/4, and
+  passed its Java 21 domain Maven lifecycle at 4/4 with zero pending and no source mutation.
+- RC5 Maven artifacts are immutable and available. Gradle Plugin Portal first-publication approval
+  and cross-environment determinism of the core Javadoc archive remain open before stable 1.0; a
+  clean publisher-equivalent comparison matched 14 of 15 Maven archives, with only
+  `javaspec-1.0.0-RC5-javadoc.jar` differing in `index-all.html` link labels.
 
 ## Priority definitions
 

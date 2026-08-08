@@ -22,9 +22,10 @@ is available from Maven Central:
 
 For snapshots, use the Central Portal Snapshots repository.
 
-The Gradle plugin id is `io.github.jvmspec`. RC1 was submitted successfully with description
-"Optional Gradle adapter for the javaspec runner" and is awaiting first-publication approval; use
-the included build until `1.0.0-RC5` appears on the Gradle Plugin Portal.
+The Gradle plugin id is `io.github.jvmspec`. RC5 was submitted successfully by release workflow
+[31262851841](https://github.com/mgiustiniani/javaspec/actions/runs/31262851841) and is awaiting
+first-publication approval; use the included build until `1.0.0-RC5` appears on the Gradle Plugin
+Portal.
 
 ## Highlights
 
@@ -293,8 +294,8 @@ See [`examples/maven-basic/`](examples/maven-basic/) for a complete consumer pro
 
 ### Gradle
 
-The Gradle plugin id is `io.github.jvmspec`. The corrected RC1 submission completed successfully in
-[workflow run 29148854181](https://github.com/mgiustiniani/javaspec/actions/runs/29148854181), but the
+The Gradle plugin id is `io.github.jvmspec`. The RC5 submission completed successfully in
+[workflow run 31262851841](https://github.com/mgiustiniani/javaspec/actions/runs/31262851841), but the
 first publication is still awaiting Plugin Portal approval. Until the public marker resolves, use
 the included plugin build shown by
 [`examples/gradle-basic/settings.gradle`](examples/gradle-basic/settings.gradle):
@@ -872,8 +873,9 @@ javaspec adapter settings opt into javaspec compilation.
 
 - The core artifact remains Java 8-compatible and zero-runtime-dependency.
 - Maven artifacts use group `io.github.jvmspec`; `1.0.0-RC5` is available from Maven Central. The
-  Gradle Plugin Portal id is `io.github.jvmspec`; corrected RC1 submission succeeded in workflow run
-  29148854181 and is awaiting first-publication approval.
+  Gradle Plugin Portal id is `io.github.jvmspec`; RC5 submission succeeded in workflow run
+  [31262851841](https://github.com/mgiustiniani/javaspec/actions/runs/31262851841) and is awaiting
+  first-publication approval.
 - The Maven plugin, Gradle plugin, JUnit Platform engine, bytecode doubles adapter, and bytecode agent adapter are standalone optional artifacts outside the root Maven reactor.
 - Repository-root `mvn verify` is intentionally core-only.
 - `scripts/verify-all.sh` verifies the core, optional adapters, and standalone examples together.

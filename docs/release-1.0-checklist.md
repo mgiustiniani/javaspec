@@ -20,8 +20,10 @@ This checklist is the release gate source for 1.0. It must be updated with comma
   conformance.
 - [x] RC5 release-branch CI qualification completed at `4d72aca`: Java 8/11/17/21/25 and full
   Java 21 verification passed with zero annotations.
-- [ ] RC5 Git Flow merge/tag, publication, and immutable remote replay.
-- [ ] Java 8/11/17/21/25 language-coverage closure completed according to
+- [x] RC5 Git Flow merges completed; production commit `ae9291f` is tagged `v1.0.0-RC5`, all five
+  signed Maven modules are published, and immutable Maven/CLI/JLC-8 replay passed.
+- [ ] RC5 Gradle Plugin Portal first-publication approval and marker availability.
+- [x] Java 8/11/17/21/25 language-coverage closure completed according to
   `docs/java-language-coverage-roadmap.md`, including remote-RC Java 21 dogfooding.
 - [ ] Final `1.0.0` prepared from verified RC or documented RC fix commit.
 - [ ] Post-release snapshot bump complete.
@@ -58,9 +60,15 @@ Evidence:
 | Tasks source-backed downstream gate | `8f93a46` | PASS | QG-001, core 884/884, plugin 33/33, TaskSpec 9/9, direct probe 4/4, Cucumber 1/1, full reactor 66/65/1 |
 | Local qualification archive | `8f93a46` | PASS | `.ide/agent-runs/javaspec-1.0.0-rc5-20260808/local-qualification/`; `SHA256SUMS` SHA-256 `bec6e44ca1c6ae77abe291b58f08263c8326c651f67d4d3d512706cb505f0566` |
 | RC5 Java 8/11/17/21/25 and full Java 21 CI | `4d72aca` | PASS | [CI run 31261952121](https://github.com/mgiustiniani/javaspec/actions/runs/31261952121); six jobs passed with zero annotations |
+| RC5 production/tag CI | `ae9291f` | PASS | [CI run 31262851868](https://github.com/mgiustiniani/javaspec/actions/runs/31262851868); six jobs passed on `v1.0.0-RC5` |
+| RC5 release workflow | `ae9291f` | PASS | [Release run 31262851841](https://github.com/mgiustiniani/javaspec/actions/runs/31262851841); guards, dry-run, GPG, five Maven deployments, and Gradle submission passed |
+| RC5 Maven Central availability/signatures | `ae9291f` | PASS | Five POM/main/source/Javadoc sets available; all 20 detached signatures validate with key `92EBAB37E11720596CD690CF212398D74CE93120` |
+| Clean Maven Central consumer replay | `ae9291f` | PASS | Maven plugin, Prophecy, JUnit Platform, bytecode-doubles, and bytecode-agent consumers passed 5/5 from an empty repository |
+| `magrathea-pki` remote JLC-8 replay | `7c6c41e` | PASS | CLI 4/4 twice, second generation `NO_CHANGES`; Java 21 Maven domain 4/4, zero pending, no source mutation |
+| Clean publisher-equivalent Maven archive comparison | `ae9291f` | PARTIAL | 14/15 archives match Central; only core Javadoc `index-all.html` has nondeterministic implicit link labels; stable 1.0 gate remains open |
+| Remote publication evidence archive | `ae9291f` | PASS | `.ide/agent-runs/javaspec-1.0.0-rc5-20260808/remote-publication/`; `SHA256SUMS` SHA-256 `b0974ec38b44ce30040d9aea06729bc093b984cefd2824f8404f10b4a17eab94` |
+| Gradle Plugin Portal RC5 submission | `ae9291f` | EXTERNAL PENDING | Release run submitted `io.github.jvmspec` for approval; marker POM remains unavailable |
 | Tagged RC1 release workflow and Maven publication | `7bd8ac4` | PASS | [Release run 29146746362](https://github.com/mgiustiniani/javaspec/actions/runs/29146746362); Maven Central deployment succeeded |
-| Published RC4 core availability | `891012c` | PASS | Maven Central core POM resolves; complete RC5 publication evidence remains pending |
-| Corrected Gradle Plugin Portal submission | `e797ca0` | EXTERNAL PENDING | [Gradle publish run 29148854181](https://github.com/mgiustiniani/javaspec/actions/runs/29148854181); marker remains unavailable |
 
 ## Core gates
 
@@ -132,18 +140,21 @@ Evidence:
 ## Release engineering gates
 
 - [x] Version alignment green.
-- [x] No `SNAPSHOT` dependencies in the RC1 build (`scripts/check-release-preflight.sh` passed locally).
+- [x] No `SNAPSHOT` dependencies in the RC5 build (`scripts/check-release-preflight.sh` passed locally and in the tag workflow).
 - [x] Source JARs present.
 - [x] Javadoc JARs present.
 - [x] POM metadata complete: SCM, license, developers, issues.
 - [x] Maven plugin descriptor valid.
 - [x] Gradle plugin marker publication path documented/tested.
 - [x] Bytecode agent manifest has required `Premain-Class` and `Agent-Class`.
-- [x] Checksums generated/verified locally by release dry-run; a second same-source build reproduces every Maven and Gradle main/source/Javadoc archive hash. Publication workflow checksums are still recorded at RC/final publication time.
+- [x] Checksums generated/verified by the release dry-run; a second clean build in the same
+  environment reproduces every Maven and Gradle main/source/Javadoc archive hash.
+- [ ] Cross-environment clean replay reproduces every published archive. RC5 matched 14/15 Maven
+  archives; deterministic core Javadoc `index-all.html` link labels remain required for stable 1.0.
 - [x] Signing configured/documented; workflow requires an imported secret key, verifies the
   passphrase with an isolated loopback signing probe, and passes it explicitly to Maven GPG Plugin.
-- [x] Gradle Plugin Portal API key/secret confirmed by successful `publishPlugins` execution; public
-  RC1 marker visibility remains pending first-publication review.
+- [x] Gradle Plugin Portal API key/secret confirmed by successful RC5 `publishPlugins` execution.
+- [ ] Public `io.github.jvmspec:1.0.0-RC5` marker visibility after first-publication review.
 - [x] Release workflow requires Maven/GPG secrets, detects optional Gradle credentials, and safely skips an already published Maven version on rerun.
 - [x] CI and publication workflows use Node 24-compatible `checkout`, `setup-java`, and Gradle setup
   actions; the final RC5 branch run completed with zero deprecation annotations.
@@ -151,10 +162,10 @@ Evidence:
 - [x] Release dry-run script green locally and on the GitHub release runner.
 - [x] Git Flow policy documented: release branches start from `develop`, merge with `--no-ff` into
   `main`, receive the annotated tag on the `main` merge commit, and merge back into `develop`.
-- [x] Tag/version/workflow alignment verified on RC1 production commit `7bd8ac4` by release workflow
-  run 29146746362.
-- [x] Maven Central deployment succeeded for all five artifacts; direct checks verified POM,
-  main/source/Javadoc JARs, and `.asc` signatures.
+- [x] Tag/version/workflow alignment verified on RC5 production commit `ae9291f` by release workflow
+  run 31262851841.
+- [x] RC5 Maven Central deployment succeeded for all five artifacts; direct checks verified POM,
+  main/source/Javadoc JARs, and all 20 `.asc` signatures.
 - [x] Post-release checklist documented.
 
 ## Documentation gates

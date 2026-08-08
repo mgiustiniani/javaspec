@@ -212,20 +212,16 @@ inference now covered, strict manifest mode has no remaining `PLANNED` rows.
 
 **Priority:** final stable decision gate.
 
-Status: IN PROGRESS — clean `magrathea-pki` RC1 dogfooding exposed missing matcher-only support
-regeneration. RC2 fixed the CLI path, and RC3 added the source-first Maven `generate` goal and then
-passed clean remote-artifact CLI and Maven lifecycle replay. The next boolean-record slice exposed
-RC3 treating the literal `false` as an identifier. Published RC4 separates example values from naming
-evidence, correlates exact accessor expectations to constructor positions, validates identifier
-legality/uniqueness, and fails closed before writes when correspondence is ambiguous. The gate remains
-open until a coherent real-project milestone replays the RC4 correction and the subsequent approved
-release candidate from remote repositories in a clean Java 21 environment. Incident-0007 then exposed
-an additional post-RC4 defect: regenerated constructor support collapsed a record's nested enum
-component to a nonexistent package-level type. Commit `114c832` derives implicit canonical
-constructor and accessor signatures from record components and keeps owner-qualified nested types
-consistent across constructor casts, typed proxies, state expectations, throw support, fresh CLI
-compilation, and Maven source-first regeneration. The correction still requires a new published
-fingerprint and clean consumer replay before JLC-8 can close.
+Status: COMPLETED FOR RC5 — earlier clean `magrathea-pki` replays exposed matcher-only regeneration,
+source-first Maven lifecycle, boolean-record naming, and nested record-component type defects, fixed
+across RC2 through RC5. Published RC5 consumer commit `7c6c41e` resolved core SHA-256
+`d56102c56f825275c8d033e266c03b1ce0ee025ba2c2a08010712c55c84d7b37` and matching Maven plugin
+and JUnit engine only from isolated remote caches. The Java 21 CLI generated two support files on the
+first pass, reported `NO_CHANGES` on the second, stayed byte-idempotent, and passed 4/4 both times
+with zero pending and no source mutation. The clean Maven domain lifecycle also passed 4/4. A broader
+reactor attempt stopped later at a pre-existing `@not-implemented` Cucumber scenario in
+`trust-engine-api-adapter`; the JavaSpec domain and its preceding modules were green, so that
+consumer-owned boundary is not classified as a JavaSpec release defect.
 
 Use a real Java 21 project, preferably the existing `magrathea-pki` domain work, against the published
 RC from remote repositories rather than a local javaspec checkout. Complete one coherent behavior
@@ -244,7 +240,7 @@ Acceptance:
 ## Stable exit criteria
 
 RC5 branch run [`31261952121`](https://github.com/mgiustiniani/javaspec/actions/runs/31261952121)
-closes the CI portion at `4d72aca`; JLC-8 remains open until published-artifact dogfooding completes.
+closes the CI portion at `4d72aca`; published-artifact consumer commit `7c6c41e` closes JLC-8.
 
 1. JLC-0 through JLC-7 P0 fixtures pass on Java 8/11/17/21/25 CI.
 2. Every listed construct has a tested disposition; no undocumented “probably supported” state.

@@ -159,11 +159,12 @@ moving dependency-heavy behavior into optional artifacts.
   helper signature suppression and owning-type traversal, and fixes incident-0007 by refining
   implicit record constructors and accessors from production components while retaining owner-
   qualified nested types across generated constructor casts, proxies, state expectations, and throw
-  helpers. These changes are included in the aligned RC5 candidate and are not part of the immutable
-  RC4 artifacts. Release-branch run
-  [31261952121](https://github.com/mgiustiniani/javaspec/actions/runs/31261952121) passed the Java
-  8/11/17/21/25 matrix and full Java 21 verification with zero annotations; tag, publication, and
-  immutable remote-consumer replay remain.
+  helpers. These changes are included in immutable RC5 and are not part of RC4. Production commit
+  `ae9291f` is tagged `v1.0.0-RC5`; release workflow
+  [31262851841](https://github.com/mgiustiniani/javaspec/actions/runs/31262851841) published all five
+  signed Maven modules and submitted the Gradle plugin for approval. Five clean Maven consumers and
+  `magrathea-pki` Java 21 CLI/Maven replay passed. Gradle first-publication approval and deterministic
+  cross-environment core Javadoc indexing remain before stable 1.0.
 - RC3 adds a source-first Maven `generate` goal for `generate-test-sources`; it regenerates and
   registers base typed support before `testCompile`, including matcher-only specs, without tracked
   generated sources or consumer-specific execution-plugin workarounds.

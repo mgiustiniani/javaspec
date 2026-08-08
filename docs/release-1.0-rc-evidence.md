@@ -363,6 +363,50 @@ checkout, Java, and Gradle setup actions and aligned the manual Gradle publicati
 [`31261952121`](https://github.com/mgiustiniani/javaspec/actions/runs/31261952121) passed the Java
 8/11/17/21/25 core jobs and full Java 21 verification with zero annotations.
 
-This closes local qualification and release-branch CI. Git Flow merge/tag, Maven Central and Gradle
-Plugin Portal publication, immutable artifact checksum/signature verification, and clean remote-RC
-JLC-8 dogfooding remain mandatory before RC5 or stable 1.0 is declared complete.
+This closed local qualification and release-branch CI before the publication boundary below.
+
+## 2026-08-08 — RC5 tag, Maven publication, and immutable replay
+
+The release branch was merged with `--no-ff` into `main` as production commit `ae9291f` and into
+`develop` as `3b9a781`. Both branch CI runs passed before annotated tag `v1.0.0-RC5` was pushed.
+Tag CI run [`31262851868`](https://github.com/mgiustiniani/javaspec/actions/runs/31262851868)
+passed the Java 8/11/17/21/25 matrix and full Java 21 verification.
+
+Release run [`31262851841`](https://github.com/mgiustiniani/javaspec/actions/runs/31262851841)
+passed every guard, release dry-run, signing probe, five Maven deployments, and Gradle submission.
+Direct Maven Central verification established:
+
+- all POM, main, source, and Javadoc files for core, Maven plugin, JUnit Platform engine, bytecode
+  doubles, and bytecode agent are available;
+- all 20 detached signatures validate with EDDSA key
+  `92EBAB37E11720596CD690CF212398D74CE93120`, which is retrievable from the Ubuntu keyserver;
+- published main JAR SHA-256 values are core
+  `d56102c56f825275c8d033e266c03b1ce0ee025ba2c2a08010712c55c84d7b37`, Maven plugin
+  `a70d4f32beb5bbcac13f73b679d5510f418d193f2929722720117ae1c064c7f5`, JUnit engine
+  `fff5e8706bcac4db1d72a4a83c48286658e55684c517cf77f89721bab541ddc1`, bytecode doubles
+  `4ad2852f6e8f6f4c279dde9660e90fea01a41e1c0dea238c502ae5ab44401f0e`, and bytecode agent
+  `9dc429e64dea782f2397f53fc43af44daee5b9f27883689e4b45d2e1a4509131`.
+
+Five standalone Maven consumers resolved an empty local repository from Central and passed: Maven
+plugin, Prophecy, JUnit Platform, bytecode doubles, and bytecode agent. `magrathea-pki` branch
+`dogfood/javaspec-1.0.0-rc5` at `7c6c41e` then provided the JLC-8 Java 21 replay. Its launcher bound
+the published core hash above; the first CLI run generated two support files and passed 4/4, the
+second reported `NO_CHANGES`, identical generated hashes, and 4/4 again. An isolated Maven domain
+build resolved the published core/plugin/engine and passed both Surefire and JavaSpec at 4/4 with
+zero pending. Source manifests were unchanged. A broader consumer reactor stopped later at the
+pre-existing `@not-implemented` Cucumber scenario in `trust-engine-api-adapter`; the JavaSpec domain
+and preceding modules were green, so this is retained as a consumer-owned boundary rather than an RC5
+defect.
+
+A clean tag checkout rebuilt all 18 archives twice under the publisher's Temurin 21.0.11+10 and was
+internally byte-reproducible. Comparing the 15 Maven archives with Central matched 14 exactly. The
+only mismatch is `javaspec-1.0.0-RC5-javadoc.jar`: extracted trees differ only in ten implicit link
+labels inside `index-all.html`; runtime, source, signatures, URLs, and all other Javadoc archives are
+identical. Cross-environment core Javadoc determinism therefore remains open for stable 1.0.
+
+The Gradle `publishPlugins` task succeeded but reported that `io.github.jvmspec` was submitted for
+first-publication approval; the public marker is not yet resolvable. This is an external pending gate.
+
+The retained remote archive is
+`.ide/agent-runs/javaspec-1.0.0-rc5-20260808/remote-publication/`; its 64-file `SHA256SUMS` manifest
+has SHA-256 `b0974ec38b44ce30040d9aea06729bc093b984cefd2824f8404f10b4a17eab94`, and every entry validates.

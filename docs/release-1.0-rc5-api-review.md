@@ -1,7 +1,7 @@
 # JavaSpec 1.0.0-RC5 API review
 
-Status: aligned RC5 version cut and clean local qualification completed at `8f93a46`; remote CI
-qualified at `4d72aca`. Publication and remote artifact replay remain.
+Status: published `v1.0.0-RC5` at production commit `ae9291f`. Remote Maven artifact and JLC-8
+replay passed; Gradle Portal approval and stable-1.0 core Javadoc determinism remain.
 
 Original reviewed implementation HEAD: `2eb26a7`
 (`docs: complete constructor-safe restructuring milestone`).
@@ -67,4 +67,8 @@ in the changelog, generation contract, report schema, and regression suite.
   [`31261952121`](https://github.com/mgiustiniani/javaspec/actions/runs/31261952121) passed all six
   jobs with zero annotations.
 - [x] Update release evidence with the RC5 commit, final local artifact hashes, and CI run URL.
-- [ ] Add immutable remote artifact replay evidence after publication.
+- [x] Add immutable remote artifact replay evidence after publication: five clean Maven consumers
+  passed; `magrathea-pki` commit `7c6c41e` passed CLI 4/4 twice and Java 21 Maven domain 4/4 with
+  zero pending and no source mutation.
+- [ ] Close the cross-environment core Javadoc index mismatch and obtain Gradle Portal approval
+  before stable 1.0.

@@ -15,9 +15,14 @@ This document records capabilities verified while preparing the 1.0 roadmap. It 
 - Remote RC5 branch CI run
   [`31261952121`](https://github.com/mgiustiniani/javaspec/actions/runs/31261952121) passed the Java
   8/11/17/21/25 matrix and full Java 21 verification at `4d72aca` with zero annotations.
-- Active aligned release-branch candidate: `1.0.0-RC5`; RC4 remains the latest published artifact
-  until the RC5 tag workflow succeeds.
-- Post-RC4 hardening is included in the RC5 candidate but is not part of the immutable RC4 artifacts.
+- Published production candidate: `v1.0.0-RC5` at `ae9291f`. Release workflow
+  [`31262851841`](https://github.com/mgiustiniani/javaspec/actions/runs/31262851841) deployed all five
+  signed Maven modules and submitted the Gradle plugin for first-publication approval.
+- Five clean Maven consumers and the `magrathea-pki` Java 21 domain replay passed against immutable
+  RC5 artifacts; the latter ran CLI generation twice and Maven verification at 4/4 with zero pending
+  and no source mutation.
+- Post-RC4 hardening is part of immutable RC5. Gradle Portal approval and deterministic
+  cross-environment core Javadoc indexing remain stable-1.0 release gates.
 
 ## Artifacts and modules
 
@@ -81,7 +86,8 @@ The API freeze classifies these shipped areas in `docs/api-surface-1.0.md`:
 - Historical docs still mention previous `0.1.0` releases; current docs are guarded by `scripts/check-current-docs.sh`.
 - Historical documents may keep pre-migration package/version references only with migration context; current docs are checked automatically.
 - README, user manual, CLI/configuration/matcher/Prophecy/generation/adapter docs, migration, troubleshooting, and compatibility policy have 1.0 contract coverage.
-- Release notes use `docs/release-notes-1.0.0.md`; successful publication evidence is still pending.
+- Release notes use `docs/release-notes-1.0.0.md`; RC5 Maven publication and remote replay evidence
+  are complete, while Gradle Portal approval remains external.
 - Release engineering docs cover the real artifact set, Git Flow through `main`/`develop` and
   `release/*`, Maven Central signing/deployment, and the Gradle Plugin Portal marker path.
 
@@ -93,6 +99,7 @@ The API freeze classifies these shipped areas in `docs/api-surface-1.0.md`:
 | P0-API-001 | P0 | Public API/SPI classification was missing. | DONE: `docs/api-surface-1.0.md` classifies packages/contracts and `scripts/check-api-surface.sh` gates unclassified packages. |
 | P0-GEN-001 | P0 | Generation needed frozen structured outcomes and atomic-write audit. | DONE: `docs/generation-contract-1.0.md`, `AtomicFileWriter`, and pending-stub synthetic BROKEN result. |
 | P0-REL-002 | P0 | Release workflow may not publish/verify every real artifact. | DONE: `scripts/verify-release-dry-run.sh`, `RELEASING.md`, and bytecode-agent release metadata/artifacts verify the declared artifact set and consumer examples. |
+| P0-REL-003 | P0 | Clean publisher-equivalent replay found nondeterministic implicit link labels in the core Javadoc index. | OPEN FOR STABLE 1.0: make Javadoc labels deterministic and compare clean builds before the final cut. |
 | P0-DOC-001 | P0 | Documentation can contradict current capabilities/version. | DONE: `scripts/check-current-docs.sh` and `scripts/check-version-alignment.sh` gate current docs/version/package consistency. |
 | P1-ROW-001 | P1 | Example-data row selector semantics are subtle and could be misrepresented. | DONE: `docs/example-data-contract-1.0.md` documents inline execution vs descriptor/event filtering, with JUnit Platform regression coverage. |
 | P1-PROP-001 | P1 | Generated Prophecy token overloads need edge-case audit. | DONE: `ProphecySkeletonGeneratorTest` covers primitive, array, varargs, bounded generic, bridge/synthetic, duplicate, and mixed exact/token call cases; `docs/prophecy-contract-1.0.md` documents limits. |
