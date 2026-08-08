@@ -412,7 +412,7 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
 
 - Macro-area: D — Faithful build and IDE adapters
 - Priority: P1
-- Status: IMPLEMENTED LOCALLY; REMOTE GRAALVM CI EVIDENCE PENDING
+- Status: COMPLETED — LOCAL AND REMOTE GRAALVM EVIDENCE GREEN
 - Release boundary: introduced on `develop` after immutable `v1.0.0-RC5`; not present in published
   RC5 artifacts.
 - Decision: [ADR 0028](docs/adr/0028-project-specific-native-image-preview.md).
@@ -422,6 +422,10 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
   - project-specific `examples/native-basic/` executable built after `testCompile` with GraalVM 25;
   - constructor/lifecycle, passing/pending/skipped, help, JSON, and unsupported-option replay gate;
   - mandatory dedicated GitHub Actions job without adding a published JavaSpec artifact.
+- Remote evidence: CI run
+  [`31283024044`](https://github.com/mgiustiniani/javaspec/actions/runs/31283024044) passed all seven
+  jobs with zero annotations; GraalVM 25.0.4 built/replayed the native binary and uploaded the
+  `javaspec-native-basic-linux-x64` evidence artifact.
 - Explicitly deferred slices:
   1. report-file destinations and runtime class/example filters;
   2. interface proxy and Prophecy metadata;

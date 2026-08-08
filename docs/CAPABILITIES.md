@@ -28,7 +28,9 @@ This document records capabilities verified while preparing the 1.0 roadmap. It 
   token/link guards. The copyable spec-driven agent documents semantic admission, launcher
   provenance, safe generation, typed stops, and structured handoff.
 - Post-RC5 `develop` adds a project-specific Native Image preview. Local GraalVM 25 verification
-  builds and replays `examples/native-basic/`; published RC5 does not include the new launcher/goal.
+  builds and replays `examples/native-basic/`; CI run
+  [`31283024044`](https://github.com/mgiustiniani/javaspec/actions/runs/31283024044) repeated it with
+  GraalVM 25.0.4 and zero annotations. Published RC5 does not include the new launcher/goal.
 
 ## Artifacts and modules
 
@@ -40,7 +42,7 @@ This document records capabilities verified while preparing the 1.0 roadmap. It 
 | Gradle plugin | plugin id `io.github.jvmspec` | Java 8 | core in plugin runtimeClasspath | REQUIRED_FOR_1_0; verified, publication pending Portal confirmation |
 | Bytecode doubles | `io.github.jvmspec:javaspec-bytecode-doubles` | Java 8 | core + ByteBuddy | Optional stable adapter for 1.0 |
 | Bytecode agent | `io.github.jvmspec:javaspec-bytecode-agent` | Java 8 | core + ByteBuddy + ByteBuddy Agent | Optional stable adapter for 1.0 |
-| Project native executable | Consumer build output (no new JavaSpec coordinate) | GraalVM Native Image 25 build tool; no JVM process at execution | Build-linked core + consumer production/test classes | Post-RC5 experimental preview; Linux x86-64 qualified locally |
+| Project native executable | Consumer build output (no new JavaSpec coordinate) | GraalVM Native Image 25 build tool; no JVM process at execution | Build-linked core + consumer production/test classes | Post-RC5 experimental preview; Linux x86-64 qualified locally and in CI |
 
 ## Implemented core capabilities
 

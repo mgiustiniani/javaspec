@@ -2220,5 +2220,12 @@ source-current core/plugin, generated support plus build-linked main/reflection 
 Linux x86-64 executable from consumer production/test classes, and ran it without starting a JVM
 process. Replay observed 3 total / 1 passed / 0 failed / 0 broken / 1 skipped / 1 pending, valid JSON
 and help output, and usage exit 64 for unsupported `--compile`. The executable is a consumer build
-output, not a release artifact. Remote evidence remains pending until the new dedicated GraalVM CI
-job runs on the committed source.
+output, not a release artifact. Aggregate `scripts/verify-all.sh` and
+`scripts/verify-release-dry-run.sh` also passed; the release manifest retained exactly 18 archives
+and did not include the consumer binary.
+
+Remote CI run
+[`31283024044`](https://github.com/mgiustiniani/javaspec/actions/runs/31283024044) passed seven jobs
+with zero annotations. Its dedicated native job used GraalVM Native Image 25.0.4, built a 13,437,192
+byte Linux x86-64 executable, replayed the same boundary checks, and uploaded
+`javaspec-native-basic-linux-x64` as a seven-day evidence artifact.

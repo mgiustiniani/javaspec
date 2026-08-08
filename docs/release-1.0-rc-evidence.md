@@ -428,3 +428,22 @@ This commit does not and cannot change immutable RC5. It is qualified input for 
 candidate. Evidence is retained at
 `.ide/agent-runs/javaspec-1.0.0-rc5-20260808/post-publication-repro-fix/`; its `SHA256SUMS` manifest
 has SHA-256 `e24742aeeb220bf259ec0787a331ac851c4ec10b22909bf33570182fde96f2cb`.
+
+## 2026-08-09 — post-RC5 project-specific Native Image preview
+
+Develop commits `ad0094c` and `b126809` add an explicitly post-RC5 native preview without changing
+immutable RC5. Maven now prepares deterministic build-linked launcher/reflection inputs after source
+discovery; GraalVM Native Image links the consumer's compiled production/spec classes with core. The
+consumer executable is not a sixth published module and remains absent from the 18-entry release
+archive manifest.
+
+Local GraalVM 25.0.3 verification, aggregate `scripts/verify-all.sh`, and the complete release dry-run
+passed. The native binary replayed constructor/lifecycle, 1 passed / 1 skipped / 1 pending, JSON/help,
+and usage exit 64 for unsupported `--compile` with an empty runtime `PATH` and no `libjvm` link.
+The API comparison found ten additive signature lines and zero removals.
+
+CI run [`31283024044`](https://github.com/mgiustiniani/javaspec/actions/runs/31283024044)
+passed the Java 8/11/17/21/25 core matrix, full Java 21 verification, and the new GraalVM job with
+zero annotations. GraalVM 25.0.4 produced a 13,437,192-byte Linux x86-64 executable and uploaded
+artifact `javaspec-native-basic-linux-x64`. This evidence qualifies only the subset and platform in
+`docs/native-image.md`; it is not stable-release publication evidence.

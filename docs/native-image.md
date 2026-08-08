@@ -25,7 +25,9 @@ The first increment supports:
 - stop-on-failure and automatic-prediction toggle semantics in the native launcher;
 - process exit `0` for a run without failed/broken examples, `1` for failed/broken examples, and
   `64` for unsupported/invalid native options;
-- Linux x86-64 build and JVM-free replay on GraalVM Native Image 25 in the dedicated CI job.
+- Linux x86-64 build and JVM-free replay on GraalVM Native Image 25 locally and in dedicated CI run
+  [`31283024044`](https://github.com/mgiustiniani/javaspec/actions/runs/31283024044), where GraalVM
+  25.0.4 completed with zero annotations and uploaded the example executable.
 
 The executable is generated for the consumer project. It is not a sixth JavaSpec publication
 artifact and is not included in the Maven release checksum set.

@@ -142,7 +142,9 @@ Evidence:
 - [x] Bytecode adapter consumer smokes green from staged artifacts/local release dry-run.
 - [x] Post-RC5 project-specific native example builds and replays locally with GraalVM Native Image
   25 through `scripts/verify-native-example.sh`.
-- [ ] Dedicated `Native executable / GraalVM 25` CI job green on the native-preview commit.
+- [x] Dedicated `Native executable / GraalVM 25` CI job green on native-preview source commit
+  `b126809`: run `31283024044` used GraalVM 25.0.4, uploaded the Linux x86-64 binary artifact, and
+  completed with zero annotations.
 
 ## Release engineering gates
 
