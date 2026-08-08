@@ -56,6 +56,11 @@ tasks.withType(Javadoc).configureEach {
     options.addStringOption('Xdoclint:none', '-quiet')
 }
 
+tasks.withType(org.gradle.api.tasks.bundling.AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+
 publishing {
     publications.withType(MavenPublication).configureEach {
         pom {

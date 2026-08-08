@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file.
 
 ## 1.0.0-RC5 — 2026-08-08
 
+- Made all published Maven and Gradle archives byte-reproducible through a fixed release timestamp,
+  deterministic Gradle archive ordering, and a release dry-run that rebuilds and compares every
+  main, source, and Javadoc artifact SHA-256.
 - Restored type-evidenced owner-return operation discovery without treating framework lifecycle calls
   or specification helpers as production behavior. Exact helper signatures suppress discovery,
   overload and ordered-parameter mismatches do not, unknown argument types fail closed, and evidence

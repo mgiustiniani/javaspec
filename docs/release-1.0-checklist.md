@@ -131,7 +131,7 @@ Evidence:
 - [x] Maven plugin descriptor valid.
 - [x] Gradle plugin marker publication path documented/tested.
 - [x] Bytecode agent manifest has required `Premain-Class` and `Agent-Class`.
-- [x] Checksums generated/verified locally by release dry-run; publication workflow checksums still recorded at RC/final publication time.
+- [x] Checksums generated/verified locally by release dry-run; a second same-source build reproduces every Maven and Gradle main/source/Javadoc archive hash. Publication workflow checksums are still recorded at RC/final publication time.
 - [x] Signing configured/documented; workflow requires an imported secret key, verifies the
   passphrase with an isolated loopback signing probe, and passes it explicitly to Maven GPG Plugin.
 - [x] Gradle Plugin Portal API key/secret confirmed by successful `publishPlugins` execution; public
