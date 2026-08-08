@@ -669,10 +669,14 @@ public class MainTest {
     }
 
     @Test
-    public void helpListsConstructorPolicyValuesAndCommentDefault() {
+    public void helpListsCurrentCommandsAndRunOptions() {
         CommandResult result = run("--help");
 
         assertEquals(0, result.exitCode);
+        assertTrue(result.out.contains("javaspec prophesize <FQCN>"));
+        assertTrue(result.out.contains("javaspec list-extensions"));
+        assertTrue(result.out.contains("[--resolve-pom <pom.xml>]"));
+        assertTrue(result.out.contains("[--release <N>]"));
         assertTrue(result.out.contains("[--constructor-policy <delete|preserve|comment>]"));
         assertTrue(result.out.contains("Valid values: delete, preserve, comment (default: comment)."));
         assertEquals("", result.err);

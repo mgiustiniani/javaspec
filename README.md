@@ -213,6 +213,22 @@ javaspec prophesize <Class>  # generate typed Prophecy wrapper for an interface 
 
 Exit codes are stable: `0` for success, `1` for failed/broken examples or declined/pending generation work, `64` for usage/profile/compiler/bootstrap errors, and `70` for I/O failures.
 
+### Manual pages
+
+Initial section 1 manual pages are maintained under [`docs/man/`](docs/man/README.md) in English,
+Italian, Spanish, German, French, and Simplified Chinese. Preview one without installing it:
+
+```sh
+man -l docs/man/en/man1/javaspec.1
+man -l docs/man/it/man1/javaspec.1
+```
+
+Validate every translation and its shared command-contract tokens with:
+
+```sh
+scripts/check-man-pages.sh
+```
+
 ### Maven
 
 Core and the Maven plugin are available directly from Maven Central. No local javaspec installation

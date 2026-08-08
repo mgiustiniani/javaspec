@@ -4,6 +4,8 @@
 - [Quick start](Home.md#quick-start)
 - [Release and CI verification](Home.md#release-and-ci-verification)
 - [Standalone examples and report schema](Home.md#standalone-examples-and-report-schema)
+- [Manual pages](Home.md#manual-pages)
+  - [Language index](../man/README.md)
 - [Commands](Home.md#commands)
 - [Configuration files](Home.md#configuration-files)
   - [Syntax](Home.md#syntax)

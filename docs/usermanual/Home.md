@@ -295,6 +295,22 @@ deterministic timestamp `2026-01-01T00:00:00Z` and hostname `ci.example.local`, 
 PENDING JSON example, a JUnit XML-compatible pending `<skipped message="Pending: ...">` example, and
 source line metadata.
 
+## Manual pages
+
+Initial section 1 CLI manual pages are available under [`../man/`](../man/README.md) in English,
+Italian, Spanish, German, French, and Simplified Chinese. They summarize commands, options,
+generation safety, exit statuses, default paths, and common examples.
+
+Preview and validate them from the repository root:
+
+```sh
+man -l docs/man/en/man1/javaspec.1
+scripts/check-man-pages.sh
+```
+
+The English page is the semantic source of truth. All language pages are checked for the same
+command-contract tokens and valid UTF-8 roff rendering.
+
 ## Commands
 
 ```sh

@@ -74,6 +74,7 @@ required_current_docs=(
   docs/troubleshooting.md
   docs/compatibility-policy-1.0.md
   docs/release-1.0-rc-evidence.md
+  docs/man/README.md
 )
 for required_doc in "${required_current_docs[@]}"; do
   if [ -f "$required_doc" ]; then
@@ -143,6 +144,7 @@ current_paths=(
   docs/compatibility-policy-1.0.md
   docs/release-1.0-rc-evidence.md
   docs/usermanual
+  docs/man
   docs/arc42
   docs/bytecode-doubles.md
   examples
@@ -174,6 +176,12 @@ if [ -n "$obsolete_package_hits" ]; then
   fail "current docs/config still contain obsolete org.javaspec references"
 else
   pass "no obsolete org.javaspec references in current docs/config"
+fi
+
+if scripts/check-man-pages.sh; then
+  pass "multilingual manual-page guard passed"
+else
+  fail "multilingual manual-page guard failed"
 fi
 
 if [ -f docs/phpspec-compatibility-matrix.md ]; then
