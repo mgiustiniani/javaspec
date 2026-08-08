@@ -6,6 +6,7 @@
 - [Prima specifica](Home.md#prima-specifica)
 - [Esecuzione e report](Home.md#esecuzione-mirata-e-report)
 - [Configurazione](Home.md#configurazione-minima)
+- [Anteprima Native Image](../../native-image.md)
 - [Adattatori](Home.md#adattatori-opzionali)
 - [Agente spec-driven](Home.md#sviluppo-guidato-da-specifiche)
 - [Sicurezza e codici](Home.md#sicurezza-e-codici-di-uscita)

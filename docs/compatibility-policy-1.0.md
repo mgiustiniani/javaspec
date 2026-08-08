@@ -26,6 +26,14 @@ contract documents referenced from that file:
 Breaking changes to `PUBLIC_API`, `PUBLIC_SPI`, `ADAPTER_API`, or `GENERATED_API` require a new major
 version unless this repository explicitly marks a narrower experimental/preview surface.
 
+## Post-RC5 Native Image preview surface
+
+Until a release promotes it, `javaspec:native-prepare`, `NativeImageLauncher`, generated
+`JavaspecNativeMain`, and the matrix in `docs/native-image.md` are a preview. The goal/launcher
+entrypoint and documented exit meanings are compatibility targets; additional admitted options,
+metadata, platforms, and dynamic capabilities are additive. JVM support never implies native
+support without explicit native evidence.
+
 ## Allowed compatible changes
 
 Patch/minor releases may add:

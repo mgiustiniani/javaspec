@@ -315,3 +315,8 @@ published under `io.github.jvmspec`; Gradle plugin id `io.github.jvmspec` was su
 awaits first-publication approval and marker availability. The release workflow now performs Maven
 Central deployment and Gradle submission; local release profiles and dry runs remain verification
 scaffolding rather than publication evidence.
+
+The Native Image preview adds a separate **consumer-build deployment unit**: a platform-specific
+executable under the consumer's `target/`. GraalVM 25 is required only while building it; the
+verified binary runs without a JVM process. It is neither uploaded by the JavaSpec release workflow
+nor counted among Maven/Gradle archives. Current qualification is Linux x86-64 only.

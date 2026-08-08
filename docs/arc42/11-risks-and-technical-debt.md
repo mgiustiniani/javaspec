@@ -256,3 +256,9 @@ Current risks and mitigations:
 6. Preserve verified GPG/Maven publication and maintainer metadata; close Gradle first-publication
    approval, qualify the final candidate, and verify each public endpoint before claiming stable
    availability.
+7. Prevent “native executable exists” from becoming a blanket parity claim. Keep closed-world
+   unsupported features in executable help and `docs/native-image.md`; add report/filter, proxy,
+   construction, Gradle/JUnit, platform, security, and reproducibility slices only with native
+   integration evidence.
+8. Broad first-preview reflection metadata favors correctness but may inflate image size. Narrow it
+   only after coverage proves that constructor/lifecycle/result semantics remain intact.

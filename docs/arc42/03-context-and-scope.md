@@ -149,3 +149,11 @@ independently queried run metadata.
 No C4 diagrams are currently generated. If diagrams are requested later, the documenter should
 delegate diagram generation to the `c4model` child agent and integrate the resulting diagrams into
 ARC42 section 3 or section 5 as appropriate.
+
+## Native Image context
+
+Maven invokes JavaSpec discovery/generation and `native-prepare`; the consumer compiler supplies
+`target/classes` and `target/test-classes`; GraalVM Native Build Tools is the external image builder.
+The generated launcher and reachability metadata cross that build boundary. At execution, the
+project-specific binary interacts only with process arguments/stdout/stderr and its linked code—no
+JVM, Maven, source tree, or remote service is required.

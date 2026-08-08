@@ -13,6 +13,8 @@ append-only qualification evidence.
 - Gradle plugin id: `io.github.jvmspec`; RC5 was submitted successfully but first-publication
   approval and public marker resolution remain pending.
 - Stable `1.0.0` is not yet published.
+- `develop` now contains a post-RC5 project-specific Native Image preview; immutable Maven Central
+  RC5 artifacts do not contain it.
 
 Use [`release-1.0-checklist.md`](release-1.0-checklist.md) and
 [`release-1.0-rc-evidence.md`](release-1.0-rc-evidence.md) for the source-bound status. Historical
@@ -27,6 +29,8 @@ phase statements elsewhere must not override those current records.
 - [Troubleshooting](troubleshooting.md).
 - [Migration guide](migration-guide-1.0.md).
 - [Release notes](release-notes-1.0.0.md).
+- [Project-specific Native Image preview](native-image.md) — build-linked Maven executable, current
+  scope, and closed-world limits.
 
 ## Guided development
 

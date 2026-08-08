@@ -30,5 +30,8 @@ publication statements are historical rather than release evidence.
 12. [Glossary](12-glossary.md)
 
 Accepted decisions are stored under [`../adr/`](../adr/). The current optional instrumentation
-boundary is recorded in [ADR 0027](../adr/0027-standalone-bytecode-agent-adapter.md). Stable public
-contracts are indexed by the main [documentation index](../README.md).
+boundary is recorded in [ADR 0027](../adr/0027-standalone-bytecode-agent-adapter.md). The post-RC5
+project-specific Native Image boundary is recorded in
+[ADR 0028](../adr/0028-project-specific-native-image-preview.md) and the
+[native guide](../native-image.md). Stable public contracts are indexed by the main
+[documentation index](../README.md).

@@ -3,6 +3,15 @@
 This development line keeps the core artifact Java 8-compatible and zero-runtime-dependency while
 moving dependency-heavy behavior into optional artifacts.
 
+## Post-RC5 `develop` preview
+
+- Added project-specific GraalVM Native Image preparation without changing the immutable RC5
+  artifacts: `NativeImageLauncher`, Maven `native-prepare`, deterministic generated linked source and
+  reflection metadata, `examples/native-basic`, and a dedicated GraalVM 25 CI gate.
+- The first native subset covers build-linked named-package specs, constructor/lifecycle, built-in
+  matchers, all result states, built-in console formatters, and explicit exit codes. Dynamic JVM
+  capabilities remain excluded as documented in [`native-image.md`](native-image.md).
+
 ## Core `io.github.jvmspec:javaspec`
 
 - Generated support and Prophecy wrapper sources are written to `target/generated-sources/javaspec`

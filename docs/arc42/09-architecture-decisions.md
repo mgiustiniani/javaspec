@@ -222,3 +222,6 @@ Architecture decisions are recorded as ADRs in `docs/adr/`.
   ByteBuddy remains isolated to `javaspec-bytecode-doubles`.
 - ADR 0027 fixes the agent doubles boundary: final/static/construction interception is optional,
   scoped, instrumentation-dependent, and isolated to `javaspec-bytecode-agent`.
+- ADR 0028 fixes the first Native Image boundary: executables are project-specific and build-linked;
+  Maven generates deterministic launcher/reachability inputs, GraalVM builds them, dynamic JVM
+  capabilities are excluded, and no additional JavaSpec publication artifact is implied.

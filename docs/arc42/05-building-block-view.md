@@ -657,3 +657,13 @@ bytecode adapter.
 - Package scanning, plugin lookup, and automatic classpath repair remain outside this increment;
   configuration-driven extension activation and formatter controls are handled by the later
   known-limitations resolution phases where implemented.
+
+## Native Image preview building blocks
+
+- `NativeImageLauncher` is the no-exit core boundary over linked `DiscoveredSpec` metadata,
+  `SpecRunner`, and built-in formatters.
+- `JavaspecNativePrepareMojo` performs source-time admission and registers generated test source.
+- `NativeImageSourceGenerator` writes deterministic `JavaspecNativeMain` and
+  `reflect-config.json`; it remains Maven-adapter internal.
+- `examples/native-basic` combines those inputs with GraalVM Native Build Tools and produces a
+  consumer executable. No new root reactor module or published coordinate is introduced.

@@ -34,6 +34,9 @@ required_tokens=(
   '--generation-report'
   '// javaspec:stub'
   'scripts/verify-all.sh'
+  'javaspec:native-prepare'
+  'scripts/verify-native-example.sh'
+  'native-image.md'
   'HTTP 404'
   'javaspec-guided-development-assistant.md'
 )

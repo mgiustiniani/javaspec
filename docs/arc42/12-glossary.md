@@ -213,3 +213,10 @@
   `[engine:javaspec]`, `[spec:<specQualifiedName>]`, and `[example:<methodName>]`.
 - **Zero runtime dependency**: Architectural policy that the runtime artifact depends only on the
   JDK and the project artifact itself.
+- **Build-linked spec**: Compiled consumer specification whose class literal, example metadata, and
+  required reflection access are included while the project-specific native image is built.
+- **Project-specific native executable**: Consumer build output containing JavaSpec core plus a
+  closed set of production/spec classes. It runs without a JVM process but cannot load future
+  bytecode.
+- **Native preparation**: Maven `javaspec:native-prepare` step that generates the linked main source
+  and Native Image reflection metadata; GraalVM compilation remains a separate build-tool step.

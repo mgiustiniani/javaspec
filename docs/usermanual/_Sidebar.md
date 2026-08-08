@@ -34,6 +34,7 @@
   - [Verbose diagnostics](Home.md#verbose-diagnostics)
 - [No-JUnit programmatic invocation](Home.md#no-junit-programmatic-invocation)
 - [Optional Maven plugin](Home.md#optional-maven-plugin)
+- [Project-specific Native Image preview](../native-image.md)
 - [Optional Gradle plugin](Home.md#optional-gradle-plugin)
 - [Optional JUnit Platform engine](Home.md#optional-junit-platform-engine)
 - [Example execution MVP](Home.md#example-execution-mvp)

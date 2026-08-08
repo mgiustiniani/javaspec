@@ -107,3 +107,11 @@
 - The profile catalog and profile enforcement must avoid assuming the presence of Java 9+ classes
   while running on Java 8.
 - The build and test matrix should include Java 8 plus each supported LTS runtime where available.
+
+## 2.5 Native Image preview constraints
+
+- Core stays Java 8-compatible and gains no GraalVM runtime dependency.
+- Native Image 25 is a consumer/CI build tool, not the core runtime baseline.
+- All native-executed spec/subject code must be linked at image build time; runtime source/classpath
+  loading is rejected rather than emulated.
+- The consumer executable is not a published JavaSpec artifact or a release-manifest entry.

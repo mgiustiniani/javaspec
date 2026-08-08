@@ -55,6 +55,14 @@ No existing supported `PUBLIC_API` or `PUBLIC_SPI` JVM signature is removed or c
 RC1-to-current comparison. Generated-source and CLI/report behavior changed additively as documented
 in the changelog, generation contract, report schema, and regression suite.
 
+## Post-RC5 native preview delta
+
+`develop` now adds `io.github.jvmspec.nativeimage.NativeImageLauncher` as a no-exit `PUBLIC_API`
+entrypoint and Maven `native-prepare` as preview `ADAPTER_API`/`GENERATED_API`. Existing supported
+signatures remain unchanged; the source generator/Mojo implementation stays adapter-internal. The
+next candidate must regenerate and review the API inventory, include the native guide/ADR, and retain
+the explicit distinction from immutable RC5 before stable 1.0.
+
 ## RC5 cut actions
 
 - [x] Change all aligned artifact versions from `1.0.0-RC4` to `1.0.0-RC5`.

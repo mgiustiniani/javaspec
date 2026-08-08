@@ -65,11 +65,15 @@ tag after Maven Central or the Gradle Plugin Portal has accepted that version.
    - `scripts/check-current-docs.sh` (includes multilingual user-manual, man-page, agent-contract,
      Portal-claim, and local-link guards).
    - `scripts/verify-all.sh`
+   - `scripts/verify-native-example.sh` under GraalVM Native Image 25 when the candidate includes the
+     post-RC5 native preview; the dedicated CI job is mandatory.
    - `scripts/verify-release-dry-run.sh`
    - `scripts/generate-api-baseline.sh` at RC1; a second run must produce no diff.
    - At RC/final tag time, `JAVASPEC_RELEASE_TAG=v<version> scripts/check-release-preflight.sh`.
    - `mvn verify` includes Animal Sniffer Java 8 API linkage verification for core.
    - The release dry-run packages core, Maven plugin, JUnit Platform engine, bytecode doubles, bytecode agent, and Gradle plugin artifacts; verifies source/javadoc jars; verifies the bytecode-agent manifest; generates/verifies SHA-256 checksums; rebuilds every archive from clean outputs and requires identical hashes; and runs standalone consumer examples.
+   - The native example executable is a consumer-specific CI/build output, not an additional
+     published Maven artifact and not an entry in the release checksum manifest.
    - Repeat the release dry-run from an independent clean worktree in the publisher-equivalent Java
      environment and compare the complete 18-entry checksum manifest before the stable cut.
 5. Confirm GitHub Actions is green for the release commit.

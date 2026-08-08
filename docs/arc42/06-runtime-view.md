@@ -481,3 +481,14 @@ first-publication approval and public marker availability remain external gates.
    with passing and pending golden reports under `docs/examples/reports/`.
 6. Generated example `target/`, `build/`, and `.gradle/` outputs remain ignored and are not
    source-controlled artifacts.
+
+## Project-native build and execution
+
+1. Maven runs normal JavaSpec support generation and native preparation during
+   `generate-test-sources`.
+2. `testCompile` compiles production, spec support, specs, and generated native main.
+3. Native Build Tools links test output, production output, core JAR, and reflection metadata.
+4. The binary reconstructs deterministic `DiscoveredSpec` metadata, runs only linked specs, formats
+   results, and exits `0`, `1`, or `64`.
+5. Unknown JVM-only options stop before execution; no runtime discovery/compiler/classpath fallback
+   occurs.

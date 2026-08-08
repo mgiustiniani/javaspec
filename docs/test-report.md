@@ -2207,3 +2207,18 @@ verification is complete for no-JUnit invocation, explicit classpath input, and 
 reporting. Phase 12 is fully completed through the Distrobox multi-JDK matrix. Java 8, 11, 17, 21,
 and 25 containers all passed `mvn clean` and `mvn verify` with identical clean test totals. The Java
 25 runtime Gatherer probe and Java 25 runtime dependency audit also passed.
+
+## Post-RC5 NATIVE-001 local evidence — 2026-08-09
+
+A meaningful structural RED preceded implementation: core and Maven-plugin test compilation failed
+because `NativeImageLauncher` and `JavaspecNativePrepareMojo` did not exist; a separate default-package
+admission test failed until the typed boundary was added. The completed JVM suites pass five native
+launcher scenarios and three native-preparation scenarios, including deterministic regeneration.
+
+`scripts/verify-native-example.sh` passed with Oracle GraalVM Native Image 25.0.3. It installed the
+source-current core/plugin, generated support plus build-linked main/reflection metadata, compiled a
+Linux x86-64 executable from consumer production/test classes, and ran it without starting a JVM
+process. Replay observed 3 total / 1 passed / 0 failed / 0 broken / 1 skipped / 1 pending, valid JSON
+and help output, and usage exit 64 for unsupported `--compile`. The executable is a consumer build
+output, not a release artifact. Remote evidence remains pending until the new dedicated GraalVM CI
+job runs on the committed source.

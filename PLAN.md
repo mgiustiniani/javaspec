@@ -406,6 +406,34 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
   stabilization commits `008d254`, `662f6f7`, and `114c832` harden owner-return discovery and nested
   record-component support without adding supported public API.
 
+## Post-RC5 extension — project-specific Native Image
+
+### NATIVE-001 — Build-linked Maven executable preview
+
+- Macro-area: D — Faithful build and IDE adapters
+- Priority: P1
+- Status: IMPLEMENTED LOCALLY; REMOTE GRAALVM CI EVIDENCE PENDING
+- Release boundary: introduced on `develop` after immutable `v1.0.0-RC5`; not present in published
+  RC5 artifacts.
+- Decision: [ADR 0028](docs/adr/0028-project-specific-native-image-preview.md).
+- Delivered scope:
+  - zero-dependency `NativeImageLauncher` with pretty/progress/JSON output and native exit codes;
+  - Maven `native-prepare` goal generating deterministic build-linked source and reflection metadata;
+  - project-specific `examples/native-basic/` executable built after `testCompile` with GraalVM 25;
+  - constructor/lifecycle, passing/pending/skipped, help, JSON, and unsupported-option replay gate;
+  - mandatory dedicated GitHub Actions job without adding a published JavaSpec artifact.
+- Explicitly deferred slices:
+  1. report-file destinations and runtime class/example filters;
+  2. interface proxy and Prophecy metadata;
+  3. broader factory/record construction evidence;
+  4. Gradle preparation and JUnit Platform native paths;
+  5. operating-system/architecture matrix and binary reproducibility/security qualification;
+  6. explicit instrumentation strategy; JVM bytecode-agent attach is never inferred as native-safe.
+- Verification:
+  - `mvn -q -Dtest=NativeImageLauncherTest test`
+  - `mvn -q -f javaspec-maven-plugin/pom.xml -Dtest=JavaspecNativePrepareMojoTest test`
+  - `scripts/verify-native-example.sh`
+
 ## Deferred or rejected for 1.0
 
 - AI/coding-agent integrations: REJECTED_AS_NON_GOAL for javaspec 1.0 core.

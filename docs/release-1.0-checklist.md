@@ -140,6 +140,9 @@ Evidence:
 - [x] External Gradle consumer smoke green from staged artifacts/local release dry-run.
 - [x] External JUnit Platform consumer smoke green from staged artifacts/local release dry-run.
 - [x] Bytecode adapter consumer smokes green from staged artifacts/local release dry-run.
+- [x] Post-RC5 project-specific native example builds and replays locally with GraalVM Native Image
+  25 through `scripts/verify-native-example.sh`.
+- [ ] Dedicated `Native executable / GraalVM 25` CI job green on the native-preview commit.
 
 ## Release engineering gates
 
@@ -183,6 +186,8 @@ Evidence:
   generation, coherent GREEN, typed stops, and structured handoff.
 - [x] Local Markdown links resolve through `scripts/check-doc-links.sh`.
 - [x] CLI reference current.
+- [x] Native preview guide and ADR distinguish build-linked execution from JVM CLI parity and from
+  immutable published RC5.
 - [x] Configuration reference current.
 - [x] Matcher reference current.
 - [x] Prophecy/doubles reference current.

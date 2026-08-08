@@ -125,6 +125,16 @@ scripts/verify-all.sh
 scripts/verify-release-dry-run.sh
 ```
 
+## 原生可执行文件预览（`develop`）
+
+RC5 之后，`javaspec:native-prepare` 可以生成启动器和 GraalVM 元数据，把 core、生产类和已编译规格链接为项目专用可执行文件。它要求 GraalVM Native Image 25；已发布的 RC5 尚不包含此功能。
+
+```sh
+scripts/verify-native-example.sh
+```
+
+首个 Linux x86-64 范围支持生命周期、构造器、内置 matcher、skipped/pending 以及 pretty/progress/JSON 输出。运行时发现、编译/生成、动态 classpath、文件报告、动态 doubles、agent、Gradle/JUnit 和其他平台留待后续。参见 [Native Image 指南](../../native-image.md)。
+
 ## 规格驱动开发
 
 [javaspec 示例代理](../../agent/javaspec-guided-development-assistant.md)每次只实现一个语义原子行为：行为准入、

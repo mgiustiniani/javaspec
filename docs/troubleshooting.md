@@ -80,6 +80,31 @@ Until the marker resolves, use the included plugin build in `examples/gradle-bas
 or a local publication. A successful `publishPlugins` task proves submission, not public marker
 availability.
 
+## Maven reports unknown goal `native-prepare`
+
+Published `1.0.0-RC5` predates the Native Image preview. Build/install current `develop` core and
+Maven plugin, then confirm `mvn help:describe -Dplugin=io.github.jvmspec:javaspec-maven-plugin -Dgoal=native-prepare -Ddetail` before using the native
+example. Do not overwrite source-bound evidence with an unverified artifact of the same version.
+
+## Native verification stops with `GRAALVM_NATIVE_IMAGE_REQUIRED`
+
+Install GraalVM Native Image 25 or set `NATIVE_IMAGE_BIN`/`GRAALVM_HOME` to that distribution. A
+Temurin/OpenJDK runtime alone can run JavaSpec but cannot create the machine executable. The
+dedicated CI job is the remote native gate.
+
+## Native preparation rejects a default-package type
+
+The generated launcher lives in a named package and Java cannot reference default-package consumer
+types from it. Move both spec and described production type into named packages. This is an explicit
+first-preview boundary, not a silent skip.
+
+## The native executable rejects a normal CLI option
+
+Only the options listed by the generated executable's `--help` are supported. Runtime discovery,
+`--compile`, `--generate`, classpath mutation, report files, extensions, and dynamic doubles are not
+yet native-qualified and return usage exit `64`. Run the JVM CLI for those operations, rebuild the
+native image after `testCompile`, and consult [`native-image.md`](native-image.md).
+
 ## Core dependency audit shows third-party runtime dependencies
 
 The root core artifact should have none. Dependency-heavy capabilities belong in optional artifacts

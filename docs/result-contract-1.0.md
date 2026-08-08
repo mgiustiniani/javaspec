@@ -29,6 +29,11 @@ This prevents accidental GREEN when a generated Java default return happens to s
 | `64` | Usage/configuration/profile violation. |
 | `70` | I/O, dependency resolution, compilation, report writing, or unexpected infrastructure failure. |
 
+The post-RC5 project-native launcher preserves core example statuses but exposes only `0`, `1`, and
+`64`: its first subset has no runtime compilation, dependency resolution, or report-file I/O path.
+Unknown JVM CLI options return `64`. Built-in JSON console formatting is available; JSON/JUnit report
+files remain deferred. See [`native-image.md`](native-image.md).
+
 ## Diagnostics taxonomy
 
 A 1.0 diagnostic must let users distinguish:

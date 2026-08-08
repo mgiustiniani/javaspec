@@ -455,3 +455,11 @@ Not implemented in the current architecture:
 - Plugin repository lookup.
 - Automatic classpath repair for provider jars.
 - Script-engine or package-scanning activation for bootstrap hooks.
+
+## Closed-world native execution
+
+“Compiled” has two stages: `javac` creates JVM bytecode, then `native-image` links the reachable
+consumer/framework closure into machine code. Reflection configuration exposes linked code; it does
+not enable future `.class` loading. JavaSpec therefore embeds spec/example/source metadata and type
+anchors at build time and treats every dynamic JVM capability as unsupported until separately
+qualified.

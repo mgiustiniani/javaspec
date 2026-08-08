@@ -138,3 +138,24 @@ Automated evidence:
 - `scripts/verify-all.sh`
 
 1.0 decision: JUnit Platform is an adapter for IDE/build interoperability; PHPSpec-style `it_*` authoring remains canonical.
+
+## Scenario 8 — project-specific native execution preserves its admitted subset
+
+User behavior:
+
+1. Maven generates support and closed-world inputs before compiling the consumer test image.
+2. GraalVM links the current project specs/subjects into a machine executable.
+3. The executable preserves lifecycle, matcher, skip/pending, formatter, and exit semantics for the
+   admitted subset without starting a JVM process.
+4. A JVM-only option fails explicitly instead of being ignored or pretending parity.
+
+Automated evidence:
+
+- `NativeImageLauncherTest`
+- `JavaspecNativePrepareMojoTest`
+- `scripts/verify-native-example.sh`
+- CI job `Native executable / GraalVM 25`
+
+Post-RC5 decision: native execution is project-specific and closed-world. Published RC5 does not
+contain this preview; every dynamic capability and platform needs separate evidence before the
+supported subset expands.

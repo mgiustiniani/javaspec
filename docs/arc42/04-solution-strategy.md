@@ -305,3 +305,8 @@ Later building blocks remain planned:
 - Keep Phase 21 examples and report schema/golden docs standalone until public artifacts are
   explicitly available; examples remain adoption assets even though remote GitHub Actions success
   for HEAD `5088e96` on `develop` is now user-/maintainer-confirmed after the Phase 20/21/22 push.
+- For Native Image, generate deterministic class literals/example metadata plus reflection metadata
+  after source discovery, compile them with consumer tests, and delegate machine-code construction
+  to official GraalVM Native Build Tools.
+- Reuse the qualified runner/result/formatter semantics, but expose a fail-closed native option
+  subset rather than pulling dynamic JVM orchestration into the closed world.

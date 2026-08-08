@@ -572,3 +572,8 @@ Future implementation phases should preserve these gates:
 9. RC5 Maven artifacts are published under `io.github.jvmspec`; Gradle plugin id
    `io.github.jvmspec` was submitted but is not yet publicly resolvable. The confirmed MIT license
    and maintainer metadata remain consistent.
+10. Native preview quality requires: deterministic generated source/metadata, JVM unit parity for
+    launcher outcomes/options, a real GraalVM 25 build, JVM-free binary replay, explicit unsupported
+    option failure, and no change to Java 8 core bytecode/runtime dependencies.
+11. Native capability claims remain limited to the evidenced Linux x86-64 subset; binary performance,
+    reproducibility, proxy/instrumentation support, and other platforms require separate gates.

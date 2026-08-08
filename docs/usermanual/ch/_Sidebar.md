@@ -6,6 +6,7 @@
 - [第一个规格](Home.md#第一个规格)
 - [执行与报告](Home.md#定向执行与报告)
 - [配置](Home.md#最小配置)
+- [Native Image 预览](../../native-image.md)
 - [可选适配器](Home.md#可选适配器)
 - [Spec-driven 示例代理](Home.md#规格驱动开发)
 - [安全规则与退出码](Home.md#安全规则与退出码)

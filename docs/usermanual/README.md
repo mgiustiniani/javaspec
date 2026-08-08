@@ -1,8 +1,8 @@
 # javaspec user manual — language index
 
 The detailed English manual is the semantic source of truth. Concise maintained editions provide the
-installation, first-specification, safe-generation, execution, reporting, adapter, and release-status
-paths in the same six languages as the section 1 manual pages.
+installation, first-specification, safe-generation, execution, reporting, adapter, native-preview,
+and release-status paths in the same six languages as the section 1 manual pages.
 
 | Language | User manual | Section 1 manual page |
 |---|---|---|
@@ -26,5 +26,8 @@ scripts/check-man-pages.sh
 scripts/check-current-docs.sh
 ```
 
-When behavior changes, update the detailed English manual, all five concise translations, all six
-manual pages, and the shared token guards in the same commit.
+When the standard CLI behavior changes, update the detailed English manual, all five concise
+translations, all six manual pages, and the shared token guards in the same commit. The generated
+project-native executable has its own intentionally narrower option set in
+[`../native-image.md`](../native-image.md); native-only changes update all user-manual editions but do
+not add unsupported options to `javaspec(1)`.

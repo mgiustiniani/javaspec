@@ -27,6 +27,8 @@ This document records capabilities verified while preparing the 1.0 roadmap. It 
 - User documentation is maintained in six languages with matching section 1 pages and automated
   token/link guards. The copyable spec-driven agent documents semantic admission, launcher
   provenance, safe generation, typed stops, and structured handoff.
+- Post-RC5 `develop` adds a project-specific Native Image preview. Local GraalVM 25 verification
+  builds and replays `examples/native-basic/`; published RC5 does not include the new launcher/goal.
 
 ## Artifacts and modules
 
@@ -38,6 +40,7 @@ This document records capabilities verified while preparing the 1.0 roadmap. It 
 | Gradle plugin | plugin id `io.github.jvmspec` | Java 8 | core in plugin runtimeClasspath | REQUIRED_FOR_1_0; verified, publication pending Portal confirmation |
 | Bytecode doubles | `io.github.jvmspec:javaspec-bytecode-doubles` | Java 8 | core + ByteBuddy | Optional stable adapter for 1.0 |
 | Bytecode agent | `io.github.jvmspec:javaspec-bytecode-agent` | Java 8 | core + ByteBuddy + ByteBuddy Agent | Optional stable adapter for 1.0 |
+| Project native executable | Consumer build output (no new JavaSpec coordinate) | GraalVM Native Image 25 build tool; no JVM process at execution | Build-linked core + consumer production/test classes | Post-RC5 experimental preview; Linux x86-64 qualified locally |
 
 ## Implemented core capabilities
 
@@ -55,6 +58,8 @@ This document records capabilities verified while preparing the 1.0 roadmap. It 
   accessors retain structured owner-qualified nested component types during support regeneration.
 - Record hardening: existing-record kind preservation, record header evolution, support default construction, compact-constructor preservation, explicit record construction prefix padding at runtime.
 - Optional Maven, Gradle, JUnit Platform, bytecode doubles, and bytecode agent integrations.
+- Project-specific Native Image preparation through `javaspec:native-prepare`: deterministic linked
+  launcher/reflection metadata plus pretty/progress/JSON execution for the qualified static subset.
 
 ## Frozen contracts and explicitly deferred capabilities
 
@@ -67,6 +72,9 @@ This document records capabilities verified while preparing the 1.0 roadmap. It 
 - Event/extension model v2 is deferred; existing extension/formatter/parser/resolver/bootstrap surfaces are classified for 1.0.
 - Mutating generation paths use atomic source-file writes, and pending generated stubs produce a synthetic `BROKEN` result to prevent accidental GREEN.
 - Release dry-run coverage verifies all declared modules/artifacts and external consumer examples.
+- Native Image dynamic capabilities remain slice-qualified: runtime compile/generate/classpath,
+  extensions, reports, proxies/Prophecy, ByteBuddy adapters, Gradle/JUnit paths, and wider platforms
+  are explicitly deferred in `docs/native-image.md`.
 
 ## Public 1.0 contract areas
 
@@ -82,6 +90,7 @@ The API freeze classifies these shipped areas in `docs/api-surface-1.0.md`:
 - `io.github.jvmspec.doubles` and `io.github.jvmspec.doubles.prophecy`: doubles/Prophecy API.
 - `io.github.jvmspec.generation` and `io.github.jvmspec.model`: generation/model surfaces; many may need INTERNAL classification.
 - `io.github.jvmspec.invocation`: programmatic launcher and result mapping.
+- `io.github.jvmspec.nativeimage`: project-linked no-exit launcher and native exit-code subset.
 - Maven plugin parameters, Gradle extension/task properties, JUnit Platform engine id and unique IDs.
 
 ## Documentation gaps
@@ -110,6 +119,7 @@ The API freeze classifies these shipped areas in `docs/api-surface-1.0.md`:
 | P1-MATCH-001 | P1 | Inline/configured custom matcher scope is not finalized. | DONE: `docs/matcher-contract-1.0.md` freezes programmatic `MatcherRegistry`/`shouldMatch(...)` support and defers config/inline dynamic custom matcher conveniences. |
 | P1-EXT-001 | P1 | Event/extension v2 scope could affect API freeze. | DONE: `docs/extension-spi-1.0.md` freezes existing SPI semantics and defers typed event model v2. |
 | P1-JUNIT-001 | P1 | JUnit Platform IDE/source/selector parity needed a contract audit. | DONE: `docs/junit-platform-contract-1.0.md` freezes engine id, selector, unique-id, source, row, status, and IDE boundaries with engine regression coverage. |
+| P1-NATIVE-001 | P1 | JVM feature parity could be inferred from the first closed-world native executable. | Keep a strict supported/unsupported matrix, fail unknown native options, and admit reports/proxies/platforms only with native evidence. |
 | P2-PERF-001 | P2 | No large-suite performance baseline yet. | Add reproducible benchmark before final 1.0 if feasible; otherwise document post-1.0 plan. |
 
 ## Decisions required before API freeze

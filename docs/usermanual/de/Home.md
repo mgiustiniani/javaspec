@@ -131,6 +131,21 @@ scripts/verify-all.sh
 scripts/verify-release-dry-run.sh
 ```
 
+## Native-Executable-Vorschau (`develop`)
+
+Nach RC5 kann `javaspec:native-prepare` einen Launcher und GraalVM-Metadaten erzeugen, die Core,
+Produktionsklassen und kompilierte Specs zu einer projektspezifischen ausführbaren Datei verbinden.
+Erforderlich ist GraalVM Native Image 25; die veröffentlichte RC5 enthält dies noch nicht.
+
+```sh
+scripts/verify-native-example.sh
+```
+
+Der erste Linux-x86-64-Umfang deckt Lifecycle, Konstruktoren, eingebaute Matcher, skipped/pending und
+pretty/progress/JSON-Ausgabe ab. Laufzeit-Discovery, Kompilierung/Generierung, dynamischer Classpath,
+Dateireports, dynamische Doubles, Agent, Gradle/JUnit und weitere Plattformen sind zurückgestellt.
+Siehe [Native-Image-Anleitung](../../native-image.md).
+
 ## Spezifikationsgetriebene Entwicklung
 
 Der [javaspec-Beispielagent](../../agent/javaspec-guided-development-assistant.md) bearbeitet genau

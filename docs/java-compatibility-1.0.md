@@ -49,3 +49,8 @@ coverage at the stable gate.
 
 The root `io.github.jvmspec:javaspec` runtime dependency tree must stay empty. Dependency-heavy
 capabilities live in optional artifacts so users can adopt them explicitly.
+
+The post-RC5 Native Image preview does not change the Java 8 core bytecode/runtime floor. GraalVM
+Native Image 25 is an additional **build-time** tool for the consumer-specific executable and has a
+separate Linux x86-64 CI gate. A successful native build does not replace the Java 8/11/17/21/25 JVM
+matrix, and JVM compatibility does not imply native capability parity.

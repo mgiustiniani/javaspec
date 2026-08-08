@@ -77,7 +77,9 @@ required_current_docs=(
   docs/README.md
   docs/usermanual/README.md
   docs/agent/javaspec-guided-development-assistant.md
+  docs/native-image.md
   docs/adr/0027-standalone-bytecode-agent-adapter.md
+  docs/adr/0028-project-specific-native-image-preview.md
   docs/arc42/README.md
   docs/man/README.md
 )
@@ -105,6 +107,7 @@ versioned_user_docs=(
   docs/usermanual/fr/Home.md
   docs/usermanual/ch/Home.md
   docs/migration-guide-1.0.md
+  docs/native-image.md
   docs/bytecode-doubles.md
   javaspec-gradle-plugin/README.md
   javaspec-junit-platform-engine/README.md
@@ -127,6 +130,25 @@ for required_token in '--generation-report' 'PROPOSED' 'appliedWrites'; do
     fail "current user documentation is missing $required_token"
   fi
 done
+
+for native_token in \
+  'javaspec:native-prepare' \
+  'NativeImageLauncher' \
+  'project-specific' \
+  'after immutable tag `v1.0.0-RC5`' \
+  'No runtime source discovery'; do
+  if grep -Fq -- "$native_token" docs/native-image.md; then
+    pass "native preview documentation contains $native_token"
+  else
+    fail "native preview documentation is missing $native_token"
+  fi
+done
+
+if grep -Eq 'RC5 (includes|provides|ships).*native|native.*(available|published).*RC5' docs/native-image.md README.md; then
+  fail "documentation incorrectly attributes the post-RC5 native preview to published RC5"
+else
+  pass "documentation separates the native preview from published RC5"
+fi
 
 if grep -q '(migration-guide.md)' docs/bytecode-doubles.md; then
   fail "docs/bytecode-doubles.md links to obsolete migration-guide.md"

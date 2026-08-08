@@ -6,6 +6,7 @@
 - [Erste Spezifikation](Home.md#erste-spezifikation)
 - [Ausführung und Berichte](Home.md#gezielte-ausführung-und-berichte)
 - [Konfiguration](Home.md#minimale-konfiguration)
+- [Native-Image-Vorschau](../../native-image.md)
 - [Adapter](Home.md#optionale-adapter)
 - [Spec-driven Agent](Home.md#spezifikationsgetriebene-entwicklung)
 - [Sicherheit und Exit-Codes](Home.md#sicherheit-und-exit-codes)

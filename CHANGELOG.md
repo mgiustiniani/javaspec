@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Added a project-specific GraalVM Native Image preview: the zero-dependency
+  `NativeImageLauncher`, Maven `native-prepare` goal, deterministic generated launcher/reflection
+  metadata, a Linux x86-64 GraalVM 25 CI gate, and a JVM-free consumer example. The first increment
+  supports build-linked core specs, lifecycle, constructor arguments, skip/pending, and built-in
+  console formatters while rejecting JVM-only runtime options.
 - Hardened archive reproducibility by rebuilding both checksum passes from clean outputs and using
   explicit Javadoc alias labels; independent clean worktrees now produce the same 18 archive hashes.
 - Added synchronized English, Italian, Spanish, German, French, and Simplified Chinese user manuals;

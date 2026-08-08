@@ -1267,6 +1267,27 @@ by default. Opt-in `javaspec.compile`, `javaspec.compileOutput`, and
 `javaspec.compileOutputDirectory` settings for current-JDK `javax.tools` compilation before
 bootstrap/examples, without dependency resolution, forked `javac`, or incremental caching.
 
+## Project-specific Native Image preview (`develop`)
+
+The post-RC5 `javaspec:native-prepare` Maven goal creates a deterministic generated main class and
+GraalVM reflection metadata for the project's discovered specs and subjects. After `testCompile`,
+GraalVM Native Build Tools links those classes and JavaSpec core into a consumer-specific executable
+that runs without starting a JVM process. Published `1.0.0-RC5` predates this goal/API.
+
+```sh
+# GraalVM Native Image 25; current core/plugin installed from source
+mvn -f examples/native-basic/pom.xml -Pnative clean package
+examples/native-basic/target/javaspec-native-basic --formatter pretty
+# Or run the complete build/replay gate:
+scripts/verify-native-example.sh
+```
+
+The first Linux x86-64 preview covers named-package build-linked specs, constructor/lifecycle,
+built-in matchers, skip/pending, pretty/progress/JSON console output, stop-on-failure, and exit codes
+`0`, `1`, and `64`. Runtime discovery, `--compile`, `--generate`, classpath mutation, report files,
+ServiceLoader extensions, dynamic doubles, bytecode-agent attach, Gradle/JUnit integration, and
+other platforms are not yet qualified. See [`../native-image.md`](../native-image.md).
+
 ## Optional Gradle plugin
 
 The standalone optional Gradle plugin artifact is located at `javaspec-gradle-plugin/`. It is

@@ -103,3 +103,10 @@ Core requirements:
 - Phase 19 remote GitHub Actions success remains historical user-/maintainer-confirmed evidence for
   HEAD `4d30e63` on `develop`.
 - No C4 diagrams are currently generated.
+
+## Post-RC5 Native Image goal
+
+The native preview adds JVM-free execution for a closed set of consumer specs without changing the
+Java 8/zero-dependency core identity. It is explicitly project-specific: faster deployment/startup
+may be evaluated later, but JVM CLI parity, performance gains, and universal bytecode loading are
+not product claims.
