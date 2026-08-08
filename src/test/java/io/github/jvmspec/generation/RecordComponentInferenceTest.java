@@ -3,6 +3,7 @@ package io.github.jvmspec.generation;
 import io.github.jvmspec.cli.run.GenerationOrchestrator;
 import io.github.jvmspec.cli.run.GenerationOrchestratorResult;
 import io.github.jvmspec.discovery.DiscoveredSpec;
+import io.github.jvmspec.discovery.ProductionSignatureReader;
 import io.github.jvmspec.discovery.SpecNamingConvention;
 import io.github.jvmspec.discovery.SpecDiscovery;
 import io.github.jvmspec.model.ConstructorDescriptor;
@@ -34,6 +35,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 public class RecordComponentInferenceTest {
     @Rule
@@ -215,6 +217,57 @@ public class RecordComponentInferenceTest {
     }
 
     @Test
+    public void nestedRecordComponentTypeRemainsOwnerQualifiedInFreshGeneratedSupport() throws Exception {
+        assumeTrue(javaSpecificationVersion() >= 17);
+        File sourceRoot = temporaryFolder.newFolder("nested-state-production");
+        File specRoot = temporaryFolder.newFolder("nested-state-spec");
+        File generatedRoot = temporaryFolder.newFolder("nested-state-generated");
+        File classes = temporaryFolder.newFolder("nested-state-fresh-classes");
+        File subjectFile = writeSource(sourceRoot, "com/example/NestedStateRecord.java",
+                "package com.example;\n\n" +
+                "public record NestedStateRecord(NestedStateRecord.State state) {\n" +
+                "    public enum State { OPEN, CLOSED }\n" +
+                "}\n");
+        File specFile = writeSource(specRoot, "spec/com/example/NestedStateRecordSpec.java",
+                "package spec.com.example;\n\n" +
+                "import com.example.NestedStateRecord;\n" +
+                "import com.example.NestedStateRecord.State;\n\n" +
+                "public class NestedStateRecordSpec extends NestedStateRecordSpecSupport {\n" +
+                "    public void it_preserves_nested_state_type() {\n" +
+                "        State state = State.OPEN;\n" +
+                "        shouldBeARecord();\n" +
+                "        beConstructedWith(state);\n" +
+                "        state().shouldReturn(state);\n" +
+                "    }\n" +
+                "}\n");
+
+        DescribedType discovered = SpecDiscovery.discover(specRoot).get(0).describedType();
+        DescribedType refined = ProductionSignatureReader.refine(discovered, sourceRoot);
+        assertEquals(Arrays.asList("com.example.NestedStateRecord.State"),
+                constructor(refined).parameterTypes());
+        assertEquals(Arrays.asList(MethodDescriptor.of(
+                "state", "com.example.NestedStateRecord.State")), refined.methods());
+
+        SpecGenerationPlan supportPlan = SpecSkeletonGenerator.supportPlan(
+                refined, specRoot, generatedRoot, SpecNamingConvention.defaults());
+        File supportFile = SpecSupportFileGenerator.writeOrUpdateResult(supportPlan).file();
+        String support = new String(Files.readAllBytes(supportFile.toPath()), StandardCharsets.UTF_8);
+        assertTrue(support, support.contains("import com.example.NestedStateRecord;"));
+        assertFalse(support, support.contains("import com.example.NestedStateRecord.State;"));
+        assertTrue(support, support.contains(
+                "beConstructedWith((NestedStateRecord.State) null);"));
+        assertTrue(support, support.contains(
+                "Matchable<NestedStateRecord.State> state()"));
+        assertTrue(support, support.contains(
+                "shouldHaveState(NestedStateRecord.State expected)"));
+        assertTrue(support, support.contains(
+                "shouldNotHaveState(NestedStateRecord.State unexpected)"));
+        assertFalse(support, support.contains("com.example.State"));
+
+        compileFresh(classes, subjectFile, supportFile, specFile);
+    }
+
+    @Test
     public void recordAccessorMatchingNeverErasesGenericArguments() {
         RecordComponentPlanner.Component publicKeys = new RecordComponentPlanner.Component(
                 "java.util.List<com.example.SubjectPublicKeyProfile>", "publicKeyAlgorithms");
@@ -337,6 +390,24 @@ public class RecordComponentInferenceTest {
         } finally {
             loader.close();
         }
+    }
+
+    private static void compileFresh(File classes, File... sources) throws Exception {
+        List<String> arguments = new ArrayList<String>();
+        arguments.add("--release");
+        arguments.add("17");
+        arguments.add("-classpath");
+        arguments.add(System.getProperty("java.class.path"));
+        arguments.add("-d");
+        arguments.add(classes.getAbsolutePath());
+        for (int i = 0; i < sources.length; i++) {
+            arguments.add(sources[i].getAbsolutePath());
+        }
+        ByteArrayOutputStream compilerOutput = new ByteArrayOutputStream();
+        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+        int exit = compiler.run(null, compilerOutput, compilerOutput,
+                arguments.toArray(new String[arguments.size()]));
+        assertEquals(new String(compilerOutput.toByteArray(), StandardCharsets.UTF_8), 0, exit);
     }
 
     private static File writeSource(File root, String relativePath, String source) throws Exception {

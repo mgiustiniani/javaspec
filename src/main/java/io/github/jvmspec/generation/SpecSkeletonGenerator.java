@@ -165,7 +165,7 @@ public final class SpecSkeletonGenerator {
             builder.append("\n");
             appendSupportProxyMethods(builder, describedType, importPlan);
             builder.append("\n");
-            appendThrowProxy(builder, describedType, namingConvention);
+            appendThrowProxy(builder, describedType, namingConvention, importPlan);
         }
         builder.append("}\n");
         return builder.toString();
@@ -384,7 +384,7 @@ public final class SpecSkeletonGenerator {
             if (appendedAny) {
                 builder.append("\n");
             }
-            appendStateExpectationMethod(builder, stateExpectationMethods.get(i));
+            appendStateExpectationMethod(builder, stateExpectationMethods.get(i), importPlan);
             appendedAny = true;
         }
     }
@@ -479,9 +479,12 @@ public final class SpecSkeletonGenerator {
         }
         if (isBooleanType(method.returnType())) {
             String prefix = method.methodName().startsWith("has") ? "shouldHave" : "shouldBe";
-            return new StateExpectationMethod(prefix + property, method.methodName(), null, "shouldReturn", "true");
+            return new StateExpectationMethod(
+                    prefix + property, method.methodName(), null, null, "shouldReturn", "true");
         }
-        return new StateExpectationMethod("shouldHave" + property, method.methodName(), boxedType(method.returnType()) + " expected", "shouldReturn", "expected");
+        return new StateExpectationMethod(
+                "shouldHave" + property, method.methodName(), boxedType(method.returnType()), "expected",
+                "shouldReturn", "expected");
     }
 
     private static StateExpectationMethod negativeStateExpectation(MethodDescriptor method) {
@@ -494,9 +497,12 @@ public final class SpecSkeletonGenerator {
         }
         if (isBooleanType(method.returnType())) {
             String prefix = method.methodName().startsWith("has") ? "shouldNotHave" : "shouldNotBe";
-            return new StateExpectationMethod(prefix + property, method.methodName(), null, "shouldReturn", "false");
+            return new StateExpectationMethod(
+                    prefix + property, method.methodName(), null, null, "shouldReturn", "false");
         }
-        return new StateExpectationMethod("shouldNotHave" + property, method.methodName(), boxedType(method.returnType()) + " unexpected", "shouldNotReturn", "unexpected");
+        return new StateExpectationMethod(
+                "shouldNotHave" + property, method.methodName(), boxedType(method.returnType()), "unexpected",
+                "shouldNotReturn", "unexpected");
     }
 
     private static boolean isStateExpectationSubjectMethod(MethodDescriptor method) {
@@ -524,10 +530,14 @@ public final class SpecSkeletonGenerator {
         return "boolean".equals(typeName) || "Boolean".equals(typeName) || "java.lang.Boolean".equals(typeName);
     }
 
-    private static void appendStateExpectationMethod(StringBuilder builder, StateExpectationMethod method) {
+    private static void appendStateExpectationMethod(
+            StringBuilder builder,
+            StateExpectationMethod method,
+            JavaTypeImportPlan importPlan
+    ) {
         builder.append("    protected void ").append(method.methodName).append("(");
-        if (method.parameterDeclaration != null) {
-            builder.append(method.parameterDeclaration);
+        if (method.parameterType != null) {
+            builder.append(importPlan.render(method.parameterType)).append(" ").append(method.parameterName);
         }
         builder.append(") {\n");
         builder.append("        ").append(method.subjectMethodName).append("().").append(method.matcherName)
@@ -538,26 +548,29 @@ public final class SpecSkeletonGenerator {
     private static final class StateExpectationMethod {
         private final String methodName;
         private final String subjectMethodName;
-        private final String parameterDeclaration;
+        private final String parameterType;
+        private final String parameterName;
         private final String matcherName;
         private final String matcherArgument;
 
         private StateExpectationMethod(
                 String methodName,
                 String subjectMethodName,
-                String parameterDeclaration,
+                String parameterType,
+                String parameterName,
                 String matcherName,
                 String matcherArgument
         ) {
             this.methodName = methodName;
             this.subjectMethodName = subjectMethodName;
-            this.parameterDeclaration = parameterDeclaration;
+            this.parameterType = parameterType;
+            this.parameterName = parameterName;
             this.matcherName = matcherName;
             this.matcherArgument = matcherArgument;
         }
 
         private String signature() {
-            return methodName + "#" + (parameterDeclaration == null ? "0" : "1");
+            return methodName + "#" + (parameterType == null ? "0" : "1");
         }
     }
 
@@ -566,6 +579,16 @@ public final class SpecSkeletonGenerator {
     }
 
     static void appendThrowProxy(StringBuilder builder, DescribedType describedType, SpecNamingConvention namingConvention) {
+        appendThrowProxy(builder, describedType, namingConvention,
+                JavaTypeImportPlan.forTypes("", Collections.<String>emptyList()));
+    }
+
+    private static void appendThrowProxy(
+            StringBuilder builder,
+            DescribedType describedType,
+            SpecNamingConvention namingConvention,
+            JavaTypeImportPlan importPlan
+    ) {
         Objects.requireNonNull(namingConvention, "namingConvention must not be null");
         String throwType = describedType.simpleName() + "ThrowExpectation";
         builder.append("    @Override\n");
@@ -584,17 +607,26 @@ public final class SpecSkeletonGenerator {
                 continue;
             }
             builder.append("\n");
-            appendDuringMethod(builder, method);
+            appendDuringMethod(builder, method, importPlan);
         }
         builder.append("    }\n");
     }
 
     static void appendDuringMethod(StringBuilder builder, MethodDescriptor method) {
+        appendDuringMethod(builder, method,
+                JavaTypeImportPlan.forTypes("", Collections.<String>emptyList()));
+    }
+
+    private static void appendDuringMethod(
+            StringBuilder builder,
+            MethodDescriptor method,
+            JavaTypeImportPlan importPlan
+    ) {
         if (!isSupportSubjectMethod(method)) {
             return;
         }
         builder.append("        public void during").append(capitalize(method.methodName())).append("(");
-        appendParameters(builder, method.parameterTypes(), method.parameterNames(), true);
+        appendParameters(builder, method.parameterTypes(), method.parameterNames(), true, importPlan);
         builder.append(") {\n");
         builder.append("            during(new io.github.jvmspec.api.ObjectBehavior.ThrowingRunnable() {\n");
         builder.append("                @Override\n");

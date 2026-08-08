@@ -110,6 +110,34 @@ public class ProductionSignatureReaderTest {
     }
 
     @Test
+    public void refinesImplicitRecordConstructorWithNestedComponentType() throws Exception {
+        assumeTrue(supportsJavaSpecificationVersion(17));
+        File sourceRoot = writeProductionSource("com/example/Key.java",
+                "package com.example;\n\n" +
+                "public record Key(Key.Status status) {\n" +
+                "    public enum Status { ACTIVE, INACTIVE }\n" +
+                "}\n");
+        DescribedType described = DescribedType.of(
+                "com.example.Key",
+                JavaTypeKind.RECORD,
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Collections.<String>emptyList(),
+                Arrays.asList(ConstructorDescriptor.of(
+                        Arrays.asList("com.example.Status"), Arrays.asList("status"), "")),
+                Arrays.asList(MethodDescriptor.of("status", "Object"))
+        );
+
+        DescribedType refined = ProductionSignatureReader.refine(described, sourceRoot);
+
+        assertEquals(Arrays.asList("com.example.Key.Status"),
+                refined.constructors().get(0).parameterTypes());
+        assertEquals(Arrays.asList("status"), refined.constructors().get(0).parameterNames());
+        assertEquals(Arrays.asList(MethodDescriptor.of("status", "com.example.Key.Status")),
+                refined.methods());
+    }
+
+    @Test
     public void refinesConstructorParameterTypesAndNames() throws Exception {
         File sourceRoot = writeProductionSource("com/example/Key.java",
                 "package com.example;\n\n" +

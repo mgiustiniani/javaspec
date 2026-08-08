@@ -29,9 +29,10 @@ public final class JavaTypeImportPlan {
         for (int i = 0; i < canonicalTypes.size(); i++) {
             qualified.addAll(JavaTypeRef.parseCanonical(canonicalTypes.get(i)).referencedQualifiedTypes());
         }
+        Map<String, String> nestedOwners = nestedOwners(qualified);
         Map<String, List<String>> bySimpleName = new LinkedHashMap<String, List<String>>();
         for (String name : qualified) {
-            if (samePackage(name, currentPackage)) continue;
+            if (samePackage(name, currentPackage) || nestedOwners.containsKey(name)) continue;
             String simple = simpleName(name);
             List<String> names = bySimpleName.get(simple);
             if (names == null) {
@@ -49,6 +50,21 @@ public final class JavaTypeImportPlan {
                 renderNames.put(qualifiedName, entry.getKey());
             }
         }
+        List<String> nestedNames = new ArrayList<String>(nestedOwners.keySet());
+        Collections.sort(nestedNames, new java.util.Comparator<String>() {
+            public int compare(String left, String right) {
+                return left.length() - right.length();
+            }
+        });
+        for (int i = 0; i < nestedNames.size(); i++) {
+            String nestedName = nestedNames.get(i);
+            String owner = nestedOwners.get(nestedName);
+            String renderedOwner = renderNames.get(owner);
+            if (renderedOwner == null) {
+                renderedOwner = samePackage(owner, currentPackage) ? simpleName(owner) : owner;
+            }
+            renderNames.put(nestedName, renderedOwner + nestedName.substring(owner.length()));
+        }
         Collections.sort(imports);
         return new JavaTypeImportPlan(currentPackage == null ? "" : currentPackage, imports, renderNames);
     }
@@ -59,6 +75,26 @@ public final class JavaTypeImportPlan {
 
     public String render(String canonicalType) {
         return JavaTypeRef.parseCanonical(canonicalType).render(simpleNamesByQualifiedName, currentPackage);
+    }
+
+    private static Map<String, String> nestedOwners(Set<String> qualifiedNames) {
+        Map<String, String> result = new LinkedHashMap<String, String>();
+        for (String candidate : qualifiedNames) {
+            String selectedOwner = null;
+            for (String possibleOwner : qualifiedNames) {
+                if (candidate.equals(possibleOwner)
+                        || !candidate.startsWith(possibleOwner + ".")) {
+                    continue;
+                }
+                if (selectedOwner == null || possibleOwner.length() > selectedOwner.length()) {
+                    selectedOwner = possibleOwner;
+                }
+            }
+            if (selectedOwner != null) {
+                result.put(candidate, selectedOwner);
+            }
+        }
+        return result;
     }
 
     private static boolean samePackage(String qualifiedName, String packageName) {

@@ -343,6 +343,51 @@ public class MainPhase29CompileCliTest {
     }
 
     @Test
+    public void runCompileFreshlyGeneratesCompilableSupportForNestedRecordComponent() throws Exception {
+        requireJdkCompiler();
+        assumeTrue(supportsJavaSpecificationVersion(17));
+        File sourceRoot = temporaryFolder.newFolder("nested-record-source-root");
+        File specRoot = temporaryFolder.newFolder("nested-record-spec-root");
+        File compileOutput = new File(temporaryFolder.getRoot(), "nested-record-fresh-classes");
+        writeSource(sourceRoot, "com.phase29.NestedStateRecord",
+                "public record NestedStateRecord(NestedStateRecord.State state) {\n" +
+                        "    public enum State { OPEN, CLOSED }\n" +
+                        "}\n");
+        writeSource(specRoot, "spec.com.phase29.NestedStateRecordSpec",
+                "import com.phase29.NestedStateRecord.State;\n\n" +
+                        "public class NestedStateRecordSpec extends NestedStateRecordSpecSupport {\n" +
+                        "    public void it_preserves_nested_state_type() {\n" +
+                        "        State state = State.OPEN;\n" +
+                        "        shouldBeARecord();\n" +
+                        "        beConstructedWith(state);\n" +
+                        "        state().shouldReturn(state);\n" +
+                        "    }\n" +
+                        "}\n");
+
+        CommandResult result = run(
+                "run",
+                "--spec-dir", specRoot.getAbsolutePath(),
+                "--source-dir", sourceRoot.getAbsolutePath(),
+                "--profile", "java17",
+                "--generate",
+                "--compile",
+                "--release", "17",
+                "--compile-output", compileOutput.getAbsolutePath()
+        );
+
+        assertEquals("stdout:\n" + result.out + "\nstderr:\n" + result.err, 0, result.exitCode);
+        assertEquals("", result.err);
+        assertContains(result.out, "Examples: 1 total, 1 passed, 0 failed, 0 broken, 0 skipped, 0 pending.");
+        File supportFile = sourceFileFor(new File("target/generated-sources/javaspec"),
+                "spec.com.phase29.NestedStateRecordSpecSupport");
+        String support = readFile(supportFile);
+        assertContains(support, "beConstructedWith((NestedStateRecord.State) null);");
+        assertContains(support, "Matchable<NestedStateRecord.State> state()");
+        assertFalse(support.contains("com.phase29.State"));
+        assertTrue(classFileFor(compileOutput, "spec.com.phase29.NestedStateRecordSpecSupport").isFile());
+    }
+
+    @Test
     public void runGenerateCompileDeduplicatesRepeatedProxySignaturesBeforeDomainRed() throws Exception {
         requireJdkCompiler();
         File sourceRoot = temporaryFolder.newFolder("duplicate-proxy-source-root");

@@ -62,6 +62,19 @@ public class JavaTypeRefTest {
     }
 
     @Test
+    public void nestedTypesUseTheirImportedOwnerInsteadOfAStandaloneSimpleName() {
+        JavaTypeImportPlan plan = JavaTypeImportPlan.forTypes(
+                "spec.com.example",
+                Arrays.asList(
+                        "com.example.NestedStateRecord",
+                        "com.example.NestedStateRecord.State"));
+
+        assertEquals(Arrays.asList("com.example.NestedStateRecord"), plan.imports());
+        assertEquals("NestedStateRecord.State",
+                plan.render("com.example.NestedStateRecord.State"));
+    }
+
+    @Test
     public void collidingSimpleNamesRemainFullyQualifiedAndAreNotImported() {
         JavaTypeImportPlan plan = JavaTypeImportPlan.forTypes(
                 "spec.com.example",
