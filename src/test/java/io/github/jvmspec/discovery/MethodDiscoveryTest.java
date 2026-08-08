@@ -102,6 +102,106 @@ public class MethodDiscoveryTest {
         assertTrue(!transform.isParameterTypeUnknown(0));
     }
 
+    @Test
+    public void ownerReturnTypeEvidenceDiscoversMissingOperation() {
+        List<MethodDescriptor> methods = discoverOwnerReturnMethods(
+                "  public void it_evolves_a_service() {\n"
+                        + "    var result = evolve(true);\n"
+                        + "    result.shouldHaveType(Service.class);\n"
+                        + "  }\n");
+
+        assertDescriptor(methods, "evolve", "com.example.Service",
+                Arrays.asList("boolean"), false);
+    }
+
+    @Test
+    public void exactTopLevelHelperSuppressesOwnerReturnOperation() {
+        List<MethodDescriptor> methods = discoverOwnerReturnMethods(
+                "  public void it_uses_a_spec_helper() {\n"
+                        + "    var result = evolve(true);\n"
+                        + "    result.shouldHaveType(Service.class);\n"
+                        + "  }\n"
+                        + "  private Service evolve(boolean enabled) { return null; }\n");
+
+        assertTrue(methods.isEmpty());
+    }
+
+    @Test
+    public void differentParameterHelperDoesNotSuppressOwnerReturnOperation() {
+        List<MethodDescriptor> methods = discoverOwnerReturnMethods(
+                "  public void it_evolves_a_service() {\n"
+                        + "    var result = evolve(true);\n"
+                        + "    result.shouldHaveType(Service.class);\n"
+                        + "  }\n"
+                        + "  private Service evolve(String enabled) { return null; }\n");
+
+        assertDescriptor(methods, "evolve", "com.example.Service",
+                Arrays.asList("boolean"), false);
+    }
+
+    @Test
+    public void orderedParameterMismatchDoesNotSuppressOwnerReturnOperation() {
+        List<MethodDescriptor> methods = discoverOwnerReturnMethods(
+                "  public void it_evolves_a_service(String label) {\n"
+                        + "    var result = evolve(label, true);\n"
+                        + "    result.shouldHaveType(Service.class);\n"
+                        + "  }\n"
+                        + "  private Service evolve(boolean enabled, String label) { return null; }\n");
+
+        assertDescriptor(methods, "evolve", "com.example.Service",
+                Arrays.asList("String", "boolean"), false);
+    }
+
+    @Test
+    public void nestedDeclarationDoesNotSuppressTopLevelOwnerReturnOperation() {
+        List<MethodDescriptor> methods = discoverOwnerReturnMethods(
+                "  public void it_evolves_a_service() {\n"
+                        + "    var result = evolve(true);\n"
+                        + "    result.shouldHaveType(Service.class);\n"
+                        + "  }\n"
+                        + "  static class NestedFixture {\n"
+                        + "    Service evolve(boolean enabled) { return null; }\n"
+                        + "  }\n");
+
+        assertDescriptor(methods, "evolve", "com.example.Service",
+                Arrays.asList("boolean"), false);
+    }
+
+    @Test
+    public void nestedTypeOnlyOwnerReturnEvidenceIsNotProductionBehavior() {
+        List<MethodDescriptor> methods = discoverOwnerReturnMethods(
+                "  public void it_has_no_top_level_operation() { }\n"
+                        + "  static class NestedFixture {\n"
+                        + "    void helper() {\n"
+                        + "      var result = evolve(true);\n"
+                        + "      result.shouldHaveType(Service.class);\n"
+                        + "    }\n"
+                        + "  }\n");
+
+        assertTrue(methods.isEmpty());
+    }
+
+    @Test
+    public void unknownOwnerReturnArgumentTypeIsNotDiscoveredSpeculatively() {
+        List<MethodDescriptor> methods = discoverOwnerReturnMethods(
+                "  public void it_does_not_guess_an_argument_type() {\n"
+                        + "    var result = evolve(unknownValue());\n"
+                        + "    result.shouldHaveType(Service.class);\n"
+                        + "  }\n");
+
+        assertTrue(methods.isEmpty());
+    }
+
+    private static List<MethodDescriptor> discoverOwnerReturnMethods(String members) {
+        String source = "package spec.com.example;\n"
+                + "import com.example.Service;\n"
+                + "public class ServiceSpec {\n"
+                + members
+                + "}\n";
+        return MethodDiscovery.discover(
+                source, "com.example", "com.example.Service", SpecCallScanner.scan(source));
+    }
+
     private static void assertDescriptor(
             List<MethodDescriptor> methods,
             String name,
