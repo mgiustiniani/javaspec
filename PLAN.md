@@ -24,11 +24,11 @@ Core constraints:
   and Java 25 core verification (884/884 each), `mvn clean verify -Psecurity` with zero reported
   vulnerabilities, `scripts/verify-all.sh`, `scripts/verify-release-dry-run.sh`, and the strict
   Java-language manifest with 50 covered rows and zero planned rows.
-- The active published Maven release candidate is `1.0.0-RC4`; post-RC4 constructor, generation,
-  discovery, nested-type, and internal-seam hardening remains on `develop` until RC5 is published.
-- RC5 preparation has resumed. The aligned version cut, CI qualification, remote-consumer replay,
-  tag, and publication remain pending; current `develop` builds must not be represented as the
-  immutable published RC4 artifact.
+- The release branch is aligned at `1.0.0-RC5`; `1.0.0-RC4` remains the last published Maven
+  candidate until the RC5 tag workflow succeeds.
+- RC5 preparation has resumed. Local aligned qualification, CI qualification, remote-consumer
+  replay, tag, and publication remain pending; the release-branch build must not be represented as
+  published before those gates complete.
 
 ## Priority definitions
 

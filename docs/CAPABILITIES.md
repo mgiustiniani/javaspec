@@ -11,9 +11,9 @@ This document records capabilities verified while preparing the 1.0 roadmap. It 
   and Java 25 core verification (884/884 each), the security profile with zero reported
   vulnerabilities, `scripts/verify-all.sh`, `scripts/verify-release-dry-run.sh`, and strict
   language-manifest mode with 50 covered rows and zero planned rows.
-- Active published release candidate: `1.0.0-RC4`.
-- Post-RC4 hardening on `develop` is prepared for the resumed RC5 cut but is not part of the
-  immutable RC4 artifacts.
+- Active aligned release-branch candidate: `1.0.0-RC5`; RC4 remains the latest published artifact
+  until the RC5 tag workflow succeeds.
+- Post-RC4 hardening is included in the RC5 candidate but is not part of the immutable RC4 artifacts.
 
 ## Artifacts and modules
 

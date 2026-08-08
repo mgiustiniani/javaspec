@@ -14,7 +14,7 @@ Add the adapter dependency to your project:
 <dependency>
     <groupId>io.github.jvmspec</groupId>
     <artifactId>javaspec-bytecode-doubles</artifactId>
-    <version>1.0.0-RC4</version>
+    <version>1.0.0-RC5</version>
     <scope>test</scope>
 </dependency>
 ```

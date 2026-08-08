@@ -151,14 +151,15 @@ moving dependency-heavy behavior into optional artifacts.
 - RC4 prevents constructor example literals from becoming record-component identifiers, maps exact
   accessor expectations to constructor positions, and refuses ambiguous/illegal/duplicate names
   before writes with `AMBIGUOUS_RECORD_COMPONENT_NAME` evidence.
-- Current post-RC4 `develop` hardening deduplicates constructors by canonical ordered erased types,
+- RC5 candidate hardening deduplicates constructors by canonical ordered erased types,
   recognizes package-private and generic production constructors, preserves distinct qualified
   overloads, centralizes authorized source synchronization, and introduces a Java-only internal
   frontend/backend seam. It restores type-evidenced owner-return discovery with exact specification-
   helper signature suppression and owning-type traversal, and fixes incident-0007 by refining
   implicit record constructors and accessors from production components while retaining owner-
   qualified nested types across generated constructor casts, proxies, state expectations, and throw
-  helpers. These changes are not part of the immutable RC4 artifacts and require RC5 qualification.
+  helpers. These changes are included in the aligned RC5 candidate and are not part of the immutable
+  RC4 artifacts; publication still requires local, CI, tag, and remote-consumer qualification.
 - RC3 adds a source-first Maven `generate` goal for `generate-test-sources`; it regenerates and
   registers base typed support before `testCompile`, including matcher-only specs, without tracked
   generated sources or consumer-specific execution-plugin workarounds.
