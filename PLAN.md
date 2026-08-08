@@ -17,17 +17,18 @@ Core constraints:
 ## Current HEAD and verification baseline
 
 - Original 1.0 assignment baseline: `e5527b634154cc3156d8e81e6697fab60acaecc3`.
-- Current restructuring baseline: `7fd7054ba02c0217d1ce3fe783ae5c95c5a5b00a`.
-- The original baseline is an ancestor of the current restructuring baseline.
-- Constructor hardening, deterministic generation reporting, and record/generic reconciliation are
-  present on `develop`; quality-report and restructuring work may be staged above this baseline.
-- Existing gates executed at the pre-normalization audited HEAD:
-  - `git diff --check`: PASS
-  - `scripts/check-version-alignment.sh`: PASS, baseline was the previous pre-1.0 snapshot
-  - `mvn -q verify`: PASS for core
-  - `scripts/verify-all.sh`: PASS including Gradle
-- The active published Maven release candidate is `1.0.0-RC4`; post-RC4 constructor and generation
-  hardening remains on `develop` until the next explicitly approved release candidate.
+- Constructor-safe restructuring baseline: `7fd7054ba02c0217d1ce3fe783ae5c95c5a5b00a`.
+- Current pre-RC5 qualification base: `34e692b`.
+- The original baseline and restructuring baseline are ancestors of the current qualification base.
+- The current candidate passed `git diff --check`, version/document/API/manual-page guards, Java 21
+  and Java 25 core verification (884/884 each), `mvn clean verify -Psecurity` with zero reported
+  vulnerabilities, `scripts/verify-all.sh`, `scripts/verify-release-dry-run.sh`, and the strict
+  Java-language manifest with 50 covered rows and zero planned rows.
+- The active published Maven release candidate is `1.0.0-RC4`; post-RC4 constructor, generation,
+  discovery, nested-type, and internal-seam hardening remains on `develop` until RC5 is published.
+- RC5 preparation has resumed. The aligned version cut, CI qualification, remote-consumer replay,
+  tag, and publication remain pending; current `develop` builds must not be represented as the
+  immutable published RC4 artifact.
 
 ## Priority definitions
 
@@ -389,7 +390,9 @@ E. **Release readiness** — versioning, workflows, artifact publication, releas
   - all core, adapter, language-manifest, example, and release dry-run gates pass.
 - Decision: [`ADR 0026`](docs/adr/0026-internal-language-seams-before-1.0.md).
 - Completion commits: `28ba661` through `e62cb32`; reusable CLI/source/report/hash/authorization
-  fixture extraction continued in `c6c13fd` without changing production behavior.
+  fixture extraction continued in `c6c13fd` without changing production behavior. Post-M12 RC5
+  stabilization commits `008d254`, `662f6f7`, and `114c832` harden owner-return discovery and nested
+  record-component support without adding supported public API.
 
 ## Deferred or rejected for 1.0
 

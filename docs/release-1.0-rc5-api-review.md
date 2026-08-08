@@ -1,8 +1,13 @@
 # JavaSpec 1.0.0-RC5 API review
 
-Status: prepared on `develop` after M12; version cut pending.
+Status: pre-cut review refreshed after post-RC4 issue collection; the aligned RC5 version cut is the
+next release step.
 
-Reviewed HEAD: `2eb26a7` (`docs: complete constructor-safe restructuring milestone`).
+Original reviewed implementation HEAD: `2eb26a7`
+(`docs: complete constructor-safe restructuring milestone`).
+Current pre-RC5 qualification base: `34e692b`. Owner-return discovery commit `008d254` and nested
+record-component commit `114c832` change private implementation details and add no public/protected
+Java signature.
 Comparison baseline: `docs/history/api-baseline-1.0.0.md`, generated for `1.0.0-RC1`.
 
 ## Inventory procedure
@@ -15,8 +20,10 @@ diff -u docs/history/api-baseline-1.0.0.md /tmp/javaspec-current-api.md
 ```
 
 The comparison reports 172 added public/protected declaration lines and no removed public/protected
-declaration lines. Public Java visibility is interpreted through `docs/api-surface-1.0.md`; additions
-inside an `INTERNAL` package are inventory entries, not supported API commitments.
+declaration lines. The inventory was regenerated again from the local `34e692b` candidate after all
+post-RC4 fixes and still reported no declaration removal. Public Java visibility is interpreted
+through `docs/api-surface-1.0.md`; additions inside an `INTERNAL` package are inventory entries, not
+supported API commitments.
 
 ## Classification of additions
 

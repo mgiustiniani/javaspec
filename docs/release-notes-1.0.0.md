@@ -119,6 +119,9 @@ moving dependency-heavy behavior into optional artifacts.
 
 ## Verification and release notes
 
+- Initial section 1 CLI manual pages are available under `docs/man/` in English, Italian, Spanish,
+  German, French, and Simplified Chinese. `scripts/check-man-pages.sh` validates UTF-8 roff rendering
+  and shared command-contract tokens.
 - Version alignment checks cover core, Maven plugin, Gradle plugin, JUnit Platform engine,
   `javaspec-bytecode-doubles`, and `javaspec-bytecode-agent`.
 - `scripts/verify-examples.sh` verifies Maven, Prophecy, bytecode-doubles, bytecode-agent,
@@ -151,8 +154,11 @@ moving dependency-heavy behavior into optional artifacts.
 - Current post-RC4 `develop` hardening deduplicates constructors by canonical ordered erased types,
   recognizes package-private and generic production constructors, preserves distinct qualified
   overloads, centralizes authorized source synchronization, and introduces a Java-only internal
-  frontend/backend seam. These changes are not part of the immutable RC4 artifacts and require a
-  later explicitly approved release candidate.
+  frontend/backend seam. It restores type-evidenced owner-return discovery with exact specification-
+  helper signature suppression and owning-type traversal, and fixes incident-0007 by refining
+  implicit record constructors and accessors from production components while retaining owner-
+  qualified nested types across generated constructor casts, proxies, state expectations, and throw
+  helpers. These changes are not part of the immutable RC4 artifacts and require RC5 qualification.
 - RC3 adds a source-first Maven `generate` goal for `generate-test-sources`; it regenerates and
   registers base typed support before `testCompile`, including matcher-only specs, without tracked
   generated sources or consumer-specific execution-plugin workarounds.

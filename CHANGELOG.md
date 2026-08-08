@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Restored type-evidenced owner-return operation discovery without treating framework lifecycle calls
+  or specification helpers as production behavior. Exact helper signatures suppress discovery,
+  overload and ordered-parameter mismatches do not, unknown argument types fail closed, and evidence
+  inside nested types is ignored.
+- Fixed incident-0007 nested record-component support generation: implicit record constructors and
+  accessors now refine from production component fields, and generated constructor casts, typed
+  proxies, state expectations, and throw helpers retain owner-qualified nested types. Fresh CLI and
+  Maven regeneration fixtures compile and execute without a package-level enum workaround.
+- Added initial section 1 CLI manual pages in English, Italian, Spanish, German, French, and
+  Simplified Chinese, plus rendering and command-contract documentation guards; aligned `--help`
+  with `list-extensions`, `prophesize`, `--resolve-pom`, and `--release`.
 - Reconciled multi-component record constructor slots with stronger accessor evidence before stub
   planning, so local example names no longer define the record API when accessors differ; typed
   generic factory expectations can identify the component even when the expected value expression

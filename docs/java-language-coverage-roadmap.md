@@ -213,14 +213,19 @@ inference now covered, strict manifest mode has no remaining `PLANNED` rows.
 **Priority:** final stable decision gate.
 
 Status: IN PROGRESS — clean `magrathea-pki` RC1 dogfooding exposed missing matcher-only support
-regeneration. RC2 fixed the CLI path, but the consumer's Maven `run` goal remained bound after
-`testCompile`, so `mvn clean verify` could not regenerate support in time. RC3 adds a dedicated
-source-first `generate` goal for `generate-test-sources`, automatic generated-test-root registration,
-and mixed record/enriched-enum compile/run/idempotence coverage. The gate closes only after the
-published RC3 passes both clean CLI and clean Maven consumer replay. A subsequent Magrathea boolean
-record slice exposed RC3 treating the literal `false` as an identifier. RC4 separates example values
-from naming evidence, correlates exact accessor expectations to constructor positions, validates
-identifier legality/uniqueness, and fails closed before writes when correspondence is ambiguous.
+regeneration. RC2 fixed the CLI path, and RC3 added the source-first Maven `generate` goal and then
+passed clean remote-artifact CLI and Maven lifecycle replay. The next boolean-record slice exposed
+RC3 treating the literal `false` as an identifier. Published RC4 separates example values from naming
+evidence, correlates exact accessor expectations to constructor positions, validates identifier
+legality/uniqueness, and fails closed before writes when correspondence is ambiguous. The gate remains
+open until a coherent real-project milestone replays the RC4 correction and the subsequent approved
+release candidate from remote repositories in a clean Java 21 environment. Incident-0007 then exposed
+an additional post-RC4 defect: regenerated constructor support collapsed a record's nested enum
+component to a nonexistent package-level type. Commit `114c832` derives implicit canonical
+constructor and accessor signatures from record components and keeps owner-qualified nested types
+consistent across constructor casts, typed proxies, state expectations, throw support, fresh CLI
+compilation, and Maven source-first regeneration. The correction still requires a new published
+fingerprint and clean consumer replay before JLC-8 can close.
 
 Use a real Java 21 project, preferably the existing `magrathea-pki` domain work, against the published
 RC from remote repositories rather than a local javaspec checkout. Complete one coherent behavior

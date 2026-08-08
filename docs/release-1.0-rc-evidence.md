@@ -141,10 +141,11 @@ completed successfully:
   adapter for the javaspec runner." The plugin marker remains externally unavailable while
   first-publication approval completes.
 
-Remaining RC evidence:
+Remaining stable-release evidence:
 
-- Gradle Plugin Portal page and RC1 marker become publicly resolvable after external review.
-- External consumers validate the corrected published RC3 from remote repositories rather than local staging.
+- The Gradle Plugin Portal page and plugin marker become publicly resolvable after external review.
+- JLC-8 completes one coherent Java 21 real-project milestone from a clean environment against the
+  published RC4 correction and the next approved remote release candidate.
 
 ## 2026-07-11 — JLC-8 remote-RC dogfooding blocker and RC2 preparation
 
@@ -183,8 +184,8 @@ verify/run` from `mvn clean verify` without build-helper or tracked generated su
 
 Local RC3 CLI replay against `magrathea-pki` generated both support classes from an empty directory,
 compiled four source files, passed all four examples with zero pending, emitted no stubs, and was
-hash-idempotent. Final JLC-8 evidence still requires the immutable published RC3 and a clean isolated
-Maven repository/container replay.
+hash-idempotent. This result established the acceptance protocol that the following published-RC3
+remote replay then executed from an isolated Maven repository.
 
 ## 2026-07-11 — RC3 remote replay and RC4 boolean-record correction
 
@@ -201,3 +202,108 @@ unique, stable, and mapped once. Missing or conflicting evidence produces a deta
 `AMBIGUOUS_RECORD_COMPONENT_NAME` refusal before production or support writes. Focused RED/GREEN
 coverage includes true/false, multiple booleans, integer/string/enum/negative/null-like literals,
 missing evidence, keywords, existing record-prefix preservation, and idempotent skeleton rendering.
+
+## 2026-07-18 — synchronized develop documentation audit
+
+Audit base: `3790931` (`build: isolate sequential Gradle verification`). RC5 release work remains
+intentionally paused while additional issues are collected; no RC5 version, tag, or publication is
+claimed by this audit.
+
+Local commands passed:
+
+```sh
+git diff --check
+scripts/check-version-alignment.sh
+scripts/check-current-docs.sh
+scripts/check-api-surface.sh
+mvn -q verify
+mvn -q -Djavaspec.language.matrix.strict=true -Dtest=JavaLanguageCoverageManifestTest test
+scripts/verify-all.sh
+scripts/verify-release-dry-run.sh
+```
+
+Evidence:
+
+- The strict language manifest reported 50 covered rows and zero planned rows.
+- Surefire reports contained 967 tests with zero failures, errors, or skips; Gradle plugin tests and
+  consumer examples also passed through aggregate verification.
+- The RC1-to-current API inventory still contained no removed public/protected declaration.
+- Maven Central resolved the published `1.0.0-RC4` core POM, while Gradle Plugin Portal marker POMs
+  for RC1 through RC4 remained externally unavailable. Portal approval therefore remains an
+  external distribution gate.
+- The local checkout retained version alignment at `1.0.0-RC4`, but its post-RC4 implementation is
+  development input for RC5 and must not be treated as byte-identical to the immutable published RC4.
+
+## 2026-07-18 — incident-0007 nested record component correction
+
+Magrathea evidence commit `6f8e361` records incident-0007: Maven source-first regeneration and a
+fresh JavaSpec compile rejected generated support that cast
+`MagnonceAuthorityStateBasename.State` to nonexistent package-level
+`com.magrathea.trustengine.kms.encryption.State`. The original acceptance RED remains at `c3c6974`;
+runner removal `dbe308d` keeps the consumer reactor green, and `REQ-KMS-ENCRYPTION-005` remains
+not implemented. No package-level domain enum or generated-support edit was accepted.
+
+The JavaSpec correction on `develop`:
+
+- derives implicit record canonical constructor and accessor signatures from javac record component
+  fields when production source is the truth;
+- renders a referenced nested type through its imported owner, for example
+  `NestedStateRecord.State`, rather than importing or inventing a package-level `State`;
+- uses one import plan for constructor defaults, typed proxies, generated state expectations, and
+  throw-helper parameters;
+- adds focused RED/GREEN tests for production refinement and nested import rendering;
+- adds an isolated fresh-output CLI fixture and a Maven `generate-test-sources` fixture that both
+  regenerate, compile, execute, and repeat idempotently;
+- passes core verify, the strict 50-row language manifest, aggregate adapter/example verification,
+  and the release dry-run; the resulting Surefire reports contain 972 tests with zero failures,
+  errors, or skips.
+
+This correction was committed as `114c832` and remains local release-candidate input only. The
+blocked consumer slice must remain closed until a new immutable JavaSpec artifact and launcher
+fingerprint are available, after which a new sealed RED-to-GREEN trajectory can start from the
+approved clean consumer base.
+
+## 2026-08-08 — post-issue pre-RC5 qualification
+
+Qualification base: `34e692b` (`docs(cli): add multilingual manual pages`). The approved post-RC4
+stabilization sequence now includes:
+
+- `008d254`, which restores type-evidenced owner-return operation discovery while excluding exact
+  top-level specification helpers, unknown argument types, and evidence inside nested types;
+- `662f6f7`, which adds direct upstream unit coverage for the owner-return discovery boundary;
+- `114c832`, which fixes incident-0007 nested record-component refinement and generated type
+  rendering; and
+- `34e692b`, which aligns CLI help and adds guarded section 1 manual pages in six languages.
+
+Local commands passed sequentially:
+
+```sh
+git diff --check
+scripts/check-version-alignment.sh
+scripts/check-current-docs.sh
+scripts/check-man-pages.sh
+scripts/check-api-surface.sh
+mvn -q verify
+JAVA_HOME=/usr/lib/jvm/java-21-openjdk PATH=/usr/lib/jvm/java-21-openjdk/bin:$PATH mvn -q verify
+mvn -q -Djavaspec.language.matrix.strict=true -Dtest=JavaLanguageCoverageManifestTest test
+scripts/verify-all.sh
+scripts/verify-release-dry-run.sh
+mvn -B -ntp clean verify -Psecurity
+scripts/generate-api-baseline.sh /tmp/javaspec-pre-rc5-api-baseline.md
+```
+
+Evidence:
+
+- Core verification passed 884/884 on both Java 21 and Java 25.
+- Aggregate Surefire reports contained 979 tests with zero failures, errors, or skips.
+- The strict language manifest retained 50 covered rows and zero planned rows.
+- The Java 8 bytecode guard inspected 323 core classfiles with maximum major version 52.
+- Aggregate adapter/example verification and the RC4-named release dry-run passed.
+- OWASP Dependency-Check analyzed two dependencies and reported zero vulnerabilities; its OSS Index
+  analyzer remained disabled because that service now requires credentials.
+- The RC1-to-current API inventory retained 172 added public/protected declaration lines and zero
+  removed declaration lines; additions remain classified through `docs/api-surface-1.0.md`.
+
+This is pre-cut evidence only. The repository remains aligned at `1.0.0-RC4`; it does not claim an
+RC5 version, CI run, tag, remote artifact, or publication. Those identities must be generated from
+the clean aligned RC5 commit.

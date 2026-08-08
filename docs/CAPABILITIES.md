@@ -4,15 +4,16 @@ This document records capabilities verified while preparing the 1.0 roadmap. It 
 
 ## Snapshot
 
-- Audited HEAD: `a71297f1bb234b5faa70eca22abe3a5a3b3d6675`
-- Branch: `develop`
-- Baseline supplied for the assignment: `e5527b634154cc3156d8e81e6697fab60acaecc3` (ancestor of audited HEAD)
-- Existing gate results at audited HEAD before release-line normalization:
-  - `git diff --check`: PASS
-  - `scripts/check-version-alignment.sh`: PASS (previous pre-1.0 snapshot aligned)
-  - `mvn -q verify`: PASS for core
-  - `scripts/verify-all.sh`: PASS including Gradle
-- Active release candidate line: `1.0.0-RC4`.
+- Original capability-audit HEAD: `a71297f1bb234b5faa70eca22abe3a5a3b3d6675`.
+- Current pre-RC5 qualification base: `34e692b`.
+- Baseline supplied for the assignment: `e5527b634154cc3156d8e81e6697fab60acaecc3` (ancestor of both audit points).
+- Current local evidence passes `git diff --check`, version/document/API/manual-page guards, Java 21
+  and Java 25 core verification (884/884 each), the security profile with zero reported
+  vulnerabilities, `scripts/verify-all.sh`, `scripts/verify-release-dry-run.sh`, and strict
+  language-manifest mode with 50 covered rows and zero planned rows.
+- Active published release candidate: `1.0.0-RC4`.
+- Post-RC4 hardening on `develop` is prepared for the resumed RC5 cut but is not part of the
+  immutable RC4 artifacts.
 
 ## Artifacts and modules
 
@@ -36,7 +37,9 @@ This document records capabilities verified while preparing the 1.0 roadmap. It 
 - Collaborator parameter injection for supported `let`, example, and `letGo` parameters: ordinary interfaces and generated typed `*Prophecy` wrappers.
 - PHPSpec-style example data with `row(...)`, `examples(...)`, `Example1`/`Example2`, row recording, JSON/JUnit XML/JUnit Platform row diagnostics.
 - CLI discovery, run, generation, dry-run, reports, compile, profile enforcement, local POM dependency resolution, class/example filters, generated support, and generated Prophecy wrappers.
-- Java source generation/update support for classes, interfaces, records, sealed types, annotations, constructors, methods, support classes, and Prophecy wrappers.
+- Java source generation/update support for classes, interfaces, records, sealed types, annotations,
+  constructors, methods, support classes, and Prophecy wrappers; implicit record constructors and
+  accessors retain structured owner-qualified nested component types during support regeneration.
 - Record hardening: existing-record kind preservation, record header evolution, support default construction, compact-constructor preservation, explicit record construction prefix padding at runtime.
 - Optional Maven, Gradle, JUnit Platform, bytecode doubles, and bytecode agent integrations.
 
