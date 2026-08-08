@@ -74,6 +74,11 @@ required_current_docs=(
   docs/troubleshooting.md
   docs/compatibility-policy-1.0.md
   docs/release-1.0-rc-evidence.md
+  docs/README.md
+  docs/usermanual/README.md
+  docs/agent/javaspec-guided-development-assistant.md
+  docs/adr/0027-standalone-bytecode-agent-adapter.md
+  docs/arc42/README.md
   docs/man/README.md
 )
 for required_doc in "${required_current_docs[@]}"; do
@@ -94,6 +99,11 @@ versioned_user_docs=(
   README.md
   docs/CAPABILITIES.md
   docs/usermanual/Home.md
+  docs/usermanual/it/Home.md
+  docs/usermanual/es/Home.md
+  docs/usermanual/de/Home.md
+  docs/usermanual/fr/Home.md
+  docs/usermanual/ch/Home.md
   docs/migration-guide-1.0.md
   docs/bytecode-doubles.md
   javaspec-gradle-plugin/README.md
@@ -178,11 +188,48 @@ else
   pass "no obsolete org.javaspec references in current docs/config"
 fi
 
+stale_portal_claims="$(grep -R -n -E \
+  --exclude='check-current-docs.sh' --exclude-dir=target --exclude-dir=build --exclude-dir=history \
+  'published on the Gradle Plugin Portal|Gradle plugin is published on the Gradle' \
+  README.md CHANGELOG.md docs examples javaspec-gradle-plugin javaspec-junit-platform-engine 2>/dev/null || true)"
+if [ -n "$stale_portal_claims" ]; then
+  printf '%s\n' "$stale_portal_claims"
+  fail "documentation claims Gradle Portal publication before marker verification"
+else
+  pass "documentation distinguishes Gradle submission from Portal availability"
+fi
+
+if scripts/check-doc-links.sh; then
+  pass "local documentation links resolve"
+else
+  fail "local documentation link guard failed"
+fi
+
+if scripts/check-usermanuals.sh; then
+  pass "multilingual user-manual guard passed"
+else
+  fail "multilingual user-manual guard failed"
+fi
+
 if scripts/check-man-pages.sh; then
   pass "multilingual manual-page guard passed"
 else
   fail "multilingual manual-page guard failed"
 fi
+
+agent_doc=docs/agent/javaspec-guided-development-assistant.md
+for agent_token in \
+  'name: javaspec-spec-driven' \
+  'Prompt version: `javaspec-example-spec-driven-v2`' \
+  'bin/javaspec --launcher-fingerprint' \
+  'FRAMEWORK_INCOHERENCE' \
+  'semantic'; do
+  if grep -Fq -- "$agent_token" "$agent_doc"; then
+    pass "example agent contains $agent_token"
+  else
+    fail "example agent is missing $agent_token"
+  fi
+done
 
 if [ -f docs/phpspec-compatibility-matrix.md ]; then
   unspecified_hits="$(grep -n -E '^\|.*\| UNSPECIFIED \|' docs/phpspec-compatibility-matrix.md 2>/dev/null || true)"

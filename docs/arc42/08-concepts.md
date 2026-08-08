@@ -16,7 +16,8 @@ The core runtime depends only on the JDK. This affects every feature:
 - Core doubles use JDK dynamic proxies instead of bytecode libraries, including Phase 28 argument
   matchers, throwing stubs, and answer callbacks inside the same interface-only boundary. Phase 37
   bytecode concrete-class doubles live in the standalone optional `javaspec-bytecode-doubles`
-  adapter and do not change the core dependency tree.
+  adapter. Final/static/construction instrumentation lives in the separate
+  `javaspec-bytecode-agent` adapter; neither changes the core dependency tree.
 - JSON reports are written by an internal UTF-8 writer instead of a JSON library, including stable
   id/source fields added in Phase 18, pending counts/statuses added in Phase 22, and optional Phase
   35 run-level metadata/properties while keeping schemaVersion 1 additive compatibility; Phase 24
@@ -225,8 +226,9 @@ over hidden dependencies:
 - Unstubbed methods return Java defaults.
 
 Concrete class, final class, static method, constructor, primitive, array, annotation, enum, and
-bytecode-backed doubles are outside the core runtime. Optional non-final concrete-class doubles
-require the standalone ByteBuddy adapter; final/static/constructor mocking remains unsupported.
+bytecode-backed doubles are outside the core runtime. Optional non-final concrete-class doubles use
+the standalone subclass adapter; final/static/construction behavior uses the separate
+instrumentation adapter.
 Unstubbed Java default interface methods are invoked by the proxy handler and still recorded for verification; explicit stubs take precedence.
 
 ## 8.11 Optional Bytecode Doubles Concept
@@ -241,6 +243,19 @@ depends on ByteBuddy 1.14.18. It supports non-final concrete classes by generati
 reusing core `DoubleControl` stubbing, call-history, and verification behavior. It rejects final
 classes, enums, arrays, annotations, primitives, and interfaces, and it does not mock static methods
 or constructors.
+
+### 8.11.1 Optional Bytecode-Agent Concept
+
+`javaspec-bytecode-agent/` is a separate standalone adapter carrying ByteBuddy and ByteBuddy Agent.
+It registers `AgentConcreteDoubleProvider` for instrumentable concrete instances and exposes scoped
+`StaticDouble` and `ConstructionDouble` handles through `BytecodeAgentDoubles`. Instrumentation is
+obtained by permitted self-attach or explicit `-javaagent`. Closing a scope unregisters its handler;
+transformed classes may remain loaded but unregistered calls return to original behavior.
+
+The adapter rejects primitive, array, annotation, enum, interface, and abstract targets. Final
+instance doubles require a no-argument constructor. Private, abstract, and native methods remain
+outside interception. These restrictions and process-global instrumentation risks are accepted only
+for explicit test-scoped adoption under ADR 0027.
 
 ## 8.12 Explicit Classpath and No-JUnit Integration Boundary
 
@@ -292,7 +307,7 @@ allowing standalone plugin verification after the current core has been installe
 
 The plugin boundary principles are:
 
-- The plugin packages `io.github.jvmspec:javaspec-maven-plugin:1.0.0-RC1` as `maven-plugin` with
+- The plugin packages `io.github.jvmspec:javaspec-maven-plugin:1.0.0-RC5` as `maven-plugin` with
   Java source/target `1.8` and goal prefix `javaspec`.
 - Maven API and plugin annotations are `provided`; JUnit is only a plugin test dependency.
 - The only plugin runtime dependency beyond the plugin itself is compile-scope core
@@ -316,10 +331,10 @@ while allowing standalone plugin verification after the current core has been in
 
 The plugin boundary principles are:
 
-- The plugin uses `java-gradle-plugin`, group `io.github.jvmspec`, version `1.0.0-RC1`, Java
+- The plugin uses `java-gradle-plugin`, group `io.github.jvmspec`, version `1.0.0-RC5`, Java
   source/target `1.8`, plugin id `io.github.jvmspec`, and implementation class
   `io.github.jvmspec.gradle.JavaspecPlugin`.
-- The plugin depends on core `io.github.jvmspec:javaspec:1.0.0-RC1`; verified runtimeClasspath
+- The plugin depends on core `io.github.jvmspec:javaspec:1.0.0-RC5`; verified runtimeClasspath
   contains only that core dependency.
 - JUnit and TestKit are plugin test dependencies only; projects under test do not need JUnit.
 - `javaspecRun` uses the configured Gradle classpath and defaults to the Java plugin `test` source
@@ -341,7 +356,7 @@ build/audit while allowing standalone engine verification after the current core
 
 The engine boundary principles are:
 
-- The engine packages `io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-RC1` as a Java
+- The engine packages `io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-RC5` as a Java
   8-compatible `jar` using JUnit Platform `1.10.2`, not JUnit Platform 6/JUnit 6.
 - `JavaspecTestEngine` is registered by ServiceLoader with engine id `javaspec`.
 - Runtime dependencies are isolated to the engine artifact: core `io.github.jvmspec:javaspec`,
@@ -400,16 +415,15 @@ concrete-class doubles in a standalone adapter:
 - No publishing, signing, secrets, mandatory Maven multi-module conversion, portal
   publication/credentials, final release version/tag, or final publish approval is part of the
   implemented increments. Bootstrap does not add script engines, package scanning, dependency
-  resolution, or runtime dependencies. Phase 37 does not add final/static/constructor mocking or
-  ByteBuddy to core. Opt-in compilation does not add config keys, JUnit Platform compilation,
+  resolution, or runtime dependencies. Bytecode subclass and agent capabilities keep ByteBuddy and
+  Instrumentation outside core. Opt-in compilation does not add config keys, JUnit Platform compilation,
   dependency resolution, incremental caches, report schema changes, forked `javac`,
   source-level/release management, or runtime dependencies. After Phase 20/21/22 were pushed, remote
   GitHub Actions success for HEAD `5088e96` on `develop` is user-/maintainer-confirmed; no run IDs,
   URLs, durations, or logs were independently queried.
-- Artifacts are published on Maven Central under `io.github.jvmspec`. The Gradle plugin is
-  published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. GPG signing, Central
-  Portal publication, Gradle Plugin Portal publication/credentials, and final release version/tag
-  resolved.
+- RC5 artifacts are published and signature-verified on Maven Central under `io.github.jvmspec`.
+  Gradle plugin id `io.github.jvmspec` was submitted with valid credentials, but first-publication
+  approval and marker availability remain pending; stable version/tag work is not complete.
 
 ## 8.17 Extension Boundary
 

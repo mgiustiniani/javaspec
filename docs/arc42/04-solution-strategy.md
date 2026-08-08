@@ -42,7 +42,8 @@ source updates, config-driven extension activation and formatter controls, Servi
 hook discovery, programmatic/Maven/Gradle opt-in compilation, additive report metadata/properties,
 and deeper source/generation-scoped profile enforcement. Phase 37 adds standalone optional
 ByteBuddy-backed non-final concrete-class doubles outside the root reactor and outside the core
-dependency tree.
+dependency tree. ADR 0027 adds a second standalone ByteBuddy Agent adapter for explicitly scoped
+final-class, static-method, and construction-aware doubles without changing core.
 
 ## 4.2 Key Architectural Decisions
 
@@ -61,7 +62,7 @@ dependency tree.
   optional JUnit Platform engine boundary, and stable id/source metadata polish**: [ADR 0011](../adr/0011-optional-junit-adapter-and-canonical-javaspec-runner.md)
 - **Non-disruptive aggregate release/CI verification instead of mandatory Maven multi-module
   conversion**: [ADR 0012](../adr/0012-non-disruptive-aggregate-release-ci-verification.md)
-- **Release-readiness scaffolding with resolved metadata (publication completed)**: [ADR 0013](../adr/0013-release-readiness-scaffolding-with-publication-blockers.md)
+- **Release-readiness scaffolding and publication gates**: [ADR 0013](../adr/0013-release-readiness-scaffolding-with-publication-blockers.md)
 - **Standalone adoption assets and default examples verification**: [ADR 0014](../adr/0014-standalone-adoption-assets-and-default-examples-verification.md)
 - **Explicit skipped and pending semantics**: [ADR 0015](../adr/0015-explicit-skipped-and-pending-semantics.md)
 - **Classpath execution availability diagnostics without integrated compilation**: [ADR 0016](../adr/0016-classpath-execution-availability-diagnostics.md)
@@ -73,6 +74,7 @@ dependency tree.
 - **Opt-in CLI source/spec compilation**: [ADR 0022](../adr/0022-opt-in-cli-source-spec-compilation.md)
 - **Known-limitations resolution (completed)**: [ADR 0023](../adr/0023-course-correction-resolve-deferred-known-limitations.md)
 - **Standalone optional bytecode doubles adapter**: [ADR 0024](../adr/0024-standalone-optional-bytecode-doubles-adapter.md)
+- **Standalone bytecode-agent adapter**: [ADR 0027](../adr/0027-standalone-bytecode-agent-adapter.md)
 
 ## 4.3 Core Strategy
 
@@ -242,14 +244,17 @@ Implemented building blocks:
   `ConcreteDoubleProvider`, supports non-final concrete classes, delegates to core `DoubleControl`
   semantics, and rejects final/static/constructor/enum/array/annotation/primitive/interface cases as
   documented.
+- **Optional bytecode-agent adapter**: `javaspec-bytecode-agent/` is a standalone instrumentation
+  adapter outside the root reactor. It carries ByteBuddy plus ByteBuddy Agent, registers an
+  agent-backed `ConcreteDoubleProvider`, supports final instance doubles, and exposes scoped static
+  and construction handles. Dynamic self-attach or explicit `-javaagent` supplies Instrumentation.
 - **Release/CI verification and adoption assets**: `scripts/verify-all.sh` and
   `.github/workflows/ci.yml` aggregate core and standalone-adapter verification without changing the
   root Maven reactor or adding publishing/signing behavior. Phase 20 extends this boundary with
   `scripts/check-version-alignment.sh`, `CHANGELOG.md`, `RELEASING.md`, the confirmed MIT `LICENSE`,
   MIT license and maintainer metadata, Maven `release-artifacts` source/javadoc packaging checks,
-  Gradle source/javadoc jar readiness, and safe URL/SCM/issues metadata while keeping public
-  publication completed; artifacts are published on Maven Central under `io.github.jvmspec`,
-  and final approval decisions are complete. Phase 21 extends adoption assets with standalone
+  Gradle source/javadoc jar readiness, and safe URL/SCM/issues metadata. RC5 Maven artifacts are
+  published under `io.github.jvmspec`; Gradle first-publication approval remains external. Phase 21 extends adoption assets with standalone
   examples under `examples/`, `scripts/verify-examples.sh`, report schema docs, and golden reports;
   examples run by default in `scripts/verify-all.sh` with explicit opt-outs.
 - **Explicit skipped/pending semantics**: `io.github.jvmspec.api.Skip`, `Pending`,
@@ -285,20 +290,18 @@ Later building blocks remain planned:
 - Keep configuration syntax restricted and line-based unless a future
   zero-runtime-dependency-compatible design supersedes it.
 - Keep core doubles interface-only and JDK-proxy based; allow matcher, throwing, and answer behavior
-  inside the zero-dependency core, and keep ByteBuddy-based non-final concrete doubles isolated in
-  the standalone optional adapter. Require a future ADR before adding final/static/constructor
-  doubles or other external-tooling behavior.
-- Treat broader compiler-grade profile checks, optional final/static/constructor doubles, dependency
-  resolution, incremental compilation caches, source-level/release management, automatic classpath
-  repair, plugin lookup beyond ServiceLoader, script/package-scanning bootstrap activation, actual
-  publishing/signing automation, and any Maven multi-module conversion as backlog
+  inside the zero-dependency core; keep subclass-based non-final doubles isolated in
+  `javaspec-bytecode-doubles` and instrumentation-based final/static/construction doubles isolated in
+  `javaspec-bytecode-agent` under ADR 0027.
+- Treat broader compiler-grade profile checks, richer dependency resolution, automatic classpath
+  repair, plugin lookup beyond ServiceLoader, script/package-scanning bootstrap activation, and any
+  Maven multi-module conversion as backlog
   features requiring explicit design before implementation.
 - Keep root `mvn verify` scoped to the core artifact unless a future ADR changes the release/build
   boundary; use `scripts/verify-all.sh` or equivalent explicit commands for aggregate standalone
   adapter and examples verification.
-- GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final
-  release version/tag, and final publish approval are resolved; artifacts are published;
-  preserve the confirmed MIT license and maintainer metadata.
+- Preserve confirmed MIT and maintainer metadata, verified Maven signing/publication, and explicit
+  separation between successful Gradle submission and first-publication marker availability.
 - Keep Phase 21 examples and report schema/golden docs standalone until public artifacts are
   explicitly available; examples remain adoption assets even though remote GitHub Actions success
   for HEAD `5088e96` on `develop` is now user-/maintainer-confirmed after the Phase 20/21/22 push.

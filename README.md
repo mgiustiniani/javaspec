@@ -8,6 +8,8 @@ javaspec is a spec-first BDD tool for Java, inspired by PHPSpec. You write subje
 
 The core is Java 8-compatible and has no third-party runtime dependencies. It can be used directly from the CLI, embedded through a no-`System.exit` launcher, or adopted through optional Maven, Gradle, and JUnit Platform adapters.
 
+Documentation is available in [English, Italian, Spanish, German, French, and Simplified Chinese](docs/usermanual/README.md), with matching [section 1 manual pages](docs/man/README.md).
+
 Artifacts use the Maven Central group `io.github.jvmspec`. The active `1.0.0-RC5` release candidate
 is available from Maven Central:
 
@@ -24,8 +26,10 @@ For snapshots, use the Central Portal Snapshots repository.
 
 The Gradle plugin id is `io.github.jvmspec`. RC5 was submitted successfully by release workflow
 [31262851841](https://github.com/mgiustiniani/javaspec/actions/runs/31262851841) and is awaiting
-first-publication approval; use the included build until `1.0.0-RC5` appears on the Gradle Plugin
-Portal.
+first-publication approval; its marker currently returns HTTP 404, so use the included build until
+`1.0.0-RC5` appears on the Gradle Plugin Portal. Post-RC5 develop commit `67db10c` resolves the one
+observed Javadoc reproducibility mismatch and reproduces all 18 next-candidate archives across clean
+worktrees.
 
 ## Highlights
 
@@ -51,7 +55,8 @@ mvn -q -DskipTests install
 # Add bin/ to your PATH for this session
 export PATH="$PWD/bin:$PATH"
 
-# Or invoke directly
+# Or invoke directly; record the selected JAR before reproducible work
+./bin/javaspec --launcher-fingerprint
 ./bin/javaspec --help
 ```
 
@@ -216,17 +221,19 @@ Exit codes are stable: `0` for success, `1` for failed/broken examples or declin
 
 ### Manual pages
 
-Initial section 1 manual pages are maintained under [`docs/man/`](docs/man/README.md) in English,
-Italian, Spanish, German, French, and Simplified Chinese. Preview one without installing it:
+Maintained section 1 manual pages and concise [localized user manuals](docs/usermanual/README.md) are
+available in English, Italian, Spanish, German, French, and Simplified Chinese. Preview a man page
+without installing it:
 
 ```sh
 man -l docs/man/en/man1/javaspec.1
 man -l docs/man/it/man1/javaspec.1
 ```
 
-Validate every translation and its shared command-contract tokens with:
+Validate every user-manual and man-page translation with:
 
 ```sh
+scripts/check-usermanuals.sh
 scripts/check-man-pages.sh
 ```
 
@@ -875,7 +882,8 @@ javaspec adapter settings opt into javaspec compilation.
 - Maven artifacts use group `io.github.jvmspec`; `1.0.0-RC5` is available from Maven Central. The
   Gradle Plugin Portal id is `io.github.jvmspec`; RC5 submission succeeded in workflow run
   [31262851841](https://github.com/mgiustiniani/javaspec/actions/runs/31262851841) and is awaiting
-  first-publication approval.
+  first-publication approval; the marker currently returns HTTP 404. The post-RC5 reproducibility
+  correction at `67db10c` must be included in the stable candidate.
 - The Maven plugin, Gradle plugin, JUnit Platform engine, bytecode doubles adapter, and bytecode agent adapter are standalone optional artifacts outside the root Maven reactor.
 - Repository-root `mvn verify` is intentionally core-only.
 - `scripts/verify-all.sh` verifies the core, optional adapters, and standalone examples together.
@@ -925,7 +933,7 @@ Version alignment across the root project and standalone adapters:
 scripts/check-version-alignment.sh
 ```
 
-Detailed verification evidence is maintained in [`docs/test-report.md`](docs/test-report.md). The implementation plan and status history live in [`PLAN.md`](PLAN.md), not at the top of this README.
+Current source-bound release evidence is maintained in [`docs/release-1.0-rc-evidence.md`](docs/release-1.0-rc-evidence.md); [`docs/test-report.md`](docs/test-report.md) is the append-only historical test record. The implementation plan and status history live in [`PLAN.md`](PLAN.md).
 
 ## Examples and deeper documentation
 
@@ -937,7 +945,10 @@ Start here:
 - [`examples/junit-platform-basic/`](examples/junit-platform-basic/) — JUnit Platform adoption.
 - [`examples/bytecode-doubles-basic/`](examples/bytecode-doubles-basic/) — optional non-final concrete-class doubles.
 - [`examples/bytecode-agent-basic/`](examples/bytecode-agent-basic/) — optional final-class and static-method doubles.
-- [`docs/usermanual/Home.md`](docs/usermanual/Home.md) — user manual with more CLI details.
+- [`docs/README.md`](docs/README.md) — current documentation index and status authority.
+- [`docs/usermanual/README.md`](docs/usermanual/README.md) — multilingual user-manual index.
+- [`docs/usermanual/Home.md`](docs/usermanual/Home.md) — detailed English technical manual.
+- [`docs/agent/javaspec-guided-development-assistant.md`](docs/agent/javaspec-guided-development-assistant.md) — copyable spec-driven development agent.
 - [`docs/release-notes-1.0.0.md`](docs/release-notes-1.0.0.md) — 1.0 RC release notes.
 - [`docs/compatibility-policy-1.0.md`](docs/compatibility-policy-1.0.md), [`docs/java-compatibility-1.0.md`](docs/java-compatibility-1.0.md), and [`docs/troubleshooting.md`](docs/troubleshooting.md) — 1.0 policy, Java matrix, and diagnostics.
 - [`docs/migration-guide-1.0.md`](docs/migration-guide-1.0.md), [`docs/junit-to-javaspec-guide.md`](docs/junit-to-javaspec-guide.md), and [`docs/cucumber-boundary.md`](docs/cucumber-boundary.md) — migration and boundary guides.
@@ -949,7 +960,7 @@ Start here:
 Architecture and decisions:
 
 - [`PLAN.md`](PLAN.md) — implementation plan and requirement traceability.
-- [`docs/arc42/`](docs/arc42/) — architecture documentation.
+- [`docs/arc42/README.md`](docs/arc42/README.md) — architecture documentation index.
 - [`docs/arc42/01-introduction-and-goals.md`](docs/arc42/01-introduction-and-goals.md)
 - [`docs/arc42/02-constraints.md`](docs/arc42/02-constraints.md)
 - [`docs/arc42/03-context-and-scope.md`](docs/arc42/03-context-and-scope.md)

@@ -444,7 +444,7 @@ Aliases and defaults:
   - Command: `run`
   - Notes: resolves runtime-scope dependencies from the given POM via the built-in
     `LocalMavenRepoResolver` (offline, `~/.m2/repository`) or any `DependencyResolver` provider
-    registered via `ServiceLoader`.  Resolved JARs are prepended to the run classpath.  Missing
+    registered via `ServiceLoader`. Resolved JARs are prepended to the run classpath.  Missing
     artifacts are skipped gracefully. Test, provided, system, and optional dependencies are excluded.
 - **`--release <N>`**
   - Alias: n/a
@@ -467,7 +467,7 @@ Aliases and defaults:
   - Notes: prints all `RunFormatter` and `JavaspecExtension` providers visible on the current
     classpath (built-in formatters plus `ServiceLoader`-discovered providers), then prints
     classpath repair hints (`--classpath`, `--classpath-file`, `--resolve-pom`) for adding
-    missing extensions.  Always exits 0.
+    missing extensions. Always exits 0.
 
 `describe` writes specification files only. Production source generation, updates, bootstrap
 execution, example execution, formatting, classpath selection, profile enforcement, and report

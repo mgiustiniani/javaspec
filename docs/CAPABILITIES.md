@@ -24,6 +24,9 @@ This document records capabilities verified while preparing the 1.0 roadmap. It 
 - Post-RC4 hardening is part of immutable RC5. Develop commit `67db10c` resolves its one observed
   cross-environment core Javadoc mismatch and passes 18/18 across independent clean worktrees.
   Gradle Portal approval and inclusion of this fix in the next candidate remain stable-1.0 gates.
+- User documentation is maintained in six languages with matching section 1 pages and automated
+  token/link guards. The copyable spec-driven agent documents semantic admission, launcher
+  provenance, safe generation, typed stops, and structured handoff.
 
 ## Artifacts and modules
 

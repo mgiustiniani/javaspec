@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted — non-final subclass boundary; extended by ADR 0027 for instrumentation-backed cases.
 
 ## Context
 
@@ -20,7 +20,10 @@ The repository already has an established pattern for optional capability that c
 
 The maintainer selected option (c): concrete-class doubles are delivered through a new standalone optional adapter artifact, not through the core.
 
-A new standalone optional artifact, `javaspec-bytecode-doubles` (working name, directory `javaspec-bytecode-doubles/`), provides concrete-class doubles for non-final classes. Static mocking, final mocking, and constructor mocking are explicitly out of scope initially. The adapter uses a bytecode library (candidate: ByteBuddy) as an isolated dependency of the adapter artifact only.
+A new standalone optional artifact, `javaspec-bytecode-doubles` (directory
+`javaspec-bytecode-doubles/`), provides concrete-class doubles for non-final classes. Static,
+final-class, and constructor interception were explicitly outside this initial decision. The adapter
+uses ByteBuddy 1.14.18 as an isolated dependency of the adapter artifact only.
 
 The artifact follows the existing standalone adapter pattern exactly (ADR 0011/0012):
 
@@ -43,7 +46,10 @@ Positive consequences:
 Negative consequences and limitations:
 
 - The adapter requires a third-party bytecode dependency (candidate: ByteBuddy) that must be maintained, audited, and version-managed separately from the core.
-- Final classes remain unmockable without instrumentation; static, final, and constructor mocking stay out of scope initially.
+- This subclass adapter cannot cover final classes, static methods, or construction interception.
+  Those cases were later admitted only through the separate instrumentation boundary in
+  [ADR 0027](0027-standalone-bytecode-agent-adapter.md).
 - The doubles provider SPI becomes a public core extension surface that must stay stable for the adapter, increasing compatibility pressure on the core doubles contracts.
 
-Related decisions: [ADR 0002](0002-zero-runtime-dependency-policy.md), [ADR 0007](0007-jdk-proxy-only-interface-doubles.md), [ADR 0011](0011-optional-junit-adapter-and-canonical-javaspec-runner.md), [ADR 0012](0012-non-disruptive-aggregate-release-ci-verification.md), [ADR 0021](0021-stronger-interface-doubles.md), and [ADR 0023](0023-course-correction-resolve-deferred-known-limitations.md).
+Related decisions: [ADR 0002](0002-zero-runtime-dependency-policy.md), [ADR 0007](0007-jdk-proxy-only-interface-doubles.md), [ADR 0011](0011-optional-junit-adapter-and-canonical-javaspec-runner.md), [ADR 0012](0012-non-disruptive-aggregate-release-ci-verification.md), [ADR 0021](0021-stronger-interface-doubles.md), [ADR 0023](0023-course-correction-resolve-deferred-known-limitations.md), and
+[ADR 0027](0027-standalone-bytecode-agent-adapter.md).

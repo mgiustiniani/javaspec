@@ -34,9 +34,9 @@ A phased resolution program (Phases 30 through 36, detailed in `PLAN.md`) must r
 
 Two limitations are explicitly EXCLUDED from the resolution program:
 
-1. **Public publication is complete.** Artifacts are published on Maven Central under
-   `io.github.jvmspec`. The Gradle plugin is published on the Gradle Plugin Portal with plugin id
-   `io.github.jvmspec`.
+1. **Publication implementation is complete, but availability is independently verified.** Maven
+   RC5 artifacts are available under `io.github.jvmspec`. Gradle plugin id `io.github.jvmspec` has
+   been submitted, while first-publication approval and marker availability remain external gates.
 2. **Concrete-class doubles remain deferred pending a maintainer architectural decision.** Adding a bytecode-manipulation library to the core would violate the zero-runtime-dependency policy ([ADR 0002](0002-zero-runtime-dependency-policy.md), [ADR 0007](0007-jdk-proxy-only-interface-doubles.md)). The candidate options are listed here without choosing one:
    - keep interface-only doubles (status quo);
    - zero-dependency runtime subclass generation through `javax.tools` for non-final classes;
@@ -49,6 +49,7 @@ Two limitations are explicitly EXCLUDED from the resolution program:
 - Phase 35 adds only additive report fields: JSON reports stay schemaVersion 1-compatible through additive fields, and the JUnit XML-compatible writer remains dependency-free.
 - All phases preserve the Java 8 source/target compatibility gate, the zero-runtime-dependency gate for the core artifact, and the non-multi-module repository layout: root `mvn verify` remains core-only and standalone adapters stay outside the root Maven reactor.
 - Previously documented "intentionally excluded" statements in earlier phases and ADRs become historical scope records rather than permanent constraints; affected README/ARC42 wording will be synchronized in the finalization documentation phase after implementation.
-- The two excluded limitations remain documented known limitations until the maintainer supplies publication inputs or decides the concrete-class doubles architecture.
+- Publication tooling is implemented, but Gradle Portal review remains external. Concrete-class
+  doubles were later implemented in the standalone bytecode adapter without changing core.
 
 Related decisions: [ADR 0001](0001-java-8-baseline-with-lts-target-profiles.md), [ADR 0002](0002-zero-runtime-dependency-policy.md), [ADR 0007](0007-jdk-proxy-only-interface-doubles.md), [ADR 0009](0009-interface-style-method-generation-and-sealed-interface-update-deferral.md), [ADR 0010](0010-zero-dependency-formatter-reporting-and-programmatic-extension-boundary.md), [ADR 0013](0013-release-readiness-scaffolding-with-publication-blockers.md), [ADR 0018](0018-serviceloader-external-formatter-extension-discovery.md), [ADR 0019](0019-deep-target-profile-enforcement.md), [ADR 0020](0020-bootstrap-hook-execution.md), [ADR 0021](0021-stronger-interface-doubles.md), and [ADR 0022](0022-opt-in-cli-source-spec-compilation.md).

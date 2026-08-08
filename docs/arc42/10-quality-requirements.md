@@ -1,5 +1,12 @@
 # 10. Quality Requirements
 
+> **Current evidence overlay (2026-08-08):** RC5 qualified the core on Java 8/11/17/21/25,
+> Java 21 and Java 25 each passed 884/884 core tests, security scanning reported zero
+> vulnerabilities, the API baseline had zero removals, Maven Central publication and consumers
+> passed, and post-RC5 commit `67db10c` reproduced all 18 archives across clean worktrees. Gradle
+> first-publication approval remains external. Phase-numbered counts below are retained as historical
+> evidence, not as the current release baseline.
+
 ## 10.1 Quality Tree
 
 Quality attributes and evidence:
@@ -24,7 +31,13 @@ Quality attributes and evidence:
     and example runtime dependency checks stayed clean; Phase 22 root/plugin/Gradle runtime audits
     preserved zero-dependency core and isolated optional-adapter dependencies; Phase 37 verification
     confirmed the root runtime tree still contains only core while `javaspec-bytecode-doubles`
-    carries ByteBuddy only in the standalone adapter.
+    carries ByteBuddy only in the standalone adapter. RC5 verification also isolates ByteBuddy Agent
+    to `javaspec-bytecode-agent`.
+- **Scoped instrumentation safety**
+  - Scenario: Final/static/construction doubles activate only through the optional agent adapter,
+    reject unsupported targets, and unregister static/construction handlers when closed.
+  - Evidence / current status: ADR 0027, agent unit tests, manifest checks, the standalone
+    bytecode-agent consumer example, aggregate verification, and RC5 publication evidence.
 - **Deterministic CLI/build-tool/engine behavior**
   - Scenario: Commands, options, prompts, output modes, explicit classpath handling, opt-in CLI
     compilation ordering/failure behavior, bootstrap hook ordering/failure behavior, stronger
@@ -65,13 +78,12 @@ Quality attributes and evidence:
     discovery without script engines, package scanning, or dependency resolution; ADR 0011 covers
     no-JUnit invocation and optional adapters; ADR 0012 covers aggregate release/CI verification
     without mandatory Maven multi-module conversion; ADR 0013 covers release-readiness scaffolding
-    with resolved MIT license/maintainer metadata. Publishing is complete; artifacts are on Maven
-    Central and Gradle Plugin Portal;
-    ADR 0014 covers standalone adoption assets and examples-by-default verification; ADR 0015 covers
+    and independent publication gates. RC5 Maven artifacts are public; Gradle marker approval is
+    still pending. ADR 0014 covers standalone adoption assets and examples-by-default verification; ADR 0015 covers
     explicit skipped/pending semantics without dependency cost; ADR 0022 covers opt-in CLI
     compilation through the current JDK compiler API without dependency cost, ADR 0023 covers the
-    known-limitations resolution program, and ADR 0024 covers optional ByteBuddy concrete doubles
-    outside core; Phase 15 verifies the standalone Maven plugin boundary, Phase 16 verifies the
+    known-limitations resolution program, ADR 0024 covers optional ByteBuddy subclass doubles, and
+    ADR 0027 covers the separate instrumentation adapter outside core; Phase 15 verifies the standalone Maven plugin boundary, Phase 16 verifies the
     standalone Gradle plugin boundary, Phase 17 verifies the standalone JUnit Platform engine
     boundary, Phase 19 verifies the aggregate script boundary, Phase 20 verifies the
     release-readiness boundary, Phase 21 verifies the adoption-assets boundary, and Phase 22
@@ -173,11 +185,11 @@ Quality attributes and evidence:
   explicitly skipped, and fail clearly when a required local Gradle executable cannot be resolved.
 - CI documentation must distinguish configured/local-validated workflow YAML from actual remote
   GitHub Actions results and must state remote status by phase.
-- Release-readiness documentation must reflect that public publication is complete. Artifacts are
-  published on Maven Central under `io.github.jvmspec`. The Gradle plugin is published on the
-  Gradle Plugin Portal with plugin id `io.github.jvmspec`. Final publish approval are resolved; local source/javadoc packaging and standalone examples must
-  not be described as signing, staging, deployment, or publication, and remote CI success claims
-  must cite user-/maintainer-confirmed or independently queried results.
+- Release-readiness documentation must distinguish Maven publication, Gradle submission, and public
+  Gradle marker availability. RC5 Maven artifacts are published under `io.github.jvmspec`; Gradle
+  plugin id `io.github.jvmspec` still awaits first-publication approval. Local source/Javadoc
+  packaging and standalone examples must not be described as signing, deployment, or publication,
+  and remote CI success claims must cite independently queried results.
 
 ## 10.3 Phase 12 Verification Summary
 
@@ -449,9 +461,9 @@ Verified Phase 20 quality points:
 - No runtime dependencies, secrets, Maven multi-module conversion, or actual publication was added;
   remote GitHub Actions success for HEAD `5088e96` on `develop` is user-/maintainer-confirmed after
   the Phase 20/21/22 push.
-- Publication is complete. Artifacts are published on Maven Central under `io.github.jvmspec`.
-  The Gradle plugin is published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`.
-  resolved.
+- RC5 Maven publication and signature verification are complete under `io.github.jvmspec`.
+  Gradle submission succeeded, while first-publication approval and public marker resolution remain
+  pending.
 
 See [Test and Quality Report](../test-report.md) for details.
 
@@ -549,15 +561,14 @@ Future implementation phases should preserve these gates:
 4. New architectural decisions are recorded as ADRs before implementation where they change core
    boundaries.
 5. User manual, README, ARC42, ADR references, and test/quality reports remain synchronized with
-   implemented behavior, including formatter/extension discovery boundaries, profile-enforcement
-   boundaries, bootstrap hook execution boundaries, opt-in compilation boundaries, and
-   bytecode-doubles adapter boundaries.
+   implemented behavior, including formatter/extension discovery, profile enforcement, bootstrap
+   hooks, opt-in compilation, multilingual command contracts, and both bytecode adapter boundaries.
 6. Standalone optional adapters and standalone examples remain covered by `scripts/verify-all.sh` or
    an explicitly documented equivalent aggregate verification path unless a future ADR changes the
    build/release architecture.
 7. Version alignment remains checked before release-candidate packaging.
 8. Report schema/golden examples stay synchronized with report writer behavior and standalone
    examples.
-9. Public publication is complete. Artifacts are published on Maven Central under
-   `io.github.jvmspec`. The Gradle plugin is published on the Gradle Plugin Portal with plugin id
-   `io.github.jvmspec`. The confirmed MIT license and maintainer metadata remain consistent.
+9. RC5 Maven artifacts are published under `io.github.jvmspec`; Gradle plugin id
+   `io.github.jvmspec` was submitted but is not yet publicly resolvable. The confirmed MIT license
+   and maintainer metadata remain consistent.

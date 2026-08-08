@@ -37,8 +37,9 @@ Core requirements:
   classes are available on the effective or selected explicit classloader, with optional
   stop-on-failure and explicit skipped/pending semantics.
 - Support zero-runtime-dependency interface doubles using JDK dynamic proxies, including argument
-  matchers, throwing stubs, and answer callbacks, plus optional non-final concrete-class doubles
-  through a standalone ByteBuddy adapter that remains outside the core runtime.
+  matchers, throwing stubs, and answer callbacks; isolate optional non-final subclass doubles in
+  `javaspec-bytecode-doubles` and final/static/construction instrumentation in
+  `javaspec-bytecode-agent`, both outside the core runtime.
 - Support run-only CLI controls for dry-run planning, stop-on-failure, progress/pretty output,
   profile selection/enforcement, verbose diagnostics, explicit classpath input,
   execution-availability diagnostics, bootstrap execution immediately before examples, optional JSON
@@ -94,7 +95,7 @@ Core requirements:
   portal credentials, final release tag/version, or final publish approval in
   release-readiness/adoption increments; the MIT license and confirmed maintainer metadata are
   resolved.
-- Phase 21 examples are standalone consumer projects, not root modules or public-publication
+- Phase 21 examples are standalone consumer projects, not root modules or publication
   evidence.
 - Phase 20, Phase 21, and Phase 22 have local verification evidence plus user-/maintainer-confirmed
   remote GitHub Actions success for HEAD `5088e96` on `develop` after push; no GitHub run IDs, URLs,

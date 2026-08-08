@@ -38,6 +38,9 @@ Core constraints:
   Develop commit `67db10c` makes those labels explicit and rebuilds both checksum passes from clean
   outputs; two independent clean worktrees now match all 18 archives. Gradle Plugin Portal approval
   remains external, and the reproducibility correction must be included in the next stable candidate.
+- Current documentation now has a central status index, synchronized six-language user manuals and
+  section 1 pages, local-link and stale-Portal-claim guards, and a copyable semantic-slice
+  spec-driven agent based on the `bdd-java` workflow model.
 
 ## Priority definitions
 

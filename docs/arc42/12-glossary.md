@@ -121,7 +121,7 @@
   Platform selectors/configuration parameters, and delegates execution to `JavaspecLauncher` without
   `System.exit`.
 - **JUnit Platform engine adapter**: Standalone optional artifact `javaspec-junit-platform-engine/`
-  packaging `io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-RC1`; it is not a root Maven
+  packaging `io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-RC5`; it is not a root Maven
   module and does not add JUnit Platform dependencies to the core runtime artifact.
 - **JUnit Platform selector**: Class, package, method, or unique-id selector supplied by JUnit
   Platform and applied by the optional engine as a filter over canonical javaspec discovery results.
@@ -134,16 +134,20 @@
   `run` enforces the effective profile before generation/update writes.
 - **Matchable**: Fluent expectation wrapper returned by typed proxy methods and `match(actual)`.
 - **Maven plugin adapter**: Standalone optional artifact `javaspec-maven-plugin/` packaging
-  `io.github.jvmspec:javaspec-maven-plugin:1.0.0-RC1` as a Maven plugin with goal prefix `javaspec`.
+  `io.github.jvmspec:javaspec-maven-plugin:1.0.0-RC5` as a Maven plugin with goal prefix `javaspec`.
   It is not a root module and does not require JUnit in projects under test.
 - **Maven test classpath**: The compiled test-scope classpath supplied by Maven to the optional
   plugin and used as input to the canonical javaspec runner.
-- **Maven `release-artifacts` profile**: Phase 20 Maven profile on root, Maven plugin, and JUnit
-  Platform engine builds that creates local sources and javadocs only; it does not sign, stage,
-  deploy, or publish.
+- **Maven `release-artifacts` profile**: Local packaging profile on core and every standalone Maven
+  adapter that creates source and Javadoc jars only; it does not sign, stage, deploy, or publish.
 - **Bytecode doubles adapter**: Standalone optional artifact `javaspec-bytecode-doubles/`;
   implements `ConcreteDoubleProvider`, depends on ByteBuddy 1.14.18 outside core, and supports
   non-final concrete-class doubles with core `DoubleControl` semantics.
+- **Bytecode-agent adapter**: Standalone optional artifact `javaspec-bytecode-agent/`; carries
+  ByteBuddy Agent and Instrumentation outside core for registered final instances and scoped static
+  or construction doubles. Supports dynamic attach or explicit `-javaagent`.
+- **`StaticDouble` / `ConstructionDouble`**: Closeable agent-backed handles whose active registry
+  scope routes intercepted calls through core `DoubleControl`; close unregisters the scope.
 - **`ConcreteDoubleProvider`**: Core zero-dependency SPI discovered by ServiceLoader for optional
   concrete-class double providers.
 - **Sealed-interface update**: Source-preserving generation/update support for sealed-interface root
@@ -167,12 +171,11 @@
   and denied `CompatibilityResult`.
 - **Reflection runner**: Dependency-free runner that executes compiled spec examples by Java
   reflection after discovery/generation/update work and any requested successful CLI compilation.
-- **Release checklist**: `RELEASING.md`; Phase 20 local release-readiness checklist that documents
-  verification steps and explicit blockers before public publication.
-- **Publication blockers**: Required decisions, credentials, or approvals that remain intentionally
-  unresolved before public release: GPG signing, Central Portal publication, Gradle Plugin Portal
-  publication/credentials, final release version/tag, and final publish approval. The MIT `LICENSE`
-  and maintainer metadata are already confirmed.
+- **Release checklist**: `RELEASING.md`; source-bound local, CI, tag, publication, and post-release
+  verification sequence.
+- **Publication gate**: One independently verified state such as signed Maven deployment, Gradle
+  submission, public marker resolution, consumer replay, or final tag/version alignment. A later
+  state must not be inferred from an earlier successful submission.
 - **Report**: Optional machine-readable output written by `run`, currently JSON via `--report` /
   `--report-file` or config JSON destination aliases, and JUnit XML-compatible XML via `--junit-xml`
   / `--junit-xml-file` or config JUnit XML destination aliases. Reports include additive stable

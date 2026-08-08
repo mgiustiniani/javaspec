@@ -13,8 +13,9 @@ available, consumers and maintainers needed local adoption assets that demonstra
 Maven plugin, Gradle plugin, and JUnit Platform engine paths without changing the core runtime or
 making the examples part of the root build reactor.
 
-**Update (0.1.0)**: Artifacts are now published on Maven Central under `io.github.jvmspec`. The
-Gradle plugin is published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`.
+**Current publication update**: Maven artifacts are published under `io.github.jvmspec`. Gradle
+plugin id `io.github.jvmspec` has been submitted, but first-publication approval and public marker
+availability remain pending.
 
 The Phase 18 report format already exposes schemaVersion 1 with additive stable id and source-location fields, and Phase 14 added JUnit XML-compatible reports. External consumers need a documented JSON schema and golden report examples for tooling integration. Maintainers also need local verification that standalone examples generate the expected reports and stable identifiers.
 
@@ -32,8 +33,8 @@ Keep examples, schema docs, and golden reports as standalone adoption assets:
 - Continue to support `MAVEN_BIN` and `JAVASPEC_GRADLE_BIN` for tool selection.
 - Do not treat examples verification as public publication, deployment, signing, or remote CI success.
 - Do not change the zero-runtime-dependency core or the standalone optional adapter boundaries.
-  Publication is complete; artifacts are published on Maven Central
-  under `io.github.jvmspec`. The Gradle plugin is published on the Gradle Plugin Portal.
+- Treat Maven Central availability and Gradle Plugin Portal availability as separate evidence gates;
+  a successful Gradle submission is not public marker resolution.
 
 ## Consequences
 
@@ -51,8 +52,7 @@ Negative consequences and limitations:
 - Gradle example verification still depends on a compatible Gradle executable; `JAVASPEC_GRADLE_BIN` or the explicit `JAVASPEC_SKIP_GRADLE_EXAMPLE=1` opt-out may be needed on local machines.
 - Phase 21 local verification is supplemented by later user-/maintainer-confirmed remote GitHub Actions success for HEAD `5088e96` on `develop` after Phase 20/21/22 were pushed; no GitHub run IDs, URLs, durations, or logs were independently queried. Examples verification by itself still must not be treated as publication, deployment, signing, or remote CI proof.
 - Future report schema changes must update the schema, golden reports, examples, user docs, and verification assertions together.
-- Public publication is now complete. Artifacts are published on Maven Central under
-  `io.github.jvmspec`. The Gradle plugin is published on the Gradle Plugin Portal with plugin id
-  `io.github.jvmspec`.
+- Maven publication is complete for RC5 under `io.github.jvmspec`; Gradle first-publication approval
+  remains an external limitation, so consumers use the included build until the marker resolves.
 
 Related ARC42 sections: [5. Building Block View](../arc42/05-building-block-view.md), [6. Runtime View](../arc42/06-runtime-view.md), [7. Deployment View](../arc42/07-deployment-view.md), [8. Concepts](../arc42/08-concepts.md), [9. Architecture Decisions](../arc42/09-architecture-decisions.md), [10. Quality Requirements](../arc42/10-quality-requirements.md), and [11. Risks and Technical Debt](../arc42/11-risks-and-technical-debt.md).

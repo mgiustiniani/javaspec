@@ -12,7 +12,8 @@ classpath/execution availability diagnostics, the Phase 24 configuration-level r
 the Phase 25 ServiceLoader external formatter/extension discovery increment, the Phase 26
 target-profile enforcement increment, the Phase 27 bootstrap hook execution increment, the Phase 28
 stronger-interface-doubles increment, the Phase 29 opt-in CLI compilation increment, Phases 30-36
-known-limitations resolution, and the Phase 37 optional bytecode-doubles adapter.
+known-limitations resolution, the Phase 37 optional bytecode-doubles adapter, and the ADR-0027
+optional bytecode-agent adapter.
 
 ## 6.1 `describe` Scenario
 
@@ -188,9 +189,9 @@ Generation output depends on the described production kind:
 9. `toString`, `equals`, and `hashCode` are handled deterministically and are not treated as user
    collaborator calls.
 
-Unsupported core target kinds fail fast with diagnostics. Non-final concrete-class doubles are
-available only through the standalone bytecode adapter; final, static, and constructor mocking
-remain unsupported.
+Unsupported core target kinds fail fast with diagnostics. Non-final concrete-class doubles use the
+standalone subclass adapter; final-class, static-method, and construction-aware doubles require the
+separate instrumentation adapter. Neither ByteBuddy dependency enters core.
 
 ### 6.6.1 Optional Bytecode Concrete-Class Double Scenario
 
@@ -203,6 +204,20 @@ remain unsupported.
    verification APIs as interface doubles.
 5. If no provider is registered, core throws `IllegalStateException` with guidance. If the target is
    final, enum, array, annotation, primitive, or an interface, creation is rejected clearly.
+
+### 6.6.2 Optional Bytecode-Agent Double Scenario
+
+1. A test runtime includes `javaspec-bytecode-agent` plus core and makes Instrumentation available by
+   permitted dynamic self-attach or `-javaagent` startup.
+2. ServiceLoader registers `AgentConcreteDoubleProvider`. `Doubles.concreteDouble(FinalType.class)`
+   instruments the class, creates a no-argument instance, and routes only that registered instance
+   through the core handler.
+3. `BytecodeAgentDoubles.staticDouble(Type.class)` registers a scoped static handler;
+   `mockConstruction(Type.class)` registers subsequently constructed instances.
+4. Stubbing and verification reuse `DoubleControl`. Each static or construction handle is closed to
+   unregister the scope; unregistered calls then fall through to original behavior.
+5. Primitive, array, annotation, enum, interface, and abstract targets are rejected. Private,
+   abstract, and native methods are not intercepted.
 
 ## 6.7 Reporting and Extension Runtime Scenario
 
@@ -312,7 +327,7 @@ remain unsupported.
 ## 6.10 Optional Maven Plugin Runtime Scenario
 
 1. A Maven build configures or invokes the optional
-   `io.github.jvmspec:javaspec-maven-plugin:1.0.0-RC1` artifact and its `javaspec:run` goal.
+   `io.github.jvmspec:javaspec-maven-plugin:1.0.0-RC5` artifact and its `javaspec:run` goal.
 2. The Mojo participates as a standalone Maven plugin, not as a root repository module. Its default
    phase is `verify`, and it requires Maven test dependency resolution.
 3. Maven supplies the test classpath; compiled production/spec classes from the project under test
@@ -365,7 +380,7 @@ remain unsupported.
 ## 6.12 Optional JUnit Platform Engine Runtime Scenario
 
 1. A JUnit Platform launcher has the optional
-   `io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-RC1` artifact, compiled spec classes,
+   `io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-RC5` artifact, compiled spec classes,
    production classes, and dependencies on its test runtime classpath.
 2. JUnit Platform discovers `io.github.jvmspec.junit.platform.JavaspecTestEngine` through
    `META-INF/services/org.junit.platform.engine.TestEngine`; the engine id is `javaspec`.
@@ -415,16 +430,16 @@ Gradle plugin no-JUnit execution paths without adding a JUnit dependency.
    checks, runs `scripts/verify-examples.sh` directly for standalone examples, or runs
    `scripts/verify-all.sh` locally for the aggregate path. GitHub Actions is configured to run the
    aggregate script in the Java 21 `full-verification` job with `JAVASPEC_GRADLE_BIN=gradle`.
-2. `scripts/check-version-alignment.sh` verifies the root Maven project version, standalone Maven
-   plugin version, standalone JUnit Platform engine version, Gradle plugin `version`, and Gradle
-   plugin `javaspecCoreVersion` against one baseline.
+2. `scripts/check-version-alignment.sh` verifies the root Maven project, Maven plugin, JUnit
+   Platform engine, bytecode doubles, bytecode agent, Gradle plugin `version`, and Gradle
+   `javaspecCoreVersion` against one baseline.
 3. `scripts/verify-all.sh` runs the version-alignment check first, resolves the repository root from
    its own path, and uses `MAVEN_BIN` or default `mvn` for Maven commands.
 4. Root `mvn -q verify` and root `mvn dependency:tree -Dscope=runtime` verify the
    zero-runtime-dependency core artifact only.
 5. Root `mvn -q -DskipTests install` refreshes the local core snapshot for standalone adapters.
-6. The script verifies and audits the standalone Maven plugin and standalone JUnit Platform engine
-   with their own Maven POMs.
+6. The script verifies and audits the standalone Maven plugin, JUnit Platform engine, bytecode
+   doubles, and bytecode agent with their own Maven POMs.
 7. Unless `JAVASPEC_SKIP_GRADLE=1` is set, the script resolves Gradle through explicit
    `JAVASPEC_GRADLE_BIN`, repository `./gradlew`, `/tmp/gradle-8.8/bin/gradle`, or `gradle` on
    `PATH`, then runs the standalone Gradle plugin `clean test build` and `runtimeClasspath` audit.
@@ -432,14 +447,15 @@ Gradle plugin no-JUnit execution paths without adding a JUnit dependency.
    silently skipping adapter verification.
 9. Unless `JAVASPEC_SKIP_EXAMPLES=1` is set, `scripts/verify-all.sh` runs
    `scripts/verify-examples.sh` after core and adapter checks. The examples script installs local
-   snapshots, runs Maven, JUnit Platform, bytecode doubles, and Gradle consumer examples, and
-   asserts generated report markers. `JAVASPEC_SKIP_GRADLE_EXAMPLE=1` skips only the Gradle example
-   inside that examples script.
+   snapshots, runs Maven, Prophecy, JUnit Platform, bytecode doubles, bytecode agent, and Gradle
+   consumer examples, and asserts generated report markers. Dedicated environment variables can
+   skip only unavailable Gradle or bytecode examples.
 10. Optional local release-artifact checks use Maven `-Prelease-artifacts -DskipTests package` for
-    root, Maven plugin, and JUnit Platform engine main/sources/javadoc jars, plus the Gradle plugin
+    root, Maven plugin, JUnit Platform engine, bytecode doubles, and bytecode agent
+    main/sources/Javadoc jars, plus the Gradle plugin
     `clean test build` for Gradle main/sources/javadoc jars.
-11. `CHANGELOG.md` and `RELEASING.md` document release changes, local checks, and public-publication
-    blockers.
+11. `CHANGELOG.md` and `RELEASING.md` document release changes, local checks, and independent
+    publication-availability gates.
 
 The GitHub Actions workflow also has a separate core matrix job for Java 8, 11, 17, 21, and 25 that
 runs root core verification and root runtime dependency audit. The workflow has no
@@ -447,20 +463,20 @@ publishing/signing steps and uses no secrets. Phase 19 remote GitHub Actions suc
 user-/maintainer-confirmed for HEAD `4d30e63` on `develop`; after Phase 20/21/22 were pushed, remote
 GitHub Actions success for HEAD `5088e96` on `develop` is also user-/maintainer-confirmed. No GitHub
 run IDs, URLs, durations, or logs were independently queried from this environment. The MIT license
-and maintainer metadata are resolved. Artifacts are published on Maven Central under
-`io.github.jvmspec`. The Gradle plugin is published on the Gradle Plugin Portal with plugin id
-`io.github.jvmspec`.
+and maintainer metadata are resolved. RC5 Maven artifacts are published under
+`io.github.jvmspec`. Gradle plugin id `io.github.jvmspec` was submitted successfully, but
+first-publication approval and public marker availability remain external gates.
 
 ## 6.15 Standalone Examples and Report Documentation Scenario
 
-1. A new adopter reads `examples/README.md` and chooses a standalone consumer example: Maven plugin,
-   Gradle plugin, JUnit Platform engine, or bytecode doubles.
-2. The example builds consume public artifacts from Maven Central.
-3. Maven, Gradle, and bytecode doubles examples run simple specs and write JSON plus JUnit
+1. A new adopter reads `examples/README.md` and chooses a standalone consumer example: Maven,
+   Gradle included build, JUnit Platform, Prophecy, bytecode doubles, or bytecode agent.
+2. Maven-based examples consume published RC5 Maven artifacts or source-installed equivalents; the
+   Gradle example uses the included plugin build until the Portal marker resolves.
+3. Maven, Gradle, Prophecy, and bytecode examples run simple specs and write JSON plus JUnit
    XML-compatible reports to their own generated output directories.
-4. The JUnit Platform example runs through Maven Surefire configured for `*Spec` and the optional
-   engine; the bytecode doubles example uses `javaspec-bytecode-doubles` to double a non-final
-   concrete `DataStore`.
+4. The JUnit Platform example runs through Maven Surefire configured for `*Spec`; bytecode doubles
+   covers a non-final `DataStore`; bytecode agent covers final-class and static-method interception.
 5. Report tooling authors can validate against `docs/schemas/run-report-v1.schema.json` and compare
    with passing and pending golden reports under `docs/examples/reports/`.
 6. Generated example `target/`, `build/`, and `.gradle/` outputs remain ignored and are not

@@ -6,6 +6,12 @@ All notable changes to this project will be documented in this file.
 
 - Hardened archive reproducibility by rebuilding both checksum passes from clean outputs and using
   explicit Javadoc alias labels; independent clean worktrees now produce the same 18 archive hashes.
+- Added synchronized English, Italian, Spanish, German, French, and Simplified Chinese user manuals;
+  refreshed matching man pages with launcher provenance; corrected Portal-availability claims and
+  concrete-double examples; completed ARC42/ADR coverage for the bytecode agent; and added
+  documentation/link guards.
+- Reworked the copyable development agent around the `bdd-java` spec-driven model: semantic slice
+  admission, meaningful RED, safe generation, coherent GREEN, typed stops, and structured evidence.
 
 ## 1.0.0-RC5 — 2026-08-08
 
@@ -212,8 +218,9 @@ All notable changes to this project will be documented in this file.
 ## 0.1.0 — 2026-06-13
 
 - Initial public release on Maven Central under `io.github.jvmspec`.
-- Gradle plugin published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`.
-- All implementation phases A-E, D2, and publication are complete.
+- Prepared Gradle plugin metadata for plugin id `io.github.jvmspec`; public Portal availability was
+  not completed and remains subject to first-publication approval.
+- Completed implementation phases A-E and D2 plus Maven publication.
 - Java 8-compatible, zero-runtime-dependency core artifact.
 - CLI describe/run workflows, configuration, discovery, generation support, matchers, interface doubles, run controls, reports, and programmatic no-JUnit invocation.
 - Standalone optional adapters: Maven plugin (`javaspec-maven-plugin`), Gradle plugin (`javaspec-gradle-plugin`), JUnit Platform engine (`javaspec-junit-platform-engine`), and bytecode doubles adapter (`javaspec-bytecode-doubles`).

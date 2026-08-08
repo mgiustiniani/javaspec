@@ -17,7 +17,8 @@ availability diagnostics, the Phase 24 configuration-level report destinations, 
 ServiceLoader external formatter/extension discovery increment, the Phase 26 target-profile
 enforcement increment, the Phase 27 bootstrap hook execution increment, the Phase 28
 stronger-interface-doubles increment, the Phase 29 opt-in CLI compilation increment, Phases 30-36
-known-limitations resolution, and the Phase 37 standalone optional bytecode-doubles adapter.
+known-limitations resolution, the Phase 37 standalone optional bytecode-doubles adapter, and the
+ADR-0027 standalone bytecode-agent adapter.
 
 Current runtime building blocks:
 
@@ -105,7 +106,7 @@ Current runtime building blocks:
     execution, `SpecRunner`, and `RunResult`. Default invocation remains classpath-based.
 - **Optional Maven plugin adapter** (`javaspec-maven-plugin/`)
   - Responsibility: Standalone optional Maven plugin artifact
-    `io.github.jvmspec:javaspec-maven-plugin:1.0.0-RC1`, intentionally not a root module; provides
+    `io.github.jvmspec:javaspec-maven-plugin:1.0.0-RC5`, intentionally not a root module; provides
     goal prefix `javaspec` and `javaspec:run` as a Maven adapter over `JavaspecLauncher` using Maven
     test dependency resolution and test classpath by default, with Maven logging, filters, extension
     activation, formatter selection, explicit opt-in compilation settings, top-level plus
@@ -127,7 +128,7 @@ Current runtime building blocks:
     diagnostics including Gradle classpath element counts when execution availability issues exist.
 - **Optional JUnit Platform engine adapter** (`javaspec-junit-platform-engine/`)
   - Responsibility: Standalone optional JUnit Platform `TestEngine` artifact
-    `io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-RC1`, intentionally not a root Maven
+    `io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-RC5`, intentionally not a root Maven
     module and outside the core artifact; provides engine id `javaspec`, ServiceLoader registration,
     JUnit Platform selector/configuration-parameter filtering over canonical discovery results,
     stable unique-id shape with MethodSource behavior, descriptor reporting aligned to stable ids,
@@ -169,6 +170,12 @@ Current runtime building blocks:
     1.14.18, implements `ConcreteDoubleProvider`, creates subclasses for non-final concrete classes,
     delegates to core `DoubleControl` semantics, and rejects final classes, enums, arrays,
     annotations, primitives, interfaces, static mocking, and constructor mocking.
+- **Optional bytecode-agent adapter** (`javaspec-bytecode-agent/`)
+  - Responsibility: Standalone optional artifact outside the root reactor. It depends on ByteBuddy
+    1.14.18 and ByteBuddy Agent, registers `AgentConcreteDoubleProvider`, redefines instrumentable
+    concrete classes for registered final-instance doubles, and exposes scoped
+    `BytecodeAgentDoubles.staticDouble(...)` and `mockConstruction(...)` handles. It supports dynamic
+    self-attach or explicit `-javaagent` startup and keeps Instrumentation out of core.
 - **Profile catalog** (`io.github.jvmspec.profile`)
   - Responsibility: Stores deterministic Java LTS profile, feature-flag, and API-symbol metadata for
     Java 8, 11, 17, 21, and 25.
@@ -215,9 +222,9 @@ failures fail the build with clear diagnostics, and projects under test do not n
 
 Phase 16 adds the optional Gradle plugin as a standalone adapter artifact rather than a root Maven
 module or core module. `build.gradle` uses `java-gradle-plugin`, group `io.github.jvmspec`, version
-`1.0.0-RC1`, Java source/target `1.8`, plugin id `io.github.jvmspec`, implementation class
+`1.0.0-RC5`, Java source/target `1.8`, plugin id `io.github.jvmspec`, implementation class
 `io.github.jvmspec.gradle.JavaspecPlugin`, Maven-local core dependency
-`io.github.jvmspec:javaspec:1.0.0-RC1`, and plugin-local TestKit/JUnit test dependencies.
+`io.github.jvmspec:javaspec:1.0.0-RC5`, and plugin-local TestKit/JUnit test dependencies.
 `JavaspecPlugin` registers extension `javaspec` and task `javaspecRun` in group `verification`; when
 Gradle Java plugin source sets are present, the task defaults to the `test` source set runtime
 classpath and depends on `testClasses`. `JavaspecRunTask` supports `skip`, `failOnFailure`,
@@ -231,7 +238,7 @@ test do not need JUnit.
 
 Phase 17 adds the optional JUnit Platform engine as a standalone adapter artifact rather than a root
 Maven module or core module. The artifact is
-`io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-RC1`, packaging `jar`, Java source/target
+`io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-RC5`, packaging `jar`, Java source/target
 `1.8`, and uses Java 8-compatible JUnit Platform `1.10.2` rather than JUnit Platform 6/JUnit 6.
 `JavaspecTestEngine` is registered through `META-INF/services/org.junit.platform.engine.TestEngine`
 with engine id `javaspec`. Discovery uses canonical `SpecDiscovery` / `SpecDiscoveryRequest`,
@@ -256,33 +263,30 @@ Phase 25, and target-profile enforcement later in Phase 26.
 
 Phase 19 adds release/CI verification assets without changing runtime building blocks.
 `scripts/verify-all.sh` runs root core verification, root runtime dependency audit, current-core
-snapshot install, standalone Maven plugin verification and runtime audit, standalone JUnit Platform
-engine verification and runtime audit, standalone Gradle plugin `clean test build`, and Gradle
-runtimeClasspath audit. It supports `MAVEN_BIN`, `JAVASPEC_GRADLE_BIN`, and explicit
+snapshot install, standalone Maven plugin and JUnit Platform engine verification/audits, both
+standalone bytecode adapter verification/audits, standalone Gradle plugin `clean test build`, and
+Gradle runtimeClasspath audit. It supports `MAVEN_BIN`, `JAVASPEC_GRADLE_BIN`, and explicit
 `JAVASPEC_SKIP_GRADLE=1`. `.github/workflows/ci.yml` runs a Java 8/11/17/21/25 core matrix and a
 Java 21 full-verification job through the script. This preserves the decision that the standalone
 adapters are not mandatory root Maven modules.
 
 Phase 20 adds release-readiness scaffolding without changing runtime building blocks.
-`scripts/check-version-alignment.sh` verifies version alignment across the root POM, standalone
-Maven plugin POM, standalone JUnit Platform engine POM, Gradle plugin `version`, and Gradle plugin
-`javaspecCoreVersion`; `scripts/verify-all.sh` runs it first. `CHANGELOG.md` and `RELEASING.md`
+`scripts/check-version-alignment.sh` verifies version alignment across the root POM, every
+standalone Maven adapter POM, Gradle plugin `version`, and Gradle `javaspecCoreVersion`; `scripts/verify-all.sh` runs it first. `CHANGELOG.md` and `RELEASING.md`
 document release changes and blockers. The MIT `LICENSE` is copied exactly from `origin/main`, and
 MIT license plus confirmed maintainer/developer metadata are present in Maven POMs and Gradle
-generated POM metadata. Maven `release-artifacts` profiles create local sources/javadocs for the
-root, Maven plugin, and JUnit Platform engine builds; the Gradle plugin build is ready to create
-source and javadoc jars. Safe URL, SCM, and GitHub Issues metadata is allowed, but signing,
-deploy/publish configuration, Central Portal publication, Gradle Plugin Portal
-publication/credentials, final release version/tag, and final publish approval remain intentionally
-absent until owner decisions are made.
+generated POM metadata. Maven `release-artifacts` profiles create local source/Javadoc jars for core
+and every standalone Maven adapter; the Gradle plugin build creates matching archives. Signing and
+publication were absent in the original scaffold; the later release workflow publishes signed Maven
+artifacts and submits Gradle, while Portal marker availability remains a distinct external gate.
 
 Phase 21 adds adoption and report documentation assets without changing runtime building blocks.
 `docs/schemas/run-report-v1.schema.json` documents schemaVersion 1 JSON reports;
 `docs/examples/reports/passing-run-report-v1.json` and
 `docs/examples/reports/passing-junit-report.xml` provide golden passing report fixtures.
-`examples/maven-basic/`, `examples/gradle-basic/`, and `examples/junit-platform-basic/` are
-standalone consumer projects and are not root modules. `scripts/verify-examples.sh` installs local
-snapshots, runs examples, and asserts generated report markers. `scripts/verify-all.sh` invokes
+Maven, Gradle, JUnit Platform, Prophecy, bytecode-doubles, and bytecode-agent examples are standalone
+consumer projects rather than root modules. `scripts/verify-examples.sh` installs local snapshots,
+runs every enabled example, and asserts generated report markers. `scripts/verify-all.sh` invokes
 examples verification by default after core/adapters unless `JAVASPEC_SKIP_EXAMPLES=1` is set.
 
 Phase 22 adds explicit skipped/pending semantics to existing runtime building blocks.

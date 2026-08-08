@@ -1,8 +1,8 @@
-# 0013 — Release-readiness scaffolding with resolved metadata (publication completed)
+# 0013 — Release-readiness scaffolding and publication gates
 
 ## Status
 
-Superseded — publication is now complete.
+Accepted — Maven publication is complete; Gradle first-publication approval remains external.
 
 ## Context
 
@@ -54,9 +54,11 @@ Positive consequences (historical):
 
 ### Current status
 
-All publication blockers have been resolved. Artifacts are published on Maven Central under
-`io.github.jvmspec`. The Gradle plugin is published on the Gradle Plugin Portal with plugin id
-`io.github.jvmspec`. The 0.1.0 release is complete.
+Maven artifacts, including `1.0.0-RC5`, are published under `io.github.jvmspec`. RC5
+`publishPlugins` submission succeeded for Gradle plugin id `io.github.jvmspec`, but the first
+publication still awaits Portal approval and its public marker is unavailable. Submission must not
+be described as publication. The stable `1.0.0` release remains gated by direct Portal verification
+and final-candidate qualification.
 
 Related ARC42 sections: [5. Building Block View](../arc42/05-building-block-view.md), [6. Runtime
 View](../arc42/06-runtime-view.md), [7. Deployment View](../arc42/07-deployment-view.md), [8.

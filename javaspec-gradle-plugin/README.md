@@ -13,26 +13,45 @@ mvn -q -DskipTests install
 gradle -p javaspec-gradle-plugin build
 ```
 
-Phase 16 verification on the installed Java 21 runtime used Gradle 8.8 downloaded to `/tmp/gradle-8.8` and not committed. Phase 18 verification reused `/tmp/gradle-8.8` and passed `clean test build` with 11 tests plus the `runtimeClasspath` audit.
+The Java 21 aggregate CI job provisions Gradle 8.8. Local verification may use a compatible Gradle
+selected through `JAVASPEC_GRADLE_BIN` or `PATH`:
 
 ```sh
-/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin test
-/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin build
-/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin clean test build
-/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin dependencies --configuration runtimeClasspath
-/tmp/gradle-8.8/bin/gradle -p javaspec-gradle-plugin dependencies --configuration testRuntimeClasspath
+gradle -p javaspec-gradle-plugin test
+gradle -p javaspec-gradle-plugin clean test build
+gradle -p javaspec-gradle-plugin dependencies --configuration runtimeClasspath
+gradle -p javaspec-gradle-plugin dependencies --configuration testRuntimeClasspath
 ```
 
-A cached Gradle 7.4.2 command was attempted but blocked by Java 21 with `Unsupported class file major version 65`; this is an environment/tooling compatibility blocker for that cached executable, not a javaspec feature failure.
+Use `scripts/verify-all.sh` from the repository root for the authoritative aggregate build and
+runtime dependency audit.
 
 ## Usage
 
-The plugin id is `io.github.jvmspec`. The plugin is published on the Gradle Plugin Portal. In a consuming Gradle build:
+The plugin id is `io.github.jvmspec`. RC5 `publishPlugins` submission succeeded in workflow run
+[31262851841](https://github.com/mgiustiniani/javaspec/actions/runs/31262851841), but first-publication
+approval is still pending and the public marker currently returns HTTP 404.
+
+Until the marker resolves, use the included build demonstrated by `examples/gradle-basic` (adjust
+the relative path for the consuming repository):
 
 ```groovy
+// settings.gradle
+pluginManagement {
+    includeBuild('../javaspec-gradle-plugin')
+    repositories {
+        gradlePluginPortal()
+        mavenLocal()
+        mavenCentral()
+    }
+}
+```
+
+```groovy
+// build.gradle
 plugins {
     id 'java'
-    id 'io.github.jvmspec' version '1.0.0-RC5'
+    id 'io.github.jvmspec'
 }
 
 javaspec {
@@ -48,9 +67,18 @@ tasks.named('javaspecRun') {
 }
 ```
 
+After direct Portal verification succeeds, the included build can be removed and the plugin block
+can pin `id 'io.github.jvmspec' version '1.0.0-RC5'`. Do not use that remote form while the marker is
+unavailable.
+
 The plugin registers extension `javaspec` and task `javaspecRun` in Gradle's `verification` group. When the Gradle Java plugin/source sets are present, `javaspecRun` defaults to the `test` source set runtime classpath and depends on `testClasses`.
 
-Supported task/extension options include `skip`, `failOnFailure` (default `true`), `stopOnFailure`, `configFile`, `suite`, `specDir`/`specRoot`, class filters, example filters, formatter selection, JSON report aliases (`reportFile`, `jsonReportFile`), and JUnit XML-compatible report aliases (`junitXmlReportFile`, `junitXmlFile`). JSON and JUnit XML-compatible reports are produced by core writers and include Phase 18 stable id/source metadata plus Phase 22 pending statuses/counts where available.
+Supported task/extension options include `skip`, `failOnFailure` (default `true`), `stopOnFailure`,
+`configFile`, `suite`, `specDir`/`specRoot`, classpath, class filters, example filters, formatter,
+`bootstrapDiscovery`, `extensions`, opt-in `compile`/`compileOutput`, JSON report aliases
+(`reportFile`, `jsonReportFile`), and JUnit XML-compatible report aliases (`junitXmlReportFile`,
+`junitXmlFile`). JSON and JUnit XML-compatible reports are produced by core writers and include
+stable ids, source metadata, and pending statuses/counts where available.
 
 `javaspecRun` loads built-in formatters first and then discovers external formatter/extension providers through JDK `ServiceLoader` from the task run classloader. Provider jars can be on the configured task classpath, the extension classpath, or the default Java test runtime classpath when that default is active. Formatter selection precedence is task setting, extension setting, project property `javaspec.formatter`, config `formatter`, then default `progress`. Invalid formatter diagnostics list all discovered formatter names.
 

@@ -16,6 +16,8 @@ Use the 1.0 coordinates under `io.github.jvmspec`:
 ```
 
 Update imports to `io.github.jvmspec.*`. Historical package names are not part of the current API.
+Before migration runs from a source checkout, record `bin/javaspec --launcher-fingerprint` so the
+selected version, JAR path, and SHA-256 are explicit.
 
 ## Generated sources
 
@@ -64,8 +66,17 @@ execution; see `docs/example-data-contract-1.0.md`.
 ## Adapters
 
 Optional Maven, Gradle, JUnit Platform, bytecode-doubles, and bytecode-agent artifacts are standalone.
-Install or publish each artifact explicitly when using local snapshots. `scripts/verify-all.sh` and
+Install each explicitly when using a source checkout. RC5 Maven artifacts are available from Maven
+Central; the Gradle plugin id `io.github.jvmspec` is still awaiting first-publication approval, so
+use the included build until its public marker resolves. `scripts/verify-all.sh` and
 `scripts/verify-release-dry-run.sh` exercise the full artifact set.
+
+## Spec-driven migration slices
+
+The copyable [javaspec Spec-Driven Development Agent](agent/javaspec-guided-development-assistant.md)
+can migrate one externally meaningful domain behavior at a time. It establishes a green baseline,
+records meaningful RED, plans generation before writes, never edits generated support manually, and
+returns a structured handoff after focused verification.
 
 ## Custom matchers
 

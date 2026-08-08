@@ -25,7 +25,7 @@ Architecture decisions are recorded as ADRs in `docs/adr/`.
 - **[ADR 0012](../adr/0012-non-disruptive-aggregate-release-ci-verification.md)**: Non-disruptive
   aggregate release and CI verification
 - **[ADR 0013](../adr/0013-release-readiness-scaffolding-with-publication-blockers.md)**:
-  Release-readiness scaffolding with resolved metadata (publication completed)
+  Release-readiness scaffolding and publication gates
 - **[ADR 0014](../adr/0014-standalone-adoption-assets-and-default-examples-verification.md)**:
   Standalone adoption assets and default examples verification
 - **[ADR 0015](../adr/0015-explicit-skipped-and-pending-semantics.md)**: Explicit skipped and
@@ -50,6 +50,8 @@ Architecture decisions are recorded as ADRs in `docs/adr/`.
   Course correction for Gradle plugin test/example version mismatch
 - **[ADR 0026](../adr/0026-internal-language-seams-before-1.0.md)**: Internal language-neutral
   spec-frontend/production-backend seams before 1.0
+- **[ADR 0027](../adr/0027-standalone-bytecode-agent-adapter.md)**: Standalone bytecode-agent
+  adapter for final-class, static-method, and construction-aware doubles
 
 ## 9.1 Decision Coverage by Architecture Area
 
@@ -104,6 +106,8 @@ Architecture decisions are recorded as ADRs in `docs/adr/`.
 - **Phase 37 standalone optional bytecode doubles adapter**: ADR 0024, with Java 8 and
   zero-dependency policy also covered by ADR 0001 and ADR 0002 and doubles boundaries by ADR 0007
   and ADR 0021
+- **Standalone bytecode-agent adapter**: ADR 0027, with dependency isolation from ADR 0002 and
+  doubles boundaries from ADRs 0007, 0021, and 0024
 
 ## 9.2 Decision Notes and Boundaries
 
@@ -127,12 +131,10 @@ Architecture decisions are recorded as ADRs in `docs/adr/`.
   standalone adapter boundaries instead of converting the root build to mandatory Maven multi-module
   now.
 - ADR 0013 records the Phase 20 decision to add version alignment, changelog/releasing
-  documentation, the confirmed MIT `LICENSE`, MIT license metadata, confirmed maintainer/developer
-  metadata, safe metadata, and local source/javadoc artifact readiness while leaving GPG signing,
-  Central Portal publication, Gradle Plugin Portal publication/credentials, final release
-  version/tag, and final publish approval are resolved. Artifacts are published on Maven Central
-  and the Gradle Plugin Portal.
-  decisions are made.
+  documentation, confirmed MIT and maintainer metadata, safe publication metadata, and local
+  source/Javadoc readiness without confusing those checks with public availability. RC5 later
+  completed signed Maven publication and Gradle submission; first Portal marker approval remains
+  independently verified.
 - ADR 0014 records the Phase 21 decision to keep report schemas, golden reports, and
   Maven/Gradle/JUnit Platform examples as standalone adoption assets and to run examples by default
   from `scripts/verify-all.sh` with explicit opt-outs, without public publication or core runtime
@@ -171,13 +173,13 @@ Architecture decisions are recorded as ADRs in `docs/adr/`.
   config/schema/dependency-resolver/incremental-cache/source-level-release-management changes.
 - ADR 0023 records the maintainer-requested course correction to resolve deferred known limitations
   in Phases 30-36 while keeping public publication out of scope.
-- ADR 0024 records the maintainer decision to resolve concrete-class doubles with a standalone
-  optional ByteBuddy adapter instead of adding bytecode dependencies to core.
+- ADR 0024 records the maintainer decision to resolve non-final concrete-class doubles with a
+  standalone ByteBuddy subclass adapter instead of adding bytecode dependencies to core.
+- ADR 0027 records the separate opt-in instrumentation boundary for final-class, static-method, and
+  construction-aware doubles, including self-attach/`-javaagent`, scope cleanup, and target limits.
 - Package scanning, plugin lookup, script engines, automatic classpath repair, broader
-  compiler-grade profile checks, actual publishing/signing automation, final/static/constructor
-  doubles, new report formats/schema changes, and any future multi-module conversion remain future
-  work and require new or updated ADRs before implementation if they change the current architecture
-  boundaries.
+  compiler-grade profile checks, new incompatible report schemas, and any future multi-module
+  conversion remain future work and require new or updated ADRs before changing boundaries.
 - ADR 0011 fixes the current boundary that javaspec core remains canonical and no-JUnit execution
   stays first-class; ADR 0012 fixes the current release/CI boundary that root Maven verification
   remains core-only and aggregate verification is explicit; ADR 0013 fixes the current publication
@@ -214,8 +216,9 @@ Architecture decisions are recorded as ADRs in `docs/adr/`.
   `javax.tools.JavaCompiler` compilation before bootstrap/examples, while defaults, config, reports,
   dependency resolution, incremental caching, and source-level/release management remain unchanged.
 - ADR 0023 fixes the known-limitations resolution boundary: implementation may resolve previously
-  deferred items. Public publication is complete; artifacts are published on Maven Central and
-  the Gradle Plugin Portal.
-- ADR 0024 fixes the bytecode doubles boundary: non-final concrete-class doubles are optional and
-  standalone, ByteBuddy is isolated to `javaspec-bytecode-doubles`, and final/static/constructor
-  mocking remains unsupported.
+  deferred items. RC5 Maven publication is complete; Gradle first-publication approval and marker
+  resolution remain independently verified external gates.
+- ADR 0024 fixes the subclass doubles boundary: non-final concrete-class doubles are optional and
+  ByteBuddy remains isolated to `javaspec-bytecode-doubles`.
+- ADR 0027 fixes the agent doubles boundary: final/static/construction interception is optional,
+  scoped, instrumentation-dependent, and isolated to `javaspec-bytecode-agent`.

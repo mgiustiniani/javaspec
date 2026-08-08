@@ -119,9 +119,9 @@ moving dependency-heavy behavior into optional artifacts.
 
 ## Verification and release notes
 
-- Initial section 1 CLI manual pages are available under `docs/man/` in English, Italian, Spanish,
-  German, French, and Simplified Chinese. `scripts/check-man-pages.sh` validates UTF-8 roff rendering
-  and shared command-contract tokens.
+- Maintained user manuals and section 1 CLI pages are available in English, Italian, Spanish,
+  German, French, and Simplified Chinese. `scripts/check-usermanuals.sh` and
+  `scripts/check-man-pages.sh` validate UTF-8 content and shared command/launcher contract tokens.
 - Version alignment checks cover core, Maven plugin, Gradle plugin, JUnit Platform engine,
   `javaspec-bytecode-doubles`, and `javaspec-bytecode-agent`.
 - `scripts/verify-examples.sh` verifies Maven, Prophecy, bytecode-doubles, bytecode-agent,
@@ -132,7 +132,7 @@ moving dependency-heavy behavior into optional artifacts.
   executable or `JAVASPEC_SKIP_GRADLE=1` when verifying without Gradle.
 - `scripts/verify-release-dry-run.sh` packages and verifies core, Maven plugin, JUnit Platform
   engine, bytecode doubles, bytecode agent, and Gradle plugin artifacts, including source/Javadoc
-  jars, bytecode-agent manifest entries, SHA-256 checksums, a same-source reproducibility rebuild,
+  jars, bytecode-agent manifest entries, SHA-256 checksums, two clean-output reproducibility builds,
   and external consumer examples.
 - `scripts/check-release-preflight.sh` fails RC/final publication unless the release version, tag,
   and absence of `SNAPSHOT` build-file references are aligned.
@@ -143,8 +143,9 @@ moving dependency-heavy behavior into optional artifacts.
   API use.
 - `scripts/check-core-java8-bytecode.sh` verifies core classfiles stay at Java 8-compatible major
   version 52.
-- 1.0 documentation includes compatibility policy, Java compatibility matrix, migration guide,
-  JUnit-to-javaspec guide, Cucumber/Gherkin boundary, and troubleshooting pages.
+- 1.0 documentation includes a current index, compatibility policy, Java compatibility matrix,
+  migration guide, JUnit-to-javaspec guide, Cucumber/Gherkin boundary, troubleshooting, local-link
+  validation, multilingual manuals, and a copyable semantic-slice spec-driven development agent.
 - RC1 evidence passed with aligned `1.0.0-RC1` artifacts, no build-file `SNAPSHOT` references,
   release dry-run consumers, checksums, a deterministic archived API inventory, and the Java
   8/11/17/21/25 matrix plus full Java 21 verification. The latest full branch run is

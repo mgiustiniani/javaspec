@@ -3,10 +3,10 @@
 ## 7.1 Runtime Artifact
 
 javaspec core is packaged as a Maven-built Java artifact with CLI main class
-`io.github.jvmspec.cli.Main`. The current repository build produces `target/javaspec-1.0.0-RC1.jar`.
+`io.github.jvmspec.cli.Main`. The current repository build produces `target/javaspec-1.0.0-RC5.jar`.
 
 Phase 15 also provides a standalone optional Maven plugin artifact at `javaspec-maven-plugin/`,
-packaging `io.github.jvmspec:javaspec-maven-plugin:1.0.0-RC1` as `maven-plugin`. It is intentionally
+packaging `io.github.jvmspec:javaspec-maven-plugin:1.0.0-RC5` as `maven-plugin`. It is intentionally
 not registered as a root module so repository-root verification continues to build and audit only
 the core artifact.
 
@@ -16,13 +16,17 @@ outside the core artifact.
 
 Phase 17 provides a standalone optional JUnit Platform engine artifact at
 `javaspec-junit-platform-engine/`, packaging
-`io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-RC1` as a Java 8-compatible `jar` with
+`io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-RC5` as a Java 8-compatible `jar` with
 engine id `javaspec`. It is intentionally not registered as a root Maven module and remains outside
 the core artifact.
 
 Phase 37 provides a standalone optional bytecode doubles adapter at `javaspec-bytecode-doubles/`,
-packaging `io.github.jvmspec:javaspec-bytecode-doubles:1.0.0-RC1`. It is intentionally outside the
+packaging `io.github.jvmspec:javaspec-bytecode-doubles:1.0.0-RC5`. It is intentionally outside the
 root Maven reactor and carries ByteBuddy 1.14.18 only in the adapter artifact.
+
+ADR 0027 provides `io.github.jvmspec:javaspec-bytecode-agent:1.0.0-RC5` as a second standalone
+optional adapter. Its JAR carries ByteBuddy, ByteBuddy Agent, `Premain-Class`/`Agent-Class`, and
+class redefinition/retransformation manifest capabilities without changing core.
 
 Phase 19 adds deployment-time verification assets: executable `scripts/verify-all.sh` for aggregate
 local release verification and `.github/workflows/ci.yml` for GitHub Actions. Phase 20 adds
@@ -73,8 +77,9 @@ The core runtime artifact is intentionally small:
   already-compiled specs, select built-in or ServiceLoader-discovered formatter names, inspect
   execution-availability diagnostics when compiled classes or dependencies are unavailable, write
   JSON or JUnit XML-compatible reports with stable ids, pending counts, and source metadata where
-  available when requested by CLI or config destinations, inspect standalone adoption examples, and
-  optionally add `javaspec-bytecode-doubles` for non-final concrete-class doubles.
+  available when requested by CLI or config destinations, inspect standalone adoption examples,
+  optionally add `javaspec-bytecode-doubles` for non-final concrete-class doubles, or explicitly add
+  `javaspec-bytecode-agent` for instrumented final/static/construction scenarios.
 - **Build tool or IDE classpath**: Supplies compiled production/spec classes to the reflection
   runner through the process classpath, explicit CLI classpath entries, optional Maven plugin test
   classpath integration, optional Gradle plugin test source set runtime classpath integration,
@@ -83,8 +88,8 @@ The core runtime artifact is intentionally small:
   formatter/extension providers. Default runs remain classpath-based; CLI/programmatic/Maven/Gradle
   entry points can explicitly opt into current-JDK compilation before bootstrap/examples, and Phase
   23 diagnostics report when discovered specs/examples are unavailable to the supplied classloader.
-- **CI pipeline**: Runs root `mvn verify`, dependency audits, optional standalone Maven/Gradle/JUnit
-  Platform engine verification, `scripts/check-version-alignment.sh`, `scripts/verify-all.sh`,
+- **CI pipeline**: Runs root `mvn verify`, dependency audits, optional standalone
+  Maven/Gradle/JUnit Platform/bytecode adapter verification, `scripts/check-version-alignment.sh`, `scripts/verify-all.sh`,
   `scripts/verify-examples.sh`, optional local source/javadoc artifact checks, optional `javaspec
   run --dry-run`, optional explicit classpath runs, optional CLI/programmatic/Maven/Gradle
   source/spec compilation on a JDK, optional `javaspec run --report <file>` / `--junit-xml <file>`
@@ -129,12 +134,11 @@ Standalone examples verification can also be run directly:
 scripts/verify-examples.sh
 ```
 
-`scripts/check-version-alignment.sh` checks root Maven, standalone Maven plugin, standalone JUnit
-Platform engine, Gradle plugin `version`, and Gradle plugin `javaspecCoreVersion` alignment.
-`scripts/verify-all.sh` runs version alignment first, then runs root verify/audit, installs the
-current core snapshot, verifies and audits the standalone Maven plugin, verifies and audits the
-standalone JUnit Platform engine, verifies and audits the standalone bytecode doubles adapter,
-verifies/audits the standalone Gradle plugin, and runs standalone examples verification by default.
+`scripts/check-version-alignment.sh` checks root Maven, Maven plugin, JUnit Platform engine,
+bytecode doubles, bytecode agent, Gradle plugin `version`, and Gradle `javaspecCoreVersion` alignment.
+`scripts/verify-all.sh` runs version alignment first, then root verify/audit, installs core, verifies
+and audits every standalone Maven adapter including both bytecode modules, verifies/audits the
+Gradle plugin, and runs standalone examples by default.
 It supports `MAVEN_BIN`, `JAVASPEC_GRADLE_BIN`, explicit `JAVASPEC_SKIP_GRADLE=1`, and explicit
 `JAVASPEC_SKIP_EXAMPLES=1`; `scripts/verify-examples.sh` also supports
 `JAVASPEC_SKIP_GRADLE_EXAMPLE=1`. Gradle resolution order is explicit `JAVASPEC_GRADLE_BIN`,
@@ -176,6 +180,15 @@ mvn -q -f javaspec-bytecode-doubles/pom.xml verify
 mvn -f javaspec-bytecode-doubles/pom.xml dependency:tree -Dscope=runtime
 ```
 
+Standalone bytecode-agent verification additionally checks the instrumented adapter and its
+ByteBuddy/ByteBuddy Agent isolation:
+
+```sh
+mvn -q -DskipTests install
+mvn -q -f javaspec-bytecode-agent/pom.xml verify
+mvn -f javaspec-bytecode-agent/pom.xml dependency:tree -Dscope=runtime
+```
+
 Optional local source/javadoc artifact checks are packaging checks only and do not sign, stage,
 deploy, or publish:
 
@@ -183,6 +196,8 @@ deploy, or publish:
 mvn -q -Prelease-artifacts -DskipTests package
 mvn -q -f javaspec-maven-plugin/pom.xml -Prelease-artifacts -DskipTests package
 mvn -q -f javaspec-junit-platform-engine/pom.xml -Prelease-artifacts -DskipTests package
+mvn -q -f javaspec-bytecode-doubles/pom.xml -Prelease-artifacts -DskipTests package
+mvn -q -f javaspec-bytecode-agent/pom.xml -Prelease-artifacts -DskipTests package
 gradle -p javaspec-gradle-plugin clean test build
 ```
 
@@ -286,18 +301,17 @@ API and plugin annotations are `provided`, JUnit is only a plugin test dependenc
 runtime tree contains the plugin plus compile-scope core `io.github.jvmspec:javaspec` only. The Phase 16
 Gradle plugin also remains outside the core runtime as a standalone optional artifact: JUnit/TestKit
 are only plugin test dependencies, and the verified Gradle runtimeClasspath contains only core
-`io.github.jvmspec:javaspec:1.0.0-RC1`. The Phase 17 JUnit Platform engine remains outside the core
+`io.github.jvmspec:javaspec:1.0.0-RC5`. The Phase 17 JUnit Platform engine remains outside the core
 runtime as a standalone optional artifact: its runtime dependencies are core
 `io.github.jvmspec:javaspec`, `org.junit.platform:junit-platform-engine`, `opentest4j`,
 `junit-platform-commons`, and `apiguardian-api`, with no runtime `junit-jupiter`,
 `junit-platform-launcher`, or `junit-platform-testkit`. Projects that do not opt into the engine
-keep no-JUnit execution paths and no JUnit dependency. The Phase 37 bytecode doubles adapter remains
-outside the core runtime as a standalone optional artifact: its runtime dependencies are core
-`io.github.jvmspec:javaspec` plus `net.bytebuddy:byte-buddy:1.14.18`, isolated to tests/projects that opt
-into concrete-class doubles.
+keep no-JUnit execution paths and no JUnit dependency. The bytecode doubles adapter remains outside
+core with core plus `net.bytebuddy:byte-buddy:1.14.18`; the bytecode agent additionally carries
+`net.bytebuddy:byte-buddy-agent:1.14.18`. Both dependency sets remain isolated to opting-in tests.
 
-The MIT `LICENSE` and confirmed maintainer metadata are available, but public publication remains
-resolved. Artifacts are published on Maven Central under `io.github.jvmspec`. The Gradle plugin is
-published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. The
-current release-readiness profiles and Gradle publishing metadata are local readiness scaffolding
-only, not deployment automation.
+The MIT `LICENSE` and confirmed maintainer metadata are available. RC5 Maven artifacts are
+published under `io.github.jvmspec`; Gradle plugin id `io.github.jvmspec` was submitted but still
+awaits first-publication approval and marker availability. The release workflow now performs Maven
+Central deployment and Gradle submission; local release profiles and dry runs remain verification
+scaffolding rather than publication evidence.

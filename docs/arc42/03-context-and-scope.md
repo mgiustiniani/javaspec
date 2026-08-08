@@ -36,14 +36,14 @@ External actors and systems:
 - **CI system**: Runs specs, supplies compiled classpaths when needed, consumes exit codes or
   optional JUnit Platform events, may collect JSON and/or JUnit XML-compatible runner reports with
   stable ids/source metadata and pending counts where available, and can run the configured Java
-  8/11/17/21/25 core matrix plus Java 21 aggregate verification workflow. After Phase 20/21/22 were
-  pushed, remote GitHub Actions success for HEAD `5088e96` on `develop` is
-  user-/maintainer-confirmed; no run IDs, URLs, durations, or logs were independently queried.
+  8/11/17/21/25 core matrix plus Java 21 aggregate verification workflow. RC5 tag CI
+  `31262851868` and post-fix develop CI `31266369017` passed all configured jobs; source-bound
+  details remain in the release evidence.
 - **Host launcher or build-tool adapter**: Can call `io.github.jvmspec.invocation` without `System.exit`,
   provide a classloader, and inspect structured invocation results.
 - **New adopter / report tooling author**: Can inspect standalone examples under `examples/`, the
   schema `docs/schemas/run-report-v1.schema.json`, and golden reports under `docs/examples/reports/`
-  before public artifacts are published.
+  alongside published Maven artifacts and the locally included Gradle plugin build.
 - **Optional extensions**: May register behavior programmatically, may be activated by config keys,
   and may be discovered through JDK `ServiceLoader` where the entry point supports it.
 - **Test dependencies**: Used only by the javaspec project test suite and never required by runtime
@@ -60,14 +60,16 @@ In scope for the planned product:
 - Example lifecycle, subject construction, and explicit skipped/pending semantics.
 - Expectations and matchers.
 - Zero-dependency interface doubles through JDK dynamic proxies, including matcher-aware argument
-  constraints, throwing stubs, and answer callbacks while remaining interface-only in core; optional
-  non-final concrete-class doubles through `javaspec-bytecode-doubles`.
+  constraints, throwing stubs, and answer callbacks while remaining interface-only in core;
+  optional non-final concrete-class doubles through `javaspec-bytecode-doubles`; and optional
+  final-class, static-method, and construction-aware doubles through `javaspec-bytecode-agent`.
 - Code generation prompts and templates.
 - Built-in progress/pretty reporting, ServiceLoader-discovered external run formatter reporting for
   CLI/Gradle runs, optional JSON and JUnit XML-compatible runner reports, stable identifiers/source
   metadata where available, separate pending counts, and stable exit codes.
 - Programmatic no-`System.exit` invocation and programmatic extension contracts.
-- Standalone optional Maven, Gradle, and JUnit Platform adapters over the canonical runner.
+- Standalone optional Maven, Gradle, JUnit Platform, bytecode-doubles, and bytecode-agent adapters
+  over the canonical core boundaries.
 - Non-disruptive aggregate release/CI verification through `scripts/verify-all.sh` and
   `.github/workflows/ci.yml`.
 - Release-readiness scaffolding through `scripts/check-version-alignment.sh`, `CHANGELOG.md`,
@@ -135,7 +137,8 @@ examples, and Phase 33 added ServiceLoader hook providers after explicit hooks, 
 compatibility, zero runtime dependencies, no script engines, no package scanning, and no dependency
 resolution. Phase 28 strengthened `io.github.jvmspec.doubles` while preserving interface-only JDK proxy
 behavior and zero runtime dependencies. Phase 37 added optional ByteBuddy concrete doubles in a
-standalone artifact. Phase 29 added CLI-only opt-in source/spec compilation through the current JDK
+standalone artifact. ADR 0027 later added the separate instrumentation adapter for final-class,
+static-method, and construction-aware doubles. Phase 29 added CLI-only opt-in source/spec compilation through the current JDK
 `javax.tools.JavaCompiler`; Phase 34 extended equivalent opt-in compilation to programmatic, Maven,
 and Gradle paths while preserving defaults and avoiding dependency resolution, incremental caches,
 forked `javac`, and source-level/release management. Phase 19 remote GitHub Actions success is

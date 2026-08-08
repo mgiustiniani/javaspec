@@ -57,13 +57,14 @@ Current risks and mitigations:
     be compiled by Java 8 projects.
   - Mitigation / next action: Document minimum source levels and rely on target project/JDK profile
     choices.
-- **Doubles are split between core and optional adapter**
-  - Current impact: Core doubles remain interface-only JDK proxies. The optional bytecode adapter
-    supports non-final concrete classes only and rejects
-    final/static/constructor/enum/array/annotation/primitive/interface cases.
-  - Mitigation / next action: Preserve the zero-dependency JDK-proxy core; keep ByteBuddy isolated
-    in `javaspec-bytecode-doubles`; require a future ADR for final/static/constructor or broader
-    bytecode behavior.
+- **Doubles are split across core and two optional bytecode adapters**
+  - Current impact: Core remains interface-only JDK proxies. `javaspec-bytecode-doubles` subclasses
+    non-final classes; `javaspec-bytecode-agent` instruments final instances, static methods, and
+    construction scopes. Agent instrumentation is process-global, may require `-javaagent`, and can
+    introduce scope interference in parallel tests.
+  - Mitigation / next action: Preserve the zero-dependency core, keep each ByteBuddy dependency
+    isolated, require test-scoped adoption, close every static/construction handle, avoid overlapping
+    scopes for one type, and retain non-instrumented interface design as the default.
 - **Dry-run planning synchronization**
   - Current impact: Every new generation/update feature must also be represented in dry-run output.
   - Mitigation / next action: Treat dry-run coverage as an acceptance criterion for future
@@ -227,9 +228,9 @@ Current risks and mitigations:
   schemas/content, dependency resolution, incremental caches, forked `javac`, source-level/release
   management, and core runtime dependencies unchanged.
 - **Bytecode doubles availability**: Phase 37 implemented `ConcreteDoubleProvider`,
-  `Doubles.concreteDouble` / `classDouble`, the standalone `javaspec-bytecode-doubles` ByteBuddy
-  adapter, and `examples/bytecode-doubles-basic/`, while preserving the zero-runtime-dependency core
-  and rejecting final/static/constructor/unsupported target cases.
+  `Doubles.concreteDouble` / `classDouble`, the standalone subclass adapter, and its consumer example.
+  ADR 0027 later added isolated agent-backed final-instance, static, and construction scopes plus
+  `examples/bytecode-agent-basic/`, while preserving the zero-runtime-dependency core.
 
 ## 11.2 Highest-Priority Future Corrections
 
@@ -252,6 +253,6 @@ Current risks and mitigations:
    boundaries (documented) — subsequent work can build on these resolved boundaries.
 5. Keep report schema/golden examples, standalone examples, pending/skipped semantics, and
    verification assertions synchronized with future report or adapter behavior changes.
-6. Resolve GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials,
-   final release version/tag, and final publish approval before designing or claiming public
-   publication; keep the confirmed MIT license and maintainer metadata consistent.
+6. Preserve verified GPG/Maven publication and maintainer metadata; close Gradle first-publication
+   approval, qualify the final candidate, and verify each public endpoint before claiming stable
+   availability.

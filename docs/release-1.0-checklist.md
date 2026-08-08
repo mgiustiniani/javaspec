@@ -177,10 +177,16 @@ Evidence:
 
 - [x] README matches 1.0 capabilities and version.
 - [x] User manual matches README and capabilities.
+- [x] English, Italian, Spanish, German, French, and Simplified Chinese user manuals and man pages
+  share guarded command, launcher, release-status, safety, and exit-code contracts.
+- [x] Copyable spec-driven development agent aligns semantic admission, meaningful RED, safe
+  generation, coherent GREEN, typed stops, and structured handoff.
+- [x] Local Markdown links resolve through `scripts/check-doc-links.sh`.
 - [x] CLI reference current.
 - [x] Configuration reference current.
 - [x] Matcher reference current.
 - [x] Prophecy/doubles reference current.
+- [x] ARC42 and ADR 0027 document the standalone bytecode-agent instrumentation boundary.
 - [x] Generation safety guide present.
 - [x] Maven guide current.
 - [x] Gradle guide current.

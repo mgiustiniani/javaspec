@@ -1,5 +1,12 @@
 # Troubleshooting — 1.0
 
+## The launcher selects an unexpected JAR
+
+Run `bin/javaspec --launcher-fingerprint`. The repository launcher prefers the POM-aligned artifact
+in `~/.m2/repository` and falls back to `target/`. Reinstall the intended checkout with
+`mvn -q -DskipTests install`, then verify the version, selected path, and SHA-256 again. Do not infer
+the executed binary from a source commit alone.
+
 ## Specs are discovered but skipped as non-loadable
 
 The CLI/JUnit Platform adapter can discover source files that are not present as compiled classes on
@@ -51,6 +58,27 @@ set `javaspec.specRoot` when source discovery uses a non-default directory.
 
 That is expected. Example-data rows execute inline in the owning example. JUnit Platform row selectors
 filter descriptors/events but do not isolate per-row execution.
+
+## Report writing fails with `No such file or directory`
+
+Create the destination's parent directory before requesting a JSON or JUnit XML report:
+
+```sh
+mkdir -p target/javaspec
+bin/javaspec run --report target/javaspec/run-report.json \
+  --junit-xml target/javaspec/junit.xml
+```
+
+Report writers fail with exit `70` and include the destination path when a parent directory is
+missing or unwritable. `--generation-report` uses the atomic generation-report path and may create
+its parent independently; do not rely on its later write to prepare an earlier run-report path.
+
+## Gradle plugin marker returns 404
+
+RC5 was submitted under plugin id `io.github.jvmspec`, but first publication requires Portal review.
+Until the marker resolves, use the included plugin build in `examples/gradle-basic/settings.gradle`
+or a local publication. A successful `publishPlugins` task proves submission, not public marker
+availability.
 
 ## Core dependency audit shows third-party runtime dependencies
 

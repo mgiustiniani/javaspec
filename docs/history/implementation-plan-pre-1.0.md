@@ -3,11 +3,13 @@
 This plan defines the initial delivery path for javaspec, a Java 8-compatible,
 zero-runtime-dependency Java port inspired by phpspec.
 
-## Current Implementation Status — 0.1.0 Published, 0.1.0-SNAPSHOT Functional-Limit Roadmap Active
+## Archived implementation status — 0.1.0 Maven publication and snapshot roadmap
 
-The original implementation roadmap (A-E, D2, Phases 2 through 37, and publication) is complete.
-Artifacts for `0.1.0` are published on Maven Central under `io.github.jvmspec`, and the Gradle
-plugin is published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`.
+This file preserves the original phased plan; [`../release-1.0-checklist.md`](../release-1.0-checklist.md)
+now owns current status. The original implementation roadmap (A-E, D2, and Phases 2 through 37) was
+completed, and `0.1.0` Maven artifacts were published under `io.github.jvmspec`. Historical claims
+that the Gradle plugin was already public were incorrect: plugin id `io.github.jvmspec` was prepared,
+but its public marker was not verified.
 
 Development has resumed on `0.1.0-SNAPSHOT` to address the remaining functional limitations without
 breaking the core constraints: Java 8 compatibility, zero runtime dependencies in the core artifact,
@@ -683,8 +685,8 @@ is installed, causing test failures and example verification failures.
   - `scripts/verify-all.sh` includes standalone examples by default, with explicit opt-outs through
     `JAVASPEC_SKIP_EXAMPLES=1`, `JAVASPEC_SKIP_GRADLE_EXAMPLE=1`, or
     `JAVASPEC_SKIP_BYTECODE_DOUBLES_EXAMPLE=1`.
-  - Artifacts are published on Maven Central under `io.github.jvmspec`. The Gradle plugin is
-    published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`.
+  - Maven artifacts are published under `io.github.jvmspec`. Gradle plugin id
+    `io.github.jvmspec` was prepared, but public Portal marker availability was not verified.
   - Target-profile enforcement is conservative and source/generation-scoped rather than
     compiler-grade integrated compilation.
   - ServiceLoader formatter/extension and bootstrap discovery are classpath-based; package scanning,
@@ -1585,9 +1587,9 @@ should be delegated as follows by the parent workflow:
   `scripts/verify-examples.sh` directly or through the default `scripts/verify-all.sh` examples
   section unless `JAVASPEC_SKIP_EXAMPLES=1` is explicitly selected, and use
   `JAVASPEC_SKIP_GRADLE_EXAMPLE=1` only when skipping the Gradle example is intentional.
-- Artifacts are published on Maven Central under `io.github.jvmspec`. The Gradle plugin is
-  published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. The MIT license and
-  maintainer metadata are resolved.
+- Maven artifacts are published under `io.github.jvmspec`. Gradle plugin id `io.github.jvmspec`
+  was prepared without verified public marker availability. The MIT license and maintainer metadata
+  are resolved.
 - Keep the javaspec core runner canonical; CLI, Maven, Gradle, and JUnit Platform entry points must
   be adapters over core discovery, execution, result, formatter, and report semantics.
 - Keep no-JUnit execution first-class, including CLI usage and future build-tool adapters; never
@@ -2296,7 +2298,7 @@ Acceptance criteria status:
 **Owner:** Java tester/quality agents.
 
 **Status:** Completed and verified on 2026-06-03 through Distrobox `1.8.2.5` with Podman `5.8.2`.
-See [`docs/test-report.md`](docs/test-report.md) for the consolidated quality matrix.
+See [`docs/test-report.md`](../test-report.md) for the consolidated quality matrix.
 
 Verification summary:
 
@@ -2376,7 +2378,7 @@ Tasks:
 1. Extend ARC42 sections 5-12 after implementation architecture stabilizes.
 2. Add ADRs for major design choices made during implementation.
 3. Maintain and extend integrated test and quality reports produced by tester agents; Phase 12 is
-   captured in [`docs/test-report.md`](docs/test-report.md).
+   captured in [`docs/test-report.md`](../test-report.md).
 4. Keep `docs/usermanual/Home.md` and `docs/usermanual/_Sidebar.md` synchronized after
    implementation begins.
 5. Add user guide and migration notes from PHPSpec concepts to Java concepts.
@@ -2889,9 +2891,9 @@ Acceptance criteria status:
 - Version alignment is an explicit release and aggregate-verification gate.
 - Source and javadoc jar readiness is locally verified for the root artifact and standalone
   adapters.
-- Artifacts are published on Maven Central under `io.github.jvmspec`. The Gradle plugin is
-  published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. MIT license and
-  maintainer metadata are resolved.
+- Maven artifacts are published under `io.github.jvmspec`. Gradle plugin id `io.github.jvmspec`
+  was prepared without verified public marker availability. MIT license and maintainer metadata are
+  resolved.
 - Phase 20 local verification is now supplemented by user-/maintainer-confirmed remote GitHub
   Actions success for HEAD `5088e96` on `develop` after Phase 20/21/22 were pushed; no GitHub run
   IDs, URLs, durations, or logs were independently queried from this environment.
@@ -2985,8 +2987,8 @@ Acceptance criteria status:
 - Phase 21 local verification is now supplemented by user-/maintainer-confirmed remote GitHub
   Actions success for HEAD `5088e96` on `develop` after Phase 20/21/22 were pushed; no GitHub run
   IDs, URLs, durations, or logs were independently queried from this environment.
-- Artifacts are published on Maven Central under `io.github.jvmspec`. The Gradle plugin is
-  published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`.
+- Maven artifacts are published under `io.github.jvmspec`. Gradle plugin id `io.github.jvmspec`
+  was prepared without verified public marker availability.
 
 ### Phase 22 — Explicit Skipped and Pending Semantics (Completed Increment)
 
@@ -3378,7 +3380,7 @@ Acceptance criteria status:
 
 ## Known-Limitations Resolution Program (Phases 30-37)
 
-**Relevant ADRs:** ADR 0023. [ADR 0023](docs/adr/0023-course-correction-resolve-deferred-known-limitations.md) records the course
+**Relevant ADRs:** ADR 0023. [ADR 0023](../adr/0023-course-correction-resolve-deferred-known-limitations.md) records the course
 correction: the maintainer requires that the documented README known limitations be resolved,
 replacing the previous intentional scope fences from Phases 25, 27, 28, and 29 and the ADR 0009
 sealed-interface update deferral with a phased resolution program.
@@ -3398,9 +3400,8 @@ Program-wide gates, valid for every phase below:
 
 Public publication is explicitly excluded from Phases 30-37, as recorded in ADR 0023:
 
-- **Public publication is complete** — Artifacts are published on Maven Central under
-  `io.github.jvmspec`. The Gradle plugin is published on the Gradle Plugin Portal with plugin id
-  `io.github.jvmspec`.
+- **Maven publication is complete** — Artifacts are published under `io.github.jvmspec`. Gradle
+  plugin id `io.github.jvmspec` was prepared, but public marker availability was not verified.
 
 Concrete-class doubles are no longer excluded from the resolution program: the maintainer selected
 the standalone optional bytecode adapter artifact (ADR 0024), implemented as Phase 37 while
@@ -3566,7 +3567,7 @@ workflow.
 
 **Status:** Completed.
 
-**Relevant ADRs:** ADR 0024, ADR 0007, ADR 0021, ADR 0002, ADR 0011. [ADR 0024](docs/adr/0024-standalone-optional-bytecode-doubles-adapter.md) records the maintainer decision
+**Relevant ADRs:** ADR 0024, ADR 0007, ADR 0021, ADR 0002, ADR 0011. [ADR 0024](../adr/0024-standalone-optional-bytecode-doubles-adapter.md) records the maintainer decision
 (option c) that resolves exclusion (b) of ADR 0023.
 
 Planned scope:
@@ -3590,9 +3591,9 @@ Acceptance criteria:
 ### Finalization Documentation Pass (Completed)
 
 This finalization pass synchronized README, CHANGELOG, examples documentation, user manual
-navigation, ARC42 sections, PLAN, and the test report after Phase 37. Artifacts are published on
-Maven Central under `io.github.jvmspec`. The Gradle plugin is published on the Gradle Plugin Portal
-with plugin id `io.github.jvmspec`.
+navigation, ARC42 sections, PLAN, and the test report after Phase 37. Maven artifacts are published
+under `io.github.jvmspec`; the Gradle plugin id was prepared, but this checkpoint did not verify a
+public Portal marker.
 
 ---
 

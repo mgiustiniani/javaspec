@@ -3,12 +3,14 @@
 These examples are standalone consumer projects. They are not root Maven modules and are not part of
 the repository-root Maven reactor.
 
-Artifacts are published on Maven Central under `io.github.jvmspec`. For development from source,
-install local snapshots before running the Maven, JUnit Platform, bytecode doubles, and bytecode
-agent examples.
+RC5 Maven artifacts are published on Maven Central under `io.github.jvmspec`. For development from
+source, install local snapshots before running the Maven, JUnit Platform, bytecode doubles, and
+bytecode agent examples. Record `bin/javaspec --launcher-fingerprint` when the selected core artifact
+must be source-bound.
 
-The Gradle example uses an included build for `javaspec-gradle-plugin`, but that plugin build still
-resolves the core `io.github.jvmspec:javaspec` from Maven local for snapshot builds.
+The Gradle example uses an included build for `javaspec-gradle-plugin` because RC5 first-publication
+approval and marker availability are still pending. That plugin build resolves core
+`io.github.jvmspec:javaspec` from Maven local for source-checkout verification.
 
 The easiest local check is:
 

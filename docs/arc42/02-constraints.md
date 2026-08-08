@@ -45,11 +45,12 @@
   testing agents.
 - Architectural decisions must be documented as ADRs when made.
 - Legal/product release metadata must not be invented. The MIT license and maintainer `Mario
-  Giustiniani <mariogiustiniani@gmail.com>` are confirmed; artifacts are published on Maven Central
-  under `io.github.jvmspec`
-  until GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials, final
-  release version/tag, and final publish approval are resolved.
-- Generated documentation must be written in English.
+  Giustiniani <mariogiustiniani@gmail.com>` are confirmed. RC5 Maven artifacts are published under
+  `io.github.jvmspec`; Gradle first-publication approval and the final stable version/tag remain
+  external release gates.
+- Canonical code comments, contracts, architecture, and long-form reference documentation are
+  written in English. Explicitly maintained user-manual and man-page translations may be localized
+  when they retain guarded command and behavior tokens.
 
 ## 2.3 Design Constraints
 
@@ -57,10 +58,11 @@
   logging frameworks, dependency injection containers, or bytecode-generation libraries.
 - Advanced features that normally require third-party dependencies must be implemented using JDK
   APIs, exposed as optional extensions/adapters outside the core runtime, or deferred.
-- Core doubles are ordinary interface-only JDK dynamic proxies; Phase 28 adds explicit argument
-  matchers, throwing stubs, and answer callbacks. Phase 37 permits non-final concrete-class doubles
-  only through the standalone optional bytecode adapter. Final class doubles, static doubles,
-  constructor doubles, and default-interface-method invocation remain unsupported.
+- Core doubles are ordinary interface-only JDK dynamic proxies with argument matchers, throwing
+  stubs, answer callbacks, and default-interface-method invocation. Non-final concrete classes use
+  the standalone `javaspec-bytecode-doubles` subclass adapter. Final-class, static-method, and
+  construction-aware doubles use the standalone `javaspec-bytecode-agent` instrumentation adapter.
+  Neither optional ByteBuddy dependency may enter core.
 - Reflection must be isolated behind compatibility boundaries to avoid accidental linkage to newer
   JDK APIs.
 - Configuration bootstrap hooks are executable class names for `run`, not metadata-only values:
@@ -88,9 +90,9 @@
   clearly.
 - Aggregate release verification must use explicit scripts/CI workflow configuration rather than
   changing the root Maven reactor unless a future ADR decides otherwise.
-- Release-readiness scaffolding must stay local and non-publishing until explicit owner decisions
-  provide GPG signing, Central Portal publication, Gradle Plugin Portal publication/credentials,
-  final release version/tag, and final publish approval.
+- Local dry runs and packaging checks must remain non-publishing. Tag workflows may publish only
+  after version/tag, signing, credentials, and qualification gates pass. Maven deployment, Gradle
+  submission, and public Gradle marker availability are separate evidence states.
 - Standalone examples and report schema/golden docs are adoption assets only; they must not be
   treated as root build modules, public publication, deployment, signing, or remote CI proof.
 - Explicit skipped/pending semantics must preserve the zero-runtime-dependency core and Java 8

@@ -1,5 +1,29 @@
 # Test and Quality Report
 
+This file is an append-only historical verification record. Current release authority is
+[`release-1.0-rc-evidence.md`](release-1.0-rc-evidence.md); older phase publication assumptions and
+version-specific counts below describe their original checkpoints and must not be read as current
+availability.
+
+## RC5 publication and post-publication qualification overlay
+
+Date: 2026-08-08
+
+- Immutable `v1.0.0-RC5` points to production merge `ae9291f`.
+- Tag CI `31262851868` and release workflow `31262851841` passed.
+- Five Maven modules, 20 signed POM/main/source/Javadoc files, and five empty-cache consumers were
+  verified directly from Maven Central.
+- Published-artifact Java 21 dogfooding passed CLI generation twice, second run `NO_CHANGES`, and
+  Maven domain verification at 4/4 with zero pending and no source mutation.
+- RC5 publisher replay matched 14/15 Maven archives and isolated the difference to implicit labels
+  in core Javadoc `index-all.html`.
+- Develop commit `67db10c` makes the labels explicit and rebuilds both checksum passes from clean
+  outputs. Independent worktrees then reproduced 18/18 archives; Java 21 core passed 884/884 and the
+  API baseline remained unchanged.
+- Post-fix CI `31266369017` passed all six jobs with zero annotations.
+- Gradle plugin submission succeeded, but first-publication approval and marker visibility remain
+  pending. A successful submission is not public Portal availability.
+
 ## Post-RC4 constructor-safe restructuring verification
 
 Date: 2026-07-13
@@ -238,8 +262,9 @@ Final verification summary:
 - Bytecode adapter runtime tree includes adapter + core + `net.bytebuddy:byte-buddy:jar:1.14.18`.
 - Gradle `runtimeClasspath` remains only `io.github.jvmspec:javaspec:0.1.0-SNAPSHOT`.
 
-No blockers were reported. Artifacts are published on Maven Central under `io.github.jvmspec`.
-The Gradle plugin is published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`.
+No blockers were reported for the local verification scope. Maven artifacts were available under
+`io.github.jvmspec`; the later RC5 overlay above records authoritative publication evidence. The
+Gradle plugin metadata used id `io.github.jvmspec`, but public Portal availability was not proven.
 
 ## Phase 37 verification update
 
@@ -1154,9 +1179,8 @@ JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-all.sh
   unique IDs/descriptors.
 - Remote GitHub Actions success for HEAD `5088e96` on `develop` is user-/maintainer-confirmed after
   the Phase 20/21/22 push; no run IDs, URLs, durations, or logs were independently queried here.
-- Public publishing is complete. Artifacts are published on Maven Central under
-  `io.github.jvmspec`. The Gradle plugin is published on the Gradle Plugin Portal with plugin id
-  `io.github.jvmspec`.
+- Maven artifacts are available under `io.github.jvmspec`. This checkpoint did not independently
+  prove Gradle Plugin Portal marker availability; consult the current overlay above.
 
 ## Phase 22 dependency summary
 
@@ -2166,10 +2190,10 @@ verification passed locally. After Phase 20/21/22 were pushed, the user/maintain
 GitHub Actions success for HEAD `5088e96` on `develop`; no GitHub run IDs, URLs, durations, or logs
 were independently queried here. The workflow scope remains `.github/workflows/ci.yml`: a Java
 8/11/17/21/25 core matrix and Java 21 full verification through `scripts/verify-all.sh`, including
-examples by default unless explicitly skipped. Artifacts are published on Maven Central under `io.github.jvmspec`. The Gradle plugin is
-published on the Gradle Plugin Portal with plugin id `io.github.jvmspec`. GPG signing, Central
-Portal publication, Gradle Plugin Portal publication/credentials, and final release version/tag Phase 19 verification is complete for the
-post-roadmap release/CI hardening increment: script syntax/executable validation, local GitHub
+examples by default unless explicitly skipped. The current overlay above records later RC5 Maven
+Central publication, signature verification, and the still-pending Gradle first-publication marker.
+
+Phase 19 verification is complete for the post-roadmap release/CI hardening increment: script syntax/executable validation, local GitHub
 Actions YAML parse, whitespace checks, and full local aggregate verification through
 `scripts/verify-all.sh` passed with no blockers; the user/maintainer also confirmed green GitHub
 Actions status for HEAD `4d30e63` on `develop`. Phase 18 verification is complete for the stable

@@ -1,88 +1,91 @@
-# ByteBuddy Concrete-Class Doubles
+# ByteBuddy concrete-class doubles
 
 ## Overview
 
-javaspec's core doubles API supports interface doubles via JDK dynamic proxies. For non-final
-concrete classes, the optional `javaspec-bytecode-doubles` adapter provides ByteBuddy-based
-subclass generation.
+javaspec core creates ordinary interface doubles with JDK dynamic proxies. The optional
+`javaspec-bytecode-doubles` adapter registers a `ConcreteDoubleProvider` that uses ByteBuddy
+subclass generation for non-final concrete classes. ByteBuddy remains outside the
+zero-runtime-dependency core.
 
-## Usage
-
-Add the adapter dependency to your project:
+## Installation
 
 ```xml
 <dependency>
-    <groupId>io.github.jvmspec</groupId>
-    <artifactId>javaspec-bytecode-doubles</artifactId>
-    <version>1.0.0-RC5</version>
-    <scope>test</scope>
+  <groupId>io.github.jvmspec</groupId>
+  <artifactId>javaspec-bytecode-doubles</artifactId>
+  <version>1.0.0-RC5</version>
+  <scope>test</scope>
 </dependency>
 ```
 
-Create concrete-class doubles:
+The adapter is available from Maven Central. For source-checkout development, install core and the
+standalone adapter before running a consumer:
+
+```sh
+mvn -q -DskipTests install
+mvn -q -f javaspec-bytecode-doubles/pom.xml -DskipTests install
+```
+
+## Direct double API
+
+`Doubles.concreteDouble(Class<T>)` returns the same `InterfaceDouble<T>` handle used by interface
+doubles, but its instance is a generated subclass of the concrete type:
 
 ```java
 import io.github.jvmspec.doubles.Doubles;
 import io.github.jvmspec.doubles.InterfaceDouble;
 
-InterfaceDouble<DataStore> storeDouble = Doubles.concreteDouble(DataStore.class);
-storeDouble.control().returns("save", true);
+InterfaceDouble<DataStore> store = Doubles.concreteDouble(DataStore.class);
+store.control().returnsFor("save", true, "item");
+store.control().returnsFor("find", "saved item", "item-1");
+
+DataService service = new DataService(store.instance());
+match(service.save("item")).shouldReturn(true);
+match(service.lookup("item-1")).shouldReturn("saved item");
+
+store.control().verifyCalled("save", "item");
 ```
 
-## Using Concrete-Class Doubles with Prophecy Wrappers
+`Doubles.classDouble(Class<T>)` is an alias. Without a matching provider on the effective
+classloader, both methods fail with an `IllegalStateException` that identifies the missing adapter.
 
-Prophecy-style doubles (`ObjectProphecy`, `MethodProphecy`) normally wrap an `InterfaceDouble<T>`
-created by `Doubles.interfaceDouble(Class<T>)`, which requires an interface type. However, you
-**can** use a concrete-class double with the Prophecy API when the concrete class is wrapped
-behind an interface.
+## Prophecy API
 
-### Pattern: Interface-prophecy wrapping a concrete double
-
-Create an interface that describes the concrete class's contract, then use the concrete double
-behind that interface:
+`Prophecies.prophesize(Class<T>)` and `ObjectBehavior.prophesize(Class<T>)` choose the appropriate
+double mechanism. Interfaces use core JDK proxies; a non-final concrete class uses the installed
+bytecode-doubles provider:
 
 ```java
-// 1. Define an interface matching the concrete class's contract
-interface DataStore {
-    boolean save(String item);
-    String find(String key);
-}
+ObjectProphecy<DataStore> store = prophesize(DataStore.class);
+store.method("find", "item-1").willReturn("saved item");
 
-// 2. Concrete class (non-final, non-interface)
-public class FileDataStore {
-    public boolean save(String item) { /* real impl */ }
-    public String find(String key) { /* real impl */ }
-}
-
-// 3. Use concrete double via interface prophecy
-InterfaceDouble<DataStore> storeDouble = Doubles.concreteDouble(FileDataStore.class,
-        DataStore.class);
-// Note: concreteDouble(concreteClass, asInterfaceType) bridges the concrete class
-// through an interface type.
-
-ObjectProphecy<DataStore> store = new ObjectProphecy<>(storeDouble, null);
-store.method("save", any()).willReturn(true);
+DataService service = new DataService(store.reveal());
+match(service.lookup("item-1")).shouldReturn("saved item");
 ```
 
-To use concrete-class doubles with Prophecy-style predictions, wrap the concrete double in an
-interface-based prophecy as shown above, or continue using the existing `DoubleControl` API directly:
+Generated typed `*Prophecy` wrappers remain the preferred PHPSpec-like syntax when available. Do
+not create an invented interface bridge or call a two-class `concreteDouble(...)` overload; no such
+public API exists in 1.0.
 
-```java
-InterfaceDouble<DataStore> storeDouble = Doubles.concreteDouble(DataStore.class);
-storeDouble.control().returns("save", true);
-storeDouble.control().verifyCalled("save", "item");
-```
+## Supported targets and limits
 
-## Limitations
+`javaspec-bytecode-doubles` supports non-final concrete classes. It rejects:
 
-- Concrete-class doubles support **non-final classes only**.
-- Final classes, enums, arrays, annotations, primitives, and interfaces are rejected.
-- Static method mocking, constructor mocking, and final-class mocking are outside scope.
-- Direct `ObjectProphecy<ConcreteClass>` is not covered — use an interface wrapper.
+- final classes;
+- interfaces (use core `Doubles.interfaceDouble(...)` instead);
+- enums, arrays, annotations, and primitive types;
+- static methods and constructor interception.
+
+For final-class, static-method, or construction-aware doubles, use the separate test-scoped
+`javaspec-bytecode-agent` adapter and explicit JVM instrumentation. Keep both bytecode adapters out
+of core and prefer interface-oriented design where practical.
 
 ## See also
 
-- [examples/bytecode-doubles-basic/](../examples/bytecode-doubles-basic/) — concrete-class doubles example.
-- [README Doubles section](../README.md#doubles) — interface doubles in core.
-- [README Prophecy section](../README.md#prophecy-style-doubles) — Prophecy-style doubles overview.
-- [docs/migration-guide-1.0.md](migration-guide-1.0.md) — migrating from existing doubles API.
+- [Concrete-class example](../examples/bytecode-doubles-basic/)
+- [Bytecode-agent example](../examples/bytecode-agent-basic/)
+- [README doubles section](../README.md#doubles)
+- [README Prophecy section](../README.md#prophecy-style-doubles)
+- [Migration guide](migration-guide-1.0.md)
+- [Subclass-adapter decision](adr/0024-standalone-optional-bytecode-doubles-adapter.md)
+- [Instrumentation-adapter decision](adr/0027-standalone-bytecode-agent-adapter.md)
