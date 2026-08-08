@@ -68,6 +68,34 @@ package_maven_module() {
   "$MAVEN_BIN" -q -f "$pom" -Prelease-artifacts -DskipTests package
 }
 
+verify_reproducible_artifacts() {
+  local baseline="target/release-dry-run-checksums.sha256"
+  local second
+  second="$(mktemp)"
+
+  section "Rebuild release artifacts for reproducibility"
+  package_maven_module "core" "pom.xml"
+  "$MAVEN_BIN" -q -DskipTests install
+  package_maven_module "Maven plugin" "javaspec-maven-plugin/pom.xml"
+  package_maven_module "JUnit Platform engine" "javaspec-junit-platform-engine/pom.xml"
+  package_maven_module "bytecode doubles" "javaspec-bytecode-doubles/pom.xml"
+  package_maven_module "bytecode agent" "javaspec-bytecode-agent/pom.xml"
+  (cd javaspec-gradle-plugin && "${gradle_cmd[@]}" --no-daemon clean test build)
+
+  local artifact
+  for artifact in "${artifact_files[@]}"; do
+    sha256sum "$artifact" >> "$second"
+  done
+  if ! cmp -s "$baseline" "$second"; then
+    diff -u "$baseline" "$second" >&2 || true
+    rm -f "$second"
+    fail "same-source release artifact rebuild produced different SHA-256 values"
+  fi
+  rm -f "$second"
+  sha256sum -c "$baseline"
+  pass "same-source release artifact rebuild is byte-reproducible"
+}
+
 scripts/check-version-alignment.sh
 scripts/check-current-docs.sh
 scripts/check-api-surface.sh
@@ -110,6 +138,7 @@ require_file "javaspec-gradle-plugin/build/libs/javaspec-gradle-plugin-${version
 require_file "javaspec-gradle-plugin/build/libs/javaspec-gradle-plugin-${version}-javadoc.jar"
 
 generate_and_verify_checksums
+verify_reproducible_artifacts
 
 section "Run external consumer examples"
 scripts/verify-examples.sh

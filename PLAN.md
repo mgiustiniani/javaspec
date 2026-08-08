@@ -18,17 +18,20 @@ Core constraints:
 
 - Original 1.0 assignment baseline: `e5527b634154cc3156d8e81e6697fab60acaecc3`.
 - Constructor-safe restructuring baseline: `7fd7054ba02c0217d1ce3fe783ae5c95c5a5b00a`.
-- Current pre-RC5 qualification base: `34e692b`.
+- Current clean RC5 local-qualification commit: `8f93a46`.
 - The original baseline and restructuring baseline are ancestors of the current qualification base.
 - The current candidate passed `git diff --check`, version/document/API/manual-page guards, Java 21
   and Java 25 core verification (884/884 each), `mvn clean verify -Psecurity` with zero reported
   vulnerabilities, `scripts/verify-all.sh`, `scripts/verify-release-dry-run.sh`, and the strict
   Java-language manifest with 50 covered rows and zero planned rows.
-- The active published Maven release candidate is `1.0.0-RC4`; post-RC4 constructor, generation,
-  discovery, nested-type, and internal-seam hardening remains on `develop` until RC5 is published.
-- RC5 preparation has resumed. The aligned version cut, CI qualification, remote-consumer replay,
-  tag, and publication remain pending; current `develop` builds must not be represented as the
-  immutable published RC4 artifact.
+- The release branch is aligned at `1.0.0-RC5`; `1.0.0-RC4` remains the last published Maven
+  candidate until the RC5 tag workflow succeeds.
+- RC5 local aligned qualification is complete, including reproducible artifacts and Tasks
+  downstream conformance. Remote CI run
+  [`31261952121`](https://github.com/mgiustiniani/javaspec/actions/runs/31261952121) passed the Java
+  8/11/17/21/25 matrix and full Java 21 verification at `4d72aca` with zero annotations.
+  Remote-consumer replay, tag, and publication remain pending; the release-branch build must not be
+  represented as published before those gates complete.
 
 ## Priority definitions
 

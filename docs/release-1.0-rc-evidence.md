@@ -307,3 +307,62 @@ Evidence:
 This is pre-cut evidence only. The repository remains aligned at `1.0.0-RC4`; it does not claim an
 RC5 version, CI run, tag, remote artifact, or publication. Those identities must be generated from
 the clean aligned RC5 commit.
+
+## 2026-08-08 — aligned RC5 clean local qualification
+
+Version-cut commit `4509ebc` aligns every artifact and current consumer document at `1.0.0-RC5` and
+regenerates the API baseline. Release-hardening commit `8f93a46` fixes archive timestamps, configures
+deterministic Gradle archive ordering, and makes the release dry-run rebuild and compare every
+published main/source/Javadoc artifact. The worktree was clean throughout the final qualification.
+
+The complete preflight, Java 21/25, aggregate, reproducibility, security, API, and downstream command
+set passed. Key results are:
+
+- Java 21 and Java 25 core verification: 884/884 each, zero failures/errors/skips.
+- Strict language manifest: 50 covered rows, zero planned rows.
+- Aggregate Java 8 bytecode guard: 323 core classfiles, maximum major version 52.
+- API baseline SHA-256 `7479ac621c1574df519c02b2f606e0d39c105c2d8b7c8385ead8071737a1df1a`;
+  a second generation was byte-identical, with 172 RC1-to-RC5 declaration additions and zero
+  declaration removals.
+- OWASP Dependency-Check: two dependencies analyzed, zero vulnerabilities; retained JSON SHA-256
+  `4631cd6fcb6a95abe3236a90cbd1374789a17bce74e410ba39b7865339594ab4`.
+- `JAVASPEC_RELEASE_TAG=v1.0.0-RC5` preflight: version/tag aligned and no build-file `SNAPSHOT`
+  references.
+
+The reproducible release manifest has SHA-256
+`a584462ac44fb3453e093083755fc29cc5ef7b5baad3fb3c278c1a54ea43a7f0` and binds all 18 archives.
+Main artifact hashes are:
+
+| Artifact | SHA-256 |
+|---|---|
+| Core | `b650e56744ab53979cd93e75d39c8787abe5741d1e7eb6f7a9ab3ab5c1f2bf79` |
+| Maven plugin | `1922c6d38e01683034aa981cc4bb3f3c855d76dcc00c9dc346cb6579e6dba34f` |
+| JUnit Platform engine | `9fdee79f7261794cb060b6eab9e969b4c82c3ac1ffb0e7496c5fd88d8812bcb1` |
+| Bytecode doubles | `c894846e5fa7a7d3208db425cd57b451958d8004704b4f41252f17c0c2e37ff8` |
+| Bytecode agent | `0f5104f0fb5bf68deb42be1d8ff6cb60fad36b1dbd78c15613bff3f54c2782c8` |
+| Gradle plugin | `7ceea4bb466313a9175e86458c846ed0b852d11ad7f399710a1f291a08e3c87b` |
+
+Tasks source-backed qualification consumed clean JavaSpec commit `8f93a46` under Java 21. Both the
+full and explicit isolated builds selected identical core/plugin SHA-256 values
+`d56102c56f825275c8d033e266c03b1ce0ee025ba2c2a08010712c55c84d7b37` and
+`e53685403446fcf8cc8580220d412a6cf172442fcfbc92767ee325c1f1dadf6e`, proving same-environment
+reproducibility for source-manifest SHA-256
+`a19a6a2583d76993651270287c6bb3e039f99f25e6304dfc8bef0f63ffdb941c`. QG-001, core 884/884,
+plugin 33/33, unchanged `TaskSpec` 9/9, direct probe 4/4, explicit Cucumber 1/1, and the full Tasks
+reactor at 66 total / 65 passed / one native-only skip all passed.
+
+The retained local archive is
+`.ide/agent-runs/javaspec-1.0.0-rc5-20260808/local-qualification/`; its `SHA256SUMS` file has SHA-256
+`bec6e44ca1c6ae77abe291b58f08263c8326c651f67d4d3d512706cb505f0566`, and every listed entry
+validates.
+
+The release branch was pushed through evidence commit `424ea11`. Initial remote run
+[`31261275000`](https://github.com/mgiustiniani/javaspec/actions/runs/31261275000) passed all six jobs
+but reported Node 20 deprecations from the workflow actions. Commits `b9ce403` and `4d72aca` upgraded
+checkout, Java, and Gradle setup actions and aligned the manual Gradle publication default. Final run
+[`31261952121`](https://github.com/mgiustiniani/javaspec/actions/runs/31261952121) passed the Java
+8/11/17/21/25 core jobs and full Java 21 verification with zero annotations.
+
+This closes local qualification and release-branch CI. Git Flow merge/tag, Maven Central and Gradle
+Plugin Portal publication, immutable artifact checksum/signature verification, and clean remote-RC
+JLC-8 dogfooding remain mandatory before RC5 or stable 1.0 is declared complete.

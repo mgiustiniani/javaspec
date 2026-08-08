@@ -1,7 +1,7 @@
 # Releasing
 
 Maven artifacts are published under `io.github.jvmspec`; the Gradle Plugin Portal id is
-`io.github.jvmspec`. The active release line is `1.0.0-RC4`; use this guide for RC and final 1.0.0
+`io.github.jvmspec`. The active release line is `1.0.0-RC5`; use this guide for RC and final 1.0.0
 publication, and verify each version directly before announcing availability.
 
 ## Branch and tag policy
@@ -67,7 +67,7 @@ tag after Maven Central or the Gradle Plugin Portal has accepted that version.
    - `scripts/generate-api-baseline.sh` at RC1; a second run must produce no diff.
    - At RC/final tag time, `JAVASPEC_RELEASE_TAG=v<version> scripts/check-release-preflight.sh`.
    - `mvn verify` includes Animal Sniffer Java 8 API linkage verification for core.
-   - The release dry-run packages core, Maven plugin, JUnit Platform engine, bytecode doubles, bytecode agent, and Gradle plugin artifacts; verifies source/javadoc jars; verifies the bytecode-agent manifest; generates/verifies SHA-256 checksums; and runs standalone consumer examples.
+   - The release dry-run packages core, Maven plugin, JUnit Platform engine, bytecode doubles, bytecode agent, and Gradle plugin artifacts; verifies source/javadoc jars; verifies the bytecode-agent manifest; generates/verifies SHA-256 checksums; rebuilds every archive and requires identical hashes; and runs standalone consumer examples.
 5. Confirm GitHub Actions is green for the release commit.
 6. Confirm release artifacts are present locally where expected:
    - Main, source, and Javadoc jars for `javaspec`.
@@ -78,7 +78,7 @@ tag after Maven Central or the Gradle Plugin Portal has accepted that version.
    - Gradle plugin main, source, and Javadoc jars.
    - Generated POM metadata with URL, SCM, issue-management, license, and developer entries.
    - Bytecode agent manifest entries `Premain-Class` and `Agent-Class`.
-   - Local dry-run SHA-256 checksums in `target/release-dry-run-checksums.sha256`.
+   - Local dry-run SHA-256 checksums in `target/release-dry-run-checksums.sha256`; a second same-source build must reproduce the complete manifest byte-for-byte.
 7. For Maven Central / Central Portal publication:
    - Reconfirm MIT license and maintainer metadata are still correct.
    - Configure repository secrets `SONATYPE_TOKEN_USER`, `SONATYPE_TOKEN_PASS`, `GPG_PRIVATE_KEY`,

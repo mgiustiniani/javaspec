@@ -5,12 +5,12 @@ plugins {
 }
 
 group = 'io.github.jvmspec'
-version = '1.0.0-RC4'
+version = '1.0.0-RC5'
 
 description = 'Optional Gradle adapter for the javaspec runner.'
 
 ext {
-    javaspecCoreVersion = '1.0.0-RC4'
+    javaspecCoreVersion = '1.0.0-RC5'
     junitVersion = '4.13.2'
 }
 
@@ -54,6 +54,11 @@ tasks.withType(JavaCompile).configureEach {
 
 tasks.withType(Javadoc).configureEach {
     options.addStringOption('Xdoclint:none', '-quiet')
+}
+
+tasks.withType(org.gradle.api.tasks.bundling.AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
 }
 
 publishing {

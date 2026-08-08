@@ -80,14 +80,14 @@ Verification status:
   `examples/bytecode-agent-basic/` demonstrates final-class and static-method doubles.
 - Repository-root `mvn verify` remains core-only. `scripts/verify-all.sh` is the aggregate local
   check for core, standalone adapters, and examples.
-- `1.0.0-RC4` artifacts are available on Maven Central under `io.github.jvmspec`, including signed
+- `1.0.0-RC5` artifacts are available on Maven Central under `io.github.jvmspec`, including signed
   main/source/Javadoc artifacts for core and all optional Maven adapters. The Gradle plugin id is
   `io.github.jvmspec`; the corrected RC1 submission succeeded in workflow run 29148854181 and is
   awaiting first-publication approval.
 
 ## Quick start
 
-The commands and dependency declarations in this manual target `1.0.0-RC4`, available from Maven
+The commands and dependency declarations in this manual target `1.0.0-RC5`, available from Maven
 Central. A repository checkout can still install the same version locally when developing javaspec.
 
 From the repository root, core verification remains:
@@ -149,13 +149,13 @@ committed.
 Run the CLI:
 
 ```sh
-java -jar target/javaspec-1.0.0-RC4.jar --help
+java -jar target/javaspec-1.0.0-RC5.jar --help
 ```
 
 Short form used in the examples below:
 
 ```sh
-javaspec='java -jar target/javaspec-1.0.0-RC4.jar'
+javaspec='java -jar target/javaspec-1.0.0-RC5.jar'
 ```
 
 ## Release and CI verification
@@ -233,7 +233,7 @@ gradle -p javaspec-gradle-plugin clean test build
 
 These checks do not sign, stage, deploy, or publish artifacts. The MIT license and maintainer
 metadata are resolved. Maven coordinates use group `io.github.jvmspec`, and Maven Central
-availability and signatures for `1.0.0-RC4` are confirmed. The Gradle plugin id is
+availability and signatures for `1.0.0-RC5` are confirmed. The Gradle plugin id is
 `io.github.jvmspec`; Plugin Portal availability remains pending first-publication approval.
 
 The GitHub Actions workflow at `.github/workflows/ci.yml` triggers on `push`, `pull_request`, and
@@ -1210,7 +1210,7 @@ is additive and does not require invoking the CLI.
 ## Optional Maven plugin
 
 The standalone optional Maven plugin is published as
-`io.github.jvmspec:javaspec-maven-plugin:1.0.0-RC4`. It is intentionally not registered as a root
+`io.github.jvmspec:javaspec-maven-plugin:1.0.0-RC5`. It is intentionally not registered as a root
 module, so repository-root `mvn verify` continues to build and audit only the zero-runtime-dependency
 core artifact. Consuming projects resolve it directly from Maven Central; repository contributors
 can use this local verification sequence:
@@ -1220,7 +1220,7 @@ mvn -q -DskipTests install
 mvn -q -f javaspec-maven-plugin/pom.xml verify
 ```
 
-The plugin packages `io.github.jvmspec:javaspec-maven-plugin:1.0.0-RC4` as `maven-plugin`, uses Java
+The plugin packages `io.github.jvmspec:javaspec-maven-plugin:1.0.0-RC5` as `maven-plugin`, uses Java
 source/target `1.8`, goal prefix `javaspec`, Maven API baseline `3.6.3`, Maven API and plugin
 annotations in `provided` scope, JUnit in `test` scope, and a compile-scope dependency on core
 `io.github.jvmspec:javaspec`.
@@ -1231,7 +1231,7 @@ A consuming Maven build can declare the plugin as optional project tooling:
 <plugin>
   <groupId>io.github.jvmspec</groupId>
   <artifactId>javaspec-maven-plugin</artifactId>
-  <version>1.0.0-RC4</version>
+  <version>1.0.0-RC5</version>
 </plugin>
 ```
 
@@ -1278,7 +1278,7 @@ use the included build in `examples/gradle-basic/settings.gradle`. After approva
 ```groovy
 plugins {
     id 'java'
-    id 'io.github.jvmspec' version '1.0.0-RC4'
+    id 'io.github.jvmspec' version '1.0.0-RC5'
 }
 
 javaspec {
@@ -1324,7 +1324,7 @@ No JUnit is required in projects under test; JUnit is only a plugin test depende
 ## Optional JUnit Platform engine
 
 The standalone optional JUnit Platform engine is available from Maven Central as
-`io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-RC4`. It is intentionally not registered as
+`io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-RC5`. It is intentionally not registered as
 a root Maven module and remains outside the zero-runtime-dependency core artifact. Repository
 contributors can use this local verification sequence:
 
@@ -1333,7 +1333,7 @@ mvn -q -DskipTests install
 mvn -q -f javaspec-junit-platform-engine/pom.xml verify
 ```
 
-The engine artifact is `io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-RC4`, packaging
+The engine artifact is `io.github.jvmspec:javaspec-junit-platform-engine:1.0.0-RC5`, packaging
 `jar`, Java source/target `1.8`, and uses Java 8-compatible JUnit Platform `1.10.2` rather than
 JUnit Platform 6/JUnit 6. Runtime dependencies are isolated to the optional engine artifact: core
 `io.github.jvmspec:javaspec`, `org.junit.platform:junit-platform-engine`, and transitives `opentest4j`,
@@ -2486,7 +2486,7 @@ Add the standalone adapter when a spec needs a non-final concrete collaborator d
 <dependency>
   <groupId>io.github.jvmspec</groupId>
   <artifactId>javaspec-bytecode-doubles</artifactId>
-  <version>1.0.0-RC4</version>
+  <version>1.0.0-RC5</version>
   <scope>test</scope>
 </dependency>
 ```
@@ -2910,7 +2910,7 @@ artifact with Maven API/plugin annotations in `provided` scope, JUnit only in pl
 and a runtime tree containing the plugin plus compile-scope core `io.github.jvmspec:javaspec` only. The
 Phase 16 Gradle plugin is a separate optional artifact with JUnit/TestKit only as plugin test
 dependencies; its verified runtimeClasspath contains only core
-`io.github.jvmspec:javaspec:1.0.0-RC4`. The Phase 17 JUnit Platform engine is a separate optional
+`io.github.jvmspec:javaspec:1.0.0-RC5`. The Phase 17 JUnit Platform engine is a separate optional
 artifact over the canonical javaspec runner; its runtime dependencies are isolated to the engine
 artifact and do not enter the core runtime dependency tree. Projects that do not opt into the engine
 keep the no-JUnit CLI/programmatic/Maven/Gradle execution paths. Bootstrap hooks are explicit
@@ -2931,7 +2931,7 @@ mvn dependency:tree -Dscope=runtime
 Expected root output contains only the project artifact:
 
 ```text
-io.github.jvmspec:javaspec:jar:1.0.0-RC4
+io.github.jvmspec:javaspec:jar:1.0.0-RC5
 ```
 
 Check the standalone optional adapters through the aggregate script or separately when needed:
@@ -2945,7 +2945,7 @@ mvn -f javaspec-junit-platform-engine/pom.xml dependency:tree -Dscope=runtime
 
 Expected Maven plugin runtime scope contains the plugin plus compile-scope core
 `io.github.jvmspec:javaspec` only. Expected Gradle plugin runtimeClasspath contains only core
-`io.github.jvmspec:javaspec:1.0.0-RC4`. Expected JUnit Platform engine runtime scope contains core
+`io.github.jvmspec:javaspec:1.0.0-RC5`. Expected JUnit Platform engine runtime scope contains core
 `io.github.jvmspec:javaspec`, `org.junit.platform:junit-platform-engine`, `opentest4j`,
 `junit-platform-commons`, and `apiguardian-api`, with no runtime `junit-jupiter`,
 `junit-platform-launcher`, or `junit-platform-testkit`.
@@ -2959,7 +2959,7 @@ Current verification after Phase 22:
 - `bash -n scripts/check-version-alignment.sh`, `bash -n scripts/verify-all.sh`, and `bash -n
   scripts/verify-examples.sh` passed; all three scripts are executable.
 - `bash scripts/check-version-alignment.sh` passed with all checked versions aligned at
-  `1.0.0-RC4`.
+  `1.0.0-RC5`.
 - `git diff --check`, `git diff --cached --check`, and untracked whitespace checks passed.
 - Effective POM generation passed for root, Maven plugin, and JUnit engine.
 - Maven POM metadata checks for root, Maven plugin, and JUnit engine passed: MIT License, URL
@@ -2979,7 +2979,7 @@ Current verification after Phase 22:
   `mvn -q verify` passed with 12 tests.
 - Gradle plugin publication POM generation passed; Gradle plugin `clean test build` passed with 11
   tests and produced non-empty main/sources/javadoc jars; Gradle runtime dependencies contained only
-  `io.github.jvmspec:javaspec:1.0.0-RC4`.
+  `io.github.jvmspec:javaspec:1.0.0-RC5`.
 - Full aggregate `JAVASPEC_GRADLE_BIN=/tmp/gradle-8.8/bin/gradle scripts/verify-all.sh` passed,
   covering version alignment, core verify, root audit, local install, Maven plugin verify/audit,
   JUnit engine verify/audit, Gradle plugin build/audit, and standalone examples verification.
@@ -3001,7 +3001,7 @@ Current verification after Phase 22:
   reports, Gradle plugin reports, and the optional JUnit Platform adapter are covered by regression
   tests.
 - Cross-JDK and adapter verification should be read from the latest CI/local verification output.
-- Maven artifacts use group `io.github.jvmspec`; `1.0.0-RC4` is available from Maven Central. The
+- Maven artifacts use group `io.github.jvmspec`; `1.0.0-RC5` is available from Maven Central. The
   Gradle Plugin Portal id is `io.github.jvmspec`; corrected RC1 submission succeeded in workflow run
   29148854181 and is awaiting first-publication approval.
 
