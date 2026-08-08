@@ -18,7 +18,7 @@ jobs:
           server-id: central
           server-username: SONATYPE_TOKEN_USER
           server-password: SONATYPE_TOKEN_PASS
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
         with:
           gradle-version: '8.8'
 
