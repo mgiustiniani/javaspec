@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Made generated `method(...).should*` proxies the unambiguous standard syntax in the README and
+  example-data documentation; retained `match(...)` only as an explicitly advanced fallback and
+  verified the Java 8 lambda-based example-data form through clean Maven support generation.
 - Added a project-specific GraalVM Native Image preview: the zero-dependency
   `NativeImageLauncher`, Maven `native-prepare` goal, deterministic generated launcher/reflection
   metadata, a Linux x86-64 GraalVM 25 CI gate, and a JVM-free consumer example. The first increment

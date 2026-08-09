@@ -155,8 +155,11 @@ from pathlib import Path
 import re
 import sys
 
-lines = Path("README.md").read_text(encoding="utf-8").splitlines()
+text = Path("README.md").read_text(encoding="utf-8")
+lines = text.splitlines()
 in_java_fence = False
+current_heading = ""
+fallback_heading = "### Explicit matcher fallback (advanced)"
 foreign = re.compile(
     r"\b(?:assertEquals|assertTrue|assertFalse|assertNull|assertNotNull|assertSame|assertThrows|assertThat)\s*\("
     r"|\bAssertions\."
@@ -164,23 +167,39 @@ foreign = re.compile(
 )
 hits = []
 for number, line in enumerate(lines, 1):
-    if line.strip() == "```java":
+    stripped = line.strip()
+    if not in_java_fence and stripped.startswith("#"):
+        current_heading = stripped
+    if stripped == "```java":
         in_java_fence = True
         continue
-    if in_java_fence and line.strip() == "```":
+    if in_java_fence and stripped == "```":
         in_java_fence = False
         continue
-    if in_java_fence and foreign.search(line):
-        hits.append((number, line.strip()))
+    if not in_java_fence:
+        continue
+    if foreign.search(line):
+        hits.append((number, "foreign assertion syntax", stripped))
+    if "match(" in line and current_heading != fallback_heading:
+        hits.append((number, "non-canonical match(...) outside the advanced fallback", stripped))
 
-for number, line in hits:
-    print(f"README.md:{number}: foreign assertion syntax in JavaSpec example: {line}")
+for required in (
+    "total(10.0, 2.5).shouldReturn(12.5);",
+    "add(2, 3).shouldReturn(5);",
+    "normalize(input).shouldReturn(expected)",
+):
+    if required not in text:
+        hits.append((0, "missing canonical generated-proxy example", required))
+
+for number, reason, line in hits:
+    location = f"README.md:{number}" if number else "README.md"
+    print(f"{location}: {reason}: {line}")
 sys.exit(1 if hits else 0)
 PY
 then
-  pass "README Java examples use no external assertion-framework syntax"
+  pass "README Java examples use canonical generated proxies outside the explicit advanced fallback"
 else
-  fail "README JavaSpec examples contain external assertion-framework syntax"
+  fail "README Java examples contain non-canonical or external assertion syntax"
 fi
 
 if grep -q '(migration-guide.md)' docs/bytecode-doubles.md; then
