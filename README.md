@@ -4,7 +4,7 @@
 
 ![javaspec demo](docs/assets/demo.gif)
 
-javaspec is a spec-first BDD tool for Java, inspired by PHPSpec. You write subject-centric `it_*` examples with `let`, `beConstructedWith`, `subject()`, and `should*` expectations, run the specification, and let javaspec guide the next small production-code step.
+javaspec is a spec-first BDD tool for Java, inspired by PHPSpec. You write subject-centric `it_*` examples with `let`, `beConstructedWith`, and generated typed subject proxies such as `total(...).shouldReturn(expected)`, run the specification, and let javaspec guide the next small production-code step.
 
 The core is Java 8-compatible and has no third-party runtime dependencies. It can be used directly from the CLI, embedded through a no-`System.exit` launcher, or adopted through optional Maven, Gradle, and JUnit Platform adapters.
 
@@ -34,7 +34,7 @@ the included build until `1.0.0-RC5` appears on the Gradle Plugin Portal.
 - CLI, Maven plugin, Gradle plugin, and JUnit Platform adapter.
 - Generation and update support for specs, support classes, production skeletons, constructors, and methods.
 - JSON and JUnit XML-compatible reports.
-- Recommended PHPSpec-like authoring with `ObjectBehavior<T>`, `it_*` examples, `let`, `beConstructedWith`, `subject()`, and generated typed proxy methods such as `method().shouldReturn(expected)`.
+- Recommended PHPSpec-like authoring with `it_*` examples, `let`, `beConstructedWith`, and generated `*SpecSupport` proxy methods such as `method().shouldReturn(expected)`.
 - Interface doubles in core; optional ByteBuddy-based concrete-class doubles adapter.
 
 ## Quick Start
@@ -78,7 +78,7 @@ public class PriceCalculatorSpec extends PriceCalculatorSpecSupport {
 }
 ```
 
-The recommended concrete-spec style is PHPSpec-like: write one behavior method, call the generated typed proxy (`total(...).shouldReturn(...)`), and let the generated `*SpecSupport` class stay in the background. The explicit form `match(subject().total(10.0, 2.5)).shouldReturn(12.5)` is also supported when a proxy has not been generated yet or when an explicit subject call is clearer.
+The standard concrete-spec style is PHPSpec-like: write one behavior method, call the generated typed proxy (`total(...).shouldReturn(...)`), and let the generated `*SpecSupport` class stay in the background. Regenerate support whenever the subject signature changes.
 
 **Step 3 — Run specs:** the generation prompt fires because the production class is missing. `--generate` accepts automatically; `--compile` recompiles before execution; `--formatter pretty` shows descriptive output.
 
@@ -156,14 +156,13 @@ public class CalculatorSpec extends CalculatorSpecSupport {
 }
 ```
 
-That concise form is the recommended PHPSpec-like style. The generated support class provides typed proxy methods for each subject method — each returns `Matchable<T>` and can be chained directly. The explicit form `match(subject().add(2, 3)).shouldReturn(5)` is equivalent and useful when calling methods not yet reflected in the support class.
+That concise form is the standard PHPSpec-like style. The generated support class provides typed proxy methods for each subject method — each returns `Matchable<R>` and can be chained directly. Generate or refresh `*SpecSupport` before compiling a concrete spec whose subject API changed.
 
 Common authoring concepts:
 
-- `subject()` lazily creates the described object.
-- Generated typed proxies (`add(2, 3).shouldReturn(5)`) are the preferred subject-call syntax.
-- `match(value).shouldReturn(expected)` and related matchers express expectations when you need the explicit form.
-- `beConstructedWith(...)` selects constructor arguments before `subject()` is used.
+- Generated typed proxies (`add(2, 3).shouldReturn(5)`) are the standard subject-call syntax.
+- `subject()` lazily creates the described object behind generated support and advanced fallback APIs.
+- `beConstructedWith(...)` selects constructor arguments before the generated proxy first accesses the subject.
 - `beConstructedThrough("factoryName", ...)` selects a static factory method.
 - `@Skip`, `@Pending`, `skip(...)`, and `pending(...)` mark examples intentionally not executed.
 
@@ -394,7 +393,7 @@ int exitCode = result.exitCode();
 
 ## Matchers and expectations
 
-Prefer generated typed proxy methods for PHPSpec-like fluent expectations:
+Generated typed proxy methods are the standard JavaSpec syntax for subject behavior:
 
 ```java
 add(2, 3).shouldReturn(5);
@@ -402,16 +401,18 @@ name().shouldStartWith("calc");
 items().shouldHaveCount(3);
 ```
 
-The explicit `match(subject().method(...))` form is available too, and useful when a proxy method is not yet generated:
+### Explicit matcher fallback (advanced)
+
+The lower-level `match(...)` wrapper remains available before generated support exists, for arbitrary
+non-subject values, and for programmatic custom matchers. Do not use it as the ordinary subject-call
+style once the generated proxy is available:
 
 ```java
 match(subject().add(2, 3)).shouldReturn(5);
-match(subject().name()).shouldStartWith("calc");
-match(subject().items()).shouldHaveCount(3);
-match(subject()).shouldBeAnInstanceOf(Calculator.class);
 ```
 
-`ObjectBehavior` also has direct convenience assertions such as `shouldReturn(actual, expected)`. Treat those as ad-hoc helpers; they are not the recommended style for ordinary subject behavior examples.
+`ObjectBehavior` also has direct convenience assertions such as `shouldReturn(actual, expected)` for
+ad-hoc non-subject checks. They are not the standard style for ordinary subject behavior examples.
 
 Available expectation families include:
 
@@ -449,26 +450,25 @@ public void it_uses_a_factory() {
 
 Generation can preserve, comment, or delete constructor-related skeleton code according to the selected constructor policy. Constructor identity follows Java overload rules: declaring type plus ordered canonical erased parameter types, with varargs normalized to arrays; parameter names and bodies are not identity. Package-private and generic constructors are preserved, and types with the same simple name in different packages remain distinct. Updates to existing production source are planned in memory and require `--generate` or affirmative interactive authorization before the single atomic write.
 
-## PHPSpec-style example data
+## Example data (PHPSpec-inspired)
 
-Use example data when one behavior needs a few concrete examples but a Cucumber `Scenario Outline` or
-JUnit parameterized test would add ceremony. The public `it_*` method remains the behavior example;
-rows execute inside that example and failing rows include row context in the assertion message.
+JavaSpec example data is the Java 8 adaptation of PHPSpec example tables. Use it when one behavior
+needs a few concrete cases but a Cucumber `Scenario Outline` or JUnit parameterized test would add
+ceremony. The public `it_*` method remains the behavior example; rows execute inside that example and
+failing rows include row context in the assertion message.
 
 ```java
 public void it_normalizes_known_inputs() {
     examples(row("  Alice  ", "Alice"), row("Bob", "Bob"))
-        .verify(new Example2<String, String>() {
-            @Override
-            public void run(String input, String expected) {
-                match(subject().normalize(input)).shouldReturn(expected);
-            }
-        });
+        .verify((input, expected) -> normalize(input).shouldReturn(expected));
 }
 ```
 
-`Example1` and `Example2` callbacks are available in core and keep the API Java 8-compatible without
-Jupiter dependencies. JSON/JUnit XML/JUnit Platform row reporting and selector boundaries are frozen
+`Example1` and `Example2` are JavaSpec core functional interfaces, so the standard authoring form is
+a Java 8 lambda with no Jupiter dependency. Unlike an anonymous inner class, the lambda preserves the
+enclosing spec scope for source discovery; `normalize(...)` is therefore discovered and generated as
+the typed support proxy. JSON/JUnit XML/JUnit Platform row reporting and
+selector boundaries are frozen
 in `docs/example-data-contract-1.0.md`; row selectors filter adapter descriptors/events and do not
 turn rows into isolated Jupiter parameterized invocations.
 
@@ -483,7 +483,7 @@ InterfaceDouble<Notifier> notifier = interfaceDouble(Notifier.class);
 notifier.control().returns("send", true);
 
 beConstructedWith(notifier.instance());
-match(subject().notify("hello")).shouldReturn(true);
+notify("hello").shouldReturn(true);
 notifier.control().verifyCalled("send", "hello");
 ```
 
@@ -518,7 +518,7 @@ notifier.control().when("transform").thenAnswerSequence(
 ArgumentCaptor<String> captor = ArgumentCaptor.create();
 notifier.control().when("send", captor).thenReturn(true);
 notifier.instance().send("hello");
-match(captor.value()).shouldReturn("hello");
+shouldReturn(captor.value(), "hello"); // direct helper for a non-subject value
 
 // Ordered verification
 notifier.control().verifyInOrder("prepare", "send", "cleanup");
@@ -551,7 +551,7 @@ import io.github.jvmspec.doubles.InterfaceDouble;
 InterfaceDouble<DataStore> storeDouble = Doubles.concreteDouble(DataStore.class);
 storeDouble.control().returns("save", true);
 beConstructedWith(storeDouble.instance());
-match(subject().save("item")).shouldReturn(true);
+save("item").shouldReturn(true);
 ```
 
 The adapter is ByteBuddy-based and lives outside the core artifact. It supports non-final concrete classes only and explicitly rejects final classes, enums, arrays, annotations, primitives, and interfaces. See [`examples/bytecode-doubles-basic/`](examples/bytecode-doubles-basic/).
@@ -576,26 +576,27 @@ mvn -q -f javaspec-bytecode-agent/pom.xml -DskipTests install
 
 The module supports dynamic self-attach through ByteBuddy Agent when the JVM allows it. You can also
 start tests with `-javaagent:javaspec-bytecode-agent.jar` to make instrumentation available before
-execution. Inside a JavaSpec example, use the normal `match(...).should*` expectations for values
-returned through these doubles:
+execution. In ordinary behavior examples, assert through generated subject proxies. The low-level
+adapter checks below inspect non-subject values directly, so they use JavaSpec's explicit convenience
+helper `shouldReturn(actual, expected)` instead:
 
 ```java
 // Final concrete class instance-method double
 InterfaceDouble<FinalGreeter> greeter = Doubles.concreteDouble(FinalGreeter.class);
 greeter.when("greet", "Ada").thenReturn("stubbed Ada");
-match(greeter.instance().greet("Ada")).shouldReturn("stubbed Ada");
+shouldReturn(greeter.instance().greet("Ada"), "stubbed Ada");
 
 // Static method double; close() restores original behavior for later calls
 try (StaticDouble<StaticUtility> statics = BytecodeAgentDoubles.staticDouble(StaticUtility.class)) {
     statics.when("message", "x").thenReturn("stubbed x");
-    match(StaticUtility.message("x")).shouldReturn("stubbed x");
+    shouldReturn(StaticUtility.message("x"), "stubbed x");
 }
 
 // Construction-aware double; subsequently created instances are registered
 try (ConstructionDouble<ConstructedGreeter> construction =
          BytecodeAgentDoubles.mockConstruction(ConstructedGreeter.class)) {
     construction.when("name").thenReturn("stubbed");
-    match(new ConstructedGreeter().name()).shouldReturn("stubbed");
+    shouldReturn(new ConstructedGreeter().name(), "stubbed");
 }
 ```
 

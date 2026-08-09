@@ -12,18 +12,20 @@ The stable 1.0 authoring surface is in `io.github.jvmspec.api`:
 - `examples(row(...), ...)` creates an ordered row set.
 - `Example1<A>` and `Example2<A, B>` are Java 8 functional interfaces for row bodies.
 
-Rows are verified from inside a normal `it_*` / `its_*` behavior method:
+Rows are verified from inside a normal `it_*` / `its_*` behavior method. Subject calls retain the
+standard generated-proxy syntax inside the callback:
 
 ```java
 public void it_normalizes_names() {
     examples(row("Alice", "Alice"), row(" Bob ", "Bob"))
-        .verify(new Example2<String, String>() {
-            public void run(String input, String expected) {
-                match(subject().normalize(input)).shouldReturn(expected);
-            }
-        });
+        .verify((input, expected) -> normalize(input).shouldReturn(expected));
 }
 ```
+
+`Example1` and `Example2` are Java 8 functional interfaces. The lambda keeps the call in the
+owning spec's source-discovery scope, so `normalize(...)` is generated on `*SpecSupport`. An
+anonymous inner-class callback is legal Java but introduces a nested type, whose calls are
+intentionally excluded from owning-spec proxy discovery; use the lambda form for generated proxies.
 
 ## Execution semantics
 

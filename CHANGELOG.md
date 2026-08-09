@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Made generated `method(...).should*` proxies the unambiguous standard syntax in the README and
+  example-data documentation; retained `match(...)` only as an explicitly advanced fallback and
+  verified the Java 8 lambda-based example-data form through clean Maven support generation.
+
 ## 1.0.0-RC5 — 2026-08-08
 
 - Made all published Maven and Gradle archives byte-reproducible through a fixed release timestamp,

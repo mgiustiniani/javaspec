@@ -105,6 +105,45 @@ public class JavaspecGenerateMojoTest {
     }
 
     @Test
+    public void cleanGenerationCreatesCanonicalProxyUsedInsideExampleDataLambda() throws Exception {
+        File basedir = temporaryFolder.newFolder("example-data-consumer");
+        File sourceRoot = new File(basedir, "src/main/java");
+        File specRoot = new File(basedir, "src/test/java");
+        File generatedRoot = new File(basedir, "target/generated-sources/javaspec");
+        File subject = write(sourceRoot, "com/example/NameNormalizer.java",
+                "package com.example;\n\n" +
+                "public final class NameNormalizer {\n" +
+                "    public String normalize(String value) { return value.trim(); }\n" +
+                "}\n");
+        File spec = write(specRoot, "spec/com/example/NameNormalizerSpec.java",
+                "package spec.com.example;\n\n" +
+                "public class NameNormalizerSpec extends NameNormalizerSpecSupport {\n" +
+                "    public void it_normalizes_known_inputs() {\n" +
+                "        examples(row(\"  Alice  \", \"Alice\"), row(\"Bob\", \"Bob\"))\n" +
+                "            .verify((input, expected) -> normalize(input).shouldReturn(expected));\n" +
+                "    }\n" +
+                "}\n");
+        MavenProject project = new MavenProject();
+        JavaspecGenerateMojo mojo = mojo(basedir, sourceRoot, specRoot, generatedRoot, project);
+        set(mojo, "profile", "java8");
+
+        mojo.execute();
+
+        File support = new File(generatedRoot, "spec/com/example/NameNormalizerSpecSupport.java");
+        assertTrue(support.isFile());
+        String generated = new String(Files.readAllBytes(support.toPath()), StandardCharsets.UTF_8);
+        assertTrue(generated, generated.contains("Matchable<String> normalize(String value)"));
+        compileAndRunNamedForRelease(
+                "8",
+                "spec.com.example.NameNormalizerSpec",
+                "it_normalizes_known_inputs",
+                subject,
+                support,
+                spec
+        );
+    }
+
+    @Test
     public void cleanGenerationPreservesNestedRecordComponentOwnerQualification() throws Exception {
         assumeTrue(javaSpecificationVersion() >= 21);
         File basedir = temporaryFolder.newFolder("nested-state-consumer");
@@ -194,25 +233,46 @@ public class JavaspecGenerateMojoTest {
     }
 
     private void compileAndRunNestedState(File... sources) throws Exception {
+        compileAndRunNamed(
+                "spec.com.example.NestedStateRecordSpec",
+                "it_preserves_nested_state",
+                sources
+        );
+    }
+
+    private void compileAndRunNamed(String className, String methodName, File... sources) throws Exception {
+        compileAndRunNamedForRelease("21", className, methodName, sources);
+    }
+
+    private void compileAndRunNamedForRelease(
+            String release,
+            String className,
+            String methodName,
+            File... sources
+    ) throws Exception {
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-        File outputDirectory = temporaryFolder.newFolder("nested-state-green-classes");
+        File outputDirectory = temporaryFolder.newFolder("named-green-classes");
         ByteArrayOutputStream output = new ByteArrayOutputStream();
-        List<String> arguments = compilerArguments(outputDirectory, sources);
+        List<String> arguments = compilerArguments(outputDirectory, release, sources);
         int exit = compiler.run(null, output, output, arguments.toArray(new String[arguments.size()]));
         assertEquals(new String(output.toByteArray(), StandardCharsets.UTF_8), 0, exit);
         URLClassLoader loader = new URLClassLoader(
                 new URL[] {outputDirectory.toURI().toURL()}, getClass().getClassLoader());
         try {
-            runExample(loader, "spec.com.example.NestedStateRecordSpec", "it_preserves_nested_state");
+            runExample(loader, className, methodName);
         } finally {
             loader.close();
         }
     }
 
     private List<String> compilerArguments(File outputDirectory, File... sources) {
+        return compilerArguments(outputDirectory, "21", sources);
+    }
+
+    private List<String> compilerArguments(File outputDirectory, String release, File... sources) {
         List<String> arguments = new ArrayList<String>();
         arguments.add("--release");
-        arguments.add("21");
+        arguments.add(release);
         arguments.add("-classpath");
         arguments.add(System.getProperty("java.class.path"));
         arguments.add("-d");

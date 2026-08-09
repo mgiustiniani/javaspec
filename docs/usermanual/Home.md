@@ -7,7 +7,7 @@ javaspec is a Java 8-compatible, zero-runtime-dependency specification tool insp
 Preferred spec syntax:
 
 1. **Generated typed proxy style (recommended):** Generated support classes expose typed wrapper methods so concrete specs read fluently: `method().shouldReturn(expected)`. This is the primary PHPSpec-like style for ordinary subject behavior.
-2. **Explicit subject matcher style:** `match(subject().method(...)).shouldReturn(expected)` is equally supported and useful when a proxy method has not been generated yet or when an explicit subject call is clearer.
+2. **Explicit matcher fallback (advanced):** `match(subject().method(...)).shouldReturn(expected)` remains available before a proxy has been generated, but is not the standard concrete-spec syntax.
 3. **Direct `ObjectBehavior` convenience assertions:** helpers such as `shouldReturn(actual, expected)` are available for ad-hoc checks and compatibility, but should not be presented as the main style in examples.
 
 Implemented capabilities include:
@@ -1627,10 +1627,11 @@ interfaces change how the concepts are expressed.
   subject access.
 - **`beConstructedThrough(...)` / named constructors**: Static factory construction with
   string-literal Java method names for generation.
-- **`should*` / `shouldNot*` expectations**: prefer `Matchable<T>` methods through generated typed
-  proxies such as `getTitle().shouldReturn("Wizard")`, or through explicit wrappers such as
-  `match(subject().getTitle()).shouldReturn("Wizard")`. Direct `ObjectBehavior` convenience
-  assertions exist for ad-hoc checks but are not the main documentation style.
+- **`should*` / `shouldNot*` expectations**: use `Matchable<R>` methods through generated typed
+  proxies such as `getTitle().shouldReturn("Wizard")`. The explicit
+  `match(subject().getTitle()).shouldReturn("Wizard")` wrapper is an advanced bootstrap fallback,
+  not the standard concrete-spec style. Direct `ObjectBehavior` convenience assertions exist for
+  ad-hoc non-subject checks.
 - **PHPSpec generated method suggestions**: `javaspec run` owns production generation/update after
   confirmation, `--generate`, or `--dry-run` planning.
 - **Source/spec compilation**: CLI `javaspec run --compile`, programmatic `withCompilation(...)`,
@@ -1660,10 +1661,10 @@ Practical migration guidance:
 2. Keep examples as public `void it_*`/`its_*` methods. The reflection runner ignores unrelated methods and
    can execute only compiled spec classes on the effective classloader, explicit classpath, or CLI
    compile-output-first classloader.
-3. Prefer generated typed proxy methods for PHPSpec-like syntax, for example
-   `getRating().shouldReturn(5)`. Use `match(subject().getRating()).shouldReturn(5)` when the
-   proxy has not been generated yet or when an explicit subject call is clearer. Avoid making direct
-   convenience assertions like `shouldReturn(actual, expected)` the default style in new docs/specs.
+3. Use generated typed proxy methods for standard PHPSpec-like syntax, for example
+   `getRating().shouldReturn(5)`. Reserve `match(subject().getRating()).shouldReturn(5)` for the
+   advanced bootstrap interval before proxy generation. Avoid making either that fallback or direct
+   convenience assertions such as `shouldReturn(actual, expected)` the default in new docs/specs.
 4. Configure construction before touching the subject. The last construction rule before first
    subject access wins; changes after instantiation are errors.
 5. Use string-literal Java identifiers for factory construction markers when you want generation,
@@ -1779,32 +1780,26 @@ public void it_rejects_invalid_constructor_arguments() {
 }
 ```
 
-## PHPSpec-style example data
+## Example data (PHPSpec-inspired)
 
-Example data keeps a small set of concrete cases inside one behavior example. It is intended for
-places where JUnit parameterized tests or Cucumber `Scenario Outline` tables would add more ceremony
-than design feedback.
+JavaSpec example data is the Java 8 adaptation of PHPSpec example tables. It keeps a small set of
+concrete cases inside one behavior example when JUnit parameterized tests or Cucumber
+`Scenario Outline` tables would add more ceremony than design feedback. The concrete spec keeps the
+same generated-proxy syntax used by ordinary examples.
 
 ```java
-public class NameNormalizerSpec extends ObjectBehavior<NameNormalizer> {
-    public NameNormalizerSpec() {
-        super(NameNormalizer.class);
-    }
-
+public class NameNormalizerSpec extends NameNormalizerSpecSupport {
     public void it_normalizes_known_inputs() {
         examples(row("  Alice  ", "Alice"), row("Bob", "Bob"))
-            .verify(new Example2<String, String>() {
-                @Override
-                public void run(String input, String expected) {
-                    match(subject().normalize(input)).shouldReturn(expected);
-                }
-            });
+            .verify((input, expected) -> normalize(input).shouldReturn(expected));
     }
 }
 ```
 
-`Example1` and `Example2` callbacks are available in core for Java 8-compatible one- and two-column
-rows. Rows execute inside the containing `it_*` example. If a row fails, the assertion message
+`Example1` and `Example2` are Java 8 functional interfaces for one- and two-column rows. Use their
+lambda form when calling generated proxies: it remains in the owning spec's source-discovery scope,
+whereas an anonymous inner class introduces a nested type that is deliberately excluded from proxy
+discovery. Rows execute inside the containing `it_*` example. If a row fails, the assertion message
 includes the row number and values, for example `Example data row 2 [ Bob , Robert] failed`. The
 stable JSON/JUnit XML/JUnit Platform row reporting and selector contract is in
 `docs/example-data-contract-1.0.md`; row unique-id selectors filter adapter descriptors/events and do
@@ -1854,7 +1849,7 @@ construction markers such as `beConstructedThrough("create", ...)`. Static facto
 construction methods on the described type, not instance subject proxies, so support classes do not
 generate `create().should...`, `duringCreate(...)`, or `subject().create(...)` wrappers for them.
 
-The existing explicit wrapper style remains available:
+The explicit wrapper remains available only as an advanced fallback before support generation:
 
 ```java
 match(subject().getRating()).shouldReturn(5);
@@ -2030,13 +2025,14 @@ configured value.
 
 ## Matchers
 
-Typed proxy methods return `Matchable<T>` for non-void subject methods. The explicit wrapper style
-also returns `Matchable<T>`:
+Typed proxy methods return `Matchable<R>` for non-void subject methods and are the standard syntax:
 
 ```java
 getRating().shouldReturn(5);
-match(subject().getRating()).shouldReturn(5);
 ```
+
+The lower-level `match(subject().getRating())` wrapper returns the same matcher only for advanced
+bootstrap/fallback use.
 
 The implemented matcher set is dependency-free and includes these groups.
 
@@ -2504,7 +2500,7 @@ import io.github.jvmspec.doubles.InterfaceDouble;
 InterfaceDouble<DataStore> storeDouble = Doubles.concreteDouble(DataStore.class);
 storeDouble.control().returns("save", true);
 beConstructedWith(storeDouble.instance());
-match(subject().save("item")).shouldReturn(true);
+save("item").shouldReturn(true);
 ```
 
 The adapter is standalone, outside the root Maven reactor, and intentionally carries ByteBuddy
