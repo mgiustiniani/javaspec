@@ -548,7 +548,7 @@ notifier.control().when("transform").thenAnswerSequence(
 ArgumentCaptor<String> captor = ArgumentCaptor.create();
 notifier.control().when("send", captor).thenReturn(true);
 notifier.instance().send("hello");
-assertEquals("hello", captor.value());
+match(captor.value()).shouldReturn("hello");
 
 // Ordered verification
 notifier.control().verifyInOrder("prepare", "send", "cleanup");
@@ -606,25 +606,26 @@ mvn -q -f javaspec-bytecode-agent/pom.xml -DskipTests install
 
 The module supports dynamic self-attach through ByteBuddy Agent when the JVM allows it. You can also
 start tests with `-javaagent:javaspec-bytecode-agent.jar` to make instrumentation available before
-execution.
+execution. Inside a JavaSpec example, use the normal `match(...).should*` expectations for values
+returned through these doubles:
 
 ```java
 // Final concrete class instance-method double
 InterfaceDouble<FinalGreeter> greeter = Doubles.concreteDouble(FinalGreeter.class);
 greeter.when("greet", "Ada").thenReturn("stubbed Ada");
-assertEquals("stubbed Ada", greeter.instance().greet("Ada"));
+match(greeter.instance().greet("Ada")).shouldReturn("stubbed Ada");
 
 // Static method double; close() restores original behavior for later calls
 try (StaticDouble<StaticUtility> statics = BytecodeAgentDoubles.staticDouble(StaticUtility.class)) {
     statics.when("message", "x").thenReturn("stubbed x");
-    assertEquals("stubbed x", StaticUtility.message("x"));
+    match(StaticUtility.message("x")).shouldReturn("stubbed x");
 }
 
 // Construction-aware double; subsequently created instances are registered
 try (ConstructionDouble<ConstructedGreeter> construction =
          BytecodeAgentDoubles.mockConstruction(ConstructedGreeter.class)) {
     construction.when("name").thenReturn("stubbed");
-    assertEquals("stubbed", new ConstructedGreeter().name());
+    match(new ConstructedGreeter().name()).shouldReturn("stubbed");
 }
 ```
 

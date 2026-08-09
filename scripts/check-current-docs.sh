@@ -150,6 +150,39 @@ else
   pass "documentation separates the native preview from published RC5"
 fi
 
+if python3 - <<'PY'
+from pathlib import Path
+import re
+import sys
+
+lines = Path("README.md").read_text(encoding="utf-8").splitlines()
+in_java_fence = False
+foreign = re.compile(
+    r"\b(?:assertEquals|assertTrue|assertFalse|assertNull|assertNotNull|assertSame|assertThrows|assertThat)\s*\("
+    r"|\bAssertions\."
+    r"|^\s*import\s+(?:static\s+)?(?:org\.junit|org\.testng|org\.assertj|org\.hamcrest)"
+)
+hits = []
+for number, line in enumerate(lines, 1):
+    if line.strip() == "```java":
+        in_java_fence = True
+        continue
+    if in_java_fence and line.strip() == "```":
+        in_java_fence = False
+        continue
+    if in_java_fence and foreign.search(line):
+        hits.append((number, line.strip()))
+
+for number, line in hits:
+    print(f"README.md:{number}: foreign assertion syntax in JavaSpec example: {line}")
+sys.exit(1 if hits else 0)
+PY
+then
+  pass "README Java examples use no external assertion-framework syntax"
+else
+  fail "README JavaSpec examples contain external assertion-framework syntax"
+fi
+
 if grep -q '(migration-guide.md)' docs/bytecode-doubles.md; then
   fail "docs/bytecode-doubles.md links to obsolete migration-guide.md"
 else
